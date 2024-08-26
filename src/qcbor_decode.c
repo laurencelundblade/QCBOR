@@ -768,6 +768,7 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @brief Decode the CBOR head, the type and argument.
  *
  * @param[in] pUInBuf            The input buffer to read from.
+ * @param[in] bRequirePreferred  Require preferred serialization for argument.
  * @param[out] pnMajorType       The decoded major type.
  * @param[out] puArgument        The decoded argument.
  * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
@@ -776,11 +777,10 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  * @retval QCBOR_ERR_HIT_END Unexpected end of input
  *
  * This decodes the CBOR "head" that every CBOR data item has. See
- * longer explaination of the head in documentation for
- * QCBOREncode_EncodeHead().
+ * longer description in QCBOREncode_EncodeHead().
  *
- * This does the network->host byte order conversion. The conversion
- * here also results in the conversion for floats in addition to that
+ * This does the network to host byte order conversion. The conversion
+ * here also provides the conversion for floats in addition to that
  * for lengths, tags and integer values.
  *
  * The int type is preferred to uint8_t for some variables as this
@@ -789,20 +789,20 @@ QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
  */
 static QCBORError
 QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+                         bool            bRequirePreferred,
+#endif
                          int            *pnMajorType,
                          uint64_t       *puArgument,
                          int            *pnAdditionalInfo)
 {
    QCBORError uReturn;
+   uint64_t   uArgument;
 
-   /* Get the initial byte that every CBOR data item has and break it
-    * down. */
+   /* Get and break down initial byte that every CBOR data item has */
    const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
    const int nTmpMajorType   = nInitialByte >> 5;
    const int nAdditionalInfo = nInitialByte & 0x1f;
-
-   /* Where the argument accumulates */
-   uint64_t uArgument;
 
    if(nAdditionalInfo >= LEN_IS_ONE_BYTE && nAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
       /* Need to get 1,2,4 or 8 additional argument bytes. Map
@@ -813,14 +813,46 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
       /* Loop getting all the bytes in the argument */
       uArgument = 0;
       for(int i = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
-         /* This shift and add gives the endian conversion. */
+         /* This shift-and-add gives the endian conversion. */
          uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
       }
+
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+      /* If requested, check that argument is in preferred form */
+      if(bRequirePreferred) {
+         uint64_t uMinArgument;
+
+         if(nAdditionalInfo == LEN_IS_ONE_BYTE) {
+            if(uArgument < 24) {
+               uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+               goto Done;
+            }
+         } else {
+            if(nTmpMajorType != CBOR_MAJOR_TYPE_SIMPLE) {
+               /* Check only if not a floating-point number */
+               int nArgLen = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE - 1];
+               uMinArgument = UINT64_MAX >> ((int)sizeof(uint64_t) - nArgLen) * 8;
+               if(uArgument <= uMinArgument) {
+                  uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+                  goto Done;
+               }
+            }
+         }
+      }
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+
    } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
       /* The reserved and thus-far unused additional info values */
       uReturn = QCBOR_ERR_UNSUPPORTED;
       goto Done;
    } else {
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+      if(bRequirePreferred && nAdditionalInfo == LEN_IS_INDEFINITE) {
+         uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+         goto Done;
+      }
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+
       /* Less than 24, additional info is argument or 31, an
        * indefinite-length.  No more bytes to get.
        */
@@ -858,12 +890,18 @@ Done:
  *
  * CBOR doesn't explicitly specify two's compliment for integers but
  * all CPUs use it these days and the test vectors in the RFC are
- * so. All integers in the CBOR structure are positive and the major
+ * so. All integers in encoded CBOR are unsigned and the CBOR major
  * type indicates positive or negative.  CBOR can express positive
- * integers up to 2^x - 1 where x is the number of bits and negative
- * integers down to 2^x.  Note that negative numbers can be one more
- * away from zero than positive.  Stdint, as far as I can tell, uses
- * two's compliment to represent negative integers.
+ * integers up to 2^64 - 1 negative integers down to -2^64.  Note that
+ * negative numbers can be one more
+ * away from zero than positive because there is no negative zero.
+ *
+ * The "65-bit negs" are values CBOR can encode that can't fit
+ * into an int64_t or uint64_t. They decoded as a special type
+ * QCBOR_TYPE_65BIT_NEG_INT. Not that this type does NOT
+ * take into account the offset of one for CBOR negative integers.
+ * It must be applied to get the correct value. Applying this offset
+ * would overflow a uint64_t.
  */
 static QCBORError
 QCBOR_Private_DecodeInteger(const int      nMajorType,
@@ -890,19 +928,14 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
 
    } else {
       if(uArgument <= INT64_MAX) {
-         /* CBOR's representation of negative numbers lines up with
-          * the two-compliment representation. A negative integer has
-          * one more in range than a positive integer. INT64_MIN is
-          * equal to (-INT64_MAX) - 1.
-          */
+         /* INT64_MIN is one further away from 0 than INT64_MAX
+          * so the -1 here doesn't overflow. */
          pDecodedItem->val.int64 = (-(int64_t)uArgument) - 1;
          pDecodedItem->uDataType = QCBOR_TYPE_INT64;
 
       } else {
-         /* C can't represent a negative integer in this range so it
-          * is an error.
-          */
-         uReturn = QCBOR_ERR_INT_OVERFLOW;
+         pDecodedItem->val.uint64 = uArgument;
+         pDecodedItem->uDataType  = QCBOR_TYPE_65BIT_NEG_INT;
       }
    }
 
@@ -1126,6 +1159,205 @@ QCBOR_Private_DecodeTag(const uint64_t uTagNumber,
 }
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+
+#if !defined(QCBOR_DISABLE_DECODE_CONFORMANCE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
+static QCBORError
+QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode)
+{
+   struct IEEE754_ToInt ToInt;
+
+   /* Only need to check for conversion to integer because
+    * half-precision is always preferred serialization. Don't
+    * need special checker for half-precision because whole
+    * numbers always convert perfectly from half to double.
+    *
+    * This catches half-precision with NaN payload too.
+    *
+    * The only thing allowed here is a double/half-precision that
+    * can't be converted to anything but a double.
+    */
+   if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      ToInt = IEEE754_DoubleToInt(d);
+      if(ToInt.type != QCBOR_TYPE_DOUBLE) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+
+static QCBORError
+QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode)
+{
+   struct IEEE754_ToInt ToInt;
+   IEEE754_union        ToSmaller;
+
+   if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      /* See if it could have been encoded as an integer */
+      ToInt = IEEE754_SingleToInt(f);
+      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+
+      /* Make sure there is no NaN payload */
+      if(IEEE754_SingleHasNaNPayload(f)) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+   }
+
+   /* See if it could have been encoded shorter */
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      ToSmaller = IEEE754_SingleToHalf(f, true);
+      if(ToSmaller.uSize != sizeof(float)) {
+         return QCBOR_ERR_PREFERRED_CONFORMANCE;
+      }
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+
+static QCBORError
+QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
+{
+   struct IEEE754_ToInt ToInt;
+   IEEE754_union        ToSmaller;
+
+   if(uDecodeMode >= QCBOR_DECODE_MODE_DCBOR) {
+      /* See if it could have been encoded as an integer */
+      ToInt = IEEE754_DoubleToInt(d);
+      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+      /* Make sure there is no NaN payload */
+      if(IEEE754_DoubleHasNaNPayload(d)) {
+         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      }
+   }
+   
+   /* See if it could have been encoded shorter */
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
+      if(ToSmaller.uSize != sizeof(double)) {
+         return QCBOR_ERR_PREFERRED_CONFORMANCE;
+      }
+   }
+
+   return QCBOR_SUCCESS;
+}
+#else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+static QCBORError
+QCBORDecode_Private_SingleConformance(const float f, uint8_t uDecodeMode)
+{
+   (void)f;
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+   } else {
+      return QCBOR_SUCCESS;
+   }
+}
+
+static QCBORError
+QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode)
+{
+   (void)d;
+   if(uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED) {
+      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+   } else {
+      return QCBOR_SUCCESS;
+   }
+}
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+/*
+ * Decode a float
+ */
+static QCBORError
+QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode,
+                          const int      nAdditionalInfo,
+                          const uint64_t uArgument,
+                          QCBORItem     *pDecodedItem)
+{
+   QCBORError uReturn = QCBOR_SUCCESS;
+   float      single;
+
+   (void)single; /* Avoid unused error from various #ifndefs */
+
+   switch(nAdditionalInfo) {
+      case HALF_PREC_FLOAT: /* 25 */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         /* Half-precision is returned as a double. The cast to
+          * uint16_t is safe because the encoded value was 16 bits. It
+          * was widened to 64 bits to be passed in here.
+          */
+         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+
+         uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uDecodeMode);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
+         break;
+
+      case SINGLE_PREC_FLOAT: /* 26 */
+         /* Single precision is normally returned as a double since
+          * double is widely supported, there is no loss of precision,
+          * it makes it easy for the caller in most cases and it can
+          * be converted back to single with no loss of precision
+          *
+          * The cast to uint32_t is safe because the encoded value was
+          * 32 bits. It was widened to 64 bits to be passed in here.
+          */
+         single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
+         uReturn = QCBORDecode_Private_SingleConformance(single, uDecodeMode);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
+
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         /* In the normal case, use HW to convert float to
+          * double. */
+         pDecodedItem->val.dfnum = (double)single;
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+         /* Use of float HW is disabled, return as a float. */
+         pDecodedItem->val.fnum  = single;
+         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+
+         /* IEEE754_FloatToDouble() could be used here to return as
+          * a double, but it adds object code and most likely
+          * anyone disabling FLOAT HW use doesn't care about floats
+          * and wants to save object code.
+          */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         break;
+
+      case DOUBLE_PREC_FLOAT: /* 27 */
+         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+
+         uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uDecodeMode);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         break;
+   }
+
+   return uReturn;
+}
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
+
+
+
 /* Make sure #define value line up as DecodeSimple counts on this. */
 #if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
 #error QCBOR_TYPE_FALSE macro value wrong
@@ -1155,7 +1387,6 @@ QCBOR_Private_DecodeTag(const uint64_t uTagNumber,
 #error QCBOR_TYPE_FLOAT macro value wrong
 #endif
 
-
 /**
  * @brief Decode major type 7 -- true, false, floating-point, break...
  *
@@ -1171,7 +1402,8 @@ QCBOR_Private_DecodeTag(const uint64_t uTagNumber,
  *                                           type in input.
  */
 static QCBORError
-QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
+QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode,
+                          const int      nAdditionalInfo,
                           const uint64_t uArgument,
                           QCBORItem     *pDecodedItem)
 {
@@ -1190,55 +1422,13 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
        */
 
       case HALF_PREC_FLOAT: /* 25 */
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         /* Half-precision is returned as a double.  The cast to
-          * uint16_t is safe because the encoded value was 16 bits. It
-          * was widened to 64 bits to be passed in here.
-          */
-         pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
-         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
-         break;
       case SINGLE_PREC_FLOAT: /* 26 */
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         /* Single precision is normally returned as a double since
-          * double is widely supported, there is no loss of precision,
-          * it makes it easy for the caller in most cases and it can
-          * be converted back to single with no loss of precision
-          *
-          * The cast to uint32_t is safe because the encoded value was
-          * 32 bits. It was widened to 64 bits to be passed in here.
-          */
-         {
-            const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-            /* In the normal case, use HW to convert float to
-             * double. */
-            pDecodedItem->val.dfnum = (double)f;
-            pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-            /* Use of float HW is disabled, return as a float. */
-            pDecodedItem->val.fnum = f;
-            pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
-
-            /* IEEE754_FloatToDouble() could be used here to return as
-             * a double, but it adds object code and most likely
-             * anyone disabling FLOAT HW use doesn't care about floats
-             * and wants to save object code.
-             */
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-         }
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
-         break;
-
       case DOUBLE_PREC_FLOAT: /* 27 */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
-         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         uReturn = QCBOR_Private_DecodeFloat(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
+#else
+         uReturn = QCBOR_ERR_ALL_FLOAT_DISABLED;
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          break;
 
       case CBOR_SIMPLEV_FALSE: /* 20 */
@@ -1246,12 +1436,19 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
       case CBOR_SIMPLEV_NULL:  /* 22 */
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+         if(uDecodeMode >= QCBOR_ENCODE_MODE_DCBOR &&
+            nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
+            uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            goto Done;
+         }
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
          break; /* nothing to do */
 
       case CBOR_SIMPLEV_ONEBYTE: /* 24 */
          if(uArgument <= CBOR_SIMPLE_BREAK) {
             /* This takes out f8 00 ... f8 1f which should be encoded
-             * as e0 … f7
+             * as e0 … f7 -- preferred serialization check for simple values.
              */
             uReturn = QCBOR_ERR_BAD_TYPE_7;
             goto Done;
@@ -1259,8 +1456,16 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
          /* FALLTHROUGH */
 
       default: /* 0-19 */
-         pDecodedItem->uDataType   = QCBOR_TYPE_UKNOWN_SIMPLE;
-         /* DecodeHead() will make uArgument equal to
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+         if(uDecodeMode >= QCBOR_ENCODE_MODE_DCBOR &&
+            (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
+            uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            goto Done;
+         }
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+         pDecodedItem->uDataType = QCBOR_TYPE_UKNOWN_SIMPLE;
+         /* QCBOR_Private_DecodeHead() will make uArgument equal to
           * nAdditionalInfo when nAdditionalInfo is < 24. This cast is
           * safe because the 2, 4 and 8 byte lengths of uNumber are in
           * the double/float cases above
@@ -1310,16 +1515,24 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
                                    QCBORItem           *pDecodedItem)
 {
    QCBORError uReturn;
-   int        nMajorType = 0;
-   uint64_t   uArgument = 0;
-   int        nAdditionalInfo = 0;
+   int       nMajorType = 0;
+   uint64_t  uArgument = 0;
+   int       nAdditionalInfo = 0;
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
    /* Decode the "head" that every CBOR item has into the major type,
     * argument and the additional info.
     */
-   uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf), &nMajorType, &uArgument, &nAdditionalInfo);
+   uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf),
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+                                      // TODO: make this prettier; will optimizer take out stuff without ifdef?
+                                      pMe->uDecodeMode >= QCBOR_DECODE_MODE_PREFERRED,
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+                                      &nMajorType,
+                                      &uArgument,
+                                      &nAdditionalInfo);
+
    if(uReturn != QCBOR_SUCCESS) {
       return uReturn;
    }
@@ -1350,7 +1563,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
 
       case CBOR_MAJOR_TYPE_SIMPLE:
          /* Major type 7: float, double, true, false, null... */
-         return QCBOR_Private_DecodeType7(nAdditionalInfo, uArgument, pDecodedItem);
+         return QCBOR_Private_DecodeType7(pMe->uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
          break;
 
       default:
@@ -1430,7 +1643,6 @@ QCBORDecode_Private_GetNextFullString(QCBORDecodeContext *pMe,
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
-
 
    /* This is where out-of-place break is detected for the whole
     * decoding stack. Break is an error for everything that calls
@@ -1751,13 +1963,13 @@ Done:
  * This also implements maps-as-array mode where a map is treated like
  * an array to allow caller to do their own label processing.
  */
-
 static QCBORError
 QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
-                                    QCBORItem          *pDecodedItem)
+                                    QCBORItem          *pDecodedItem,
+                                    uint32_t           *puLabelEndOffset)
 {
    QCBORItem  LabelItem;
-   QCBORError uErr;
+   QCBORError uErr, uErr2;
 
    uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
    if(QCBORDecode_IsUnrecoverableError(uErr)) {
@@ -1775,11 +1987,21 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 
    /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
+   
+   if(puLabelEndOffset != NULL) {
+       /* Cast is OK because lengths are all 32-bit in QCBOR */
+       *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+    }
 
    /* Get the value of the map item */
-   uErr = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
-   if(QCBORDecode_IsUnrecoverableError(uErr)) {
+   uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
+   if(QCBORDecode_IsUnrecoverableError(uErr2)) {
+      uErr = uErr2;
       goto Done;
+   }
+   if(uErr2 != QCBOR_SUCCESS) {
+      /* The recoverable error for the value overrides the recoverable error for the label, if there was an error for the label */
+      uErr = uErr2;
    }
 
    /* Combine the label item and value item into one */
@@ -1814,8 +2036,15 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
-         uErr = QCBOR_ERR_MAP_LABEL_TYPE;
-         goto Done;
+         /* It is possible to skip over labels that are non-aggregate
+          * types like floats, but not to skip over labels that are
+          * arrays or maps. We might eventually handle more label
+          * types like floats as they are not too hard and we now
+          * have QCBOR_DISABLE_NON_INTEGER_LABELS */
+         if(!pMe->bAllowAllLabels || QCBORItem_IsMapOrArray(LabelItem)) {
+            uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+            goto Done;
+         }
    }
 
 Done:
@@ -2013,7 +2242,8 @@ Done:
 static QCBORError
 QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
                                       bool               *pbBreak,
-                                      QCBORItem          *pDecodedItem)
+                                      QCBORItem          *pDecodedItem,
+                                      uint32_t           *puLabelEndOffset)
 {
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
@@ -2041,7 +2271,7 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
    }
 
    /* ==== Next: not at the end, so get another item ==== */
-   uReturn = QCBORDecode_Private_GetNextMapEntry(pMe, pDecodedItem);
+   uReturn = QCBORDecode_Private_GetNextMapEntry(pMe, pDecodedItem, puLabelEndOffset);
    if(QCBORDecode_IsUnrecoverableError(uReturn)) {
       /* Error is so bad that traversal is not possible. */
       goto Done;
@@ -2613,7 +2843,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
 {
    QCBORError uReturn;
 
-   uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem);
+   uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem, NULL);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -2689,6 +2919,223 @@ Done:
 }
 
 
+/**
+ * @brief Consume an entire map or array including its contents.
+ *
+ * @param[in]  pMe              The decoder context.
+ * @param[in]  pItemToConsume   The array/map whose contents are to be
+ *                              consumed.
+ * @param[out] puNextNestLevel  The next nesting level after the item was
+ *                              fully consumed.
+ *
+ * This may be called when @c pItemToConsume is not an array or
+ * map. In that case, this is just a pass through for @c puNextNestLevel
+ * since there is nothing to do.
+ */
+static QCBORError
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
+                                const QCBORItem    *pItemToConsume,
+                                bool               *pbBreak,
+                                uint8_t            *puNextNestLevel)
+{
+   QCBORError uReturn;
+   QCBORItem  Item;
+
+   /* If it is a map or array, this will tell if it is empty. */
+   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
+
+   if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
+      /* There is only real work to do for non-empty maps and arrays */
+
+      /* This works for definite- and indefinite-length maps and
+       * arrays by using the nesting level
+       */
+      do {
+         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item, NULL);
+         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
+            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+            goto Done;
+         }
+      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+
+      *puNextNestLevel = Item.uNextNestLevel;
+
+      uReturn = QCBOR_SUCCESS;
+
+   } else {
+      /* pItemToConsume is not a map or array. Just pass the nesting
+       * level through. */
+      *puNextNestLevel = pItemToConsume->uNextNestLevel;
+
+      uReturn = QCBOR_SUCCESS;
+   }
+
+Done:
+    return uReturn;
+}
+
+
+/*
+ *
+ * This consumes the next item. It returns the starting position of
+ * the label and the length of the label. It also returns the nest
+ * level of the item consumed.
+ */
+static QCBORError
+QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
+                                       uint8_t            *puNestLevel,
+                                       size_t             *puLabelStart,
+                                       size_t             *puLabelLen)
+{
+   QCBORError uErr;
+   QCBORItem  Item;
+   uint8_t    uLevel;
+   uint32_t   uLabelOffset;
+
+   /* Get the label and consume it should it be complex */
+   *puLabelStart = UsefulInputBuf_Tell(&(pMe->InBuf));
+
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &Item, &uLabelOffset);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
+   *puLabelLen = uLabelOffset - *puLabelStart;
+   *puNestLevel = Item.uNestingLevel;
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
+
+Done:
+   return uErr;
+}
+
+
+/* Loop over items in a map until the end of the map looking for
+ * duplicates. This starts at the current position in the map, not at
+ * the beginning of the map.
+ *
+ * This saves and restores the traversal cursor and nest tracking so
+ * they are the same on exit as they were on entry.
+ */
+static QCBORError
+QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
+                              const uint8_t       uNestLevel,
+                              const size_t        uCompareLabelStart,
+                              const size_t        uCompareLabelLen)
+{
+   QCBORError uErr;
+   size_t     uLabelStart;
+   size_t     uLabelLen;
+   uint8_t    uLevel;
+   int        nCompare;
+
+   const QCBORDecodeNesting SaveNesting = pMe->nesting;
+   const UsefulInputBuf     Save        = pMe->InBuf;
+
+   do {
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &uLabelStart, &uLabelLen);
+      if(uErr != QCBOR_SUCCESS) {
+         if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
+            uErr = QCBOR_SUCCESS; /* Successful end */
+         }
+         break;
+      }
+
+      if(uLevel != uNestLevel) {
+         break; /* Successful end of loop */
+      }
+
+      /* This check for dups works for labels that are preferred
+       * serialization and are not maps. If the labels are not in
+       * preferred serialization, then the check has to be more
+       * complicated and is type-specific because it uses the decoded
+       * value, not the encoded CBOR. It is further complicated for
+       * maps because the order of items in a map that is a label
+       * doesn't matter when checking that is is the duplicate of
+       * another map that is a label. QCBOR so far only turns on this
+       * dup checking as part of CDE checking which requires preferred
+       * serialization.  See 5.6 in RFC 8949.
+       */
+      nCompare = UsefulInputBuf_Compare(&(pMe->InBuf),
+                                         uCompareLabelStart, uCompareLabelLen,
+                                         uLabelStart, uLabelLen);
+      if(nCompare == 0) {
+         uErr = QCBOR_ERR_DUPLICATE_LABEL;
+         break;
+      }
+   } while (1);
+
+   pMe->nesting = SaveNesting;
+   pMe->InBuf   = Save;
+
+   return uErr;
+}
+
+
+/* This does sort order and duplicate detection on a map. The and all
+ * it's members must be in preferred serialization so the comparisons
+ * work correctly.
+ */
+static QCBORError
+QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToCheck)
+{
+   QCBORError uErr;
+   uint8_t    uNestLevel;
+   size_t     offset2, offset1, length2, length1;
+
+   const QCBORDecodeNesting SaveNesting = pMe->nesting;
+   const UsefulInputBuf Save = pMe->InBuf;
+   pMe->bAllowAllLabels = 1;
+
+   /* This loop runs over all the items in the map once, comparing
+    * each adjacent pair for correct ordering. It also calls CheckDup
+    * on each one which also runs over the remaining items in the map
+    * checking for duplicates. So duplicate checking runs in n^2.
+    */
+
+   offset2 = SIZE_MAX;
+   length2 = SIZE_MAX; // To avoid uninitialized warning
+   while(1) {
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uNestLevel, &offset1, &length1);
+      if(uErr != QCBOR_SUCCESS) {
+         if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
+            uErr = QCBOR_SUCCESS; /* Successful exit from loop */
+         }
+         break;
+      }
+
+      if(uNestLevel < pMapToCheck->uNextNestLevel) {
+         break; /* Successful exit from loop */
+      }
+
+      if(offset2 != SIZE_MAX) {
+         /* Check that the labels are ordered. Check is not done the
+          * first time through the loop when offset2 is unset. Since
+          * this does comparison of the items in encoded form they
+          * must be preferred serialization encoded. See RFC 8949
+          * 4.2.1.
+          */
+         if(UsefulInputBuf_Compare(&(pMe->InBuf), offset2, length2, offset1, length1) > 0) {
+            uErr = QCBOR_ERR_UNSORTED;
+            break;
+         }
+      }
+
+      uErr = QCBORDecode_Private_CheckDups(pMe, pMapToCheck->uNextNestLevel, offset1, length1);
+      if(uErr != QCBOR_SUCCESS) {
+         break;
+      }
+
+      offset2 = offset1;
+      length2 = length1;
+   }
+
+   pMe->bAllowAllLabels = 0;
+   pMe->nesting = SaveNesting;
+   pMe->InBuf = Save;
+
+   return uErr;
+}
+
+
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
@@ -2696,7 +3143,13 @@ QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
    QCBORError uErr;
-   uErr =  QCBORDecode_Private_GetNextTagContent(pMe, pDecodedItem);
+   uErr = QCBORDecode_Private_GetNextTagContent(pMe, pDecodedItem);
+#ifndef QCBOR_DISABLE_CONFORMANCE
+   if(uErr == QCBOR_SUCCESS && pMe->uDecodeMode >= QCBOR_ENCODE_MODE_CDE && pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
+      /* Traverse map checking sort order and for duplicates */
+      uErr = QCBORDecode_Private_CheckMap(pMe, pDecodedItem);
+   }
+#endif /* ! QCBOR_DISABLE_CONFORMANCE */
    if(uErr != QCBOR_SUCCESS) {
       pDecodedItem->uDataType  = QCBOR_TYPE_NONE;
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
@@ -3130,63 +3583,6 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-
-
-
-/**
- * @brief Consume an entire map or array including its contents.
- *
- * @param[in]  pMe              The decoder context.
- * @param[in]  pItemToConsume   The array/map whose contents are to be
- *                              consumed.
- * @param[out] puNextNestLevel  The next nesting level after the item was
- *                              fully consumed.
- *
- * This may be called when @c pItemToConsume is not an array or
- * map. In that case, this is just a pass through for @c puNextNestLevel
- * since there is nothing to do.
- */
-static QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
-                                bool               *pbBreak,
-                                uint8_t            *puNextNestLevel)
-{
-   QCBORError uReturn;
-   QCBORItem  Item;
-
-   /* If it is a map or array, this will tell if it is empty. */
-   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
-
-   if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
-      /* There is only real work to do for non-empty maps and arrays */
-
-      /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level
-       */
-      do {
-         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item);
-         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
-            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-            goto Done;
-         }
-      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
-
-      *puNextNestLevel = Item.uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
-
-   } else {
-      /* pItemToConsume is not a map or array. Just pass the nesting
-       * level through. */
-      *puNextNestLevel = pItemToConsume->uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
-   }
-
-Done:
-    return uReturn;
-}
 
 
 /*
@@ -3637,8 +4033,8 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
 
    /* Could call GetNext here, but don't need to because this
-    * is only interested in arrays and maps. */
-   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem);
+    * is only interested in arrays and maps. TODO: switch to GetNext()? */
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem, NULL);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       return;
@@ -4893,7 +5289,7 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext         *pMe,
  * numbers.
  */
 static QCBORError
-QCBOR_Private_ProcessBigNum(const uint8_t   uTagRequirement,
+QCBOR_Private_ProcessBigNum(const uint8_t    uTagRequirement,
                             const QCBORItem *pItem,
                             UsefulBufC      *pValue,
                             bool            *pbIsNegative)
@@ -4932,6 +5328,7 @@ QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
                       bool               *pbIsNegative)
 {
    QCBORItem  Item;
+
    QCBORDecode_VGetNext(pMe, &Item);
    if(pMe->uLastError) {
       return;
@@ -5505,6 +5902,12 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          }
          break;
 
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* This type occurs if the value won't fit into int64_t
+          * so this is always an error. */
+         return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
+         break;
+
       default:
          return  QCBOR_ERR_UNEXPECTED_TYPE;
    }
@@ -5908,11 +6311,14 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
 
       case QCBOR_TYPE_UINT64:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            *puValue =  pItem->val.uint64;
+            *puValue = pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -6288,6 +6694,15 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
+         break;
+#else
+         return QCBOR_ERR_HW_FLOAT_DISABLED;
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+         // TODO: don't use float HW. We have the function to do it.
+         *pdValue = -(double)pItem->val.uint64 - 1;
          break;
 #else
          return QCBOR_ERR_HW_FLOAT_DISABLED;
@@ -7282,3 +7697,418 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+
+
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+/*
+ * Public function, see header qcbor/qcbor_spiffy_decode.h file
+ */
+void
+QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
+                                      QCBORItem          *pNumber)
+{
+   QCBORItem            Item;
+   struct IEEE754_ToInt ToInt;
+   double               dNum;
+   QCBORError           uError;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   // TODO:VGetNext?
+   uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      *pNumber = Item;
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   switch(Item.uDataType) {
+      case QCBOR_TYPE_INT64:
+      case QCBOR_TYPE_UINT64:
+         *pNumber = Item;
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         ToInt = IEEE754_DoubleToInt(Item.val.dfnum);
+         if(ToInt.type == IEEE754_ToInt_IS_INT) {
+            pNumber->uDataType = QCBOR_TYPE_INT64;
+            pNumber->val.int64 = ToInt.integer.is_signed;
+         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
+            if(ToInt.integer.un_signed <= INT64_MAX) {
+               /* Do the same as base QCBOR integer decoding */
+               pNumber->uDataType = QCBOR_TYPE_INT64;
+               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
+            } else {
+               pNumber->uDataType = QCBOR_TYPE_UINT64;
+               pNumber->val.uint64 = ToInt.integer.un_signed;
+            }
+         } else {
+            *pNumber = Item;
+         }
+         break;
+
+      case QCBOR_TYPE_FLOAT:
+         ToInt = IEEE754_SingleToInt(Item.val.fnum);
+         if(ToInt.type == IEEE754_ToInt_IS_INT) {
+            pNumber->uDataType = QCBOR_TYPE_INT64;
+            pNumber->val.int64 = ToInt.integer.is_signed;
+         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
+            if(ToInt.integer.un_signed <= INT64_MAX) {
+               /* Do the same as base QCBOR integer decoding */
+               pNumber->uDataType = QCBOR_TYPE_INT64;
+               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
+            } else {
+               pNumber->uDataType = QCBOR_TYPE_UINT64;
+               pNumber->val.uint64 = ToInt.integer.un_signed;
+            }
+         } else {
+            *pNumber = Item;
+         }
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         if(Item.val.uint64 == UINT64_MAX) {
+            /* The value -18446744073709551616 is encoded as an
+             * unsigned 18446744073709551615. It's a whole number that
+             * needs to be returned as a double. It can't be handled
+             * by IEEE754_UintToDouble because 18446744073709551616
+             * doesn't fit into a uint64_t. You can't get it by adding
+             * 1 to 18446744073709551615.
+             */
+            pNumber->val.dfnum = -18446744073709551616.0;
+            pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+         } else {
+            dNum = IEEE754_UintToDouble(Item.val.uint64 + 1, 1);
+            if(dNum == IEEE754_UINT_TO_DOUBLE_OOB) {
+               *pNumber = Item;
+            } else {
+               pNumber->val.dfnum = dNum;
+               pNumber->uDataType = QCBOR_TYPE_DOUBLE;
+            }
+         }
+         break;
+
+      default:
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+         pNumber->uDataType = QCBOR_TYPE_NONE;
+         break;
+   }
+}
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+static UsefulBufC
+QCBORDecode_IntToBigNum(uint64_t         uNum,
+                        const UsefulBuf  BigNumBuf)
+{
+   UsefulOutBuf OB;
+
+   /* With a UsefulOutBuf, there's no pointer math here. */
+   UsefulOutBuf_Init(&OB, BigNumBuf);
+
+   /* Must copy one byte even if zero.  The loop, mask and shift
+    * algorithm provides endian conversion.
+    */
+   do {
+      UsefulOutBuf_InsertByte(&OB, uNum & 0xff, 0);
+      uNum >>= 8;
+   } while(uNum);
+
+   return UsefulOutBuf_OutUBuf(&OB);
+}
+
+
+static UsefulBufC
+QCBORDecode_Private_RemoveLeadingZeros(UsefulBufC String)
+{
+   while(String.len > 1) {
+      if(*(const uint8_t *)String.ptr) {
+         break;
+      }
+      String.len--;
+      String.ptr = (const uint8_t *)String.ptr + 1;
+   }
+
+   return String;
+}
+
+
+/* Add one to the big number and put the result in a new UsefulBufC
+ * from storage in UsefulBuf.
+ *
+ * Leading zeros must be removed before calling this.
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+static UsefulBufC
+QCBORDecode_BigNumCopyPlusOne(UsefulBufC BigNum,
+                              UsefulBuf  BigNumBuf)
+{
+   uint8_t        uCarry;
+   uint8_t        uSourceValue;
+   const uint8_t *pSource;
+   uint8_t       *pDest;
+   ptrdiff_t      uDestBytesLeft;
+
+   /* Start adding at the LSB */
+   pSource = &((const uint8_t *)BigNum.ptr)[BigNum.len-1];
+   pDest   = &((uint8_t *)BigNumBuf.ptr)[BigNumBuf.len-1];
+
+   uCarry = 1; /* Gets set back to zero if add the next line doesn't wrap */
+   *pDest = *pSource + 1;
+   while(1) {
+      /* Wrap around from 0xff to 0 is a defined operation for
+	 unsigned addition in C. */
+      if(*pDest != 0) {
+         /*  The add operation didn't wrap so no more carry. This
+          * funciton only adds one, so when there is no more carry,
+          * carrying is over to the end.
+          */
+         uCarry = 0;
+      }
+
+      uDestBytesLeft = pDest - (uint8_t *)BigNumBuf.ptr;
+      if(pSource <= (const uint8_t *)BigNum.ptr && uCarry == 0) {
+         break; /* Successful exit */
+      }
+      if(pSource > (const uint8_t *)BigNum.ptr) {
+         uSourceValue = *--pSource;
+      } else {
+         /* All source bytes processed, but not the last carry */
+         uSourceValue = 0;
+      }
+
+      pDest--;
+      if(uDestBytesLeft < 0) {
+         return NULLUsefulBufC; /* Not enough space in destination buffer */
+      }
+
+      *pDest = uSourceValue + uCarry;
+   }
+
+   return (UsefulBufC){pDest, BigNumBuf.len - (size_t)uDestBytesLeft};
+}
+
+
+/* This returns 1 when uNum is 0 */
+static size_t
+QCBORDecode_Private_CountNonZeroBytes(uint64_t uNum)
+{
+   size_t uCount = 0;
+   do {
+      uCount++;
+      uNum >>= 8;
+   } while(uNum);
+
+   return uCount;
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+QCBORError
+QCBORDecode_BignumPreferred(const QCBORItem Item,
+                            UsefulBuf       BigNumBuf,
+                            UsefulBufC     *pBigNum,
+                            bool           *pbIsNegative)
+{
+   QCBORError  uResult;
+   size_t      uLen;
+   UsefulBufC  BigNum;
+   int         uType;
+
+   uType = Item.uDataType;
+   if(uType == QCBOR_TYPE_BYTE_STRING) {
+      uType = *pbIsNegative ? QCBOR_TYPE_POSBIGNUM : QCBOR_TYPE_NEGBIGNUM;
+   }
+
+   static const uint8_t Zero[] = {0x00};
+   BigNum = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(Zero);
+   if((uType == QCBOR_TYPE_POSBIGNUM || uType == QCBOR_TYPE_NEGBIGNUM) &&
+       Item.val.bigNum.len) {
+         BigNum = QCBORDecode_Private_RemoveLeadingZeros(Item.val.bigNum);
+   }
+
+   /* Compute required length so it can be returned if buffer is too small */
+   switch(uType) {
+      case QCBOR_TYPE_INT64:
+         uLen = QCBORDecode_Private_CountNonZeroBytes((uint64_t)(Item.val.int64 < 0 ? -Item.val.int64 : Item.val.int64));
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         uLen = QCBORDecode_Private_CountNonZeroBytes(Item.val.uint64);
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         uLen = Item.val.uint64 == UINT64_MAX  ? 9 : QCBORDecode_Private_CountNonZeroBytes(Item.val.uint64);
+         break;
+
+      case QCBOR_TYPE_POSBIGNUM:
+         uLen = BigNum.len;
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         uLen = BigNum.len;
+         if(UsefulBuf_IsValue(BigNum, 0xff) == SIZE_MAX) {
+            uLen++;
+         }
+         break;
+
+      default:
+         uLen = 0;
+   }
+
+   *pBigNum = (UsefulBufC){NULL, uLen};
+
+   if(BigNumBuf.len < uLen || uLen == 0 || BigNumBuf.ptr == NULL) {
+      return BigNumBuf.ptr == NULL ? QCBOR_SUCCESS : QCBOR_ERR_BUFFER_TOO_SMALL;
+      /* Buffer is too short or type is wrong */
+   }
+
+   uResult = QCBOR_SUCCESS;
+
+   if(uType == QCBOR_TYPE_POSBIGNUM) {
+      *pBigNum = UsefulBuf_Copy(BigNumBuf, BigNum);
+      *pbIsNegative = false;
+   } else if(uType == QCBOR_TYPE_UINT64) {
+      *pBigNum = QCBORDecode_IntToBigNum(Item.val.uint64, BigNumBuf);
+      *pbIsNegative = false;
+   } else if(uType == QCBOR_TYPE_INT64) {
+      *pbIsNegative = Item.val.int64 < 0;
+      *pBigNum = QCBORDecode_IntToBigNum((uint64_t)(*pbIsNegative ? -Item.val.int64 : Item.val.int64), BigNumBuf);
+   } else if(uType == QCBOR_TYPE_65BIT_NEG_INT) {
+      *pbIsNegative = true;
+      if(Item.val.uint64 == UINT64_MAX) {
+         /* The one value that can't be done with a computation
+          * because it would overflow a uint64_t*/
+         static const uint8_t TwoToThe64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+         *pBigNum = UsefulBuf_Copy(BigNumBuf, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(TwoToThe64));
+      } else {
+         *pBigNum = QCBORDecode_IntToBigNum(Item.val.uint64 + 1, BigNumBuf);
+      }
+   } else if(uType == QCBOR_TYPE_NEGBIGNUM) {
+      /* The messy one. Take the stuff in the buffer and copy it to
+       * the new buffer, adding one to it. This might be one byte
+       * bigger than the original because of the carry from adding
+       * one.*/
+      *pbIsNegative = true;
+      *pBigNum = QCBORDecode_BigNumCopyPlusOne(BigNum, BigNumBuf);
+
+   } else {
+      uResult = QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+   return uResult;
+}
+
+
+static QCBORError
+QCBOR_Private_ProcessPreferredBigNum(const uint8_t    uTagRequirement,
+                                     const QCBORItem *pItem,
+                                     UsefulBuf        BigNumBuf,
+                                     UsefulBufC      *pValue,
+                                     bool            *pbIsNegative)
+{
+   if(pItem->uDataType != QCBOR_TYPE_INT64 &&
+      pItem->uDataType != QCBOR_TYPE_UINT64 &&
+      pItem->uDataType != QCBOR_TYPE_65BIT_NEG_INT) {
+
+      /* The integer types are always OK. If it's not an integer type drop
+       * in to the tag type checking system. */
+      const QCBOR_Private_TagSpec TagSpec =
+      {
+         uTagRequirement,
+         {QCBOR_TYPE_POSBIGNUM, QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
+      QCBORError uErr = QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
+      if(uErr != QCBOR_SUCCESS) {
+         return uErr;
+      }
+   }
+
+   return QCBORDecode_BignumPreferred(*pItem, BigNumBuf, pValue, pbIsNegative);
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+void
+QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pMe,
+                               const uint8_t       uTagRequirement,
+                               UsefulBuf           BigNumBuf,
+                               UsefulBufC         *pValue,
+                               bool               *pbIsNegative)
+{
+   QCBORItem Item;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      /* Already in error state, do nothing */
+      return;
+   }
+
+   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      pMe->uLastError = (uint8_t)uError;
+      return;
+   }
+
+   QCBOR_Private_ProcessPreferredBigNum(uTagRequirement, &Item, BigNumBuf, pValue, pbIsNegative);
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+void
+QCBORDecode_GetPreferredBignumInMapN(QCBORDecodeContext *pMe,
+                                     const int64_t       nLabel,
+                                     const uint8_t       uTagRequirement,
+                                     UsefulBuf           BigNumBuf,
+                                     UsefulBufC         *pValue,
+                                     bool               *pbIsNegative)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)QCBOR_Private_ProcessPreferredBigNum(uTagRequirement,
+                                                                  &Item,
+                                                                   BigNumBuf,
+                                                                   pValue,
+                                                                   pbIsNegative);
+}
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h
+ */
+void
+QCBORDecode_GetPreferredBignumInMapSZ(QCBORDecodeContext *pMe,
+                                      const char *       szLabel,
+                                      const uint8_t       uTagRequirement,
+                                      UsefulBuf           BigNumBuf,
+                                      UsefulBufC         *pValue,
+                                      bool               *pbIsNegative)
+{
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   pMe->uLastError = (uint8_t)QCBOR_Private_ProcessPreferredBigNum(uTagRequirement,
+                                                                  &Item,
+                                                                   BigNumBuf,
+                                                                   pValue,
+                                                                   pbIsNegative);
+}
+
+

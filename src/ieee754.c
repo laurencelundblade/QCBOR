@@ -1,5 +1,5 @@
 /* ==========================================================================
- * ieee754.c -- floating-point conversion between half, double & single-precision
+ * ieee754.c -- floating-point conversion for half, double & single-precision
  *
  * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
@@ -11,20 +11,14 @@
  * Created on 7/23/18
  * ========================================================================== */
 
-/*
- * Include before QCBOR_DISABLE_PREFERRED_FLOAT is checked as
- * QCBOR_DISABLE_PREFERRED_FLOAT might be defined in qcbor/qcbor_common.h
- */
 #include "qcbor/qcbor_common.h"
-
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #include "ieee754.h"
 #include <string.h> /* For memcpy() */
 
 
 /*
- * This code has long lines and is easier to read because of
+ * This has long lines and is easier to read because of
  * them. Some coding guidelines prefer 80 column lines (can they not
  * afford big displays?).
  *
@@ -164,6 +158,10 @@ CopyDoubleToUint64(double d)
    return u64;
 }
 
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+
+
 static inline double
 CopyUint64ToDouble(uint64_t u64)
 {
@@ -184,7 +182,7 @@ CopyUint32ToSingle(uint32_t u32)
 
 
 /**
- * @brief Assemble sign, significand and exponent into single precision float.
+ * @brief Assemble sign, significand and exponent into double precision float.
  *
  * @param[in] uDoubleSign              0 if positive, 1 if negative
  * @pararm[in] uDoubleSignificand      Bits of the significand
@@ -193,6 +191,7 @@ CopyUint32ToSingle(uint32_t u32)
  * This returns the bits for a single-precision float, a binary64
  * as specified in IEEE754.
  */
+// TODO: make the sign and exponent type int?
 static double
 IEEE754_AssembleDouble(uint64_t uDoubleSign,
                        uint64_t uDoubleSignificand,
@@ -208,6 +207,7 @@ IEEE754_AssembleDouble(uint64_t uDoubleSign,
 }
 
 
+/* Public function; see ieee754.h */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
@@ -315,7 +315,7 @@ IEEE754_AssembleHalf(uint32_t uHalfSign,
 
 /*  Public function; see ieee754.h */
 IEEE754_union
-IEEE754_SingleToHalf(float f)
+IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
 {
    IEEE754_union result;
    uint32_t      uDroppedBits;
@@ -357,28 +357,36 @@ IEEE754_SingleToHalf(float f)
          result.uSize  = IEEE754_UNION_IS_HALF;
          result.uValue = IEEE754_AssembleHalf(uSingleSign, 0, HALF_EXPONENT_INF_OR_NAN);
       } else {
-         /* The NaN can only be converted if no payload bits are lost
-          * per RFC 8949 section 4.1 that defines Preferred
-          * Serializaton. Note that Deterministically Encode CBOR in
-          * section 4.2 allows for some variation of this rule, but at
-          * the moment this implementation is of Preferred
-          * Serialization, not CDE. As of December 2023, we are also
-          * expecting an update to CDE. This code may need to be
-          * updated for CDE.
-          */
-         uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
-         if(uDroppedBits == 0) {
-            /* --- IS CONVERTABLE NAN --- */
-            uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+         if(bNoNaNPayload) {
+            /* --- REQUIRE CANNONICAL NAN --- */
             result.uSize  = IEEE754_UNION_IS_HALF;
             result.uValue = IEEE754_AssembleHalf(uSingleSign,
-                                                 uHalfSignificand,
+                                                 HALF_QUIET_NAN_BIT,
                                                  HALF_EXPONENT_INF_OR_NAN);
-
          } else {
-            /* --- IS UNCONVERTABLE NAN --- */
-            result.uSize   = IEEE754_UNION_IS_SINGLE;
-            result.uValue  = uSingle;
+            /* The NaN can only be converted if no payload bits are lost
+             * per RFC 8949 section 4.1 that defines Preferred
+             * Serializaton. Note that Deterministically Encode CBOR in
+             * section 4.2 allows for some variation of this rule, but at
+             * the moment this implementation is of Preferred
+             * Serialization, not CDE. As of December 2023, we are also
+             * expecting an update to CDE. This code may need to be
+             * updated for CDE.
+             */
+            uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
+            if(uDroppedBits == 0) {
+               /* --- IS CONVERTABLE NAN --- */
+               uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+               result.uSize  = IEEE754_UNION_IS_HALF;
+               result.uValue = IEEE754_AssembleHalf(uSingleSign,
+                                                    uHalfSignificand,
+                                                    HALF_EXPONENT_INF_OR_NAN);
+
+            } else {
+               /* --- IS UNCONVERTABLE NAN --- */
+               result.uSize   = IEEE754_UNION_IS_SINGLE;
+               result.uValue  = uSingle;
+            }
          }
       }
    } else {
@@ -495,7 +503,7 @@ IEEE754_AssembleSingle(uint64_t uSingleSign,
  * This handles all subnormals and NaN payloads.
  */
 static IEEE754_union
-IEEE754_DoubleToSingle(double d)
+IEEE754_DoubleToSingle(const double d)
 {
    IEEE754_union Result;
    int64_t       nExponentDifference;
@@ -513,7 +521,6 @@ IEEE754_DoubleToSingle(double d)
    const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSign             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
-
 
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
         if(uDoubleSignificand == 0) {
@@ -619,7 +626,9 @@ IEEE754_DoubleToSingle(double d)
 
 /* Public function; see ieee754.h */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision)
+IEEE754_DoubleToSmaller(const double d,
+                        const int    bAllowHalfPrecision,
+                        const int    bNoNanPayload)
 {
    IEEE754_union result;
 
@@ -629,15 +638,313 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision)
       /* Cast to uint32_t is OK, because value was just successfully
        * converted to single. */
       float uSingle = CopyUint32ToSingle((uint32_t)result.uValue);
-      result = IEEE754_SingleToHalf(uSingle);
+      result = IEEE754_SingleToHalf(uSingle, bNoNanPayload);
    }
 
    return result;
 }
 
 
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
-int ieee754_dummy_place_holder;
+/* This returns 64 minus the number of zero bits on the right. It is
+ * is the amount of precision in the 64-bit significand passed in.
+ * When used for 52 and 23-bit significands, subtract 12 and 41
+ * to get their precision.
+ *
+ * The value returned is for a *normalized* number like the
+ * significand of a double. When used for precision for a non-normalized
+ * number like a uint64_t, further computation is required.
+ *
+ * If the significand is 0, then 0 is returned as the precision.*/
+static int
+IEEE754_Private_CountPrecisionBits(uint64_t uSignigicand)
+{
+   int      nNonZeroBitsCount;
+   uint64_t uMask;
+
+   for(nNonZeroBitsCount = 64; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
+      uMask = 0x01UL << (64 - nNonZeroBitsCount);
+      if(uMask & uSignigicand) {
+         break;
+      }
+   }
+
+   return nNonZeroBitsCount;
+}
+
+
+
+/* Public function; see ieee754.h */
+struct IEEE754_ToInt
+IEEE754_DoubleToInt(const double d)
+{
+   int64_t              nPrecisionBits;
+   struct IEEE754_ToInt Result;
+   uint64_t             uInteger;
+
+   /* Pull the three parts out of the double-precision float. Most
+    * work is done with uint64_t which helps avoid integer promotions
+    * and static analyzer complaints.
+    */
+   const uint64_t uDouble                 = CopyDoubleToUint64(d);
+   const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
+   const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
+   const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
+
+   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
+      if(uDoubleSignificand == 0) {
+         /* --- POSITIVE AND NEGATIVE ZERO --- */
+         Result.integer.un_signed = 0;
+         Result.type              = IEEE754_ToInt_IS_UINT;
+      } else {
+         /* --- SUBNORMAL --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
+      if(uDoubleSignificand != 0) {
+         /* --- NAN --- */
+         Result.type = IEEE754_ToInt_NaN; /* dCBOR doesn't care about payload */
+      } else  {
+         /* --- INFINITY --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nDoubleUnbiasedExponent < 0) {
+      /* --- Exponent out of range --- */
+      Result.type = IEEE754_ToInt_NO_CONVERSION;
+   } else if(nDoubleUnbiasedExponent >= 64) {
+      if(nDoubleUnbiasedExponent == 64 && uDoubleSignificand == 0 && bIsNegative) {
+         /* Very special case for -18446744073709551616.0 */
+         Result.integer.un_signed = 0; /* No negative 0, use it to indicate 2^64 */
+         Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+      } else {
+         /* --- Exponent out of range --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else {
+      /* Conversion only fails when the input is too large or is not a
+       * whole number, never because of lack of precision because
+       * 64-bit integers always have more precision than the 52-bits
+       * of a double.
+       */
+      nPrecisionBits = IEEE754_Private_CountPrecisionBits(uDoubleSignificand) -
+                               (64-DOUBLE_NUM_SIGNIFICAND_BITS);
+
+      if(nPrecisionBits && nPrecisionBits > nDoubleUnbiasedExponent) {
+         /* --- Not a whole number --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      } else {
+         /* --- CONVERTABLE WHOLE NUMBER --- */
+         /* Add in the one that is implied in normal floats */
+         uInteger = uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS);
+         /* Factor in the exponent */
+         if(nDoubleUnbiasedExponent < DOUBLE_NUM_SIGNIFICAND_BITS) {
+            /* Numbers less than 2^52 with up to 52 significant bits */
+            uInteger >>= DOUBLE_NUM_SIGNIFICAND_BITS - nDoubleUnbiasedExponent;
+         } else {
+            /* Numbers greater than 2^52 with at most 52 significant bits */
+            uInteger <<= nDoubleUnbiasedExponent - DOUBLE_NUM_SIGNIFICAND_BITS;
+         }
+         if(bIsNegative) {
+            /* Cast safe because exponent range check above */
+            if(nDoubleUnbiasedExponent == 63) {
+               Result.integer.un_signed = uInteger;
+               Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+            } else {
+               Result.integer.is_signed = -((int64_t)uInteger);
+               Result.type              = IEEE754_ToInt_IS_INT;
+            }
+         } else {
+            Result.integer.un_signed = uInteger;
+            Result.type              = IEEE754_ToInt_IS_UINT;
+         }
+      }
+   }
+
+   return Result;
+}
+
+
+/* Public function; see ieee754.h */
+struct IEEE754_ToInt
+IEEE754_SingleToInt(const float f)
+{
+   int32_t              nPrecisionBits;
+   struct IEEE754_ToInt Result;
+   uint64_t             uInteger;
+
+   /* Pull the three parts out of the single-precision float. Most
+    * work is done with uint32_t which helps avoid integer promotions
+    * and static analyzer complaints.
+    */
+   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
+   const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
+   const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
+
+
+   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
+      if(uSingleleSignificand == 0 && !(uSingle & SINGLE_SIGN_MASK)) {
+         /* --- POSITIVE AND NEGATIVE ZERO --- */
+         Result.integer.un_signed = 0;
+         Result.type              = IEEE754_ToInt_IS_UINT;
+      } else {
+         /* --- Subnormal --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
+      /* --- NAN or INFINITY --- */
+      if(uSingleleSignificand != 0) {
+         Result.type = IEEE754_ToInt_NaN; /* dCBOR doesn't care about payload */
+      } else  {
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+   } else if(nSingleUnbiasedExponent < 0) {
+      /* --- Exponent out of range --- */
+       Result.type = IEEE754_ToInt_NO_CONVERSION;
+   } else if(nSingleUnbiasedExponent >= 64) {
+      if(nSingleUnbiasedExponent == 64 && uSingleleSignificand == 0 && bIsNegative) {
+         /* Very special case for -18446744073709551616.0 */
+         Result.integer.un_signed = 0; /* No negative 0, use it to indicate 2^64 */
+         Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+      } else {
+         /* --- Exponent out of range --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      }
+    } else {
+      /* Conversion only fails when the input is too large or is not a
+       * whole number, never because of lack of precision because
+       * 64-bit integers always have more precision than the 23 bits
+       * of a single.
+       */
+       nPrecisionBits = IEEE754_Private_CountPrecisionBits(uSingleleSignificand) -
+                           (64 - SINGLE_NUM_SIGNIFICAND_BITS);
+
+      if(nPrecisionBits && nPrecisionBits > nSingleUnbiasedExponent) {
+         /* --- Not a whole number --- */
+         Result.type = IEEE754_ToInt_NO_CONVERSION;
+      } else {
+         /* --- CONVERTABLE WHOLE NUMBER --- */
+         /* Add in the one that is implied in normal floats */
+         uInteger = uSingleleSignificand + (1ULL << SINGLE_NUM_SIGNIFICAND_BITS);
+         /* Factor in the exponent */
+         if(nSingleUnbiasedExponent < SINGLE_NUM_SIGNIFICAND_BITS) {
+            /* Numbers less than 2^23 with up to 23 significant bits */
+            uInteger >>= SINGLE_NUM_SIGNIFICAND_BITS - nSingleUnbiasedExponent;
+         } else {
+            /* Numbers greater than 2^23 with at most 23 significant bits*/
+            uInteger <<= nSingleUnbiasedExponent - SINGLE_NUM_SIGNIFICAND_BITS;
+         }
+         if(bIsNegative) {
+         /* Cast safe because exponent range check above */
+            if(nSingleUnbiasedExponent == 63) {
+               Result.integer.un_signed = uInteger;
+               Result.type              = IEEE754_ToInt_IS_65BIT_NEG;
+            } else {
+               Result.integer.is_signed = -((int64_t)uInteger);
+               Result.type              = IEEE754_ToInt_IS_INT;
+            }
+         } else {
+            Result.integer.un_signed = uInteger;
+            Result.type              = IEEE754_ToInt_IS_UINT;
+         }
+      }
+   }
+
+   return Result;
+}
+
+
+
+/* Public function; see ieee754.h */
+double
+IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
+{
+   int      nDoubleUnbiasedExponent;
+   uint64_t uDoubleSignificand;
+   int      nPrecisionBits;
+
+   if(uInt == 0) {
+      uDoubleSignificand      = 0;
+      nDoubleUnbiasedExponent = DOUBLE_EXPONENT_ZERO;
+
+   } else  {
+      /* Figure out the exponent and normalize the significand. This is
+       * done by shifting out all leading zero bits and counting them. If
+       * none are shifted out, the exponent is 63. */
+      uDoubleSignificand = uInt;
+      nDoubleUnbiasedExponent = 63;
+      while(1) {
+         if(uDoubleSignificand & 0x8000000000000000UL) {
+            break;
+         }
+         uDoubleSignificand <<= 1;
+         nDoubleUnbiasedExponent--;
+      };
+
+      /* Position significand correctly for a double. Only shift 63 bits
+       * because of the 1 that is present by implication in IEEE 754.*/
+      uDoubleSignificand >>= 63 - DOUBLE_NUM_SIGNIFICAND_BITS;
+
+      /* Subtract 1 which is present by implication in IEEE 754 */
+      uDoubleSignificand -= 1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS);
+
+      nPrecisionBits = IEEE754_Private_CountPrecisionBits(uInt) - (64 - nDoubleUnbiasedExponent);
+
+      if(nPrecisionBits > DOUBLE_NUM_SIGNIFICAND_BITS) {
+         /* Will lose precision if converted */
+         return IEEE754_UINT_TO_DOUBLE_OOB;
+      }
+   }
+
+   return IEEE754_AssembleDouble((uint64_t)uIsNegative,
+                                 uDoubleSignificand,
+                                 nDoubleUnbiasedExponent);
+}
 
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+
+/* Public function; see ieee754.h */
+int
+IEEE754_DoubleHasNaNPayload(const double d)
+{
+   const uint64_t uDouble                 = CopyDoubleToUint64(d);
+   const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
+   const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
+   const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+
+   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN &&
+      uDoubleSignificand != 0 &&
+      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
+      return 1;
+   } else {
+      return 0;
+   }
+}
+
+
+/* Public function; see ieee754.h */
+int
+IEEE754_SingleHasNaNPayload(const float f)
+{
+   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
+   const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
+   const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+
+   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
+      uSingleSignificand != 0 &&
+      uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
+      return 1;
+   } else {
+      return 0;
+   }
+}
+

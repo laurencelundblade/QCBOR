@@ -360,6 +360,7 @@ extern "C" {
  * - Max items in an array or map when encoding or decoding is
  *   @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
  * - Does not directly support labels in maps other than text strings & integers.
+ * - Traversal, duplicate and sort order checking errors out for labels that are arrays or maps.
  * - Does not directly support integer labels beyond whats fits in @c int64_t
  *   or @c uint64_t.
  * - Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
@@ -439,7 +440,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
  * is too small, encoding will go into an error state and not write
  * anything further.
  *
- * If allocating on the stack the convenience macro
+ * If allocating on the stack, the convenience macro
  * UsefulBuf_MAKE_STACK_UB() can be used, but its use is not required.
  *
  * Since there is no reallocation or such, the output buffer must be
@@ -472,6 +473,173 @@ void
 QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
 
+/* TODO: allow mix-and-match serialization behaviors
+ - Sort maps
+ - Reduce floats to integers
+ - Restrict non-preferred big nums
+ - Restrict indefinite-length strings
+ - Restrict indefinite-length maps and arrays
+ - Restrict simple values
+ - Dup detection
+ - Restrict NaN payload
+
+ Easy to do by changing uMode into a bit map.
+
+ Same for decode conformance check.
+ */
+
+
+/**
+ * @brief Select preferred serialization mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+ *
+ * This resests to the default serialization behaviors, that
+ * allows non-preferred serialization methods to be called,
+ * doesn't sort maps, and doesn't reduce whole-number floats
+ * to integer.
+ */
+static void
+QCBOREncode_SerializationAny(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Select preferred serialization mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+ *
+ * Setting this mode will cause QCBOR to return an error if an attempt
+ * is made to use one of the methods that produce non-preferred
+ * serialization. It doesn't change anything else as QCBOR produces
+ * preferred serialization by default.
+ *
+ * The non-preferred methods are: QCBOREncode_AddFloatNoPreferred(),
+ * QCBOREncode_AddDoubleNoPreferred(),
+ * QCBOREncode_OpenArrayIndefiniteLength(),
+ * QCBOREncode_CloseArrayIndefiniteLength(),
+ * QCBOREncode_OpenMapIndefiniteLength(),
+ * QCBOREncode_CloseMapIndefiniteLength(), plus those derived from the
+ * above listed.
+ *
+ * This mode is just a user guard to prevent accidentally calling
+ * something that produces non-preferred serialization. It doesn't do
+ * anything but causes errors to occur on attempts to call the above
+ * listed functions. This does nothing if the library is compiled
+ * QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
+ *
+ * See @ref Serialization. It is usually not necessary to set this
+ * mode, but there is usually no disadvantage to setting it.  Preferred
+ * Serialization is defined in RFC 8949, section 4.1.
+ */
+static void
+QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Select CBOR deterministic encoding mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+
+ * This causes QCBOR to produce CBOR Deterministic Encoding (CDE).
+ * With CDE, two distant unrelated CBOR encoders will produce exactly
+ * the same encoded CBOR for a given input.
+ *
+ * In addition to doing everything
+ * QCBOREncode_SerializationPreferred() does (including exclusion of
+ * indefinite lengths), this causes maps to be sorted. The map is
+ * sorted automatically when QCBOREncode_CloseMap() is called.
+ * QCBOREncode_CloseMap() becomes equivalent to
+ * QCBOREncode_CloseAndSortMap().
+ *
+ * Note that linking this function causese about 30% more code from
+ * the QCBOR library to be linked. Also, QCBOREncode_CloseMap() runs
+ * slower, but this is probably only of consequence in very
+ * constrained environments.
+ *
+ * See @ref Serialization. It is usually not necessary to set this
+ * mode as determinism is very rarely needed. However it will
+ * usually work with most protocols. CDE is defined in
+ * draft-ietf-cbor-cde.
+ */
+static void
+QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Select "dCBOR" encoding mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+ *
+ * This is a superset of CDE. This function does everything
+ * QCBOREncode_SerializationCDE() does. Also it is a super set of
+ * preferred serialization and does everything
+ * QCBOREncode_SerializationPreferred() does.
+ *
+ * The main feature of dCBOR is that there is only one way to serialize a
+ * particular numeric value. This changes the behavior of functions
+ * that add floating-point numbers.  If the floating-point number is
+ * whole, it will be encoded as an integer, not a floating-point number.
+ * 0.000 will be encoded as 0x00. Precision is never lost in this
+ * conversion.
+ *
+ * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads if
+ * you pass a NaN to one of the floating-point encoding functions.
+ * This mode forces all NaNs to the half-precision queit NaN. Also see
+ * QCBOREncode_Allow().
+ *
+ * dCBOR disallows use of any simple type other than true, false and
+ * NULL. In particular it disallows use of "undef" produced by
+ * QCBOREncode_AddUndef().
+ *
+ * See @ref Serialization. Set this mode only if the protocol you are
+ * implementing requires dCBOR. This mode is usually not compatible
+ * with protocols that don't use dCBOR. dCBOR is defined in
+ * draft-mcnally-deterministic-cbor.
+ */
+static void
+QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
+
+
+
+
+/** Bit flag to be passed to QCBOREncode_Allow() to allow NaN payloads
+ *  to be output by QCBOREncode_AddDouble(),
+ *  QCBOREncode_AddDoubleNoPreferred(), QCBORENcode_AddFloat() and
+ *  QCBOREncode_AddSingleleNoPreferred. */
+#define QCBOR_ENCODE_ALLOW_NAN_PAYLOAD 0x01
+
+/** Bit flag to be passed to QCBOREncode_Allow() output of less
+ *  interoperable values. See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD */
+#define QCBOR_ENCODE_ALLOW_ALL         0xFF
+
+
+/**
+ * @brief Allow encoding of less-interoperable values.
+ *
+ * @param[in] pCtx    The encoding context.
+ * @param[in] uAllow  Bit flags indicating what to allow.
+ *
+ * There are a few things in the CBOR standard that are often not
+ * supported and are thus not very interoperable.  By default QCBOR
+ * will error if you attempt to output them. This disables that
+ * error.
+ *
+ * See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD and 
+ * @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG.
+ *
+ * This does nothing if the library is compiled
+ * QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+static void
+QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
+
+
+/*
+ * QCBOR_ENCODE_CONFIG_V1_COMPAT
+ */
+static void
+QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pCtx);
+
+
 /**
  * @brief  Add a signed 64-bit integer to the encoded output.
  *
@@ -480,14 +648,14 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  *
  * The integer will be encoded and added to the CBOR output.
  *
- * This function figures out the size and the sign and encodes in the
- * correct minimal CBOR. Specifically, it will select CBOR major type
+ * This function figures out the size and the sign and encodes using
+ * CBOR preferred serialization. Specifically, it will select CBOR major type
  * 0 or 1 based on sign and will encode to 1, 2, 4 or 8 bytes
  * depending on the value of the integer. Values less than 24
  * effectively encode to one byte because they are encoded in with the
- * CBOR major type.  This is a neat and efficient characteristic of
+ * CBOR major type. This is a neat and efficient characteristic of
  * CBOR that can be taken advantage of when designing CBOR-based
- * protocols. If integers like tags can be kept between -23 and 23
+ * protocols. If integers can be kept between -23 and 23
  * they will be encoded in one byte including the major type.
  *
  * If you pass a smaller integer, like @c int16_t or a small value,
@@ -528,7 +696,7 @@ QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t nNu
  * @param[in] pCtx  The encoding context to add the integer to.
  * @param[in] uNum  The integer to add.
  *
- * The integer will be encoded and added to the CBOR output.
+ * The integer is encoded and added to the CBOR output.
  *
  * The only reason so use this function is for integers larger than
  * @c INT64_MAX and smaller than @c UINT64_MAX. Otherwise
@@ -544,6 +712,52 @@ QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64
 
 static void
 QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
+
+
+/**
+ * @brief Add a negative 64-bit integer to encoded output
+ *
+ * @param[in] pCtx  The encoding context to add the integer to.
+ * @param[in] uNum  The integer to add.
+ *
+ * QCBOREncode_AddInt64() is much better to encode negative integers
+ * than this.  What this can do is add integers with one more
+ * significant bit than an int64_t (a "65-bit" integer if you count
+ * the sign as a bit) which is possible because CBOR happens to
+ * support such integers.
+ *
+ * The actual value encoded is -uNum - 1. That is, give 0 for uNum to
+ * transmit -1, give 1 to transmit -2 and give UINT64_MAX to transmit
+ * -UINT64_MAX-1 (18446744073709551616). The interface is odd like
+ * this so all negative values CBOR can represent can be encoded by
+ * QCBOR (making this a complete CBOR implementation).
+ *
+ * The most negative value QCBOREncode_AddInt64() can encode is
+ * -9223372036854775808 which is -(2^63) or negative 0x800000000000.
+ * This can encode from -9223372036854775809 to -18446744073709551616
+ * or -(2^63 +1)  to -(2^64). Note that it is not possible to represent
+ * positive or negative 18446744073709551616 in any standard C data
+ * type.
+ *
+ * Negative integers are normally decoded in QCBOR with type
+ * @ref QCBOR_TYPE_INT64.  Integers in the range of -9223372036854775809
+ * to -18446744073709551616 are returned as @ref QCBOR_TYPE_65BIT_NEG_INT.
+ *
+ * WARNING: some CBOR decoders will be unable to decode -(2^63 + 1) to
+ * -(2^64).  Also, most CPUs do not have registers that can represent
+ * this range.  If you need 65-bit negative integers, you likely need
+ * negative 66, 67 and 68-bit negative integers so it is likely better
+ * to use CBOR big numbers where you can have any number of bits. See
+ * QCBOREncode_AddTNegativeBignum() and @ref Serialization.
+ */
+static void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
+
+static void
+QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
+
+static void
+QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
 
 
 /**
@@ -619,35 +833,44 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This encodes and outputs a double-precision floating-point
- * number. CBOR major type 7 is used.
+ * This encodes using preferred serialization, selectively encoding
+ * the input floating-point number as either double-precision,
+ * single-precision or half-precision. Infinity, NaN and 0 are always
+ * encoded as half-precision. The reduction to single-precision or
+ * half-precision is only performed if there is no loss or precision.
  *
- * This implements preferred serialization, selectively encoding the
- * double-precision floating-point number as either double-precision,
- * single-precision or half-precision. Infinity, NaN and zero are
- * always encoded as half-precision. If no precision will be lost in
- * the conversion to half-precision, then it will be converted and
- * encoded. If not and no precision will be lost in conversion to
- * single-precision, then it will be converted and encoded. If not,
- * then no conversion is performed, and it encoded as a
- * double-precision.
+ * Half-precision floating-point numbers take up 2 bytes, half that of
+ * single-precision, one quarter of double-precision. This can reduce
+ * the size of encoded output a lot, especially if the values 0,
+ * infinity and NaN occur frequently.
  *
- * Half-precision floating-point numbers take up two bytes, half that
- * of single-precision, one quarter of double-precision. Preferred
- * serialization can therefore reduce message size down to one quarter
- * of the original if most of the values are zero, infinity or NaN.
+ * QCBOR decoding returns double-precision reversing this reduction.
  *
- * When decoded, QCBOR returns these values as double-precision even
- * if they were encoded as single or half-precision.
- *
- * It is possible to disable preferred serialization when compiling
- * QCBOR. In that case, this operates the same as
- * QCBOREncode_AddDoubleNoPreferred().
+ * Normally this outputs only CBOR major type 7.  If
+ * QCBOREncode_SerializationdCBOR() is called to enter dCBOR mode,
+ * floating-point inputs that are whole integers are further reduced
+ * to CBOR type 0 and 1. This is a unification of the floating-point
+ * and integer number spaces such that there is only one encoding of
+ * any numeric value. Note that this will result in the whole integers
+ * from -(2^63+1) to -(2^64) being encode as CBOR major type 1 which
+ * can't be directly decoded into an int64_t or uint64_t. See
+ * QCBORDecode_GetNumberConvertPrecisely(), a good method to use to
+ * decode dCBOR.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
+ * It is possible that preferred serialization is disabled when the
+ * QCBOR library was built. In that case, this functions the same as
+ * QCBOREncode_AddDoubleNoPreferred().
+ *
  * See also QCBOREncode_AddDoubleNoPreferred(), QCBOREncode_AddFloat()
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+ *
+ * By default, this will error out on an attempt to encode a NaN with
+ * a payload. See QCBOREncode_Allow() and @ref
+ * QCBOR_ENCODE_ALLOW_NAN_PAYLOAD.
+ * If preferred serialization is disabled at compliation, this check for
+ * for NaN payloads is disabled.
  */
 static void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
@@ -666,8 +889,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * @param[in] fNum  The single-precision number to add.
  *
  * This is identical to QCBOREncode_AddDouble() except the input is
- * single-precision. The preferred serialization output will be either
- * single-precision or half-precision.
+ * single-precision. It also supports dCBOR.
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
@@ -688,8 +910,8 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This always outputs the number as a 64-bit double-precision.
- * Preferred serialization is not used.
+ * Output a double-precision float straight-through with no checking or
+ * processing for preferred serialization, dCBOR or other.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -712,8 +934,8 @@ QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] fNum  The single-precision number to add.
  *
- * This always outputs the number as a 32-bit single-precision.
- * Preferred serialization is not used.
+ * Output a single-precision float straight-through with no checking or
+ * processing for preferred serializtion, dCBOR or other.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -994,7 +1216,7 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
 
 
 /**
- * @brief Add a positive big number to the encoded output.
+ * @brief Add a positive big number using preferred serialization.
  *
  * @param[in] pCtx             The encoding context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
@@ -1005,16 +1227,25 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
  * network/big-endian byte order.  The first byte is the most
  * significant.
  *
- * It is encoded as CBOR major type 2, a binary string, possibly with
- * tag @ref CBOR_TAG_POS_BIGNUM. See [RFC 8949 section 3.4.3]
- * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3). No
- * processing, such as removal of leading zeros, is perfomed.
+ * If the value in @c BigNumber is greater than @c UINT64_MAX, this
+ * will be encoded as the CBOR tag @ref CBOR_TAG_POS_BIGNUM. If less
+ * then, it will be output as a type 0 integer. This is as required
+ * for preferred serialization described in [RFC 8949 section 3.4.3]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
  *
- * Sometimes big numbers are used to represent parts of cryptographic
- * keys, however, COSE which defines representations for keys does,
- * not use this particular type.
+ * See also QCBOREncode_AddTPositiveBignumNoPreferred().
+ *
+ * In QCBOR v2, this is NOT backwards compatible with v1 by default. It
+ * can be made to be compatible with QCBOREncode_Setv1Compatibility().
+ * The incompatibility is that in v1 this function was a straight through
+ * copy, where for v2 this will use preferred serialization to encode
+ * small integers as type 1.
+ *
+ * Sometimes big numbers are used to represent parts of
+ * cryptographic keys, however, COSE which defines representations for
+ * keys does, not use this particular type.
  */
-static void
+void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
                                UsefulBufC          BigNumber);
@@ -1032,6 +1263,19 @@ QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pCtx,
                                      UsefulBufC          BigNumber);
 
 
+/**
+ * @brief Add a positive big number using preferred serialization.
+ *
+ * @param[in] pCtx             The encoding context to add the big number to.
+ * @param[in] BigNumber            Pointer and length of the big number.
+ *
+ * This operates the same as QCBOREncode_AddTPositiveBignum(),
+ * but always outputs the tag number. This exists for backwards
+ * compatibility with an early version of QCBOR.
+ *
+ * In QCBOR v2, this is NOT backwards compatible with v1 by default. It
+ * can be made to be compatible with QCBOREncode_Setv1Compatibility().
+ */
 static void
 QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pCtx,
                               UsefulBufC          BigNumber);
@@ -1048,24 +1292,63 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- * @brief Add a negative big number to the encoded output.
+ * @brief Add a positive big number without preferred serialization.
  *
  * @param[in] pCtx             The encoding context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] BigNumber            Pointer and length of the big number.
  *
- * @c BigNumber makes up an aribtrary precision integer in
- * network/big-endian byte order.  The first byte is the most
- * significant.
+ * This is mostly a straight-through output of the bytes that make up the big
+ * number. There is no conversion to CBOR type 0 integers for values
+ * smaller than @c UINT64_MAX.
  *
- * It is encoded as CBOR major type 2, a binary string, possibly with
- * tag @ref CBOR_TAG_NEG_BIGNUM. See [RFC 8949 section 3.4.3]
- * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3). No
- * processing, such as removal of leading zeros or the required offset
- * of 1 for negative values, is perfomed.
+ * See also QCBOREncode_AddTPositiveBignum().
  */
-static void
+void
+QCBOREncode_AddTPositiveBignumNoPreferred(QCBOREncodeContext *pCtx,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    BigNumber);
+
+void
+QCBOREncode_AddTPositiveBignumNoPreferredToMap(QCBOREncodeContext *pCtx,
+                                               const char         *szLabel,
+                                               const uint8_t       uTagRequirement,
+                                               const UsefulBufC    BigNumber);
+
+void
+QCBOREncode_AddTPositiveBignumNoPreferredToMapN(QCBOREncodeContext *pCtx,
+                                                int64_t             nLabel,
+                                                const uint8_t       uTagRequirement,
+                                                const UsefulBufC    BigNumber);
+
+/**
+ * @brief Add a negative big number using preferred serialization.
+ *
+ * @param[in] pCtx             The encoding context to add the big number to.
+ * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+ *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] BigNumber        Pointer and length of the big number.
+ *
+ * This outputs @c BigNum as a type 1 if the value is greater than or
+ * equal to -(2^64), and as tag 3 if less than. This is as required
+ * for preferred serialization described in RFC 8949 3.4.3.
+ *
+ * Note that the actual encoded value is 1 more than the value of
+ * BigNum as required for all encoded negative numbers in CBOR. The
+ * implementation of this function does some big number arithmatic to
+ * effect this.
+ *
+ * See also QCBOREncode_AddTNegativeBignumNoPreferred().
+ *
+ * B y default, this function is not comparible with QCBOR v1. In
+ * QCBOR v1 this just copied @c BigNum straight through without
+ * adjusting the negative number by 1 and without preferred
+ * serialization. By calling QCBOREncode_Setv1Compatibility() , this
+ * will go back to the v1 behavior. This behavior in v2 is more
+ * correct.
+ */
+void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
                                UsefulBufC          BigNumber);
@@ -1083,6 +1366,19 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                      UsefulBufC          BigNumber);
 
 
+/**
+ * @brief Add a negative big number using preferred serialization.
+ *
+ * @param[in] pCtx             The encoding context to add the big number to.
+ * @param[in] BigNumber            Pointer and length of the big number.
+ *
+ * This operates the same as QCBOREncode_AddTNegativeBignum(),
+ * but always outputs the tag number. This exists for backwards
+ * compatibility with an early version of QCBOR.
+ *
+ * In QCBOR v2, this is NOT backwards compatible with v1 by default. It
+ * can be made to be compatible with QCBOREncode_Setv1Compatibility().
+ */
 static void
 QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pCtx,
                               UsefulBufC          BigNumber);
@@ -1096,6 +1392,43 @@ static void
 QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     int64_t             nLabel,
                                     UsefulBufC          BigNumber);
+
+
+/**
+ * @brief Add a negative big number without preferred serialization.
+ *
+ * @param[in] pCtx             The encoding context to add the big number to.
+ * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+ *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] BigNumber            Pointer and length of the big number.
+ *
+ * This always outputs the value as tag 3 (negative big number). It doesn't
+ * output numbers greater than -UINT64_MAX as type 1 integers as would
+ * be done with preferred serialization.
+ *
+ * This is not a straight through copy of the big number. It adds one, the
+ * offset used for all negative numbers in CBOR.
+ *
+ * If QCBOREncode_Setv1Compatibility() is set, then this does a
+ * straight-through copy without adding one.
+ *
+ * See also QCBOREncode_AddTNegativeBignum().
+ */
+void
+QCBOREncode_AddTNegativeBignumNoPreferred(QCBOREncodeContext *pCtx,
+                                          uint8_t             uTagRequirement,
+                                          UsefulBufC          BigNumber);
+void
+QCBOREncode_AddTNegativeBignumNoPreferredToMap(QCBOREncodeContext *pCtx,
+                                               const char         *szLabel,
+                                               uint8_t             uTagRequirement,
+                                               UsefulBufC          BigNumber);
+void
+QCBOREncode_AddTNegativeBignumNoPreferredToMapN(QCBOREncodeContext *pCtx,
+                                                int64_t             nLabel,
+                                                uint8_t             uTagRequirement,
+                                                UsefulBufC          BigNumber);
+
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
@@ -2028,10 +2361,35 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  * This is the same as QCBOREncode_CloseMap(), but the open map that
  * is being close must be of indefinite length.
  */
-static  void
+static void
 QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
 
 
+/**
+ * @brief Close and sort an open map.
+ *
+ * @param[in] pCtx The encoding context to close the map in .
+ *
+ * This is the same as QCBOREncode_CloseMap() except it sorts the map
+ * per RFC 8949 Section 4.2.1 and checks for duplicate map keys. This
+ * sort is lexicographic of the CBOR-encoded map labels.
+ *
+ * This is more expensive than most things in the encoder. It uses
+ * bubble sort which runs in n-squared time where @c n is the number
+ * of map items. Sorting large maps on slow CPUs might be slow. This
+ * is also increases the object code size of the encoder by about 30%
+ * (500-1000 bytes).
+ *
+ * Bubble sort was selected so as to not need require configuration of
+ * a buffer to track map item offsets. Bubble sort works well even
+ * though map items are not all the same size because it always swaps
+ * adjacent items.
+ */
+void 
+QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
+
+void 
+QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -2466,10 +2824,11 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
 void
 QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
                                    uint64_t            uTag,
+                                   int64_t             nExponent,
                                    UsefulBufC          BigNumMantissa,
                                    bool                bBigNumIsNegative,
-                                   int64_t             nMantissa,
-                                   int64_t             nExponent);
+                                   int64_t             nMantissa);
+
 
 
 /**
@@ -2496,49 +2855,60 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
 }
 
 
-/**
- * @brief Semi-private method to add only the type and length of a byte string.
- *
- * @param[in] pCtx    The context to initialize.
- * @param[in] Bytes   Pointer and length of the input data.
- *
- * This will be removed in QCBOR 2.0. It was never a public function.
- *
- * This is the same as QCBOREncode_AddBytes() except it only adds the
- * CBOR encoding for the type and the length. It doesn't actually add
- * the bytes. You can't actually produce correct CBOR with this and
- * the rest of this API. It is only used for a special case where the
- * valid CBOR is created manually by putting this type and length in
- * and then adding the actual bytes. In particular, when only a hash
- * of the encoded CBOR is needed, where the type and header are hashed
- * separately and then the bytes is hashed. This makes it possible to
- * implement COSE Sign1 with only one copy of the payload in the
- * output buffer, rather than two, roughly cutting memory use in half.
- *
- * This is only used for this odd case, but this is a supported
- * tested function for QCBOR 1.0.
- *
- * See also QCBOREncode_EncodeHead().
- */
-static void
-QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pCtx,
-                            UsefulBufC          Bytes);
-
-static void
-QCBOREncode_AddBytesLenOnlyToMap(QCBOREncodeContext *pCtx,
-                                 const char         *szLabel,
-                                 UsefulBufC          Bytes);
-
-static void
-QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pCtx,
-                                 int64_t              nLabel,
-                                 UsefulBufC           Bytes);
-
-
 /* Forward declaration */
 static void
 QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
 
+
+static inline void
+QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
+{
+   /* The use of a function pointer here is a little trick to reduce
+    * code linked for the common use cases that don't sort.  If this
+    * function is never linked, then QCBOREncode_CloseAndSortMap() is
+    * never linked and the amount of code pulled in is small. If the
+    * mode switch between sorting and not sorting were an if
+    * statement, then QCBOREncode_CloseAndSortMap() would always be
+    * linked even when not used. */
+   pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
+   pMe->uMode = QCBOR_ENCODE_MODE_CDE;
+}
+
+static inline void
+QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pMe)
+{
+   pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
+   pMe->uMode = QCBOR_ENCODE_MODE_DCBOR;
+}
+
+static inline void
+QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
+{
+   pMe->uMode = QCBOR_ENCODE_MODE_PREFERRED;
+}
+
+static inline void
+QCBOREncode_SerializationAny(QCBOREncodeContext *pMe)
+{
+   pMe->uMode = QCBOR_ENCODE_MODE_ANY;
+}
+
+static inline void
+QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   pMe->uAllow = uAllow;
+#else
+   (void)uAllow;
+   (void)pMe;
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+}
+
+static inline void
+QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
+{
+   pMe->uConfig = QCBOR_ENCODE_CONFIG_V1_COMPAT;
+}
 
 
 
@@ -2584,6 +2954,27 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddUInt64(pMe, uNum);
+}
+
+
+static inline void
+QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
+}
+
+static inline void
+QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddNegativeUInt64(pMe, uNum);
+}
+
+static inline void
+QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint64_t uNum)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddNegativeUInt64(pMe, uNum);
 }
 
 
@@ -2896,31 +3287,6 @@ QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pMe,
 }
 
 
-static inline void
-QCBOREncode_AddBytesLenOnly(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
-{
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, Bytes.len, 0);
-}
-
-
-static inline void
-QCBOREncode_AddBytesLenOnlyToMap(QCBOREncodeContext *pMe,
-                                 const char         *szLabel,
-                                 const UsefulBufC    Bytes)
-{
-    QCBOREncode_AddSZString(pMe, szLabel);
-    QCBOREncode_AddBytesLenOnly(pMe, Bytes);
-}
-
-static inline void
-QCBOREncode_AddBytesLenOnlyToMapN(QCBOREncodeContext *pMe,
-                                  const int64_t       nLabel,
-                                  const UsefulBufC    Bytes)
-{
-    QCBOREncode_AddInt64(pMe, nLabel);
-    QCBOREncode_AddBytesLenOnly(pMe, Bytes);
-}
-
 
 static inline void
 QCBOREncode_AddTBinaryUUID(QCBOREncodeContext *pMe,
@@ -2979,16 +3345,6 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pMe,
 }
 
 
-static inline void
-QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
-{
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_POS_BIGNUM);
-   }
-   QCBOREncode_AddBytes(pMe, Bytes);
-}
 
 static inline void
 QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pMe,
@@ -3039,16 +3395,7 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pMe,
 }
 
 
-static inline void
-QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
-{
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_NEG_BIGNUM);
-   }
-   QCBOREncode_AddBytes(pMe, Bytes);
-}
+
 
 static inline void
 QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pMe,
@@ -3116,10 +3463,10 @@ QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
    }
    QCBOREncode_Private_AddExpMantissa(pMe,
                                       uTag,
+                                      nBase10Exponent,
                                       NULLUsefulBufC,
                                       false,
-                                      nMantissa,
-                                      nBase10Exponent);
+                                      nMantissa);
 }
 
 static inline void
@@ -3204,10 +3551,10 @@ QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe,
    }
    QCBOREncode_Private_AddExpMantissa(pMe,
                                       uTag,
+                                      nBase10Exponent,
                                       Mantissa,
                                       bIsNegative,
-                                      0,
-                                      nBase10Exponent);
+                                      0);
 }
 
 static inline void
@@ -3303,10 +3650,10 @@ QCBOREncode_AddTBigFloat(QCBOREncodeContext *pMe,
    }
    QCBOREncode_Private_AddExpMantissa(pMe,
                                       uTag,
+                                      nBase2Exponent,
                                       NULLUsefulBufC,
                                       false,
-                                      nMantissa,
-                                      nBase2Exponent);
+                                      nMantissa);
 }
 
 static inline void
@@ -3385,10 +3732,10 @@ QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pMe,
    }
    QCBOREncode_Private_AddExpMantissa(pMe,
                                       uTag,
+                                      nBase2Exponent,
                                       Mantissa,
                                       bIsNegative,
-                                      0,
-                                      nBase2Exponent);
+                                      0);
 }
 
 static inline void
@@ -3834,8 +4181,14 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
 {
-   /* This check often is optimized out because uNum is known at compile time. */
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
+      if(uNum < CBOR_SIMPLEV_FALSE || uNum > CBOR_SIMPLEV_NULL) {
+         pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+         return;
+      }
+   }
+   /* This check often is optimized out because uNum is known at compile time. */
    if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
       pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       return;
@@ -3951,6 +4304,7 @@ QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pMe,  const int64_t nLabel)
    QCBOREncode_OpenArray(pMe);
 }
 
+
 static inline void
 QCBOREncode_CloseArray(QCBOREncodeContext *pMe)
 {
@@ -3981,7 +4335,7 @@ QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pMe, const int64_t nLabel)
 static inline void
 QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+   (pMe->pfnCloseMap)(pMe);
 }
 
 static inline void

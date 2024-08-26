@@ -10,10 +10,10 @@
  * Created on 7/23/18
  * ========================================================================== */
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #ifndef ieee754_h
 #define ieee754_h
+
 
 #include <stdint.h>
 
@@ -24,6 +24,9 @@
  * double precision floating-point numbers, in particular convesion to
  * smaller representation (e.g., double to single) that does not lose
  * precision for CBOR preferred serialization.
+ *
+ * This also implements conversion of floats to whole numbers as
+ * is required for dCBOR.
  *
  * This implementation works entirely with shifts and masks and does
  * not require any floating-point HW or library.
@@ -51,6 +54,7 @@
  * conversion. This version is reduced to what is needed for CBOR.
  */
 
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 /**
  * @brief Convert half-precision float to double-precision float.
@@ -87,6 +91,23 @@ typedef struct {
 } IEEE754_union;
 
 
+/** Holds result of an attempt to convert a floating-point
+ * number to an int64_t or uint64_t.
+ */
+struct IEEE754_ToInt {
+   enum {IEEE754_ToInt_IS_INT,
+         IEEE754_ToInt_IS_UINT,
+         IEEE754_ToInt_IS_65BIT_NEG,
+         IEEE754_ToInt_NO_CONVERSION,
+         IEEE754_ToInt_NaN
+   } type;
+   union {
+      uint64_t un_signed;
+      int64_t  is_signed;
+   } integer;
+};
+
+
 /**
  * @brief Convert a double to either single or half-precision.
  *
@@ -102,7 +123,7 @@ typedef struct {
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
+IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
 
 
 /**
@@ -118,9 +139,108 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_SingleToHalf(float f);
+IEEE754_SingleToHalf(float f, int bNoNanPayloads);
+
+
+/**
+ * @brief Convert a double-precision float to integer if whole number
+ *
+ * @param[in] d  The value to convert.
+ *
+ * @returns Either converted number or conversion status.
+ *
+ * If the value is a whole number that will fit either in a uint64_t
+ * or an int64_t, it is converted. If it is a NaN, then there is no
+ * conversion and and the fact that it is a NaN is indicated in the
+ * returned structure.  If it can't be converted, then that is
+ * indicated in the returned structure.
+ *
+ * This always returns postive numbers as a uint64_t even if they will
+ * fit in an int64_t.
+ *
+ * This never fails becaue of precision, but may fail because of range.
+ */
+struct IEEE754_ToInt
+IEEE754_DoubleToInt(double d);
+
+
+/**
+ * @brief Convert a single-precision float to integer if whole number
+ *
+ * @param[in] f  The value to convert.
+ *
+ * @returns Either converted number or conversion status.
+ *
+ * If the value is a whole number that will fit either in a uint64_t
+ * or an int64_t, it is converted. If it is a NaN, then there is no
+ * conversion and and the fact that it is a NaN is indicated in the
+ * returned structure.  If it can't be converted, then that is
+ * indicated in the returned structure.
+ *
+ * This always returns postive numbers as a uint64_t even if they will
+ * fit in an int64_t.
+ *
+ * This never fails becaue of precision, but may fail because of range.
+ */
+struct IEEE754_ToInt
+IEEE754_SingleToInt(float f);
+
+
+/**
+ * @brief Convert an unsigned integer to a double with no precision loss.
+ *
+ * @param[in] uInt  The value to convert.
+ * @param[in] uIsNegative   0 if postive, 1 if negative.
+ *
+ * @returns Either the converted number or 0.5 if no conversion.
+ *
+ * The conversion will fail if the input can not be represented in the
+ * 52 bits or precision that a double has. 0.5 is returned to indicate
+ * no conversion. It is out-of-band from non-error results, because
+ * all non-error results are whole integers.
+ */
+#define IEEE754_UINT_TO_DOUBLE_OOB 0.5
+double
+IEEE754_UintToDouble(uint64_t uInt, int uIsNegative);
+
+
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+/**
+ * @brief Tests whether NaN is "quiet" vs having a payload.
+ *
+ * @param[in] dNum   Double number to test.
+ *
+ * @returns 0 if a quiet NaN, 1 if it has a payload.
+ *
+ * A quiet NaN is usually represented as 0x7ff8000000000000. That is
+ * the significand bits are 0x8000000000000. If the significand bits
+ * are other than 0x8000000000000 it is considered to have a NaN
+ * payload.
+ *
+ * Note that 0x7ff8000000000000 is not specified in a standard, but it
+ * is commonly implemented and chosen by CBOR as the best way to
+ * represent a NaN.
+ */
+int
+IEEE754_DoubleHasNaNPayload(double dNum);
+
+
+
+/**
+ * @brief Tests whether NaN is "quiet" vs having a payload.
+ *
+ * @param[in] fNum   Float number to test.
+ *
+ * @returns 0 if a quiet NaN, 1 if it has a payload.
+ *
+ * See IEEE754_DoubleHasNaNPayload(). A single precision quiet NaN
+ * is 0x7fc00000.
+ */
+int
+IEEE754_SingleHasNaNPayload(float fNum);
 
 
 #endif /* ieee754_h */
 
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
