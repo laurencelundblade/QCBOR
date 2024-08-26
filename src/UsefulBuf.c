@@ -44,8 +44,9 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
- 1/7/2024    llundblade   Add UsefulInputBuf_Compare().
+ 08/08/2024  llundblade   Add UsefulOutBuf_SubString().
  21/05/2024  llundblade   Comment formatting and some code tidiness.
+ 1/7/2024    llundblade   Add UsefulInputBuf_Compare().
  28/02/2022  llundblade   Rearrange UsefulOutBuf_Compare().
  19/11/2023  llundblade   Add UsefulOutBuf_GetOutput().
  19/11/2023  llundblade   Add UsefulOutBuf_Swap().
@@ -418,6 +419,35 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pMe, UsefulBuf pDest)
 }
 
 
+/*
+ * Public function -- see UsefulBuf.h
+ *
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ */
+UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe,
+                                  const size_t  uStart,
+                                  const size_t  uLen)
+{
+   const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(pMe);
+
+   if(UsefulBuf_IsNULLC(Tmp)) {
+      return NULLUsefulBufC;
+   }
+
+   if(uStart > Tmp.len) {
+      return NULLUsefulBufC;
+   }
+
+   if(Tmp.len - uStart < uLen) {
+      return NULLUsefulBufC;
+   }
+
+   UsefulBufC SubString;
+   SubString.ptr = (const uint8_t *)Tmp.ptr + uStart;
+   SubString.len = uLen;
+
+   return SubString;
+}
 
 
 /*

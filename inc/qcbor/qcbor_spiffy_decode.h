@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
- * See BSD-3-Clause license in README.md
+ * See BSD-3-Clause license in file named "LICENSE"
  *
  * Forked from qcbor_decode.h on 7/23/2020
  * ========================================================================== */

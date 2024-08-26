@@ -108,7 +108,7 @@ int32_t SimpleValuesTest1(void);
 /*
  Encodes basic maps and arrays with indefinite length
  */
-int32_t SimpleValuesIndefiniteLengthTest1(void);
+int32_t IndefiniteLengthTest(void);
 
 
 /*
@@ -203,5 +203,8 @@ int32_t CDETest(void);
 int32_t DCBORTest(void);
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+int32_t SubStringTest(void);
+
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

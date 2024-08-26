@@ -57,10 +57,11 @@ extern "C" {
  * # QCBOR Overview
  *
  * This implements CBOR -- Concise Binary Object Representation as
- * defined in [RFC 8949] (https://tools.ietf.org/html/rfc8949). More
- * information is at http://cbor.io.  This is a near-complete implementation of
- * the specification. [RFC 8742] (https://tools.ietf.org/html/rfc8742) CBOR
- * Sequences is also supported. Limitations are listed further down.
+ * defined in [RFC 8949] (https://www.rfc-editor.org/rfc/rfc8949.html).
+ * More information is at http://cbor.io.  This is a near-complete
+ * implementation of the specification. [RFC 8742]
+ * (https://www.rfc-editor.org/rfc/rfc8742.html) CBOR Sequences is
+ * also supported. Limitations are listed further down.
  *
  * See @ref Encoding for general discussion on encoding,
  * @ref BasicDecode for general discussion on the basic decode features
@@ -222,12 +223,13 @@ extern "C" {
  * Note that when you nest arrays or maps in a map, the nested array or
  * map has a label.
  *
- * Many CBOR-based protocols start with an array or map. This makes them
- * self-delimiting. No external length or end marker is needed to know
- * the end. It is also possible not start this way, in which case this
- * it is usually called a CBOR sequence which is described in
- * [RFC 8742] (https://tools.ietf.org/html/rfc8742). This encoder supports
- * either just by whether the first item added is an array, map or other.
+ * Many CBOR-based protocols start with an array or map. This makes
+ * them self-delimiting. No external length or end marker is needed to
+ * know the end. It is also possible not start this way, in which case
+ * this it is usually called a CBOR sequence which is described in
+ * [RFC 8742] (https://www.rfc-editor.org/rfc/rfc8742.html). This
+ * encoder supports either just by whether the first item added is an
+ * array, map or other.
  *
  * If QCBOR is compiled with QCBOR_DISABLE_ENCODE_USAGE_GUARDS defined,
  * the errors QCBOR_ERR_CLOSE_MISMATCH, QCBOR_ERR_ARRAY_TOO_LONG,
@@ -413,7 +415,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
 
 /**
- * Initialize the encoder to prepare to encode some CBOR.
+ * Initialize the encoder.
  *
  * @param[in,out]  pCtx     The encoder context to initialize.
  * @param[in]      Storage  The buffer into which the encoded result
@@ -656,21 +658,20 @@ QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pCtx);
  * protocols. If integers can be kept between -23 and 23
  * they will be encoded in one byte including the major type.
  *
- * If you pass a smaller int, say an @c int16_t or a small value, say
- * 100, the encoding will still be CBOR's most compact that can
+ * If you pass a smaller integer, like @c int16_t or a small value,
+ * like 100, the encoding will still be CBOR's most compact that can
  * represent the value.  For example, CBOR always encodes the value 0
  * as one byte, 0x00. The representation as 0x00 includes
  * identification of the type as an integer too as the major type for
- * an integer is 0. See [RFC 8949]
- * (https://tools.ietf.org/html/rfc8949) Appendix A for more examples
- * of CBOR encoding. This compact encoding is also preferred
- * serialization CBOR as per section 34.1 in RFC 8949.
+ * an integer is 0. See [RFC 8949 Appendix A]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section-appendix.a)
+ * for more examples of CBOR encoding. This compact encoding is
+ * preferred serialization CBOR as per [RFC 8949 section 4.1]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section-4.1)
  *
  * There are no functions to add @c int16_t or @c int32_t because they
  * are not necessary because this always encodes to the smallest
- * number of bytes based on the value (If this code is running on a
- * 32-bit machine having a way to add 32-bit integers would reduce
- * code size some).
+ * number of bytes based on the value.
  *
  * If the encoding context is in an error state, this will do
  * nothing. If an error occurs when adding this integer, the internal
@@ -683,10 +684,10 @@ void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 static void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nNum);
 
 static void
-QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNum);
+QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t nNum);
 
 
 /**
@@ -765,9 +766,9 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  * @param[in] pCtx   The encoding context to add the text to.
  * @param[in] Text   Pointer and length of text to add.
  *
- * The text passed in must be unencoded UTF-8 according to [RFC 3629]
- * (https://tools.ietf.org/html/rfc3629). There is no NULL
- * termination. The text is added as CBOR major type 3.
+ * The text passed in must be unencoded UTF-8 according to
+ * [RFC 3629] (https://www.rfc-editor.org/rfc/rfc3629.html). There is
+ * no NULL termination. The text is added as CBOR major type 3.
  *
  * If called with @c nBytesLen equal to 0, an empty string will be
  * added. When @c nBytesLen is 0, @c pBytes may be @c NULL.
@@ -832,6 +833,7 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
+<<<<<<< HEAD
  * This encodes using preferred serialization, selectively encoding
  * the input floating-point number as either double-precision,
  * single-precision or half-precision. Infinity, NaN and 0 are always
@@ -855,6 +857,32 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * can't be directly decoded into an int64_t or uint64_t. See
  * QCBORDecode_GetNumberConvertPrecisely(), a good method to use to
  * decode dCBOR.
+=======
+ * This encodes and outputs a double-precision floating-point
+ * number. CBOR major type 7 is used.
+ *
+ * This implements preferred serialization, selectively encoding the
+ * double-precision floating-point number as either double-precision,
+ * single-precision or half-precision. Infinity, NaN and zero are
+ * always encoded as half-precision. If no precision will be lost in
+ * the conversion to half-precision, then it will be converted and
+ * encoded. If not and no precision will be lost in conversion to
+ * single-precision, then it will be converted and encoded. If not,
+ * then no conversion is performed, and it encoded as a
+ * double-precision.
+ *
+ * Half-precision floating-point numbers take up two bytes, half that
+ * of single-precision, one quarter of double-precision. Preferred
+ * serialization can therefore reduce message size down to one quarter
+ * of the original if most of the values are zero, infinity or NaN.
+ *
+ * When decoded, QCBOR returns these values as double-precision even
+ * if they were encoded as single or half-precision.
+ *
+ * It is possible to disable preferred serialization when compiling
+ * QCBOR. In that case, this operates the same as
+ * QCBOREncode_AddDoubleNoPreferred().
+>>>>>>> master
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -884,11 +912,16 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
 /**
  * @brief Add a single-precision floating-point number to the encoded output.
  *
- * @param[in] pCtx  The encoding context to add the double to.
+ * @param[in] pCtx  The encoding context to add the single to.
  * @param[in] fNum  The single-precision number to add.
  *
  * This is identical to QCBOREncode_AddDouble() except the input is
+<<<<<<< HEAD
  * single-precision. It also supports dCBOR.
+=======
+ * single-precision. The preferred serialization output will be either
+ * single-precision or half-precision.
+>>>>>>> master
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
@@ -949,7 +982,7 @@ QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLab
 
 static void
 QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum);
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /**
@@ -1056,7 +1089,7 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
  *  @param[in] nDays            Number of days before or after 1970-01-0.
  *
  * This date format is described in
- * [RFC 8943] (https://tools.ietf.org/html/rfc8943).
+ * [RFC 8943] (https://www.rfc-editor.org/rfc/rfc8943.html).
  *
  * The preferred integer serialization rules apply here so the date
  * will be encoded in a minimal number of bytes. Until about the year
@@ -1180,7 +1213,8 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
  * @param[in] Bytes            Pointer and length of the binary UUID.
  *
  * A binary UUID as defined in [RFC 4122]
- * (https://tools.ietf.org/html/rfc4122) is added to the output.
+ * (https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
+ * output.
  *
  * It is output as CBOR major type 2, a binary string, with tag @ref
  * CBOR_TAG_BIN_UUID indicating the binary string is a UUID.
@@ -1216,10 +1250,10 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
 /**
  * @brief Add a positive big number using preferred serialization.
  *
- * @param[in] pCtx             The encoding context to add the big number to.
+ * @param[in] pCtx             The encoding context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] BigNumber            Pointer and length of the big number.
+ * @param[in] BigNumber        Pointer and length of the big number.
  *
  * @c BigNumber makes up an aribtrary precision integer in
  * network/big-endian byte order.  The first byte is the most
@@ -1228,7 +1262,8 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
  * If the value in @c BigNumber is greater than @c UINT64_MAX, this
  * will be encoded as the CBOR tag @ref CBOR_TAG_POS_BIGNUM. If less
  * then, it will be output as a type 0 integer. This is as required
- * for preferred serialization described in RFC 8949 section 3.4.3.
+ * for preferred serialization described in [RFC 8949 section 3.4.3]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
  *
  * See also QCBOREncode_AddTPositiveBignumNoPreferred().
  *
@@ -1291,7 +1326,7 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
 /**
  * @brief Add a positive big number without preferred serialization.
  *
- * @param[in] pCtx             The encoding context to add the big number to.
+ * @param[in] pCtx             The encoding context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] BigNumber            Pointer and length of the big number.
@@ -1325,7 +1360,7 @@ QCBOREncode_AddTPositiveBignumNoPreferredToMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx             The encoding context to add the big number to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] BigNum            Pointer and length of the big number.
+ * @param[in] BigNumber        Pointer and length of the big number.
  *
  * This outputs @c BigNum as a type 1 if the value is greater than or
  * equal to -(2^64), and as tag 3 if less than. This is as required
@@ -1348,19 +1383,19 @@ QCBOREncode_AddTPositiveBignumNoPreferredToMapN(QCBOREncodeContext *pCtx,
 void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
-                               UsefulBufC          BigNum);
+                               UsefulBufC          BigNumber);
 
 static void
 QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pCtx,
                                       const char         *szLabel,
                                       uint8_t             uTagRequirement,
-                                      UsefulBufC          Bytes);
+                                      UsefulBufC          BigNumber);
 
 static void
 QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                      int64_t             nLabel,
                                      uint8_t             uTagRequirement,
-                                     UsefulBufC          Bytes);
+                                     UsefulBufC          BigNumber);
 
 
 /**
@@ -1425,6 +1460,7 @@ QCBOREncode_AddTNegativeBignumNoPreferredToMapN(QCBOREncodeContext *pCtx,
                                                 int64_t             nLabel,
                                                 uint8_t             uTagRequirement,
                                                 UsefulBufC          BigNumber);
+
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
@@ -1702,7 +1738,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          Mantissa,
                                     bool                bIsNegative,
                                     int64_t             nBase2Exponent);
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -1714,7 +1750,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
  * @param[in] URI              Pointer and length of the URI.
  *
  * The format of URI must be per [RFC 3986]
- * (https://tools.ietf.org/html/rfc3986).
+ * (https://www.rfc-editor.org/rfc/rfc3986.html).
  *
  * It is output as CBOR major type 3, a text string, with tag @ref
  * CBOR_TAG_URI indicating the text string is a URI.
@@ -1766,7 +1802,7 @@ QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx,
  * @param[in] B64Text          Pointer and length of the base-64 encoded text.
  *
  * The text content is Base64 encoded data per [RFC 4648]
- * (https://tools.ietf.org/html/rfc4648).
+ * (https://www.rfc-editor.org/rfc/rfc4648.html).
  *
  * It is output as CBOR major type 3, a text string, with tag @ref
  * CBOR_TAG_B64 indicating the text string is Base64 encoded.
@@ -1774,7 +1810,7 @@ QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx,
 static void
 QCBOREncode_AddTB64Text(QCBOREncodeContext *pCtx,
                         uint8_t             uTagRequirement,
-                                    UsefulBufC          B64Text);
+                        UsefulBufC          B64Text);
 
 static void
 QCBOREncode_AddTB64TextToMapSZ(QCBOREncodeContext *pCtx,
@@ -1813,8 +1849,8 @@ QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] B64Text          Pointer and length of the base64url encoded text.
  *
- * The text content is base64URL encoded text as per [RFC 4648]
- * (https://tools.ietf.org/html/rfc4648).
+ * The text content is base64URL encoded text as per
+ * [RFC 4648] (https://www.rfc-editor.org/rfc/rfc4648.html).
  *
  * It is output as CBOR major type 3, a text string, with tag
  * @ref CBOR_TAG_B64URL indicating the text string is a Base64url
@@ -1909,7 +1945,7 @@ QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pCtx,
  * @param[in] MIMEData         Pointer and length of the MIME data.
  *
  * The text content is in MIME format per [RFC 2045]
- * (https://tools.ietf.org/html/rfc2045) including the headers.
+ * (https://www.rfc-editor.org/rfc/rfc2045.html) including the headers.
  *
  * It is output as CBOR major type 2, a binary string, with tag
  * @ref CBOR_TAG_BINARY_MIME indicating the string is MIME data.  This
@@ -1969,11 +2005,11 @@ QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] szDate           Null-terminated string with date to add.
  *
- * The string szDate should be in the form of [RFC 3339]
- * (https://tools.ietf.org/html/rfc3339) as defined by section 3.3 in
- * [RFC 4287] (https://tools.ietf.org/html/rfc4287). This is as
- * described in section 3.4.1 in [RFC 8949]
- * (https://tools.ietf.org/html/rfc8949).
+ * The string szDate should be in the form of
+ * [RFC 3339] (https://www.rfc-editor.org/rfc/rfc3339.html) as defined
+ * by section 3.3 in [RFC 4287] (https://www.rfc-editor.org/rfc/rfc4287.html).
+ * This is as described in section 3.4.1 in [RFC 8949]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section3.1.4).
  *
  * Note that this function doesn't validate the format of the date
  * string at all. If you add an incorrect format date string, the
@@ -2026,10 +2062,10 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
  * @param[in] szDate           Null-terminated string with date to add.
  *
  * This date format is described in
- * [RFC 8943] (https://tools.ietf.org/html/rfc8943), but that mainly
+ * [RFC 8943] (https://www.rfc-editor.org/rfc/rfc8943.html), but that mainly
  * references RFC 3339.  The string szDate must be in the forrm
  * specified the ABNF for a full-date in
- * [RFC 3339] (https://tools.ietf.org/html/rfc3339). Examples of this
+ * [RFC 3339] (https://www.rfc-editor.org/rfc/rfc3339.html). Examples of this
  * are "1985-04-12" and "1937-01-01".  The time and the time zone are
  * never included.
  *
@@ -2111,7 +2147,7 @@ QCBOREncode_AddNULLToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  *
  * Note that this value will not translate to JSON.
  *
- * This Undef doesn't have any special meaning in CBOR such as a
+ * "undef" doesn't have any special meaning in CBOR such as a
  * terminating value for a string or an empty value.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
@@ -2256,8 +2292,8 @@ QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
  * text strings, then just call the QCBOREncode_AddXxx() function
  * explicitly to add the label. Then call it again to add the value.
  *
- * See the [RFC 8949] (https://tools.ietf.org/html/rfc8949) for a lot
- * more information on creating maps.
+ * See the [RFC 8949] (https://www.rfc-editor.org/rfc/rfc8949.html)
+ * for a lot more information on creating maps.
  */
 static void
 QCBOREncode_OpenMap(QCBOREncodeContext *pCtx);
@@ -2399,11 +2435,11 @@ QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
  * contain encoded CBOR. This increases nesting level by one.
  *
  * The typical use case is for encoded CBOR that is to be
- * cryptographically hashed, as part of a [RFC 8152, COSE]
- * (https://tools.ietf.org/html/rfc8152) implementation. The wrapping
- * byte string is taken as input by the hash function (which is why it
- * is returned by QCBOREncode_CloseBstrWrap2()).  It is also easy to
- * recover on decoding with standard CBOR decoders.
+ * cryptographically hashed, as part of a [RFC 9052, COSE]
+ * (https://www.rfc-editor.org/rfc/rfc9052.html) implementation. The
+ * wrapping byte string is taken as input by the hash function (which
+ * is why it is returned by QCBOREncode_CloseBstrWrap2()).  It is also
+ * easy to recover on decoding with standard CBOR decoders.
  *
  * Using QCBOREncode_BstrWrap() and QCBOREncode_CloseBstrWrap2()
  * avoids having to encode the items first in one buffer (e.g., the
@@ -2442,8 +2478,8 @@ QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
  *
  * A pointer and length of the enclosed encoded CBOR is returned in @c
  * *pWrappedCBOR if it is not @c NULL. The main purpose of this is so
- * this data can be hashed (e.g., with SHA-256) as part of a [RFC
- * 8152, COSE] (https://tools.ietf.org/html/rfc8152)
+ * this data can be hashed (e.g., with SHA-256) as part of a
+ * [RFC 9052, COSE] (https://www.rfc-editor.org/rfc/rfc9052.html)
  * implementation. **WARNING**, this pointer and length should be used
  * right away before any other calls to @c QCBOREncode_CloseXxx() as
  * they will move data around and the pointer and length will no
@@ -2476,7 +2512,7 @@ QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR);
  *
  * @param[in] pCtx       The encoding context.
  *
- * This cancels QCBOREncode_BstrWrap() making tghe encoding as if it
+ * This cancels QCBOREncode_BstrWrap() making the encoding as if it
  * were never called.
  *
  * WARNING: This does not work on QCBOREncode_BstrWrapInMap()
@@ -2498,8 +2534,7 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pCtx);
  * @param[in] Encoded  The already-encoded CBOR to add to the context.
  *
  * The encoded CBOR being added must be fully conforming CBOR. It must
- * be complete with no arrays or maps that are incomplete. While this
- * encoder doesn't ever produce indefinite lengths, it is OK for the
+ * be complete with no arrays or maps that are incomplete. it is OK for the
  * raw CBOR added here to have indefinite lengths.
  *
  * The raw CBOR added here is not checked in anyway. If it is not
@@ -2583,7 +2618,8 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf
  *
  * This may be called multiple times. It will always return the
  * same. It can also be interleaved with calls to
- * QCBOREncode_FinishGetSize().
+ * QCBOREncode_FinishGetSize(). See QCBOREncode_SubString() for a
+ * means to get the thus-far-encoded CBOR.
  *
  * QCBOREncode_GetErrorState() can be called to get the current
  * error state in order to abort encoding early as an optimization, but
@@ -2610,19 +2646,32 @@ QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
 
 /**
- * @brief Indicate whether output buffer is NULL or not.
+ * @brief Indicate whether the output storage buffer is NULL.
  *
  * @param[in] pCtx  The encoding context.
  *
  * @return 1 if the output buffer is @c NULL.
  *
- * Sometimes a @c NULL input buffer is given to QCBOREncode_Init() so
- * that the size of the generated CBOR can be calculated without
- * allocating a buffer for it. This returns 1 when the output buffer
- * is @c NULL and 0 when it is not.
+ * As described in QCBOREncode_Init(), @c Storage.ptr may be give as @c NULL
+ * for output size calculation. This returns 1 when that is the true, and 0 if not.
  */
 static int
 QCBOREncode_IsBufferNULL(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Retrieve the storage buffer passed in to QCBOREncode_Init().
+ *
+ * @param[in] pCtx  The encoding context.
+ *
+ * @return The output storage buffer passed to QCBOREncode_Init().
+ *
+ * This doesn't give any information about how much has been encoded
+ * or the error state. It just returns the exact @ref UsefulOutBuf given
+ * to QCBOREncode_Init().
+ */
+static UsefulBuf
+QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -2643,7 +2692,73 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
 
 
 /**
- * Encode the "head" of a CBOR data item.
+ * @brief Returns current end of encoded data.
+ *
+ * @param[in] pCtx  The encoding context.
+ *
+ * @return Byte offset of end of encoded data.
+ *
+ * The purpose of this is to enable cryptographic hashing over a
+ * subpart of thus far CBOR-encoded data. Then perhaps a signature
+ * over the hashed CBOR is added to the encoded output. There is
+ * nothing specific to hashing or signing in this, so this can be used
+ * for other too.
+ *
+ * Call this to get the offset of the start of the encoded
+ * to-be-hashed CBOR items, then call QCBOREncode_SubString().
+ * QCBOREncode_Tell() can also be called twice, first to get the
+ * offset of the start and second for the offset of the end. Those
+ * offsets can be applied to the output storage buffer.
+ *
+ * This will return successfully even if the encoder is in the error
+ * state.
+ *
+ * WARNING: All definite-length arrays and maps opened before the
+ * first call to QCBOREncode_Tell() must not be closed until the
+ * substring is obtained and processed. Similarly, every
+ * definite-length array or map opened after the first call to
+ * QCBOREncode_Tell() must be closed before the substring is obtained
+ * and processed.  The same applies for opened byte strings. There is
+ * no detection of these errors. This occurs because QCBOR goes back
+ * and inserts the lengths of definite-length arrays and maps when
+ * they are closed. This insertion will make the offsets incorrect.
+ */
+static size_t
+QCBOREncode_Tell(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Get a substring of encoded CBOR for cryptographic hash
+ *
+ * @param[in] pCtx  The encoding context.
+ * @param[in] uStart  The start offset of substring.
+ *
+ * @return Pointer and length of of substring.
+ *
+ * @c uStart is obtained by calling QCBOREncode_Tell() before encoding
+ * the first item in the substring. Then encode some data items. Then
+ * call this. The substring returned contains the encoded data items.
+ *
+ * The substring may have deeply nested arrays and maps as long as any
+ * opened after the call to QCBOREncode_Tell() are closed before this
+ * is called.
+ *
+ * This will return @c NULLUsefulBufC if the encoder is in the error
+ * state or if @c uStart is beyond the end of the thus-far encoded
+ * data items.
+ *
+ * If @c uStart is 0, all the thus-far-encoded CBOR will be returned.
+ * Unlike QCBOREncode_Finish(), this will succeed even if some arrays
+ * and maps are not closed.
+ *
+ * See important usage WARNING in QCBOREncode_Tell()
+ */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
+
+
+/**
+ * @brief Encode the head of a CBOR data item.
  *
  * @param Buffer       Buffer to output the encoded head to; must be
  *                     @ref QCBOR_HEAD_BUFFER_SIZE bytes in size.
@@ -2671,7 +2786,7 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * doesn't have to be encoded in a contiguous buffer.
  *
  * For example, if you have a 100,000 byte binary blob in a buffer that
- * needs to be a bstr encoded and then hashed. You could allocate a
+ * needs to be bstr encoded and then hashed. You could allocate a
  * 100,010 byte buffer and encode it normally. Alternatively, you can
  * encode the head in a 10 byte buffer with this function, hash that and
  * then hash the 100,000 bytes using the same hash context.
@@ -2832,19 +2947,19 @@ QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
 static inline void
 QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
                           const char        *szLabel,
-                          const int64_t      uNum)
+                          const int64_t      nNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddInt64(pMe, uNum);
+   QCBOREncode_AddInt64(pMe, nNum);
 }
 
 static inline void
 QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,
                            const int64_t       nLabel,
-                           const int64_t       uNum)
+                           const int64_t       nNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddInt64(pMe, uNum);
+   QCBOREncode_AddInt64(pMe, nNum);
 }
 
 
@@ -2945,15 +3060,12 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe,
 }
 
 
-
-/*
- * Public functions for adding a tag. See qcbor/qcbor_encode.h
- */
 static inline void
 QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTag, 0);
 }
+
 
 
 
@@ -2983,7 +3095,7 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
    QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 static inline void
@@ -3012,7 +3124,7 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
    QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
 #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
    QCBOREncode_AddFloatNoPreferred(pMe, fNum);
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
 static inline void
@@ -3068,7 +3180,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddFloatNoPreferred(pMe, dNum);
 }
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
@@ -3205,6 +3317,7 @@ QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_OpenBytes(pMe, pPlace);
 }
+
 
 
 static inline void
@@ -3731,7 +3844,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
                                         bIsNegative,
                                         nBase2Exponent);
 }
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 static inline void
@@ -4112,7 +4225,7 @@ QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
       pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       return;
    }
-#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    QCBOREncode_Private_AddType7(pMe, 0, uNum);
 }
@@ -4368,6 +4481,14 @@ QCBOREncode_IsBufferNULL(QCBOREncodeContext *pMe)
    return UsefulOutBuf_IsBufferNULL(&(pMe->OutBuf));
 }
 
+
+static inline UsefulBuf
+QCBOREncode_RetrieveOutputStorage(QCBOREncodeContext *pMe)
+{
+   return UsefulOutBuf_RetrieveOutputStorage(&(pMe->OutBuf));
+}
+
+
 static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
@@ -4388,6 +4509,12 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
    return (QCBORError)pMe->uError;
 }
 
+
+static inline size_t
+QCBOREncode_Tell(QCBOREncodeContext *pMe)
+{
+   return UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+}
 
 /* ========================================================================
      END OF PRIVATE INLINE IMPLEMENTATION

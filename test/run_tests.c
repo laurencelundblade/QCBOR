@@ -6,7 +6,7 @@
 
  SPDX-License-Identifier: BSD-3-Clause
 
- See BSD-3-Clause license in README.md
+ See BSD-3-Clause license in file named "LICENSE"
 
  Created on 9/30/18
  =============================================================================*/
@@ -158,7 +158,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY_DISABLED(TooLargeInputTest),
    TEST_ENTRY(EncodeErrorTests),
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
+    TEST_ENTRY(IndefiniteLengthTest),
 #endif
    TEST_ENTRY(EncodeLengthThirtyoneTest),
    TEST_ENTRY(CBORSequenceDecodeTests),
@@ -174,14 +174,14 @@ static test_entry s_tests[] = {
 #endif /* QCBOR_DISABLE_TAGS */
    TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-   TEST_ENTRY(BoolTest),
    TEST_ENTRY(SortMapTest),
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    TEST_ENTRY(CDETest),
    TEST_ENTRY(DCBORTest),
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
-   TEST_ENTRY(ParseEmptyMapInMapTest),
-
+    TEST_ENTRY(ParseEmptyMapInMapTest),
+    TEST_ENTRY(SubStringTest),
+    TEST_ENTRY(BoolTest)
 };
 
 
