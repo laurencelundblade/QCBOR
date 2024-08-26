@@ -111,7 +111,7 @@ static uint8_t
 Nesting_Increment(QCBORTrackNesting *pNesting)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
+   if(pNesting->pCurrentNesting->uCount >= QCBOR_MAX_ITEMS_IN_ARRAY) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -223,7 +223,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  *
  * QCBOR_DISABLE_ENCODE_USAGE_GUARDS also disables the check for more
  * than QCBOR_MAX_ITEMS_IN_ARRAY in an array. Since
- * QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,535) it is very unlikely
+ * QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,534) it is very unlikely
  * to be reached. If it is reached, the count will wrap around to zero
  * and CBOR that is not well formed will be produced, but there will
  * be no buffers overrun and new security issues in the code.

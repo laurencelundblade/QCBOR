@@ -146,7 +146,7 @@ static test_entry s_tests[] = {
     TEST_ENTRY_DISABLED(TooLargeInputTest),
     TEST_ENTRY(EncodeErrorTests),
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-    TEST_ENTRY(SimpleValuesIndefiniteLengthTest1),
+    TEST_ENTRY(IndefiniteLengthTest),
 #endif
     TEST_ENTRY(EncodeLengthThirtyoneTest),
     TEST_ENTRY(CBORSequenceDecodeTests),
