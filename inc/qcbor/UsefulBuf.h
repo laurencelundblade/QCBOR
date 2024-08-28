@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 8/10/2024    llundblade      Add UsefulBuf_SkipLeading().
  1/7/2024     llundblade      Add UsefulInputBuf_Compare().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
  28/02/2024   llundblade      Rearrange UsefulOutBuf_Compare().
@@ -652,8 +653,15 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 
 
-UsefulBufC
-UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte);
+/**
+ * @brief Skip leading bytes of a particular value in a string.
+ *
+ * @param[in] String  The input string. String.ptr must not be @c NULL.
+ * @param[in] uByte  The  byte value.
+ *
+ * @return Substring with leading bytes with value @c uByte removed.
+ */
+UsefulBufC UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte);
 
 
 /**

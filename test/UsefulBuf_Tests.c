@@ -657,6 +657,22 @@ const char *UBUtilTests(void)
       return "Failed to find 4";
    }
 
+   UsefulBufC Substring;
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("xxyyzz"), 'x');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ("yyzz"))) {
+      return "SkipLeading didn't skip";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("xxyyzz"), 'y');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ("xxyyzz"))) {
+      return "SkipLeading skipped";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("qqq"), 'q');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ(""))) {
+      return "SkipLeading didn't return empty";
+   }
+
 
    const uint8_t pB[] = {0x01, 0x02, 0x03};
    UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);

@@ -3409,6 +3409,13 @@ QCBOREncode_AddTBigNumberNoPreferredToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddTBigNumber(pMe, uTagRequirement, bNegative, BigNumber);
 }
 
+/*
+ * @brief Add the tag number for a big number.
+ *
+ * @param[in] pMe  The decode context.
+ * @param[in] uTagRequirement
+ * @param[in] bNegative  If true, big number is negative.
+ */
 static inline void
 QCBOREncode_Private_BigNumberTag(QCBOREncodeContext *pMe,
                                  const uint8_t       uTagRequirement,
@@ -3428,7 +3435,6 @@ QCBOREncode_Private_AddTBignum(QCBOREncodeContext *pMe,
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, bNegative);
    QCBOREncode_AddBytes(pMe, Bytes);
 }
-
 
 static inline void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,

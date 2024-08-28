@@ -763,18 +763,25 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 
 
 
-/* This will return an erroneous value if BigNum.len > 8 */
-/* Convert from bignum to uint with endianess conversion */
-//GOOD
+
+/**
+ * @brief Convert a big number to unsigned integer.
+ *
+ * @param[in]  BigNumber  Big number to convert.
+ *
+ * @return Converted unsigned.
+ *
+ * The big number must be less than 8 bytes long.
+ **/
 static uint64_t
-QCBOREncode_Private_BigNumToUInt(const UsefulBufC BigNum)
+QCBOREncode_Private_BigNumToUInt(const UsefulBufC BigNumber)
 {
    uint64_t uInt;
    size_t   uIndex;
 
    uInt = 0;
-   for(uIndex = 0; uIndex < BigNum.len; uIndex++) {
-      uInt = (uInt << 8) + ((const uint8_t *)BigNum.ptr)[uIndex];
+   for(uIndex = 0; uIndex < BigNumber.len; uIndex++) {
+      uInt = (uInt << 8) + ((const uint8_t *)BigNumber.ptr)[uIndex];
    }
 
    return uInt;
@@ -783,18 +790,17 @@ QCBOREncode_Private_BigNumToUInt(const UsefulBufC BigNum)
 
 /* Is there a carry when you add 1 to the BigNum? */
 static bool
-//GOOD
-QCBOREncode_Private_BigNumCarry(UsefulBufC BigNum)
+QCBOREncode_Private_BigNumCarry(const UsefulBufC BigNumber)
 {
    bool       bCarry;
    UsefulBufC SubBigNum;
 
-   if(BigNum.len == 0) {
+   if(BigNumber.len == 0) {
       return true; /* Adding one to zero-length string gives a carry */
    } else {
-      SubBigNum = UsefulBuf_Tail(BigNum, 1);
+      SubBigNum = UsefulBuf_Tail(BigNumber, 1);
       bCarry = QCBOREncode_Private_BigNumCarry(SubBigNum);
-      if(*(const uint8_t *)BigNum.ptr == 0x00 && bCarry) {
+      if(*(const uint8_t *)BigNumber.ptr == 0x00 && bCarry) {
          return true;
       } else {
          return false;
@@ -803,10 +809,13 @@ QCBOREncode_Private_BigNumCarry(UsefulBufC BigNum)
 }
 
 
-/*
- * Output negative bignum bytes with subtraction of 1
+/**
+ * @brief Output negative bignum bytes with subtraction of 1.
+ *
+ * @param[in] pMe  The decode context
+ * @param[in] uTagRequirement TODO:
+ * @param[in] BigNumber  The negative big number.
  */
-//GOOD
 static void
 QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
                                        const uint8_t       uTagRequirement,
@@ -821,9 +830,6 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
 
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, true);
 
-   /* This works on any length without the need of an additional buffer,
-    * which it is why it so complicated. */
-
    /* This subtracts one, possibly making the string shorter by one
     * 0x01 -> 0x00
     * 0x01 0x00 -> 0xff
@@ -832,9 +838,12 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
     * 0xff -> 0xfe
     * 0xff 0x00 -> 0xfe 0xff
     * 0x01 0x00 0x00 -> 0xff 0xff
+    *
+    * This outputs the big number a byte at a time to be able to output
+    * any length big number without memory allocation.
     */
 
-   /* Compute the length up front because it goes in the head */
+   /* Compute the length up front because it goes in the encoded head */
    bCarry = QCBOREncode_Private_BigNumCarry(UsefulBuf_Tail(BigNumber, 1));
    uLen = BigNumber.len;
    if(bCarry && *(const uint8_t *)BigNumber.ptr >= 1 && BigNumber.len > 1) {
@@ -851,7 +860,8 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
       if(bCarry) {
          uByte--;
       }
-      if(bCopiedSomething || NextSubString.len == 0 || uByte != 0) { /* No leading zeros, but one zero is OK */
+      /* This avoids all but the last leading zero. See QCBOREncode_Private_SkipLeadingZeros() */
+      if(bCopiedSomething || NextSubString.len == 0 || uByte != 0) {
          UsefulOutBuf_AppendByte(&(pMe->OutBuf), uByte);
          bCopiedSomething = true;
       }
@@ -860,8 +870,17 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
 }
 
 
-//GOOD
-static bool
+/**
+ * @brief Convert a negative big number to unsigned int if possible.
+ *
+ * @param[in] BigNumber  The negative big number.
+ * @param[out] puInt     The converted big number.
+ *
+ * @return If conversion was possible, returns true.
+ *
+ * Conversion is possible if the big number is greater than -(2^64).
+ * Conversion include offset of 1 for encoding CBOR negative numbers.
+ */static bool
 QCBOREncode_Private_NegBN2UInt(const UsefulBufC BigNumber, uint64_t *puInt)
 {
    bool       bIs2exp64;
@@ -889,19 +908,35 @@ QCBOREncode_Private_NegBN2UInt(const UsefulBufC BigNumber, uint64_t *puInt)
    return true;
 }
 
+
+/**
+ * @brief Remove leading zeros.
+ *
+ * @param[in] BigNumber  The negative big number.
+ *
+ * @return Big number with no leading zeros.
+ *
+ * If the big number is all zeros, this returns a big number
+ * that is one zero rather than the empty string.
+ *
+ * 3.4.3 does not explicitly decoders MUST handle the empty string,
+ * but does say decoders MUST handle leading zeros. So Postel's Law
+ * is applied here and 0 is not encoded as an empty string.
+ */
 static UsefulBufC
-SkipLeadingZeros(const UsefulBufC String)
+QCBOREncode_Private_SkipLeadingZeros(const UsefulBufC BigNumber)
 {
    UsefulBufC NLZ;
-   NLZ = UsefulBuf_SkipLeading(String, 0x00);
+   NLZ = UsefulBuf_SkipLeading(BigNumber, 0x00);
 
    /* An all-zero string reduces to one 0, not an empty string. */
-   if(NLZ.len == 0 && String.len > 0 && *(const uint8_t *)String.ptr == 0x00) {
+   if(NLZ.len == 0 && BigNumber.len > 0 && *(const uint8_t *)BigNumber.ptr == 0x00) {
       NLZ.len++;
    }
 
    return NLZ;
 }
+
 
 /*
  * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
@@ -914,7 +949,7 @@ QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
 {
    uint64_t uInt;
 
-   const UsefulBufC BigNumNLZ = SkipLeadingZeros(BigNumber);
+   const UsefulBufC BigNumNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
    /* Preferred serialization requires reduction to type 0 and 1 integers */
    if(bNegative) {
@@ -944,7 +979,7 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
                                      const bool          bNegative,
                                      const UsefulBufC    BigNumber)
 {
-   const UsefulBufC BigNumNLZ = SkipLeadingZeros(BigNumber);
+   const UsefulBufC BigNumNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
    if(bNegative) {
       QCBOREncode_Private_AddTNegativeBignum(pMe, uTagRequirement, BigNumNLZ);

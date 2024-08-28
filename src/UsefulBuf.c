@@ -44,6 +44,7 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 8/10/2024   llundblade   Add UsefulBuf_SkipLeading().
  1/7/2024    llundblade   Add UsefulInputBuf_Compare().
  21/05/2024  llundblade   Comment formatting and some code tidiness.
  28/02/2022  llundblade   Rearrange UsefulOutBuf_Compare().

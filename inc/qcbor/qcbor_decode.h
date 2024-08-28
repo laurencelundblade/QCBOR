@@ -1414,7 +1414,7 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This always returns the result as a big number. The integer types 0
  * and 1 are converted. Leading zeros are removed. The value 0 is
  * always returned as a one-byte big number with the value 0x00.
-
+ *
  * If \c BigNumBuf is too small, \c pBigNum.ptr will be \c NULL and \c
  * pBigNum.len reports the required length. The size of \c BigNumBuf
  * might have to be one larger than the size of the tag 2 or 3 being
@@ -1435,6 +1435,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This can also be used if you happen to want type 0 and type 1
  * integers converted to big numbers.
  *
+ * See also QCBORDecode_ProcessBigNumberNoPreferred().
+ *
  * If QCBOR is being used in an environment with a full big number
  * library, it may be better (less object code) to use the big number
  * library than this, particularly to subtract one for tag 3.
@@ -1449,6 +1451,28 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
                              UsefulBuf       BigNumBuf,
                              UsefulBufC     *pBigNum,
                              bool           *pIsNegative);
+
+
+/**
+ * @brief Decode a big number.
+ *
+ * @param[in] Item    The number to process.
+ * @param[in] BigNumBuf  The buffer to output to.
+ * @param[out] pBigNumber   The resulting big number.
+ * @param[out] pbIsNegative  The sign of the resulting big number.
+ *
+ * This is the same as QCBORDecode_ProcessBigNumber(), but doesn't
+ * allow type 0 and 1 integers. It only works on tag 2 and 3 big numbers.
+ * The main work this does is handle the offset of 1 for negative big
+ * number decoding.
+ */
+QCBORError
+QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
+                                        UsefulBuf       BigNumBuf,
+                                        UsefulBufC     *pBigNumber,
+                                        bool           *pbIsNegative);
+
+
 
 
 /**

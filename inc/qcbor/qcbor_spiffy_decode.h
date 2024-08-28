@@ -363,10 +363,10 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * @param[in] pCtx          The decode context.
  * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
  * @param[in] BigNumBuf     The buffer to write the result into.
- * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
  * @param[out] pBigNum      The output big number.
+ * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
  *
- * See QCBORDecode_PreferedBigNum() in full detail.
+ * See QCBORDecode_PreferedBigNumber() in full detail.
  *
  * The type processing rules are as follows.
  *
@@ -376,7 +376,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * if the CBOR is not type 0 or type 1.
  *
  * If uTagRequirement is REQUIRE, this will fail on anything but a
- * full and correct tag 2 or tag 3 big number.
+ * full and correct tag 2 or tag 3 big number. TODO: this is wrong
  *
  * If uTagRequreiement is QCBOR_TAG_REQUIREMENT_NOT_A_TAG then this
  * will fail on anything but a byte string.
@@ -388,12 +388,8 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * pbIsNegative is an input parameter that determines the sign of the
  * big number. The sign must be known because the decoding of a
  * positive big number is different than a negative.
- *
- * TODO: reevaluate whether to call this GetBigNum after tag redesign
- * It would be more consistent to be GetBigNum with its friend named GetBigNumNoPreferred
- * but the parameters are different so backwards compat can be with a mode bit.
  */
-// TODO: add "T" to name of this and other Get Tag methods?
+// TODO: add "T" to name of this and other Get Tag methods? Would be a big change.
 void
 QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
                          uint8_t             uTagRequirement,
@@ -403,25 +399,55 @@ QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
 
 void
 QCBORDecode_GetBigNumberInMapN(QCBORDecodeContext *pCtx,
-                                     uint8_t             uTagRequirement,
-                                     int64_t             nLabel,
-                                     UsefulBuf           BigNumBuf,
-                                     UsefulBufC         *pBigNum,
-                                     bool               *pbIsNegative);
+                               int64_t             nLabel,
+                               uint8_t             uTagRequirement,
+                               UsefulBuf           BigNumBuf,
+                               UsefulBufC         *pBigNum,
+                               bool               *pbIsNegative);
 
 void
 QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
-                                      uint8_t             uTagRequirement,
-                                      const char         *szLabel,
-                                      UsefulBuf           BigNumBuf,
-                                      UsefulBufC         *pBigNum,
-                                      bool               *pbIsNegative);
+                                const char         *szLabel,
+                                uint8_t             uTagRequirement,
+                                UsefulBuf           BigNumBuf,
+                                UsefulBufC         *pBigNum,
+                                bool               *pbIsNegative);
 
 
-/* What does GetBigNumberNoPreferred do?? Is it necessary?
- * It will error out on type 0 and 1 integers.
-
+/**
+ * @brief Decode next item as a big number encoded using preferred serialization.
+ *
+ * @param[in] pCtx          The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] BigNumBuf     The buffer to write the result into.
+ * @param[out] pBigNum      The output big number.
+ * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
+ *
+ *  This is the same as QCBORDecode_GetBigNumber(), but will error
+ * out on type 0 and 1 integers. It only succeeds on tag 2 and tag 3.
  */
+void
+QCBORDecode_GetBigNumberNoPreferred(QCBORDecodeContext *pCtx,
+                                    const uint8_t       uTagRequirement,
+                                    UsefulBuf           BigNumBuf,
+                                    UsefulBufC         *pBigNum,
+                                    bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBigNumberNoPreferredInMapN(QCBORDecodeContext *pCtx,
+                                          uint8_t             uTagRequirement,
+                                          int64_t             nLabel,
+                                          UsefulBuf           BigNumBuf,
+                                          UsefulBufC         *pBigNum,
+                                          bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pCtx,
+                                           uint8_t             uTagRequirement,
+                                           const char         *szLabel,
+                                           UsefulBuf           BigNumBuf,
+                                           UsefulBufC         *pBigNum,
+                                           bool               *pbIsNegative);
 
 
 /**
@@ -1523,71 +1549,6 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
-/**
- * @brief Decode the next item as a big number (deprecated).
- *
- * @param[in] pCtx             The decode context.
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[out] pValue          The returned big number.
- * @param[out] pbIsNegative    Is @c true if the big number is negative. This
- *                             is only valid when @c uTagRequirement is
- *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
- *
- * This decodes a standard CBOR big number, integer tag number of 2 or
- * 3, or encoded CBOR that is not a tag, but borrows the content
- * format.
- *
- * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
- *
- * The big number is in network byte order. The first byte in @c
- * pValue is the most significant byte. There may be leading zeros.
- *
- * The negative value is computed as -1 - n, where n is the postive
- * big number in @c pValue. There is no standard representation for
- * big numbers, positive or negative in C, so this function
- * leaves it up to the caller to apply this computation for negative
- * big numbers, but QCBORDecode_ProcessBigNumber() can be
- * used too.
- *
- * See @ref Tag-Usage for discussion on tag requirements.
- *
- * Determination of the sign of the big number depends on the tag
- * requirement of the protocol using the big number. If the protocol
- * requires tagging, @ref QCBOR_TAG_REQUIREMENT_TAG, then the sign
- * indication is in the protocol and @c pbIsNegative indicates the
- * sign. If the protocol doesn't use a tag, @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
- * then the protocol design must have some way of indicating the sign.
- *
- * See also QCBORDecode_GetInt64ConvertAll(),
- * QCBORDecode_GetUInt64ConvertAll(),
- * QCBORDecode_GetDoubleConvertAll() and QCBORDecode_ProcessBigNumber() which can convert big numbers.
- *
- * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
- * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
- * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
- */
-void
-QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
-                      uint8_t             uTagRequirement,
-                      UsefulBufC         *pValue,
-                      bool               *pbIsNegative);
-
-void
-QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx,
-                            int64_t             nLabel,
-                            uint8_t             uTagRequirement,
-                            UsefulBufC         *pValue,
-                            bool               *pbIsNegative);
-
-void
-QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
-                             const char         *szLabel,
-                             uint8_t             uTagRequirement,
-                             UsefulBufC         *pValue,
-                             bool               *pbIsNegative);
-
-
-
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
@@ -2131,6 +2092,82 @@ QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pCtx,
  */
 void
 QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
+
+
+
+/* ===========================================================================
+   DEPRECATED methods
+   ========================================================================== */
+
+
+/**
+ * @brief Decode the next item as a big number (deprecated).
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[out] pValue          The returned big number.
+ * @param[out] pbIsNegative    Is @c true if the big number is negative. This
+ *                             is only valid when @c uTagRequirement is
+ *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
+ *
+ * This decodes a standard CBOR big number, integer tag number of 2 or
+ * 3, or encoded CBOR that is not a tag, but borrows the content
+ * format.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+ *
+ * The big number is in network byte order. The first byte in @c
+ * pValue is the most significant byte. There may be leading zeros.
+ *
+ * The negative value is computed as -1 - n, where n is the postive
+ * big number in @c pValue. There is no standard representation for
+ * big numbers, positive or negative in C, so this function
+ * leaves it up to the caller to apply this computation for negative
+ * big numbers, but QCBORDecode_ProcessBigNumber() can be
+ * used too.
+ *
+ * See @ref Tag-Usage for discussion on tag requirements.
+ *
+ * Determination of the sign of the big number depends on the tag
+ * requirement of the protocol using the big number. If the protocol
+ * requires tagging, @ref QCBOR_TAG_REQUIREMENT_TAG, then the sign
+ * indication is in the protocol and @c pbIsNegative indicates the
+ * sign. If the protocol doesn't use a tag, @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+ * then the protocol design must have some way of indicating the sign.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll(),
+ * QCBORDecode_GetDoubleConvertAll() and QCBORDecode_ProcessBigNumber() which can convert big numbers.
+ *
+ * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
+ * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
+ * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
+ *
+ * To feed the output of this to QCBORDecode_ProcessBigNumber() construct
+ * a temporary QCBORItem and feed it to QCBORDecode_ProcessBigNumber().
+ * Set the data type to @ref CBOR_TAG_POS_BIGNUM or @ref CBOR_TAG_NEG_BIGNUM,
+ * and value to @c *pValue in the QCBORItem.
+ */
+void
+QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
+                      uint8_t             uTagRequirement,
+                      UsefulBufC         *pValue,
+                      bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx,
+                            int64_t             nLabel,
+                            uint8_t             uTagRequirement,
+                            UsefulBufC         *pValue,
+                            bool               *pbIsNegative);
+
+void
+QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
+                             const char         *szLabel,
+                             uint8_t             uTagRequirement,
+                             UsefulBufC         *pValue,
+                             bool               *pbIsNegative);
+
 
 
 

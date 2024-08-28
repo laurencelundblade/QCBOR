@@ -4891,7 +4891,7 @@ int32_t BignumDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &BignumDecodeTests[uTestIndex];
 
-      if(uTestIndex == 13) {
+      if(uTestIndex == 6) {
          bIsNeg = false; /* Line of code so a break point can be set. */
       }
 
