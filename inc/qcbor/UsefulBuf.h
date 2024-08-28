@@ -43,10 +43,13 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
+ 08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
  8/10/2024    llundblade      Add UsefulBuf_SkipLeading().
- 1/7/2024     llundblade      Add UsefulInputBuf_Compare().
+ 08/08/2024   llundblade      Add UsefulOutBuf_SubString().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
  28/02/2024   llundblade      Rearrange UsefulOutBuf_Compare().
+ 1/7/2024     llundblade      Add UsefulInputBuf_Compare().
  19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
  19/11/2023   llundblade      Add UsefulOutBuf_Swap().
  19/11/2023   llundblade      Add UsefulOutBuf_Compare().
@@ -1422,6 +1425,36 @@ UsefulBufC
 UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
 
 
+/*
+ * @brief Return a substring of the output data.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uStart    Offset of start of substring.
+ * @param[in] uLen      Length of substring.
+ *
+ * This is the same as UsefulOutBuf_OutUBuf(), but returns a
+ * substring. @c NULLUsefulBufC is returned if the requested substring
+ * is off the end of the output bytes or if in error state.
+ */
+UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
+                                  const size_t  uStart,
+                                  const size_t  uLen);
+
+
+/**
+ * @brief Retrieve the storage buffer passed in to UsefulOutBuf_Init().
+ *
+ * @param[in] pUOutBuf  The encoding context.
+ *
+ * @return The output storage buffer passed to UsefulOutBuf_Init().
+ *
+ * This doesn't give any information about how much has been encoded
+ * or the error state. It just returns the exact @ref UsefulOutBuf given
+ * to UsefulOutBuf_Init().
+ */
+static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
+
+
 /**
  * @brief Compare bytes at offsets.
  *
@@ -1835,6 +1868,17 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
+/** @brief  Retrieve the undecoded input buffer.
+ *
+ * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
+ *
+ * @return The input that was given to UsefulInputBuf_Init().
+ *
+ * A simple convenience method, should it be useful to get the original input back.
+ */
+static UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *pUInBuf);
+
+
 /**
  * @brief Compare two ranges of bytes somewhere in the input buffer.
  *
@@ -1861,6 +1905,8 @@ UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
                        const size_t    uLen1,
                        const size_t    uOffset2,
                        const size_t    uLen2);
+
+
 
 
 /*----------------------------------------------------------
@@ -2365,6 +2411,12 @@ static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)
 }
 
 
+static inline UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pMe)
+{
+   return pMe->UB;
+}
+
+
 
 
 static inline void UsefulInputBuf_Init(UsefulInputBuf *pMe, UsefulBufC UB)
@@ -2631,6 +2683,11 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)
 static inline void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pMe, size_t uNewLen)
 {
     pMe->UB.len = uNewLen;
+}
+
+static inline UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *pMe)
+{
+   return pMe->UB;
 }
 
 
