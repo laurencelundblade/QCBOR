@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/31/2024   llundblade      Add UsefulBufC_NTH_BYTE().
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
  8/10/2024    llundblade      Add UsefulBuf_SkipLeading().
@@ -495,6 +496,10 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
  * The terminating \0 (NULL) is NOT included in the length.
  */
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
+
+
+/* Get the nth byte from a UsefulBufC. There's no length check! */
+#define UsefulBufC_NTH_BYTE(UBC, n)  (((const uint8_t *)(UBC.ptr))[n])
 
 
 /**

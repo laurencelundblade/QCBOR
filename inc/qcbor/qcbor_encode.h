@@ -2640,12 +2640,13 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
  * @param[in] pCtx             The encoding context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] BigNumber        Pointer and length of the big number.
+ * @param[in] BigNum           Pointer and length of the big number.
  *
- * See QCBOREncode_AddTBigNumberNoPreferred(), the replacement for this. While this is deprecated, there is no
- * plan to remove support for it.
+ * See QCBOREncode_AddTBigNumberNoPreferred(), the replacement for
+ * this. While this is deprecated, there is no plan to remove support
+ * for it and it is fine to use this.
  *
- * @c BigNumber makes up an aribtrary precision integer in
+ * @c BigNum makes up an aribtrary precision integer in
  * network/big-endian byte order.  The first byte is the most
  * significant.
  *
@@ -2654,34 +2655,34 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3). No
  * processing, such as removal of leading zeros, is perfomed.
  *
- * Sometimes big numbers are used to represent parts of cryptographic
- * keys, however, COSE which defines representations for keys does,
- * not use this particular type.
+ * Note that the newer preferred big number functions are all
+ * named with "BigNumber" and the older deprecated are named
+ * with "BigNum".
  */
 
 static void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
-                               UsefulBufC          BigNumber);
+                               UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pCtx,
                                       const char         *szLabel,
                                       uint8_t             uTagRequirement,
-                                      UsefulBufC          BigNumber);
+                                      UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pCtx,
                                      int64_t             nLabel,
                                      uint8_t             uTagRequirement,
-                                     UsefulBufC          BigNumber);
+                                     UsefulBufC          BigNum);
 
 
 /**
  * @brief Add a positive big number using preferred serialization (deprecated).
  *
  * @param[in] pCtx             The encoding context to add the big number to.
- * @param[in] BigNumber            Pointer and length of the big number.
+ * @param[in] BigNum           Pointer and length of the big number.
  *
  * This operates the same as QCBOREncode_AddTPositiveBignum(),
  * but always outputs the tag number. This exists for backwards
@@ -2689,17 +2690,17 @@ QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pCtx,
  */
 static void
 QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pCtx,
-                              UsefulBufC          BigNumber);
+                              UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddPositiveBignumToMap(QCBOREncodeContext *pCtx,
                                    const char         *szLabel,
-                                   UsefulBufC          BigNumber);
+                                   UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
                                     int64_t             nLabel,
-                                    UsefulBufC          BigNumber);
+                                    UsefulBufC          BigNum);
 
 
 /**
@@ -2716,7 +2717,7 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pCtx,
  * While this is deprecated, there is no
  * plan to remove support for it.
  *
- * @c BigNumber makes up an aribtrary precision integer in
+ * @c BigNum makes up an aribtrary precision integer in
  * network/big-endian byte order.  The first byte is the most
  * significant.
  *
@@ -2735,20 +2736,20 @@ static void
 QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pCtx,
                                       const char         *szLabel,
                                       uint8_t             uTagRequirement,
-                                      UsefulBufC          Bytes);
+                                      UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                      int64_t             nLabel,
                                      uint8_t             uTagRequirement,
-                                     UsefulBufC          Bytes);
+                                     UsefulBufC          BigNum);
 
 
 /**
  * @brief Add a negative big number using preferred serialization (deprecated).
  *
  * @param[in] pCtx             The encoding context to add the big number to.
- * @param[in] BigNumber            Pointer and length of the big number.
+ * @param[in] BigNum            Pointer and length of the big number.
  *
  * This operates the same as QCBOREncode_AddTNegativeBignum(),
  * but always outputs the tag number. This exists for backwards
@@ -2756,17 +2757,17 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
  */
 static void
 QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pCtx,
-                              UsefulBufC          BigNumber);
+                              UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddNegativeBignumToMap(QCBOREncodeContext *pCtx,
                                    const char         *szLabel,
-                                   UsefulBufC          BigNumber);
+                                   UsefulBufC          BigNum);
 
 static void
 QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     int64_t             nLabel,
-                                    UsefulBufC          BigNumber);
+                                    UsefulBufC          BigNum);
 
 
 
@@ -3540,7 +3541,7 @@ QCBOREncode_AddTBigNumberNoPreferredToMapN(QCBOREncodeContext *pMe,
 }
 
 /*
- * @brief Add the tag number for a big number.
+ * @brief Add the tag number for a big number (private).
  *
  * @param[in] pMe  The decode context.
  * @param[in] uTagRequirement
@@ -3560,122 +3561,122 @@ static inline void
 QCBOREncode_Private_AddTBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
                                bool                bNegative,
-                               const UsefulBufC    Bytes)
+                               const UsefulBufC    BigNum)
 {
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, bNegative);
-   QCBOREncode_AddBytes(pMe, Bytes);
+   QCBOREncode_AddBytes(pMe, BigNum);
 }
 
 static inline void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
+                               const UsefulBufC    BigNum)
 {
-   QCBOREncode_Private_AddTBignum(pMe, uTagRequirement, false, Bytes);
+   QCBOREncode_Private_AddTBignum(pMe, uTagRequirement, false, BigNum);
 }
 
 static inline void
 QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pMe,
                                       const char         *szLabel,
                                       const uint8_t       uTagRequirement,
-                                      const UsefulBufC    Bytes)
+                                      const UsefulBufC    BigNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTPositiveBignum(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTPositiveBignum(pMe, uTagRequirement, BigNum);
 }
 
 static inline void
 QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pMe,
                                      const int64_t       nLabel,
                                      const uint8_t       uTagRequirement,
-                                     const UsefulBufC    Bytes)
+                                     const UsefulBufC    BigNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTPositiveBignum(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTPositiveBignum(pMe, uTagRequirement, BigNum);
 }
 
 static inline void
-QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
+QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pMe, const UsefulBufC BigNum)
 {
-   QCBOREncode_AddTPositiveBignum(pMe, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTPositiveBignum(pMe, QCBOR_ENCODE_AS_TAG, BigNum);
 }
 
 static inline void
 QCBOREncode_AddPositiveBignumToMap(QCBOREncodeContext *pMe,
                                    const char         *szLabel,
-                                   const UsefulBufC    Bytes)
+                                   const UsefulBufC    BigNum)
 {
    QCBOREncode_AddTPositiveBignumToMapSZ(pMe,
                                          szLabel,
                                          QCBOR_ENCODE_AS_TAG,
-                                         Bytes);
+                                         BigNum);
 }
 
 static inline void
 QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pMe,
                                     const int64_t       nLabel,
-                                    const UsefulBufC    Bytes)
+                                    const UsefulBufC    BigNum)
 {
    QCBOREncode_AddTPositiveBignumToMapN(pMe,
                                         nLabel,
                                         QCBOR_ENCODE_AS_TAG,
-                                        Bytes);
+                                        BigNum);
 }
 
 static inline void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
-                               const UsefulBufC    Bytes)
+                               const UsefulBufC    BigNum)
 {
-   QCBOREncode_Private_AddTBignum(pMe, uTagRequirement, true, Bytes);
+   QCBOREncode_Private_AddTBignum(pMe, uTagRequirement, true, BigNum);
 }
 
 static inline void
 QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pMe,
                                       const char         *szLabel,
                                       const uint8_t       uTagRequirement,
-                                      const UsefulBufC    Bytes)
+                                      const UsefulBufC    BigNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTNegativeBignum(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTNegativeBignum(pMe, uTagRequirement, BigNum);
 }
 
 static inline void
 QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pMe,
                                      const int64_t       nLabel,
                                      const uint8_t       uTagRequirement,
-                                     const UsefulBufC    Bytes)
+                                     const UsefulBufC    BigNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTNegativeBignum(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTNegativeBignum(pMe, uTagRequirement, BigNum);
 }
 
 static inline void
-QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
+QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pMe, const UsefulBufC BigNum)
 {
-   QCBOREncode_AddTNegativeBignum(pMe, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTNegativeBignum(pMe, QCBOR_ENCODE_AS_TAG, BigNum);
 }
 
 static inline void
 QCBOREncode_AddNegativeBignumToMap(QCBOREncodeContext *pMe,
                                    const char         *szLabel,
-                                   const UsefulBufC    Bytes)
+                                   const UsefulBufC    BigNum)
 {
    QCBOREncode_AddTNegativeBignumToMapSZ(pMe,
                                          szLabel,
                                          QCBOR_ENCODE_AS_TAG,
-                                         Bytes);
+                                         BigNum);
 }
 
 static inline void
 QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pMe,
                                     const int64_t       nLabel,
-                                    const UsefulBufC    Bytes)
+                                    const UsefulBufC    BigNum)
 {
    QCBOREncode_AddTNegativeBignumToMapN(pMe,
                                         nLabel,
                                         QCBOR_ENCODE_AS_TAG,
-                                        Bytes);
+                                        BigNum);
 }
 
 
