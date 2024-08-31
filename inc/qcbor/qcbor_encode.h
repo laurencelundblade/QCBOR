@@ -1008,6 +1008,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
  * tags. See QCBORDecode_GetNext() for discussion of decoding custom
  * tags.
  */
+// AddTagNumber
 static void
 QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
 
@@ -1420,13 +1421,20 @@ QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx             Encoding context to add the decimal fraction to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] Mantissa         The mantissa.
+ * @param[in] Mantissa         The big number mantissa.
  * @param[in] bIsNegative      false if mantissa is positive, true if negative.
  * @param[in] nBase10Exponent  The exponent.
  *
  * This is the same as QCBOREncode_AddTDecimalFraction() except the
  * mantissa is a big number (See QCBOREncode_AddTBignumber())
  * allowing for arbitrarily large precision.
+ *
+ * Preferred serialization of the big number is used. This means it may be converted to
+ * a type 0 or type 1 integers making the result the same as QCBOREncode_AddTDecimalFraction().
+ * This also offsets negative big numbers by one.
+ *
+ * If you want the big number to be copied straight through without the conversion to type 0
+ * and 1 integers and without the offset of 1 (and much smaller objet code) use QCBOREncode_AddTBigFloatBigNum().
  *
  * See @ref expAndMantissa for decoded representation.
  */
@@ -1526,6 +1534,10 @@ QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pCtx,
  * is a big number (See QCBOREncode_AddTBignumber()) allowing for
  * arbitrary precision.
  *
+ *The big number will be offset iby 1 if neg and preferred serialization will be used (tag 0 and 1).
+ *
+ * TODO: SHould there be a NoPreferred version of this?
+ *
  * See @ref expAndMantissa for decoded representation.
  */
 static void
@@ -1552,25 +1564,6 @@ QCBOREncode_AddTBigFloatBigNumberToMapN(QCBOREncodeContext *pCtx,
                                         int64_t             nBase2Exponent);
 
 
-static void
-QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pCtx,
-                              UsefulBufC          Mantissa,
-                              bool                bIsNegative,
-                              int64_t             nBase2Exponent);
-
-static void
-QCBOREncode_AddBigFloatBigNumToMap(QCBOREncodeContext *pCtx,
-                                   const char         *szLabel,
-                                   UsefulBufC          Mantissa,
-                                   bool                bIsNegative,
-                                   int64_t             nBase2Exponent);
-
-static void
-QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
-                                    int64_t             nLabel,
-                                    UsefulBufC          Mantissa,
-                                    bool                bIsNegative,
-                                    int64_t             nBase2Exponent);
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
@@ -2770,6 +2763,67 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
 
 
 
+// TODO: documentation
+
+/**
+ * @brief Add a decimal fraction to the encoded output (deprecated).
+ *
+ * @param[in] pCtx             Encoding context to add the decimal fraction to.
+ * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+ *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] nMantissa        The mantissa.
+ * @param[in] nBase10Exponent  The exponent.
+ *
+ * The value is nMantissa * 10 ^ nBase10Exponent.
+ *
+ * A decimal fraction is good for exact representation of some values
+ * that can't be represented exactly with standard C (IEEE 754)
+ * floating-point numbers.  Much larger and much smaller numbers can
+ * also be represented than floating-point because of the larger
+ * number of bits in the exponent.
+ *
+ * The decimal fraction is conveyed as two integers, a mantissa and a
+ * base-10 scaling factor.
+ *
+ * For example, 273.15 is represented by the two integers 27315 and -2.
+ *
+ * The exponent and mantissa have the range from @c INT64_MIN to
+ * @c INT64_MAX for both encoding and decoding (CBOR allows
+ * @c -UINT64_MAX to @c UINT64_MAX, but this implementation doesn't
+ * support this range to reduce code size and interface complexity a
+ * little).
+ *
+ * CBOR Preferred serialization of the integers is used, thus they
+ * will be encoded in the smallest number of bytes possible.
+ *
+ * See also QCBOREncode_AddDecimalFractionBigNum() for a decimal
+ * fraction with arbitrarily large precision and
+ * QCBOREncode_AddBigFloat().
+ *
+ * There is no representation of positive or negative infinity or NaN
+ * (Not a Number). Use QCBOREncode_AddDouble() to encode them.
+ *
+ * See @ref expAndMantissa for decoded representation.
+ */
+static void
+QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pCtx,
+                                const uint8_t       uTagRequirement,
+                                const int64_t       nMantissa,
+                                const int64_t       nBase10Exponent);
+
+static void
+QCBOREncode_AddTDecimalFractionToMapSZ(QCBOREncodeContext *pCtx,
+                                       const char         *szLabel,
+                                       const uint8_t       uTagRequirement,
+                                       const int64_t       nMantissa,
+                                       const int64_t       nBase10Exponent);
+
+static void
+QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
+                                      const int64_t       nLabel,
+                                      const uint8_t       uTagRequirement,
+                                      const int64_t       nMantissa,
+                                      const int64_t       nBase10Exponent);
 
 static void
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
@@ -2789,6 +2843,22 @@ QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
                                      int64_t             nBase10Exponent);
 
 
+/**
+ * @brief Add a decimal fraction with a big number mantissa to the encoded output (deprecated).
+ *
+ * @param[in] pCtx             Encoding context to add the decimal fraction to.
+ * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+ *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] Mantissa         The mantissa.
+ * @param[in] bIsNegative      false if mantissa is positive, true if negative.
+ * @param[in] nBase10Exponent  The exponent.
+ *
+ * This is the same as QCBOREncode_AddDecimalFraction() except the
+ * mantissa is a big number (See QCBOREncode_AddPositiveBignum())
+ * allowing for arbitrarily large precision.
+ *
+ * See @ref expAndMantissa for decoded representation.
+ */
 static void
 QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                       uint8_t             uTagRequirement,
@@ -2811,8 +2881,6 @@ QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                             UsefulBufC          Mantissa,
                                             bool                bIsNegative,
                                             int64_t             nBase10Exponent);
-
-
 static void
 QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                      UsefulBufC          Mantissa,
@@ -2834,7 +2902,9 @@ QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                            int64_t             nBase10Exponent);
 
 
-
+// TODO: documentation
+// Deprecated
+/* Use QCBOREncode_AddTBigFloat() instead. */
 static void
 QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
                         int64_t             nMantissa,
@@ -2852,7 +2922,26 @@ QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
                               int64_t             nMantissa,
                               int64_t             nBase2Exponent);
 
-
+/**
+ * @brief Add a big floating-point number with a big number mantissa to
+ *        the encoded output (deprecated).
+ *
+ * @param[in] pCtx             The encoding context to add the bigfloat to.
+ * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+ *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] Mantissa         The mantissa.
+ * @param[in] bIsNegative      false if mantissa is positive, true if negative.
+ * @param[in] nBase2Exponent   The exponent.
+ *
+ * The big number added with this is not offset by 1, nor is big number preferred serialization
+ * used.
+ *
+ * This is the same as QCBOREncode_AddBigFloat() except the mantissa
+ * is a big number (See QCBOREncode_AddPositiveBignum()) allowing for
+ * arbitrary precision.
+ *
+ * See @ref expAndMantissa for decoded representation.
+ */
 static void
 QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
@@ -2876,7 +2965,6 @@ QCBOREncode_AddTBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                      bool                bIsNegative,
                                      int64_t             nBase2Exponent);
 
-
 static void
 QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pCtx,
                               UsefulBufC          Mantissa,
@@ -2896,6 +2984,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          Mantissa,
                                     bool                bIsNegative,
                                     int64_t             nBase2Exponent);
+
 
 /* =========================================================================
      BEGINNING OF PRIVATE IMPLEMENTATION
@@ -2951,34 +3040,34 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
 
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
 void
-QCBOREncode_Private_AddExpMantissaInt(QCBOREncodeContext *pMe,
+QCBOREncode_Private_AddTExpMantissaInt(QCBOREncodeContext *pMe,
                                       const int           uTagRequirement,
-                                      const uint64_t      uTag,
+                                      const uint64_t      uTagNumber,
                                       const int64_t       nExponent,
                                       const int64_t       nMantissa);
 
 void
-QCBOREncode_Private_AddExpMantissaBigNumber(QCBOREncodeContext *pMe,
+QCBOREncode_Private_AddTExpMantissaBigNumber(QCBOREncodeContext *pMe,
                                             const int           uTagRequirement,
-                                            const uint64_t      uTag,
+                                            const uint64_t      uTagNumber,
                                             const int64_t       nExponent,
                                             const UsefulBufC    BigNumMantissa,
                                             const bool          bBigNumIsNegative);
 
 void
-QCBOREncode_Private_AddExpMantissaBigNumberNoPreferred(QCBOREncodeContext *pMe,
-                                                       const int           uTagRequirement,
-                                                       const uint64_t      uTag,
-                                                       const int64_t       nExponent,
-                                                       const UsefulBufC    BigNumMantissa,
-                                                       const bool          bBigNumIsNegative);
+QCBOREncode_Private_AddTExpMantissaBigNumberNoPreferred(QCBOREncodeContext *pMe,
+                                                        const int           uTagRequirement,
+                                                        const uint64_t      uTagNumber,
+                                                        const int64_t       nExponent,
+                                                        const UsefulBufC    BigNumMantissa,
+                                                        const bool          bBigNumIsNegative);
 
 void
-QCBOREncode_Private_AddExpMantissaBigNumberOld(QCBOREncodeContext *pMe,
-                                            const int           uTagRequirement,
-                                            const uint64_t      uTag,
-                                            const int64_t       nExponent,
-                                            const UsefulBufC    BigNumMantissa,
+QCBOREncode_Private_AddTExpMantissaBigNumberv1(QCBOREncodeContext *pMe,
+                                               const int           uTagRequirement,
+                                               const uint64_t      uTagNumber,
+                                               const int64_t       nExponent,
+                                               const UsefulBufC    BigNumMantissa,
                                                const bool          bBigNumIsNegative);
 
 /**
@@ -3689,11 +3778,11 @@ QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pMe,
                                 const int64_t       nMantissa,
                                 const int64_t       nBase10Exponent)
 {
-   QCBOREncode_Private_AddExpMantissaInt(pMe,
-                                         uTagRequirement,
-                                         CBOR_TAG_DECIMAL_FRACTION,
-                                         nBase10Exponent,
-                                         nMantissa);
+   QCBOREncode_Private_AddTExpMantissaInt(pMe,
+                                          uTagRequirement,
+                                          CBOR_TAG_DECIMAL_FRACTION,
+                                          nBase10Exponent,
+                                          nMantissa);
 }
 
 static inline void
@@ -3769,12 +3858,12 @@ QCBOREncode_AddTDecimalFractionBigNumber(QCBOREncodeContext *pMe,
                                          const bool          bIsNegative,
                                          const int64_t       nBase10Exponent)
 {
-   QCBOREncode_Private_AddExpMantissaBigNumber(pMe,
-                                               uTagRequirement,
-                                               CBOR_TAG_DECIMAL_FRACTION,
-                                               nBase10Exponent,
-                                               Mantissa,
-                                               bIsNegative);
+   QCBOREncode_Private_AddTExpMantissaBigNumber(pMe,
+                                                uTagRequirement,
+                                                CBOR_TAG_DECIMAL_FRACTION,
+                                                nBase10Exponent,
+                                                Mantissa,
+                                                bIsNegative);
 }
 
 
@@ -3818,12 +3907,12 @@ QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe,
                                       const bool          bIsNegative,
                                       const int64_t       nBase10Exponent)
 {
-   QCBOREncode_Private_AddExpMantissaBigNumberOld(pMe,
-                                                          uTagRequirement,
-                                                          CBOR_TAG_DECIMAL_FRACTION,
-                                                          nBase10Exponent,
-                                                          Mantissa,
-                                                          bIsNegative);
+   QCBOREncode_Private_AddTExpMantissaBigNumberv1(pMe,
+                                                  uTagRequirement,
+                                                  CBOR_TAG_DECIMAL_FRACTION,
+                                                  nBase10Exponent,
+                                                  Mantissa,
+                                                  bIsNegative);
 }
 
 
@@ -3909,11 +3998,11 @@ QCBOREncode_AddTBigFloat(QCBOREncodeContext *pMe,
                          const int64_t       nMantissa,
                          const int64_t       nBase2Exponent)
 {
-   QCBOREncode_Private_AddExpMantissaInt(pMe,
-                                         uTagRequirement,
-                                         CBOR_TAG_BIGFLOAT,
-                                         nBase2Exponent,
-                                         nMantissa);
+   QCBOREncode_Private_AddTExpMantissaInt(pMe,
+                                          uTagRequirement,
+                                          CBOR_TAG_BIGFLOAT,
+                                          nBase2Exponent,
+                                          nMantissa);
 }
 
 static inline void
@@ -3983,12 +4072,12 @@ QCBOREncode_AddTBigFloatBigNumber(QCBOREncodeContext *pMe,
                                   const bool          bIsNegative,
                                   const int64_t       nBase2Exponent)
 {
-   QCBOREncode_Private_AddExpMantissaBigNumber(pMe,
-                                               uTagRequirement,
-                                               CBOR_TAG_BIGFLOAT,
-                                               nBase2Exponent,
-                                               Mantissa,
-                                               bIsNegative);
+   QCBOREncode_Private_AddTExpMantissaBigNumber(pMe,
+                                                uTagRequirement,
+                                                CBOR_TAG_BIGFLOAT,
+                                                nBase2Exponent,
+                                                Mantissa,
+                                                bIsNegative);
 }
 
 
@@ -4031,12 +4120,12 @@ QCBOREncode_AddTBigFloatBigNum(QCBOREncodeContext *pMe,
                                const bool          bIsNegative,
                                const int64_t       nBase2Exponent)
 {
-   QCBOREncode_Private_AddExpMantissaBigNumberOld(pMe,
-                                                          uTagRequirement,
-                                                          CBOR_TAG_BIGFLOAT,
-                                                          nBase2Exponent,
-                                                          Mantissa,
-                                                          bIsNegative);
+   QCBOREncode_Private_AddTExpMantissaBigNumberv1(pMe,
+                                                  uTagRequirement,
+                                                  CBOR_TAG_BIGFLOAT,
+                                                  nBase2Exponent,
+                                                  Mantissa,
+                                                  bIsNegative);
 }
 
 static inline void
