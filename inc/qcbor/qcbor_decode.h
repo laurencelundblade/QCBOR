@@ -313,10 +313,19 @@ typedef enum {
  *  QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
 
+/** A decimal fraction made of decimal exponent and positive
+ * uint64_t */
+#define QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 115
+
 /** A decimal fraction made of decimal exponent and negative big
  *  number mantissa. See @ref expAndMantissa and
  *  QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
+
+/** A decimal fraction made of decimal exponent and negative big
+ *  number mantissa. See @ref expAndMantissa and
+ *  QCBOREncode_AddDecimalFractionBigNum(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 116 // TODO: is the the number we really want?
 
 /** A floating-point number made of base-2 exponent and integer
  *  mantissa.  See @ref expAndMantissa and
@@ -332,6 +341,16 @@ typedef enum {
  *  number mantissa.  See @ref expAndMantissa and
  *  QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
+
+/** A floating-point number made of base-2 exponent and positive big
+ *  number mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloatBigNum(). */
+#define QCBOR_TYPE_BIGFLOAT_POS_U64        118
+
+/** A floating-point number made of base-2 exponent and negative big
+ *  number mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloatBigNum(). */
+#define QCBOR_TYPE_BIGFLOAT_NEG_U64         119
 
 /** Type for the simple value false. */
 #define QCBOR_TYPE_FALSE         20
@@ -520,8 +539,7 @@ typedef struct _QCBORItem {
        * @anchor expAndMantissa
        *
        * This holds the value for big floats and decimal fractions.
-       * The use of the fields in this structure depends on @c
-       * uDataType.
+       * The use of the fields in this structure depends on @c uDataType.
        *
        * When @c uDataType indicates a decimal fraction, the
        * @c nExponent is base 10. When it indicates a big float, it
@@ -534,13 +552,23 @@ typedef struct _QCBORItem {
        * See @ref QCBOR_TYPE_DECIMAL_FRACTION,
        * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
        * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
-       * @ref QCBOR_TYPE_BIGFLOAT, @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
-       * and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+       * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_U64,
+       * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64,,
+       * @ref QCBOR_TYPE_BIGFLOAT, 
+       * @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+       * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+       * @ref QCBOR_TYPE_BIGFLOAT_POS_U64.
+       * and @ref QCBOR_TYPE_BIGFLOAT_NEG_U64.
        *
-       * When a negative big number is returned here, it is directly
-       * off the wire, without correcting for the offset of 1. See
-       * QCBORDecode_ProcessBigNumber() which will perform
-       * the adjustment.
+       * When the mantissa is uInt or bigNum and negative, 1 must
+       * be further subtracted from the value returned to get the
+       * actual value of the mantissa. 
+       *
+       * See  QCBORDecode_GetDecimalFractionBigNumber(),
+       * and QCBORDecode_GetBigFloatBigNumber() for
+       * methods that fully process negative mantissas.
+       * Also, QCBORDecode_ProcessBigNumber() which
+       * can be used on the mantissa returned here.
        *
        * Also see QCBOREncode_AddTDecimalFraction(),
        * QCBOREncode_AddTBigFloat(),
@@ -551,11 +579,14 @@ typedef struct _QCBORItem {
          int64_t nExponent;
          union {
             int64_t    nInt;
+            uint64_t   uInt;
             UsefulBufC bigNum;
          } Mantissa;
       } expAndMantissa;
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  /* Used internally during decoding */
+
+      uint8_t     custom[24];
 
    } val;
 

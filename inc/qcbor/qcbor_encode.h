@@ -1534,9 +1534,10 @@ QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pCtx,
  * is a big number (See QCBOREncode_AddTBignumber()) allowing for
  * arbitrary precision.
  *
- *The big number will be offset iby 1 if neg and preferred serialization will be used (tag 0 and 1).
+ *The big number will be offset by 1 if negative and preferred serialization will be used (tag 0 and 1).
  *
- * TODO: SHould there be a NoPreferred version of this?
+ * If you want the big number to be copied straight through without the conversion to type 0
+ * and 1 integers and without the offset of 1 (and much smaller objet code) use QCBOREncode_AddTBigFloatBigNum().
  *
  * See @ref expAndMantissa for decoded representation.
  */
@@ -2768,63 +2769,13 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
 /**
  * @brief Add a decimal fraction to the encoded output (deprecated).
  *
- * @param[in] pCtx             Encoding context to add the decimal fraction to.
- * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
- *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] pCtx             Encoding context to add the decimal fraction to..
  * @param[in] nMantissa        The mantissa.
  * @param[in] nBase10Exponent  The exponent.
  *
- * The value is nMantissa * 10 ^ nBase10Exponent.
- *
- * A decimal fraction is good for exact representation of some values
- * that can't be represented exactly with standard C (IEEE 754)
- * floating-point numbers.  Much larger and much smaller numbers can
- * also be represented than floating-point because of the larger
- * number of bits in the exponent.
- *
- * The decimal fraction is conveyed as two integers, a mantissa and a
- * base-10 scaling factor.
- *
- * For example, 273.15 is represented by the two integers 27315 and -2.
- *
- * The exponent and mantissa have the range from @c INT64_MIN to
- * @c INT64_MAX for both encoding and decoding (CBOR allows
- * @c -UINT64_MAX to @c UINT64_MAX, but this implementation doesn't
- * support this range to reduce code size and interface complexity a
- * little).
- *
- * CBOR Preferred serialization of the integers is used, thus they
- * will be encoded in the smallest number of bytes possible.
- *
- * See also QCBOREncode_AddDecimalFractionBigNum() for a decimal
- * fraction with arbitrarily large precision and
- * QCBOREncode_AddBigFloat().
- *
- * There is no representation of positive or negative infinity or NaN
- * (Not a Number). Use QCBOREncode_AddDouble() to encode them.
- *
- * See @ref expAndMantissa for decoded representation.
+ * This is the same as QCBOREncode_AddTDecimalFraction() except it always
+ * outputs the tag number.
  */
-static void
-QCBOREncode_AddTDecimalFraction(QCBOREncodeContext *pCtx,
-                                const uint8_t       uTagRequirement,
-                                const int64_t       nMantissa,
-                                const int64_t       nBase10Exponent);
-
-static void
-QCBOREncode_AddTDecimalFractionToMapSZ(QCBOREncodeContext *pCtx,
-                                       const char         *szLabel,
-                                       const uint8_t       uTagRequirement,
-                                       const int64_t       nMantissa,
-                                       const int64_t       nBase10Exponent);
-
-static void
-QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
-                                      const int64_t       nLabel,
-                                      const uint8_t       uTagRequirement,
-                                      const int64_t       nMantissa,
-                                      const int64_t       nBase10Exponent);
-
 static void
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
                                int64_t             nMantissa,
@@ -2855,7 +2806,11 @@ QCBOREncode_AddDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  *
  * This is the same as QCBOREncode_AddDecimalFraction() except the
  * mantissa is a big number (See QCBOREncode_AddPositiveBignum())
- * allowing for arbitrarily large precision.
+ * allowing for arbitrarily large precision. Preferred serialization is not used
+ * for the big number.
+ *
+ * See QCBOREncode_AddTDecimalFractionBigNumber() which does use
+ * preferred serialization for the big number.
  *
  * See @ref expAndMantissa for decoded representation.
  */
@@ -2902,9 +2857,16 @@ QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                            int64_t             nBase10Exponent);
 
 
-// TODO: documentation
-// Deprecated
-/* Use QCBOREncode_AddTBigFloat() instead. */
+/**
+ * @brief Add a big floating-point number to the encoded output (deprecated).
+ *
+ * @param[in] pCtx             The encoding context to add the bigfloat to.
+ * @param[in] nMantissa        The mantissa.
+ * @param[in] nBase2Exponent   The exponent.
+ *
+ * This is the same as QCBOREncode_AddTBigFloat() except this always
+ * outputs the tag number.
+ */
 static void
 QCBOREncode_AddBigFloat(QCBOREncodeContext *pCtx,
                         int64_t             nMantissa,
@@ -2934,7 +2896,7 @@ QCBOREncode_AddBigFloatToMapN(QCBOREncodeContext *pCtx,
  * @param[in] nBase2Exponent   The exponent.
  *
  * The big number added with this is not offset by 1, nor is big number preferred serialization
- * used.
+ * used. See QCBOREncode_AddTBigFloatBigNumber().
  *
  * This is the same as QCBOREncode_AddBigFloat() except the mantissa
  * is a big number (See QCBOREncode_AddPositiveBignum()) allowing for
@@ -3647,13 +3609,13 @@ QCBOREncode_Private_BigNumberTag(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_Private_AddTBignum(QCBOREncodeContext *pMe,
-                               const uint8_t       uTagRequirement,
-                               bool                bNegative,
-                               const UsefulBufC    BigNum)
+QCBOREncode_Private_AddTBigNumber(QCBOREncodeContext *pMe,
+                                  const uint8_t       uTagRequirement,
+                                  bool                bNegative,
+                                  const UsefulBufC    BigNumber)
 {
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, bNegative);
-   QCBOREncode_AddBytes(pMe, BigNum);
+   QCBOREncode_AddBytes(pMe, BigNumber);
 }
 
 static inline void
@@ -3661,7 +3623,7 @@ QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
                                const UsefulBufC    BigNum)
 {
-   QCBOREncode_Private_AddTBignum(pMe, uTagRequirement, false, BigNum);
+   QCBOREncode_Private_AddTBigNumber(pMe, uTagRequirement, false, BigNum);
 }
 
 static inline void
@@ -3717,7 +3679,7 @@ QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pMe,
                                const uint8_t       uTagRequirement,
                                const UsefulBufC    BigNum)
 {
-   QCBOREncode_Private_AddTBignum(pMe, uTagRequirement, true, BigNum);
+   QCBOREncode_Private_AddTBigNumber(pMe, uTagRequirement, true, BigNum);
 }
 
 static inline void
@@ -4170,7 +4132,8 @@ QCBOREncode_AddBigFloatBigNum(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddTBigFloatBigNum(pMe,
                                   QCBOR_ENCODE_AS_TAG,
-                                  Mantissa, bIsNegative,
+                                  Mantissa,
+                                  bIsNegative,
                                   nBase2Exponent);
 }
 

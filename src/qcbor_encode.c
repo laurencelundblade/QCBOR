@@ -830,7 +830,7 @@ QCBOREncode_Private_BigNumberCarry(const UsefulBufC BigNumber)
  * @param[in] BigNumber        The negative big number.
  */
 static void
-QCBOREncode_Private_AddTNegativeBignumber(QCBOREncodeContext *pMe,
+QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
                                           const uint8_t       uTagRequirement,
                                           const UsefulBufC    BigNumber)
 {
@@ -974,14 +974,14 @@ QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
          /* Might be a 65-bit negative; use special add method for such */
          QCBOREncode_AddNegativeUInt64(pMe, uInt);
       } else {
-         QCBOREncode_Private_AddTNegativeBignumber(pMe, uTagRequirement, BigNumberNLZ);
+         QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
       }
 
    } else {
       if(BigNumberNLZ.len <= sizeof(uint64_t)) {
          QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumberToUInt(BigNumberNLZ));
       } else {
-         QCBOREncode_Private_AddTBignum(pMe, bNegative, uTagRequirement, BigNumberNLZ);
+         QCBOREncode_Private_AddTBigNumber(pMe, bNegative, uTagRequirement, BigNumberNLZ);
       }
    }
 }
@@ -999,9 +999,9 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
    const UsefulBufC BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
    if(bNegative) {
-      QCBOREncode_Private_AddTNegativeBignumber(pMe, uTagRequirement, BigNumberNLZ);
+      QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
    } else {
-      QCBOREncode_Private_AddTBignum(pMe, false, uTagRequirement, BigNumberNLZ);
+      QCBOREncode_Private_AddTBigNumber(pMe, false, uTagRequirement, BigNumberNLZ);
    }
 }
 
@@ -1107,7 +1107,7 @@ QCBOREncode_Private_AddTExpMantissaBigNumberv1(QCBOREncodeContext *pMe,
    }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
-   QCBOREncode_Private_AddTBignum(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_Private_AddTBigNumber(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
    QCBOREncode_CloseArray(pMe);
 }
 
