@@ -269,7 +269,7 @@ typedef enum {
 #define QCBOR_TYPE_TEXT_STRING    7
 
 /** Type for a positive big number. Data is in @c val.bignum, a
- *  pointer and a length. See QCBORDecode_BignumPreferred(). */
+ *  pointer and a length. See QCBORDecode_ProcessBigNumber(). */
 #define QCBOR_TYPE_POSBIGNUM      9
 
 /** Type for a negative big number. Data is in @c val.bignum, a
@@ -281,7 +281,7 @@ typedef enum {
  *  avoids storage allocation for the most part.  For example, if 1 is
  *  subtraced from a negative big number that is the two bytes 0xff
  *  0xff, the result would be 0x01 0x00 0x00, one byte longer than
- *  what was received. See QCBORDecode_BignumPreferred(). */
+ *  what was received. See QCBORDecode_ProcessBigNumber(). */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
@@ -313,10 +313,19 @@ typedef enum {
  *  QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
 
+/** A decimal fraction made of decimal exponent and positive
+ * uint64_t */
+#define QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 115
+
 /** A decimal fraction made of decimal exponent and negative big
  *  number mantissa. See @ref expAndMantissa and
  *  QCBOREncode_AddDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
+
+/** A decimal fraction made of decimal exponent and negative big
+ *  number mantissa. See @ref expAndMantissa and
+ *  QCBOREncode_AddDecimalFractionBigNum(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 116 // TODO: is the the number we really want?
 
 /** A floating-point number made of base-2 exponent and integer
  *  mantissa.  See @ref expAndMantissa and
@@ -332,6 +341,16 @@ typedef enum {
  *  number mantissa.  See @ref expAndMantissa and
  *  QCBOREncode_AddBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
+
+/** A floating-point number made of base-2 exponent and positive big
+ *  number mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloatBigNum(). */
+#define QCBOR_TYPE_BIGFLOAT_POS_U64        118
+
+/** A floating-point number made of base-2 exponent and negative big
+ *  number mantissa.  See @ref expAndMantissa and
+ *  QCBOREncode_AddBigFloatBigNum(). */
+#define QCBOR_TYPE_BIGFLOAT_NEG_U64         119
 
 /** Type for the simple value false. */
 #define QCBOR_TYPE_FALSE         20
@@ -520,8 +539,7 @@ typedef struct _QCBORItem {
        * @anchor expAndMantissa
        *
        * This holds the value for big floats and decimal fractions.
-       * The use of the fields in this structure depends on @c
-       * uDataType.
+       * The use of the fields in this structure depends on @c uDataType.
        *
        * When @c uDataType indicates a decimal fraction, the
        * @c nExponent is base 10. When it indicates a big float, it
@@ -534,23 +552,41 @@ typedef struct _QCBORItem {
        * See @ref QCBOR_TYPE_DECIMAL_FRACTION,
        * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
        * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
-       * @ref QCBOR_TYPE_BIGFLOAT, @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
-       * and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+       * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_U64,
+       * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64,,
+       * @ref QCBOR_TYPE_BIGFLOAT, 
+       * @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+       * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+       * @ref QCBOR_TYPE_BIGFLOAT_POS_U64.
+       * and @ref QCBOR_TYPE_BIGFLOAT_NEG_U64.
+       *
+       * When the mantissa is uInt or bigNum and negative, 1 must
+       * be further subtracted from the value returned to get the
+       * actual value of the mantissa. 
+       *
+       * See  QCBORDecode_GetDecimalFractionBigNumber(),
+       * and QCBORDecode_GetBigFloatBigNumber() for
+       * methods that fully process negative mantissas.
+       * Also, QCBORDecode_ProcessBigNumber() which
+       * can be used on the mantissa returned here.
        *
        * Also see QCBOREncode_AddTDecimalFraction(),
        * QCBOREncode_AddTBigFloat(),
-       * QCBOREncode_AddTDecimalFractionBigNum() and
-       * QCBOREncode_AddTBigFloatBigNum().
+       * QCBOREncode_AddTDecimalFractionBigNumber() and
+       * QCBOREncode_AddTBigFloatBigNumber().
        */
       struct {
          int64_t nExponent;
          union {
             int64_t    nInt;
+            uint64_t   uInt;
             UsefulBufC bigNum;
          } Mantissa;
       } expAndMantissa;
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  /* Used internally during decoding */
+
+      uint8_t     custom[24];
 
    } val;
 
@@ -1422,7 +1458,7 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This always returns the result as a big number. The integer types 0
  * and 1 are converted. Leading zeros are removed. The value 0 is
  * always returned as a one-byte big number with the value 0x00.
-
+ *
  * If \c BigNumBuf is too small, \c pBigNum.ptr will be \c NULL and \c
  * pBigNum.len reports the required length. The size of \c BigNumBuf
  * might have to be one larger than the size of the tag 2 or 3 being
@@ -1443,6 +1479,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This can also be used if you happen to want type 0 and type 1
  * integers converted to big numbers.
  *
+ * See also QCBORDecode_ProcessBigNumberNoPreferred().
+ *
  * If QCBOR is being used in an environment with a full big number
  * library, it may be better (less object code) to use the big number
  * library than this, particularly to subtract one for tag 3.
@@ -1453,10 +1491,32 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * issue it brings.
  */
 QCBORError
-QCBORDecode_BignumPreferred(const QCBORItem Item,
-                            UsefulBuf       BigNumBuf,
-                            UsefulBufC     *pBigNum,
-                            bool           *pIsNegative);
+QCBORDecode_ProcessBigNumber(const QCBORItem Item,
+                             UsefulBuf       BigNumBuf,
+                             UsefulBufC     *pBigNum,
+                             bool           *pIsNegative);
+
+
+/**
+ * @brief Decode a big number.
+ *
+ * @param[in] Item    The number to process.
+ * @param[in] BigNumBuf  The buffer to output to.
+ * @param[out] pBigNumber   The resulting big number.
+ * @param[out] pbIsNegative  The sign of the resulting big number.
+ *
+ * This is the same as QCBORDecode_ProcessBigNumber(), but doesn't
+ * allow type 0 and 1 integers. It only works on tag 2 and 3 big numbers.
+ * The main work this does is handle the offset of 1 for negative big
+ * number decoding.
+ */
+QCBORError
+QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
+                                        UsefulBuf       BigNumBuf,
+                                        UsefulBufC     *pBigNumber,
+                                        bool           *pbIsNegative);
+
+
 
 
 /**
