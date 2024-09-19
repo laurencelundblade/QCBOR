@@ -231,6 +231,9 @@ extern "C" {
 /** The 64-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID64 0xffffffffffffffff
 
+/* Allows tag matchers to match any tag */
+#define CBOR_TAG_ANY (CBOR_TAG_INVALID64 - 1)
+
 
 
 
@@ -557,6 +560,12 @@ typedef enum {
 
    /* Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
+
+   /** An unconsumed tag number was encountered. */
+   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89,
+
+   /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber(). */
+   QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

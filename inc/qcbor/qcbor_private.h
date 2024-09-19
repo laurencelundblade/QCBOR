@@ -396,6 +396,13 @@ struct _QCBORDecodeContext {
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
    uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
+
+   const void *pTagDecoderTable; // TODO: other than void?
+   void       *pTagDecodersContext;
+
+   size_t      uTagNumberCheckOffset;
+   uint8_t     uTagNumberIndex;
+   uint8_t     uMajorVersion;
 };
 
 
@@ -425,6 +432,9 @@ struct _QCBORDecodeContext {
 
 /* The number of elements in a C array of a particular type */
 #define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
+
+
+
 
 
 #ifdef __cplusplus

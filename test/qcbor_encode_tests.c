@@ -3977,3 +3977,5 @@ int32_t DCBORTest(void)
 
 }
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+//#include "qcbor/qcbor2_encode.h"

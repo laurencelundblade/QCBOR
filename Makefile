@@ -24,7 +24,7 @@ LIBS=-lm
 CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC
 
 
-QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o src/qcbor_err_to_str.o
+QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/qcbor_tag_decode.o src/ieee754.o src/qcbor_err_to_str.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
     test/qcbor_decode_tests.o test/run_tests.o \
@@ -58,6 +58,7 @@ PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor
 
 src/UsefulBuf.o: inc/qcbor/UsefulBuf.h
 src/qcbor_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_spiffy_decode.h src/ieee754.h
+src/qcbor_tag_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_tag_decode.h
 src/qcbor_encode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_encode.h src/ieee754.h
 src/iee754.o: src/ieee754.h
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h

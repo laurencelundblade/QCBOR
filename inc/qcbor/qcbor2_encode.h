@@ -32,8 +32,49 @@
  * ========================================================================= */
 
 
-#ifndef qcbor_encode_h
-#define qcbor_encode_h
+/* QCBOR2 interface changes:
+
+ - "SZ" to function names that encode in to map
+
+ - Dropped "T" from functions that encode standard tags. Only one method
+
+ - Preferred/non-preferred rearrangement for big numbers, decimal fracs and bigfloats
+
+ - uTagRequirement ---> bWithTagNumber
+
+
+ The encode context hasn't changed, but the name is changed for the sake of typing and consistency
+
+ Some v2 features will only be supported in the QCBOR2 interface just because
+ of the work to test and such. Eventually they can be move to the QCBOR
+ interface.
+
+ The point of the QCBOR2 interface is:
+  -- Simpler and more consisten interface that can't be done without breaking compat
+  -- Better tag handling that can't be done without breaking compat
+  -- More comlpete bignum, big float and decimal frac handling that needs to break compat
+  -- (Some major new features that might eventually be back-ported to the QCBOR inteface)
+
+
+ On the decode side
+  -- QCBOR2Item is smaller
+  -- Simpler tag handling (code size is smaller too)
+  -- Better bignum
+  --
+
+ QCBOR v2 will support both interfaces
+
+ 
+Users will use one interface or the other. Is that true...?
+ An app might link with both. Yuck...
+Eventually want the two header files to be mutually exclusive.
+
+
+ */
+
+
+#ifndef qcbor2_encode_h
+#define qcbor2_encode_h
 
 
 #include "qcbor/qcbor_common.h"
@@ -50,7 +91,7 @@ extern "C" {
 
 
 /**
- * @file qcbor_encode.h
+ * @file qcbor2_encode.h
  *
  * @anchor Overview
  *
@@ -410,6 +451,7 @@ extern "C" {
  * re initialized.
  */
 typedef struct _QCBOREncodeContext QCBOREncodeContext;
+typedef struct _QCBOREncodeContext QCBOR2EncodeContext;
 
 
 /**
@@ -611,32 +653,6 @@ QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
 #define QCBOR_ENCODE_ALLOW_ALL         0xFF
 
 
-/**
- * @brief Allow encoding of less-interoperable values.
- *
- * @param[in] pCtx    The encoding context.
- * @param[in] uAllow  Bit flags indicating what to allow.
- *
- * There are a few things in the CBOR standard that are often not
- * supported and are thus not very interoperable.  By default QCBOR
- * will error if you attempt to output them. This disables that
- * error.
- *
- * See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD and 
- * @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG.
- *
- * This does nothing if the library is compiled
- * QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-static void
-QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
-
-
-/*
- * QCBOR_ENCODE_CONFIG_V1_COMPAT
- */
-static void
-QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pCtx);
-
 
 /**
  * @brief  Add a signed 64-bit integer to the encoded output.
@@ -683,7 +699,7 @@ void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 static void
-QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
 
 static void
 QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t uNum);
@@ -798,13 +814,17 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  * Error handling is the same as QCBOREncode_AddInt64().
  */
 static void
-QCBOREncode_AddText(QCBOREncodeContext *pCtx, UsefulBufC Text);
+QCBOR2Encode_AddText(QCBOREncodeContext *pCtx, UsefulBufC Text);
 
 static void
-QCBOREncode_AddTextToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Text);
+QCBOR2Encode_AddTextToMapSZ(QCBOREncodeContext *pCtx,
+                           const char *szLabel,
+                           UsefulBufC Text);
 
 static void
-QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
+QCBOR2Encode_AddTextToMapN(QCBOREncodeContext *pCtx,
+                          int64_t nLabel,
+                          UsefulBufC Text);
 
 
 /**
@@ -983,9 +1003,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  * @brief  Add an epoch-based date.
  *
  * @param[in] pCtx             The encoding context to add the date to.
- *   bOmitTagNumber
- * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
- *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] bWithTagNumber  true if tag number should be output, false if not (implied)
  * @param[in] nDate            Number of seconds since 1970-01-01T00:00Z
  *                             in UTC time.
  *
@@ -1015,36 +1033,19 @@ QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  * See also QCBOREncode_AddTDaysEpoch().
  */
 static void
-QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pCtx,
-                          uint8_t             uTagRequirement,
-                          int64_t             nDate);
+QCBOR2Encode_AddDateEpoch(QCBOR2EncodeContext *pCtx,
+                          bool                 bWithTagNumber,
+                          int64_t              nDate);
 
 static void
-QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pCtx,
-                                 const char         *szLabel,
-                                 uint8_t             uTagRequirement,
-                                 int64_t             nDate);
+QCBOR2Encode_AddDateEpochToMapSZ(QCBOR2EncodeContext *pCtx,
+                                 const char          *szLabel,
+                                 int64_t              nDate);
 
 static void
-QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx,
-                                int64_t             nLabel,
-                                uint8_t             uTagRequirement,
-                                int64_t             nDate);
-
-
-static void
-QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx,
-                         int64_t             nDate);
-
-static void
-QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pCtx,
-                              const char         *szLabel,
-                              int64_t             nDate);
-
-static void
-QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
-                               int64_t             nLabel,
-                               int64_t             nDate);
+QCBOR2Encode_AddDateEpochToMapN(QCBOR2EncodeContext *pCtx,
+                                int64_t              nLabel,
+                                int64_t              nDate);
 
 
 
@@ -1052,8 +1053,7 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
  *  @brief  Add an epoch-based day-count date.
  *
  *  @param[in] pCtx             The encoding context to add the date to.
- *  @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
- *                              @ref QCBOR_ENCODE_AS_BORROWED.
+
  *  @param[in] nDays            Number of days before or after 1970-01-0.
  *
  * This date format is described in
@@ -1067,12 +1067,11 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx,
  * See also QCBOREncode_AddTDateEpoch().
  */
 static void
-QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pCtx,
-                          uint8_t             uTagRequirement,
+QCBOREncode_AddDaysEpoch(QCBOREncodeContext *pCtx,
                           int64_t             nDays);
 
 static void
-QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pCtx,
+QCBOREncode_AddDaysEpochToMapSZ(QCBOREncodeContext *pCtx,
                                  const char         *szLabel,
                                  uint8_t             uTagRequirement,
                                  int64_t             nDays);
@@ -1710,8 +1709,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
  * @brief Add a text URI to the encoded output.
  *
  * @param[in] pCtx             The encoding context to add the URI to.
- * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
- *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * xxx@p  aram[in] bWithTagNumer  TODO:
  * @param[in] URI              Pointer and length of the URI.
  *
  * The format of URI must be per [RFC 3986]
@@ -1726,35 +1724,19 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
  *      QCBOREncode_AddURI(pCtx, UsefulBuf_FromSZ(szURI));
  */
 static void
-QCBOREncode_AddTURI(QCBOREncodeContext *pCtx,
-                    uint8_t             uTagRequirement,
-                    UsefulBufC          URI);
-
-static void
-QCBOREncode_AddTURIToMapSZ(QCBOREncodeContext *pCtx,
-                           const char         *szLabel,
-                           uint8_t             uTagRequirement,
-                           UsefulBufC          URI);
-
-static void
-QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pCtx,
-                          int64_t             nLabel,
-                          uint8_t             uTagRequirement,
-                          UsefulBufC          URI);
-
-
-static void
-QCBOREncode_AddURI(QCBOREncodeContext *pCtx,
+QCBOR2Encode_AddURI(QCBOR2EncodeContext *pCtx,
                    UsefulBufC          URI);
 
 static void
-QCBOREncode_AddURIToMap(QCBOREncodeContext *pCtx,
+QCBOR2Encode_AddURIToMapSZ(QCBOR2EncodeContext *pCtx,
                         const char         *szLabel,
+                        bool                bWithTagNumer,
                         UsefulBufC          URI);
 
 static void
-QCBOREncode_AddURIToMapN(QCBOREncodeContext *pCtx,
+QCBOR2Encode_AddURIToMapN(QCBOR2EncodeContext *pCtx,
                          int64_t             nLabel,
+                         bool                bWithTagNumer,
                          UsefulBufC          URI);
 
 
@@ -2686,12 +2668,6 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 
 
 
-/* DEPRECATED */
-static void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
-
-
-
 /* =========================================================================
      BEGINNING OF PRIVATE IMPLEMENTATION
    ========================================================================= */
@@ -2771,7 +2747,7 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pCtx,
  * Error handling is the same as QCBOREncode_AddInt64().
  */
 static inline void
-QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
+QCBOR2Encode_Private_AddType7(QCBOREncodeContext *pMe,
                              const uint8_t       uMinLen,
                              const uint64_t      uArgument)
 {
@@ -2785,7 +2761,7 @@ QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
 
 
 static inline void
-QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
+QCBOREncode2_SerializationCDE(QCBOREncodeContext *pMe)
 {
    /* The use of a function pointer here is a little trick to reduce
     * code linked for the common use cases that don't sort.  If this
@@ -2799,26 +2775,26 @@ QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
 }
 
 static inline void
-QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pMe)
+QCBOREncode2_SerializationdCBOR(QCBOREncodeContext *pMe)
 {
    pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
    pMe->uMode = QCBOR_ENCODE_MODE_DCBOR;
 }
 
 static inline void
-QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
+QCBOREncode2_SerializationPreferred(QCBOREncodeContext *pMe)
 {
    pMe->uMode = QCBOR_ENCODE_MODE_PREFERRED;
 }
 
 static inline void
-QCBOREncode_SerializationAny(QCBOREncodeContext *pMe)
+QCBOREncode2_SerializationAny(QCBOREncodeContext *pMe)
 {
    pMe->uMode = QCBOR_ENCODE_MODE_ANY;
 }
 
 static inline void
-QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
+QCBOREncode2_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    pMe->uAllow = uAllow;
@@ -2829,7 +2805,7 @@ QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
 }
 
 static inline void
-QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
+QCBOREncode2_Setv1Compatibility(QCBOREncodeContext *pMe)
 {
    pMe->uConfig = QCBOR_ENCODE_CONFIG_V1_COMPAT;
 }
@@ -2837,25 +2813,16 @@ QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
 
 
 static inline void
-QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pMe,
-                            const char        *szLabel,
-                            const int64_t      uNum)
+QCBOREncode2_AddInt64ToMap(QCBOREncodeContext *pMe,
+                          const char        *szLabel,
+                          const int64_t      uNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddInt64(pMe, uNum);
 }
 
-/* Deprecated */
 static inline void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
-                            const char        *szLabel,
-                            const int64_t      uNum)
-{
-   QCBOREncode_AddInt64ToMapSZ(pMe, szLabel, uNum);
-}
-
-static inline void
-QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,
+QCBOREncode2_AddInt64ToMapN(QCBOREncodeContext *pMe,
                            const int64_t       nLabel,
                            const int64_t       uNum)
 {
@@ -2865,7 +2832,7 @@ QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
+QCBOREncode2_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
 }
@@ -2881,7 +2848,7 @@ QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe,
+QCBOREncode2_AddUInt64ToMapN(QCBOREncodeContext *pMe,
                             const int64_t       nLabel,
                             const uint64_t      uNum)
 {
@@ -2912,13 +2879,13 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uin
 
 
 static inline void
-QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
+QCBOR2Encode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
    QCBOREncode_Private_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
 }
 
 static inline void
-QCBOREncode_AddTextToMap(QCBOREncodeContext *pMe,
+QCBOR2Encode_AddTextToMapSZ(QCBOREncodeContext *pMe,
                          const char         *szLabel,
                          const UsefulBufC    Text)
 {
@@ -2927,11 +2894,26 @@ QCBOREncode_AddTextToMap(QCBOREncodeContext *pMe,
 }
 
 static inline void
+QCBOR2Encode_Private_AddTaggedTextToMapSZ(QCBOREncodeContext *pMe,
+                         const char         *szLabel,
+                           uint64_t            uTagNumber,
+                         const UsefulBufC    Text)
+{
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
+    if(uTagNumber != CBOR_INVALID_TAG64) {
+        QCBOREncode_AddTag(uTagNumber);
+   QCBOREncode_AddText(pMe, Text);
+}
+
+static inline void
 QCBOREncode_AddTextToMapN(QCBOREncodeContext *pMe,
                           const int64_t       nLabel,
+                          uint64_t            uTagNumber,
                           const UsefulBufC    Text)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
+    if(uTagNumber != CBOR_INVALID_TAG64) {
+        QCBOREncode_AddTag(uTagNumber);
    QCBOREncode_AddText(pMe, Text);
 }
 
@@ -2978,7 +2960,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
 static inline void
 QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 {
-   QCBOREncode_Private_AddType7(pMe,
+   QCBOR2Encode_Private_AddType7(pMe,
                                 sizeof(uint64_t),
                                 UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
@@ -2986,7 +2968,7 @@ QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 static inline void
 QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
 {
-   QCBOREncode_Private_AddType7(pMe,
+   QCBOR2Encode_Private_AddType7(pMe,
                                 sizeof(uint32_t),
                                 UsefulBufUtil_CopyFloatToUint32(fNum));
 }
@@ -3089,63 +3071,36 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe,
 
 
 
-
 static inline void
-QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe,
-                          const uint8_t       uTag,
-                          const int64_t       nDate)
+QCBOR2Encode_AddDateEpoch(QCBOR2EncodeContext *pMe,
+                          bool                 bWithTagNumber,
+                          const int64_t        nDate)
 {
-   if(uTag == QCBOR_ENCODE_AS_TAG) {
+   if(ubWithTagNumber) {
       QCBOREncode_AddTag(pMe, CBOR_TAG_DATE_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDate);
 }
 
 static inline void
-QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pMe,
-                                 const char         *szLabel,
-                                 const uint8_t       uTag,
-                                 const int64_t       nDate)
+QCBOR2Encode_AddDateEpochToMapSZ(QCBOR2EncodeContext *pMe,
+                                 const char          *szLabel,
+                                 bool                 bWithTagNumber,
+                                 const int64_t        nDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+   QCBOR2Encode_AddDateEpoch(pMe, bWithTagNumber, nDate);
 }
 
 static inline void
-QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pMe,
-                                const int64_t       nLabel,
-                                const uint8_t       uTag,
-                                const int64_t       nDate)
+QCBOR2Encode_AddDateEpochToMapN(QCBOR2EncodeContext *pMe,
+                                const int64_t        nLabel,
+                                bool                 bWithTagNumber,
+                                const int64_t        nDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+   QCBOR2Encode_AddDateEpoch(pMe, bWithTagNumber, nDate);
 }
-
-static inline void
-QCBOREncode_AddDateEpoch(QCBOREncodeContext *pMe,
-                         const int64_t       nDate)
-{
-   QCBOREncode_AddTDateEpoch(pMe, QCBOR_ENCODE_AS_TAG, nDate);
-}
-
-static inline void
-QCBOREncode_AddDateEpochToMap(QCBOREncodeContext *pMe,
-                              const char         *szLabel,
-                              const int64_t       nDate)
-{
-   QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddDateEpoch(pMe, nDate);
-}
-
-static inline void
-QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe,
-                               const int64_t       nLabel,
-                               const int64_t       nDate)
-{
-   QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddDateEpoch(pMe, nDate);
-}
-
 
 static inline void
 QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe,
@@ -3750,57 +3705,32 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
-static inline void
-QCBOREncode_AddTURI(QCBOREncodeContext *pMe,
-                    const uint8_t       uTagRequirement,
-                    const UsefulBufC    URI)
-{
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_URI);
-   }
-   QCBOREncode_AddText(pMe, URI);
-}
 
-static inline void
-QCBOREncode_AddTURIToMapSZ(QCBOREncodeContext *pMe,
-                           const char         *szLabel,
-                           const uint8_t       uTagRequirement,
-                           const UsefulBufC    URI)
-{
-   QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTURI(pMe, uTagRequirement, URI);
-}
-
-static inline void
-QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pMe,
-                          const int64_t       nLabel,
-                          const uint8_t       uTagRequirement,
-                          const UsefulBufC    URI)
-{
-   QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTURI(pMe, uTagRequirement, URI);
-}
 
 static inline void
 QCBOREncode_AddURI(QCBOREncodeContext *pMe, const UsefulBufC URI)
 {
-   QCBOREncode_AddTURI(pMe, QCBOR_ENCODE_AS_TAG, URI);
+    QCBOREncode_AddText(pMe, URI);
 }
 
 static inline void
-QCBOREncode_AddURIToMap(QCBOREncodeContext *pMe,
-                        const char         *szLabel,
-                        const UsefulBufC    URI)
+QCBOREncode_AddURIToMapSZ(QCBOREncodeContext *pMe,
+                          const char         *szLabel,
+                          bool                bWithTagNumber,
+                          const UsefulBufC    URI)
 {
-   QCBOREncode_AddTURIToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, URI);
+    uint64_t uTagNumber = bWithTagNumber ? CBOR_TAG_URI : CBOR_TAG_INVALID64;
+    QCBOREncode_Private_AddTaggedTextToMapSZ(pMe, szLabel, CBOR_TAG_URI, URI);
 }
 
 static inline void
 QCBOREncode_AddURIToMapN(QCBOREncodeContext *pMe,
                          const int64_t       nLabel,
+                         bool                bWithTagNumer,
                          const UsefulBufC    URI)
 {
-   QCBOREncode_AddTURIToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, URI);
+   uint64_t uTagNumber = bWithTagNumer ? CBOR_TAG_URI : CBOR_TAG_INVALID64;
+   QCBOREncode_AddTextToMapN(pMe, nLabel, uTagNumber, URI);
 }
 
 
@@ -4130,7 +4060,7 @@ QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
    }
 #endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   QCBOREncode_Private_AddType7(pMe, 0, uNum);
+   QCBOR2Encode_Private_AddType7(pMe, 0, uNum);
 }
 
 static inline void
@@ -4405,32 +4335,6 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 }
 
 
-
-static inline void
-QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pMe,
-                         const char         *szLabel,
-                           uint64_t            uTagNumber,
-                         const UsefulBufC    Text)
-{
-   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
-   if(uTagNumber != CBOR_TAG_INVALID64) {
-      QCBOREncode_AddTag(pMe, uTagNumber);
-   }
-   QCBOREncode_AddText(pMe, Text);
-}
-
-
-static inline void
-QCBOREncode_AddURIToMapSZ(QCBOREncodeContext *pMe,
-                          const char         *szLabel,
-                          bool                bWithTagNumer,
-                          const UsefulBufC    URI)
-{
-    uint64_t uTagNumber = bWithTagNumer ? CBOR_TAG_URI : CBOR_TAG_INVALID64;
-    QCBOREncode_AddTextToMapSZ(pMe, szLabel, uTagNumber, URI);
-}
-
-
 /* ========================================================================
      END OF PRIVATE INLINE IMPLEMENTATION
    ======================================================================== */
@@ -4439,4 +4343,4 @@ QCBOREncode_AddURIToMapSZ(QCBOREncodeContext *pMe,
 }
 #endif
 
-#endif /* qcbor_encode_h */
+#endif /* qcbor2_encode_h */
