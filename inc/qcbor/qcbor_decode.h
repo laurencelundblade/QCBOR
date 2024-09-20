@@ -577,26 +577,14 @@ typedef struct _QCBORItem {
 
 #ifndef QCBOR_DISABLE_TAGS
    /**
-    * The tags numbers for which the item is the tag content.  Tags
-    * nest, so index 0 in the array is the tag on the data item
-    * itself, index 1 is the tag that applies to the tag in index
-    * 0. The end of the list is indicated by @ref CBOR_TAG_INVALID16
+    * PRIVATE MEMBER
+    * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
+    * Also see @ref Tags-Overview.
     *
-    * Tag nesting is uncommon and rarely deep. This implementation
-    * only allows nesting to a depth of @ref QCBOR_MAX_TAGS_PER_ITEM,
-    * usually 4.
-    *
-    * Tag numbers in the array below and equal to @ref
-    * QCBOR_LAST_UNMAPPED_TAG are unmapped and can be used
-    * directly. Tag numbers above this must be translated through
-    * QCBORDecode_GetNthTag().
-    *
-    * See also the large number of functions like
-    * QCBORDecode_GetEpochDate() and QCBORDecode_GetBignum() in
-    * qcbor_spiffy_decode.h for a way to decode tagged types without
-    * having to reference this array. Also see @ref Tags-Overview.
+    * In QCBOR v1 this was named uTags and was in the reverse order.
+    * It wasn't explicitly described as private, but was implicitly private.
     */
-   uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
+   QCBORMappedTagNumbers auTagNumbers;
 #endif
 } QCBORItem;
 
@@ -1798,7 +1786,7 @@ QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
 uint64_t
 QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
-/* Deprecated. Same as QCBORDecode_GetNthTagNumber */
+/* Deprecated.  */
 uint64_t
 QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
 

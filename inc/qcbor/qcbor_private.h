@@ -353,6 +353,11 @@ typedef struct  {
 } QCBORInternalAllocator;
 
 
+/* Private data structure for mapped tag numbers. The 0th entry
+ * is the one first in the traversal and furthest from the tag content.*/
+typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM1];
+
+
 /*
  * PRIVATE DATA STRUCTURE
  *
@@ -395,7 +400,7 @@ struct _QCBORDecodeContext {
    /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
-   uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
+   QCBORMappedTagNumbers auLastTags;
 
    const void *pTagDecoderTable; // TODO: other than void?
    void       *pTagDecodersContext;
@@ -404,6 +409,8 @@ struct _QCBORDecodeContext {
    uint8_t     uTagNumberIndex;
    uint8_t     uMajorVersion;
 };
+
+
 
 
 /* Used internally in the impementation here Must not conflict with
