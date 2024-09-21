@@ -17,41 +17,101 @@
 #include "qcbor/qcbor_decode.h"
 
 
-/*
- 
-
-
-
+/**
+ * @file qcbor_tag_decode.h
+ *
+ * This file defines the interface for tag decoders that turn tags
+ * into custom QCBORItems with custom user-defined CBOR_TYPEs using
+ * callbacks.
+ *
+ * This also gives function prototypes for callbacks that are supplied
+ * for standard CBOR data types like dates and big numbers.
+ *
+ * This is one of two main facilities for handling tags in CBOR. The
+ * other is QCBORDecode_GetNextTagNumber().
+ *
+ * This file is new in QCBOR v2.
  */
 
-
-/*
+/**
  * @brief Prototype for callback for decoding tag content.
  *
- * @param[in] pCtx   Decode context
- * @param[in] pTagDecoderContext  Optional context for tag decoders.
- * @param[in] uTagNumber  The tag number indicated for the content
- * @param[in,out]   On input the item for the first and possibly only
- *                  item for the tag content. On output, holds the
- *                  decoded tag content.
+ * @param[in] pCtx                Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber          The tag number indicated for the content.
+ * @param[in,out] pItem           On input, the item for the first and
+ *                                possibly only item for the tag content.
+ *                                On output, holds the decoded tag content.
  *
- * Create functions that match this prototype and configure them with
+ * This is one of two main facilities for processing CBOR tags. This
+ * allows callbacks to be installed that fire when a particular tag
+ * number is encountered. The callback consumes the tag content and
+ * turns it into a @ref QCBORItem of a new type. The new QCBORItem is
+ * returned in normal decoding with QCBORDecode_VGetNext() and
+ * related.
+ *
+ * The other facility is QCBORDecode_GetNextTagNumber(). Note als that
+ * tag processing is substantially changed in QCBOR v2.
+ *
+ * A CBOR tag consists of a tag number and tag content. The tag
+ * content might be a simple non-aggregate type like an integer or it
+ * may be a complex protocol message. This facility is oriented around
+ * simple tag content as the output of it must be fit into a
+ * @ref QCBORItem.
+ *
+ * When called, the contents of pItem is the first item in the tag
+ * content. If it is an array or map then the items in it can be
+ * fetched by calling QCBORDecode_GetNext() and such.  All the items
+ * in the tag content must be consumed.
+ *
+ * The callback modifies pItem. It puts the output of tag content
+ * decoding in pItem. It assigns a QCBOR_TYPE integer in the range of
+ * @ref QCBOR_TYPE_START_USER_DEFINED to @ref
+ * QCBOR_TYPE_END_USER_DEFINED. Any of the members of the union @c val
+ * may be used to hold the decoded content.  @c val.userDefined is a
+ * 24 byte buffer that can be used.
+ *
+ * The tag number is passed in so as to allow one callback to be
+ * installed for several different tag numbers.
+ *
+ * The callback must be installed with
  * QCBORDecode_InstallTagDecoders().
+ *
+ * A callback context may given when the callback is installed.  It
+ * will be passed in here as pTagDecodesrContext. There is only one
+ * context for all tag content decoders. None of the standard tag
+ * decoders here use it. The callback context can be used to make a
+ * very elaborite tag content decoder.
+ *
+ * Tags can nest. Callbacks fire first on then inner most tag.  They
+ * are called until all tags are processed or a tag number for which
+ * there is no processor is encountered.
+ *
+ * Standard CBOR defines tags for big numbers, the tag content for
+ * which is a byte string. The standard decoder supplied for this
+ * fires on the tag number for a positive or negative big number,
+ * checks that the tag content is a byte string and changes the CBOR
+ * type of the item from a byte string to either @ref
+ * QCBOR_TYPE_POSBIGNUM or @ref QCBOR_TYPE_NEGBIGNUM.
+ *
+ * Standard CBOR defines a tag for big floats, the tag content of
+ * which is an array of the mantissa and the exponent. The mantissa
+ * may be a big number. Since callbacks fire from the inside out, the
+ * big number content decoder will fire first and the big float
+ * decoder will get @ref QCBOR_TYPE_POSBIGNUM instead of a tag number and
+ * a byte string.
  */
 typedef QCBORError (QCBORTagContentCallBack)(QCBORDecodeContext *pCtx, 
-                                             void               *pTagDecoderContext,
+                                             void               *pTagDecodersContext,
                                              uint64_t            uTagNumber,
                                              QCBORItem          *pItem);
 
 
-/*
+/**
  * An entry in the tag decoders table installed with QCBORDecode_InstallTagDecoders().
  *
  * The table is searched in order for the first match on
- * @ref uTagNumber. Then pfContentDecoder is called.
- *
- * CBOR_TAG_ANY will match all tag numbers. If used,
- * it should be last in the table.
+ * @c uTagNumber. Then @c pfContentDecoder is called.
  */
 struct QCBORTagDecoderEntry {
    uint64_t                  uTagNumber;
@@ -59,14 +119,25 @@ struct QCBORTagDecoderEntry {
 };
 
 
-/* Set the custom tag decoders. pBlock is an array of entries terminated by a NULL function pointer or invalid tag number*/
+/**
+ * @brief Set the custom tag decoders.
+ *
+ * @param[in] pCtx         The decode context.
+ * @param[in] pTagDecoderTable  The table of tag struct QCBORTagDecoderEntry content decoders.
+ *                              The table is terminated by an entry with a NULL pfContentDecoder.
+ *
+ * @param[in] pTagDecodersContext  Context passed to tag decoders. May be @c NULL.
+ *
+ * There is only one table of tag decoders at a time. This replaces
+ * the previous table.
+ */
 static void
 QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pCtx,
                                const struct QCBORTagDecoderEntry *pTagDecoderTable,
                                void                              *pTagDecodersContext);
 
 
-/*
+/**
  * A table of tag handlers that provides QCBOR v1 compatibility
  *
  * Install this with QCBORDecode_InstallTagDecoders().
@@ -75,9 +146,12 @@ extern const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[];
 
 
 /**
- * @brief Convert different epoch date formats in to the QCBOR epoch date format
+ * @brief Convert different epoch date formats in to the QCBOR epoch date format.
  *
- * pDecodedItem[in,out]  The data item to convert.
+ * @param[in] pDecodeCtx           Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber           The tag number indicated for the content.
+ * @param[in,out]  pDecodedItem    The data item to convert.
  *
  * @retval QCBOR_ERR_DATE_OVERFLOW              65-bit negative integer.
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED        Float-point date in input,
@@ -108,7 +182,10 @@ QCBORDecode_DateEpochTagCB(QCBORDecodeContext *pDecodeCtx,
 /**
  * @brief Convert the days epoch date.
  *
- * @param[in,out] pDecodedItem  The data item to convert.
+ * @param[in] pDecodeCtx           Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber           The tag number indicated for the content.
+ * @param[in,out]  pDecodedItem    The data item to convert.
  *
  * @retval QCBOR_ERR_DATE_OVERFLOW              65-bit negative integer.
  * @retval QCBOR_ERR_FLOAT_DATE_DISABLED        Float-point date in input,
@@ -134,29 +211,31 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
 /**
  * @brief Process standard CBOR tags whose content is a string.
  *
- * @param[in] uTagNumber              The tag.
- * @param[in,out] pDecodedItem  The data item.
+ * @param[in] pDecodeCtx           Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber           The tag number indicated for the content.
+ * @param[in,out]  pDecodedItem    The data item to convert.
  *
  * @returns  This returns QCBOR_SUCCESS if the tag was procssed,
- *           \ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
- *           \ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
+ *           @ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
+ *           @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
  *
  * Process the standard CBOR tags  whose content is a byte string or a text
  * string and for which the string is just passed on to the caller.
  *
  * This works for :
- *    CBOR_TAG_DATE_STRING
- *    CBOR_TAG_POS_BIGNUM
- *    CBOR_TAG_NEG_BIGNUM
- *    CBOR_TAG_CBOR
- *    CBOR_TAG_URI
- *    CBOR_TAG_B64URL
- *    CBOR_TAG_B64
- *    CBOR_TAG_B64
- *    CBOR_TAG_REGEX
- *    CBOR_TAG_DAYS_STRING
- *    CBOR_TAG_BIN_UUID
- *    CBOR_TAG_CBOR_SEQUENCE
+ *    @ref CBOR_TAG_DATE_STRING,
+ *    @ref CBOR_TAG_POS_BIGNUM,
+ *    @ref CBOR_TAG_NEG_BIGNUM,
+ *    @ref CBOR_TAG_CBOR,
+ *    @ref CBOR_TAG_URI,
+ *    @ref CBOR_TAG_B64URL,
+ *    @ref CBOR_TAG_B64,
+ *    @ref CBOR_TAG_B64,
+ *    @ref CBOR_TAG_REGEX,
+ *    @ref CBOR_TAG_DAYS_STRING,
+ *    @ref CBOR_TAG_BIN_UUID,
+ *    @ref CBOR_TAG_CBOR_SEQUENCE
  *
  * This maps the CBOR tag to the QCBOR type and checks the content
  * type.  Nothing more. It may not be the most important
@@ -173,15 +252,18 @@ QCBORDecode_StringsTagCB(QCBORDecodeContext *pDecodeCtx,
 /**
  * @brief Decode the MIME type tag
  *
- * @param[in,out] pDecodedItem   The item to decode.
+ * @param[in] pDecodeCtx           Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber           The tag number indicated for the content.
+ * @param[in,out]  pDecodedItem    The data item to convert.
  *
- *  Handle the text and binary MIME type tags. Slightly too complicated
- *  f or ProcessTaggedString() because the RFC 7049 MIME type was
- *  incorreclty text-only.
+ * Handle the text and binary MIME type tags. Slightly too complicated
+ * for or QCBORDecode_StringsTagCB() because the RFC 7049 MIME type was
+ * incorrectly text-only.
  *
  * This works for :
- *     CBOR_TAG_BINARY_MIME
- *     CBOR_TAG_MIME
+ *     @ref CBOR_TAG_BINARY_MIME,
+ *     @ref CBOR_TAG_MIME
  */
 QCBORError
 QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
@@ -192,30 +274,26 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
 /**
  * @brief Decode decimal fractions and big floats.
  *
- * @param[in] pDecodeCtx               The decode context.
- * @param[in,out] pDecodedItem  On input the array data item that
- *                              holds the mantissa and exponent.  On
- *                              output the decoded mantissa and
- *                              exponent.
+ * @param[in] pDecodeCtx           Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber           The tag number indicated for the content.
+ * @param[in,out]  pDecodedItem    The data item to convert.
  *
  * @returns  Decoding errors from getting primitive data items or
- *           \ref QCBOR_ERR_BAD_EXP_AND_MANTISSA.
+ *           @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA.
  *
  * When called pDecodedItem must be the array with two members, the
  * exponent and mantissa.
  *
- * This will fetch and decode the exponent and mantissa and put the
- * result back into pDecodedItem.
+ * Fetch and decode the exponent and mantissa and put the result back
+ * into pDecodedItem.
  *
- * This does no checking or processing of tag numbers. That is to be
- * done by the code that calls this.
- *
- * This stuffs the type of the mantissa into pDecodedItem with the expectation
- * the caller will process it.
+ * This stuffs the type of the mantissa into pDecodedItem with the
+ * expectation the caller will process it.
  *
  * This works for:
- *     CBOR_TAG_DECIMAL_FRACTION
- *     CBOR_TAG_BIGFLOAT
+ *     @ref CBOR_TAG_DECIMAL_FRACTION,
+ *     @ref CBOR_TAG_BIGFLOAT
  */
 QCBORError
 QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
@@ -224,13 +302,15 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
                              QCBORItem          *pDecodedItem);
 
 
+
+
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  * ---- */
 static inline void
-QCBORDecode_InstallTagDecoders(QCBORDecodeContext *pMe, 
+QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
                                const struct QCBORTagDecoderEntry *pTagDecoderTable,
-                               void *pTagDecodersContext)
+                               void                              *pTagDecodersContext)
 {
    pMe->pTagDecoderTable    = pTagDecoderTable;
    pMe->pTagDecodersContext = pTagDecodersContext;
