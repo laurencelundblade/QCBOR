@@ -1,35 +1,35 @@
-/*==============================================================================
- Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2024, Laurence Lundblade.
- Copyright (c) 2021, Arm Limited.
- All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above
-      copyright notice, this list of conditions and the following
-      disclaimer in the documentation and/or other materials provided
-      with the distribution.
-    * Neither the name of The Linux Foundation nor the names of its
-      contributors, nor the name "Laurence Lundblade" may be used to
-      endorse or promote products derived from this software without
-      specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
-ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- =============================================================================*/
+/* ===========================================================================
+ * Copyright (c) 2016-2018, The Linux Foundation.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2021, Arm Limited.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of The Linux Foundation nor the names of its
+ *       contributors, nor the name "Laurence Lundblade" may be used to
+ *       endorse or promote products derived from this software without
+ *       specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ========================================================================= */
 
 
 #include "qcbor/qcbor_encode.h"
@@ -115,10 +115,10 @@ static uint8_t
 Nesting_Increment(QCBORTrackNesting *pNesting)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - pNesting->pCurrentNesting->uCount) {
+   if(pNesting->pCurrentNesting->uCount >= QCBOR_MAX_ITEMS_IN_ARRAY) {
       return QCBOR_ERR_ARRAY_TOO_LONG;
    }
-#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    pNesting->pCurrentNesting->uCount++;
 
@@ -170,7 +170,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
 
@@ -227,7 +227,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  *
  * QCBOR_DISABLE_ENCODE_USAGE_GUARDS also disables the check for more
  * than QCBOR_MAX_ITEMS_IN_ARRAY in an array. Since
- * QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,535) it is very unlikely
+ * QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,534) it is very unlikely
  * to be reached. If it is reached, the count will wrap around to zero
  * and CBOR that is not well formed will be produced, but there will
  * be no buffers overrun and new security issues in the code.
@@ -450,7 +450,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
       nAdditionalInfo = CBOR_SIMPLE_BREAK;
 
    } else
-#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       if (uArgument < CBOR_TWENTY_FOUR && uMinLen == 0) {
       /* Simple case where argument is < 24 */
       nAdditionalInfo = (int)uArgument;
@@ -529,7 +529,7 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
    }
 #else
    (void)Nesting_Increment(&(pMe->nesting));
-#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 
@@ -580,7 +580,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
 
 
 /*
- * Public functions for adding signed integers. See qcbor/qcbor_encode.h
+ * Public function for adding signed integers. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
@@ -630,7 +630,7 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
 
 
 /*
- * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
+ * Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
@@ -759,7 +759,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 
    QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
 }
-#endif /* !QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 
@@ -1120,7 +1120,7 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
    }
    QCBOREncode_CloseArray(pMe);
 }
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -1196,7 +1196,7 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
     */
    QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
 }
-#endif
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /**
@@ -1231,7 +1231,7 @@ QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
       return true;
    }
 
-#else /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#else /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    /* None of these checks are performed if the encode guards are
     * turned off as they all relate to correct calling.
     *
@@ -1241,14 +1241,14 @@ QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
 
    (void)uMajorType;
    (void)pMe;
-#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    return false;
 }
 
 
 /**
- * @brief Insert the CBOR head for a map, array or wrapped bstr
+ * @brief Insert the CBOR head for a map, array or wrapped bstr.
  *
  * @param pMe         QCBOR encoding context.
  * @param uMajorType  One of CBOR_MAJOR_TYPE_XXXX.
@@ -1643,7 +1643,7 @@ QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
 
 
 /*
- * Public functions for closing bstr wrapping. See qcbor/qcbor_encode.h
+ * Public function for closing bstr wrapping. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
@@ -1707,7 +1707,7 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
     * security hole, so no extra code or state is added to handle this
     * condition.
     */
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    Nesting_Decrease(&(pMe->nesting));
    Nesting_Decrement(&(pMe->nesting));
@@ -1729,7 +1729,7 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
       pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
       return;
    }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    QCBOREncode_Private_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
 }
@@ -1752,7 +1752,6 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-
 /**
  * @brief Semi-private method to close a map, array with indefinite length
  *
@@ -1774,7 +1773,7 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
    Nesting_Decrease(&(pMe->nesting));
 }
-#endif
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /*
@@ -1792,7 +1791,7 @@ QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
       pMe->uError = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
       goto Done;
    }
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    *pEncodedCBOR = UsefulOutBuf_OutUBuf(&(pMe->OutBuf));
 
@@ -1802,7 +1801,7 @@ Done:
 
 
 /*
- * Public functions to get size of the encoded result. See qcbor/qcbor_encode.h
+ * Public function to get size of the encoded result. See qcbor/qcbor_encode.h
  */
 QCBORError
 QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
@@ -1816,4 +1815,29 @@ QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
    }
 
    return nReturn;
+}
+
+
+/*
+ * Public function to get substring of encoded-so-far. See qcbor/qcbor_encode.h
+ */
+UsefulBufC
+QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart)
+{
+   if(pMe->uError) {
+      return NULLUsefulBufC;
+   }
+
+   /* An attempt was made to detect usage errors by comparing uStart
+    * to offsets of open arrays and maps in pMe->nesting, but it is
+    * not possible because there's not enough information in just
+    * the offset. It's not possible to known if Tell() was called before
+    * or after an Open(). To detect this error, the nesting level
+    * would also need to be known. This is not frequently used, so
+    * it is not worth adding this complexity.
+    */
+
+   const size_t uEnd = QCBOREncode_Tell(pMe);
+
+   return UsefulOutBuf_SubString(&(pMe->OutBuf), uStart, uEnd - uStart);
 }
