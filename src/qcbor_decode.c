@@ -711,19 +711,6 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
 
 
 
-/*
- * Deprecated public function, see header file
- */
-void
-QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pMe,
-                                       const QCBORTagListIn *pTagList)
-{
-   /* This does nothing now. It is retained for backwards compatibility */
-   (void)pMe;
-   (void)pTagList;
-}
-
-
 
 
 /*
@@ -2787,75 +2774,6 @@ QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
  * Public function, see header qcbor/qcbor_decode.h file
  */
 QCBORError
-QCBORDecode_GetNextWithTags(QCBORDecodeContext *pMe,
-                            QCBORItem          *pDecodedItem,
-                            QCBORTagListOut    *pTags)
-{
-#ifndef QCBOR_DISABLE_TAGS
-
-   QCBORError uReturn;
-
-   uReturn = QCBORDecode_GetNext(pMe, pDecodedItem);
-   if(uReturn != QCBOR_SUCCESS) {
-      return uReturn;
-   }
-
-   if(pTags != NULL) {
-      pTags->uNumUsed = 0;
-      for(int nTagIndex = 0; nTagIndex < QCBOR_MAX_TAGS_PER_ITEM; nTagIndex++) {
-         if(pDecodedItem->auTagNumbers[nTagIndex] == CBOR_TAG_INVALID16) {
-            continue;
-         }
-         if(pTags->uNumUsed >= pTags->uNumAllocated) {
-            return QCBOR_ERR_TOO_MANY_TAGS;
-         }
-         pTags->puTags[pTags->uNumUsed] = QCBORDecode_Private_UnMapTagNumber(pMe,pDecodedItem->auTagNumbers[nTagIndex]);
-         pTags->uNumUsed++;
-      }
-   }
-
-   return QCBOR_SUCCESS;
-
-#else /* QCBOR_DISABLE_TAGS */
-   (void)pMe;
-   (void)pDecodedItem;
-   (void)pTags;
-   return QCBOR_ERR_TAGS_DISABLED;
-#endif /* QCBOR_DISABLE_TAGS */
-}
-
-
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
-bool
-QCBORDecode_IsTagged(QCBORDecodeContext *pMe,
-                     const QCBORItem   *pItem,
-                     uint64_t           uTag)
-{
-#ifndef QCBOR_DISABLE_TAGS
-   for(unsigned uTagIndex = 0; uTagIndex < QCBOR_MAX_TAGS_PER_ITEM; uTagIndex++) {
-      if(pItem->auTagNumbers[uTagIndex] == CBOR_TAG_INVALID16) {
-         break;
-      }
-      if(QCBORDecode_Private_UnMapTagNumber(pMe, pItem->auTagNumbers[uTagIndex]) == uTag) {
-         return true;
-      }
-   }
-#else /* QCBOR_TAGS_DISABLED */
-   (void)pMe;
-   (void)pItem;
-   (void)uTag;
-#endif /* QCBOR_TAGS_DISABLED */
-
-   return false;
-}
-
-
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
-QCBORError
 QCBORDecode_PartialFinish(QCBORDecodeContext *pMe, size_t *puConsumed)
 {
    if(puConsumed != NULL) {
@@ -2954,6 +2872,29 @@ QCBORDecode_GetNthTagNumber(QCBORDecodeContext *pMe,
 
    return CBOR_TAG_INVALID64;
 #endif /* ! QCBOR_DISABLE_TAGS */
+}
+
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+bool
+QCBORDecode_MatchOneTagNumber(QCBORDecodeContext *pMe, const QCBORItem *pItem, uint64_t uTagNumber)
+{
+   uint64_t uTagNumberOnItem;
+
+   if(pItem->auTagNumbers[1] != CBOR_TAG_INVALID16) {
+      /* More than one tag number */
+      return false;
+   }
+
+   uTagNumberOnItem = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
+
+   if(uTagNumberOnItem != uTagNumber) {
+      return false;
+   }
+
+   return true;
 }
 
 
