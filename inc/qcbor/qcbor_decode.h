@@ -360,6 +360,8 @@ typedef enum {
  * and warning. */
 #define QCBOR_TYPE_65BIT_NEG_INT 28
 
+/** Type for CBOR tag number, (CBOR type 6) */
+#define QCBOR_TYPE_TAG_NUMBER    29 // TODO: back to internal-only
 
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
@@ -411,11 +413,14 @@ typedef enum {
  *  @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
 
-#define QCBOR_TYPE_TAG          254 /* Used internally; never returned */
+/** Start of user-defined data types. The range is mainly for user-defined tag content
+ * decoders. See QCBORTagContentCallBack */
+#define QCBOR_TYPE_START_USER_DEFINED 128
 
-#define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG /* Depricated. See QCBOR_TYPE_TAG */
+/** End of user-defined data types. */
+#define QCBOR_TYPE_END_USER_DEFINED 255
 
-
+#define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG_NUMBER /* Deprecated. See QCBOR_TYPE_TAG_NUMBER */
 
 /**
  * The largest value in @c utags that is unmapped and can be used without
@@ -550,7 +555,10 @@ typedef struct _QCBORItem {
          } Mantissa;
       } expAndMantissa;
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
-      uint64_t    uTagV;  /* Used internally during decoding */
+      uint64_t    uTagNumber;
+
+      /* For use by user-defined tag content handlers */
+      uint8_t     userDefined[24];
 
    } val;
 
@@ -569,26 +577,14 @@ typedef struct _QCBORItem {
 
 #ifndef QCBOR_DISABLE_TAGS
    /**
-    * The tags numbers for which the item is the tag content.  Tags
-    * nest, so index 0 in the array is the tag on the data item
-    * itself, index 1 is the tag that applies to the tag in index
-    * 0. The end of the list is indicated by @ref CBOR_TAG_INVALID16
+    * PRIVATE MEMBER
+    * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
+    * Also see @ref Tags-Overview.
     *
-    * Tag nesting is uncommon and rarely deep. This implementation
-    * only allows nesting to a depth of @ref QCBOR_MAX_TAGS_PER_ITEM,
-    * usually 4.
-    *
-    * Tag numbers in the array below and equal to @ref
-    * QCBOR_LAST_UNMAPPED_TAG are unmapped and can be used
-    * directly. Tag numbers above this must be translated through
-    * QCBORDecode_GetNthTag().
-    *
-    * See also the large number of functions like
-    * QCBORDecode_GetEpochDate() and QCBORDecode_GetBignum() in
-    * qcbor_spiffy_decode.h for a way to decode tagged types without
-    * having to reference this array. Also see @ref Tags-Overview.
+    * In QCBOR v1 this was named uTags and was in the reverse order.
+    * It wasn't explicitly described as private, but was implicitly private.
     */
-   uint16_t uTags[QCBOR_MAX_TAGS_PER_ITEM];
+   QCBORMappedTagNumbers auTagNumbers;
 #endif
 } QCBORItem;
 
@@ -710,6 +706,7 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  * error @ref QCBOR_ERR_MAP_LABEL_TYPE is returned by
  * QCBORDecode_GetNext().
  *
+ * TODO: get rid of QCBOR_DECODE_MODE_MAP_STRINGS_ONLY in v2?
  * In strings-only mode, @ref QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only
  * text strings are accepted for map labels.  This lines up with CBOR
  * that converts to JSON. The error @ref QCBOR_ERR_MAP_LABEL_TYPE is
@@ -726,6 +723,31 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  */
 void
 QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
+
+
+/**
+ * Initialize the CBOR decoder context with QCBOR v1 compatibility.
+ *
+ * @param[in] pCtx         The context to initialize.
+ * @param[in] EncodedCBOR  The buffer with CBOR encoded bytes to be decoded.
+ * @param[in] nMode        See below and @ref QCBORDecodeMode.
+ *
+ * This is the same as QCBORDecode_Init() except it changes the
+ * tag number decoding behavior.
+ *
+ * The only thing this does different is call 
+ *   QCBORDecode_InstallTagDecoders(QCBORDecode_TagDecoderTablev1)
+ *
+ * This links the tag content decoders for the standard tags like epoch dates,
+ * big numbers and decimal fractions. It also links a special tag content
+ * decoder that matches all tag numbers and causes them to be returned
+ * in the QCBORItem.
+ * TODO: turn this into a setup config call
+ */
+void
+QCBORDecode_Initv1(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
+
+
 
 
 /**
@@ -910,6 +932,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * array. For indefinite-length arrays, @c QCBORItem.val.uCount
  * is @c UINT16_MAX.
  *
+ * TODO: revise tag documentation here
  * All tags defined in RFC 8949 are automatically fully decoded. There
  * are QCBOR_TYPES and members in @ref QCBORItem for them. For
  * example, the tag 9 will show up in the @ref QCBORItem as type
@@ -1150,32 +1173,99 @@ QCBORError
 QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
 
 
+#ifndef QCBOR_DISABLE_TAGS
 /**
  * @brief Returns the tag numbers for an item.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @param[out] puTagNumber  The returned tag number.
+ *
+ * In QCBOR v2, all tag numbers on an item MUST be fetched with this
+ * method. If not, @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER will
+ * occur. This is a major change from QCBORv1. The QCBOR v1 behavior
+ * is too lax for proper CBOR decoding. When a tag number occurs it
+ * indicates the item is a new data type (except for a few tag numbers
+ * that are hints).  Note also that in RFC 7049, tag numbers were
+ * incorrectly characterized as optional implying they could be
+ * ignored.
+ *
+ * In typical item decoding, tag numbers are not used, not present and
+ * not expected. There's no need to call this.
+ *
+ * When the protocol being decoded does use a tag number then this
+ * must be called for the items were the tag numbers occur before the
+ * items themselves are decoded. Making this call prevents the
+ * @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER error, but the caller still has to
+ * check that the tag number is the right one. Probably the tag number
+ * will be used to switch the flow of the decoder.
+ *
+ * It's possible that an item might use the presence/absence of a tag
+ * number to switch the flow of decoding. If there's a possibility of
+ * a tag number then this must be called.
+ *
+ * If this is called and there is no tag number, then this will return
+ * @ref QCBOR_SUCCESS and the tag number returned will be
+ * @ref CBOR_TAG_INVALID64.
+ *
+ * Usually there is only one tag number per item, but CBOR allows
+ * more. That it allows nesting of tags where the content of one tag
+ * is another tag. If there are multiple tag numbers, this must be
+ * called multiple times. This only returns one tag number at a time,
+ * because tag numbers are typically processed one at a time.
+ *
+ * If there is an error decoding the tag or the item it is on, the
+ * error code will be set and the tag number @ref CBOR_TAG_INVALID64
+ * will be returned. That is, @ref CBOR_TAG_INVALID64 will be returned if
+ * there is a decode error or there is no tag number.
+ */
+void
+QCBORDecode_VGetNextTagNumber(QCBORDecodeContext *pCtx, uint64_t *puTagNumber);
+
+
+/**
+ * @brief Returns the tag numbers for an item.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @param[out] puTagNumber  The returned tag number.
+ *
+ * @return See error table of decoding errors set by QCBORDecode_VGetNext().
+ *
+ * Like QCBORDecode_VGetNextTagNumber(), but returns the
+ * error rather than set last error.
+ */
+QCBORError
+QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pCtx, uint64_t *puTagNumber);
+
+
+
+/**
+ * @brief Returns the tag numbers for a decoded item.
  *
  * @param[in] pCtx    The decoder context.
  * @param[in] pItem The CBOR item to get the tag for.
  * @param[in] uIndex The index of the tag to get.
  *
- * @returns The nth tag number or CBOR_TAG_INVALID64.
+ * @returns The nth tag number or @ref CBOR_TAG_INVALID64.
  *
  * When QCBOR decodes an item that is a tag, it will fully decode tags
  * it is able to. Tags that it is unable to process are put in a list
  * in the QCBORItem.
  *
- * Tags nest. Here the tag with index 0 has the data item as its content. The
- * tag with index 1 has the tag at index 0 has its content and so forth.
+ * Tags nest. Here the tag with index 0 is the outermost, the one
+ * furthest form the data item that is the tag content. This is
+ * the opposite order of QCBORDecode_GetNthTag(), but more
+ * useful.
  *
  * Deep tag nesting is rare so this implementation imposes a limit of
  * @ref QCBOR_MAX_TAGS_PER_ITEM on nesting and returns @ref
  * QCBOR_ERR_TOO_MANY_TAGS if there are more. This is a limit of this
- * implementation, not of CBOR. (To be able to handle deeper
- * nesting, the constant can be increased and the library
- * recompiled. It will use more memory).
+ * implementation, not of CBOR. (To be able to handle deeper nesting,
+ * the constant can be increased and the library recompiled. It will
+ * use more memory).
  *
  * See also @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
  *
- * To reduce memory used by a QCBORItem, tag numbers larger than
+ * To reduce memory used by a @ref QCBORItem, tag numbers larger than
  * @c UINT16_MAX are mapped so the tag numbers in @c uTags should be
  * accessed with this function rather than directly.
  *
@@ -1184,7 +1274,20 @@ QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
  * item or no tag at @c uIndex.
  */
 uint64_t
-QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
+QCBORDecode_GetNthTagNumber(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint8_t uIndex);
+
+
+/**
+ * @brief Check an item to match one tag number.
+ *
+ * @param[in] pCtx    The decoder context.
+ * @param[in] pItem The CBOR item to check.
+ * @param[in] uTagNumber The tag number to match.
+ *
+ * @returns true if the item has one and only one tag number that matches uTagNumber.
+ */
+bool
+QCBORDecode_MatchOneTagNumber(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTagNumber);
 
 
 /**
@@ -1193,10 +1296,10 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
  * @param[in] pCtx    The decoder context.
  * @param[in] uIndex The index of the tag to get.
  *
- * @returns The nth tag number or CBOR_TAG_INVALID64.
+ * @returns The nth tag number or @ref CBOR_TAG_INVALID64.
  *
- * This returns tags of the most recently decoded item.  See
- * QCBORDecode_GetNthTag(). This is particularly of use for spiffy
+ * This returns tags of the most recently decoded item. See
+ * QCBORDecode_GetNthTagNumber(). This is particularly of use for spiffy
  * decode functions that don't return a @ref QCBORItem.
  *
  * This does not work for QCBORDecode_GetNext(),
@@ -1204,11 +1307,12 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
  * QCBORDecode_VGetNextConsume() but these all return a
  * @ref QCBORItem, so it is not necessary.
  *
- * If a decoding error is set, then this returns CBOR_TAG_INVALID64.
+ * If a decoding error is set, then this returns @ref CBOR_TAG_INVALID64.
  */
 uint64_t
-QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
+QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
 
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /**
  * @brief Check that a decode completed successfully.
@@ -1593,127 +1697,47 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
  * not recommended.
  * ---- */
 
+#ifndef QCBOR_DISABLE_TAGS
 
 /**
- * Deprecated -- Tag handling has been revised and this is no longer
- * used. See QCBORDecode_GetNthTag() for new tag handling.
- */
-typedef struct {
-   uint8_t         uNumTags;
-   const uint64_t *puTags;
-} QCBORTagListIn;
-
-
-/**
- * Deprecated -- this is retained only for backwards compatibility.
- * Use QCBORDecode_GetNthTag() instead.
- *
- * This is for QCBORDecode_GetNextWithTags() to be able to return the
- * full list of tags on an item.
- *
- * On input, @c puTags points to a buffer to be filled in and
- * uNumAllocated is the number of @c uint64_t values in the buffer.
- *
- * On output the buffer contains the tags for the item.  @c uNumUsed
- * tells how many there are.
- */
-typedef struct {
-   uint8_t   uNumUsed;
-   uint8_t   uNumAllocated;
-   uint64_t *puTags;
-} QCBORTagListOut;
-
-
-/**
- * @brief Deprecated -- Configure list of caller-selected tags to be recognized.
- *
- * @param[in] pCtx       The decode context.
- * @param[out] pTagList  Structure holding the list of tags to configure.
- *
- * Tag handling has been revised and it is no longer ncessary to use
- * this.  See QCBORDecode_GetNthTag().
- */
-void
-QCBORDecode_SetCallerConfiguredTagList(QCBORDecodeContext   *pCtx,
-                                       const QCBORTagListIn *pTagList);
-
-
-/**
- * @brief Deprecated -- Determine if a CBOR item is a particular tag.
+ * @brief Returns the tag numbers for an item. (deprecated).
  *
  * @param[in] pCtx    The decoder context.
- * @param[in] pItem   The CBOR item to check.
- * @param[in] uTag    The tag to check, one of @c CBOR_TAG_XXX,
- *                   for example, @ref CBOR_TAG_DATE_STRING.
+ * @param[in] uIndex The index of the tag to get.
  *
- * @return true if it was tagged, false if not.
- *
- * See QCBORDecode_GetNext() for the main description of tag
- * handling. For tags that are not fully decoded a bit corresponding
- * to the tag is set in in @c uTagBits in the @ref QCBORItem. The
- * particular bit depends on an internal mapping table. This function
- * checks for set bits against the mapping table.
- *
- * Typically, a protocol implementation just wants to know if a
- * particular tag is present. That is what this provides. To get the
- * full list of tags on a data item, see
- * QCBORDecode_GetNextWithTags().
- *
- * Also see QCBORDecode_SetCallerConfiguredTagList() for the means to
- * add new tags to the internal list so they can be checked for with
- * this function.
+ * This is the same as QCBORDecode_GetNthTagNumber() but the order is
+ * opposite when there are multiple tags. @c uIndex 0 is the tag
+ * number closest to the tag content. QCBORDecode_GetNthTagNumber() is
+ * more useful for checking the next tag number and switching the
+ * decode flow.
  */
-bool
-QCBORDecode_IsTagged(QCBORDecodeContext *pCtx,
-                     const QCBORItem    *pItem,
-                     uint64_t            uTag);
+uint64_t
+QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t uIndex);
 
 
 /**
- * @brief Deprecated -- Gets the next item including full list of tags for item.
+ * @brief Returns the tag numbers for last-decoded item (deprecated).
  *
- * @param[in]  pCtx          The decoder context.
- * @param[out] pDecodedItem  Holds the CBOR item just decoded.
- * @param[in,out] pTagList   On input array to put tags in; on output
- * the tags on this item. See
- * @ref QCBORTagListOut.
+ * @param[in] pCtx    The decoder context.
+ * @param[in] uIndex The index of the tag to get.
  *
- * @return See return values for QCBORDecode_GetNext().
+ * @returns The nth tag number or CBOR_TAG_INVALID64.
  *
- * @retval QCBOR_ERR_TOO_MANY_TAGS  The size of @c pTagList is too small.
- *
- * This is retained for backwards compatibility. It is replaced by
- * QCBORDecode_GetNthTag() which also returns all the tags that have
- * been decoded.
- *
- * This is not backwards compatibile in two ways. First, it is limited
- * to @ref QCBOR_MAX_TAGS_PER_ITEM items whereas previously it was
- * unlimited. Second, it will not inlucde the tags that QCBOR decodes
- * internally.
- *
- * This works the same as QCBORDecode_GetNext() except that it also
- * returns the list of tags for the data item in \c pTagList.
- *
- * The 0th tag returned here is the one furthest from the data
- * item. This is opposite the order for QCBORDecode_GetNthTag().
- *
- * CBOR has no upper bound or limit on the number of tags that can be
- * associated with a data item but in practice the number of tags on
- * an item will usually be small. This will return @ref
- * QCBOR_ERR_TOO_MANY_TAGS if the array in @c pTagList is too small to
- * hold all the tags for the item.
+ * This is the same as QCBORDecode_GetNthTagNumberOfLast() but the
+ * order is opposite when there are multiple tags. @c uIndex 0 is the
+ * tag number closest to the tag content.
+ * QCBORDecode_GetNthTagNumber() is more useful for checking
+ * the next tag number and switching the decode flow.
  */
-QCBORError
-QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
-                            QCBORItem          *pDecodedItem,
-                            QCBORTagListOut    *pTagList);
+uint64_t
+QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
-
-
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  * ---- */
+
 
 static inline uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pMe)

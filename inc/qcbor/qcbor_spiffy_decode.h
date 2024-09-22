@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 
+
 /**
  * @file qcbor_spiffy_decode.h
  *
@@ -417,6 +418,16 @@ QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
                                       bool               *pbIsNegative);
 
 
+/*
+ * Decode the next as a big number.
+ *
+ *
+ */
+void
+QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
+                         UsefulBuf           BigNumberBuf,
+                         UsefulBufC         *pBigNumber,
+                         bool               *pbIsNegative);
 
 
 /**
@@ -1082,6 +1093,12 @@ void
 QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 
 
+
+void
+QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
+
+
+
 /**
  * @brief Get an item in map by label and type.
  *
@@ -1241,7 +1258,11 @@ QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
                                       QCBORItemCallback   pfCB);
 
 
+QCBORError
+QCBORDecode_GetNextTagNumberInMapN(QCBORDecodeContext *pCtx, int64_t nLabel, uint64_t *puTagNumber);
 
+QCBORError
+QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint64_t *puTagNumber);
 
 /**
  * @brief Decode the next item as a Boolean.
