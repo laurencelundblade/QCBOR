@@ -1173,6 +1173,7 @@ QCBORError
 QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
 
 
+#ifndef QCBOR_DISABLE_TAGS
 /**
  * @brief Returns the tag numbers for an item.
  *
@@ -1311,7 +1312,7 @@ QCBORDecode_MatchOneTagNumber(QCBORDecodeContext *pCtx, const QCBORItem *pItem, 
 uint64_t
 QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
 
-
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /**
  * @brief Check that a decode completed successfully.
@@ -1696,6 +1697,7 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
  * not recommended.
  * ---- */
 
+#ifndef QCBOR_DISABLE_TAGS
 
 /**
  * @brief Returns the tag numbers for an item. (deprecated).
@@ -1730,7 +1732,7 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
 uint64_t
 QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
-
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.

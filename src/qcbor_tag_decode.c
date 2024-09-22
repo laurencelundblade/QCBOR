@@ -18,9 +18,9 @@
 /* Public function; see qcbor_tag_decode.h */
 QCBORError
 QCBORDecode_DateEpochTagCB(QCBORDecodeContext *pDecodeCtx,
-                        void               *pTagDecodersContext,
-                        uint64_t            uTagNumber,
-                        QCBORItem          *pDecodedItem)
+                           void               *pTagDecodersContext,
+                           uint64_t            uTagNumber,
+                           QCBORItem          *pDecodedItem)
 {
    (void)pDecodeCtx;
    (void)pTagDecodersContext;
@@ -117,9 +117,9 @@ Done:
 /* Public function; see qcbor_tag_decode.h */
 QCBORError
 QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
-                        void               *pTagDecodersContext,
-                        uint64_t            uTagNumber,
-                        QCBORItem          *pDecodedItem)
+                           void               *pTagDecodersContext,
+                           uint64_t            uTagNumber,
+                           QCBORItem          *pDecodedItem)
 {
    (void)pDecodeCtx;
    (void)pTagDecodersContext;
@@ -193,9 +193,9 @@ QCBOR_Private_ExpMantissaDataType(const uint64_t   uTagToProcess,
 /* Public function; see qcbor_tag_decode.h */
 QCBORError
 QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
-                          void               *pTagDecodersContext,
-                          uint64_t            uTagNumber,
-                          QCBORItem          *pDecodedItem)
+                             void               *pTagDecodersContext,
+                             uint64_t            uTagNumber,
+                             QCBORItem          *pDecodedItem)
 {
    (void)pTagDecodersContext;
 
@@ -391,6 +391,7 @@ QCBORDecode_StringsTagCB(QCBORDecodeContext *pDecodeCtx,
 
 
 
+#ifndef QCBOR_DISABLE_TAGS
 
 /* Public data structure; see qcbor_tag_decode.h */
 const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[] = {
@@ -413,4 +414,6 @@ const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[] = {
    {CBOR_TAG_DAYS_EPOCH, QCBORDecode_DaysEpochTagCB},
    {CBOR_TAG_INVALID64, NULL},
 };
+
+#endif /* ! QCBOR_DISABLE_TAGS */
 

@@ -34,6 +34,7 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+#define QCBOR_DISABLE_TAGS
 
 #ifdef __cplusplus
 extern "C" {

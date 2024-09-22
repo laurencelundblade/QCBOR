@@ -3952,7 +3952,7 @@ int32_t SpiffyDateDecodeTest(void)
    return 0;
 }
 
-
+#ifndef QCBOR_DISABLE_TAGS
 // Input for one of the tagging tests
 static const uint8_t spTagInput[] = {
    0xd9, 0xd9, 0xf7, // CBOR magic number
@@ -4114,7 +4114,6 @@ static const uint8_t spSpiffyTagInput[] = {
 
 
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
-
 
 int32_t OptTagParseTest(void)
 {
@@ -4589,6 +4588,7 @@ int32_t OptTagParseTest(void)
 
    return 0;
 }
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /*
  * These are showing the big numbers converted to integers.
@@ -7094,6 +7094,7 @@ static int32_t EnterMapCursorTest(void)
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithNestedTags), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
 
+#ifndef QCBOR_DISABLE_TAGS
    // TODO: map/array items counts and tag numbers
    QCBORDecode_SeekToLabelN(&DCtx, 1);
    uint64_t uTagNumber;
@@ -7105,7 +7106,7 @@ static int32_t EnterMapCursorTest(void)
    QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    QCBORDecode_GetNext(&DCtx, &Item1); // int 2
 
-
+#endif /* ! QCBOR_DISABLE_TAGS */
    return 0;
 }
 

@@ -13,9 +13,7 @@
 #ifndef qcbor_tag_decode_h
 #define qcbor_tag_decode_h
 
-
 #include "qcbor/qcbor_decode.h"
-
 
 /**
  * @file qcbor_tag_decode.h
@@ -32,6 +30,9 @@
  *
  * This file is new in QCBOR v2.
  */
+
+
+#ifndef QCBOR_DISABLE_TAGS
 
 /**
  * @brief Prototype for callback for decoding tag content.
@@ -143,6 +144,8 @@ QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pCtx,
  * Install this with QCBORDecode_InstallTagDecoders().
  */
 extern const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[];
+
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
 /**
@@ -307,6 +310,7 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  * ---- */
+#ifndef QCBOR_DISABLE_TAGS
 static inline void
 QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
                                const struct QCBORTagDecoderEntry *pTagDecoderTable,
@@ -316,6 +320,6 @@ QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
    pMe->pTagDecodersContext = pTagDecodersContext;
 }
 
-
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 #endif /* qcbor_tag_decode_h */
