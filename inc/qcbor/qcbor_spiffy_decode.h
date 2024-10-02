@@ -2008,9 +2008,9 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
 
-/* ===========================================================================
-   BEGINNING OF PRIVATE INLINE IMPLEMENTATION
-   ========================================================================== */
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE IMPLEMENTATION                                    *
+ * ========================================================================= */
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
@@ -3037,6 +3037,9 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
 }
 
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
 
 #ifdef __cplusplus
 }

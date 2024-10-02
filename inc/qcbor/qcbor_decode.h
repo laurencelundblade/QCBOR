@@ -1483,11 +1483,12 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 
-/* ------------------------------------------------------------------------
- * Deprecated functions retained for backwards compatibility. Their use is
- * not recommended.
- * ---- */
-
+/* ========================================================================= *
+ *    BEGINNING OF DEPRECATED FUNCTIONS                                      *
+ *                                                                           *
+ *    There is no plan to remove these in future versions.                   *
+ *    They just have been replaced by something better.                      *
+ * ========================================================================= */
 
 /**
  * Deprecated -- Tag handling has been revised and this is no longer
@@ -1605,10 +1606,17 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
 
 
 
+/* ========================================================================= *
+ *    END OF DEPRECATED FUNCTIONS                                            *
+ * ========================================================================= */
 
-/* ------------------------------------------------------------------------
- * Inline implementations of public functions defined above.
- * ---- */
+
+
+
+
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE IMPLEMENTATION                                    *
+ * ========================================================================= */
 
 static inline uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pMe)
@@ -1669,6 +1677,10 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 {
    pMe->uLastError = (uint8_t)uError;
 }
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
 
 
 /* A few cross checks on size constants and special value lengths */
