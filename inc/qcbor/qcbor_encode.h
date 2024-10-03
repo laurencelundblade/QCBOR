@@ -2480,7 +2480,7 @@ QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE IMPLEMENTATION                                    *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
 /* Semi-private funcion used by public inline functions. See qcbor_encode.c */
@@ -3978,6 +3978,14 @@ QCBOREncode_AddSimpleToMapSZ(QCBOREncodeContext *pMe,
 }
 
 static inline void
+QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
+                           const char         *szLabel,
+                           const uint8_t       uSimple)
+{
+   QCBOREncode_AddSimpleToMapSZ(pMe, szLabel, uSimple);
+}
+
+static inline void
 QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
                             const int64_t       nLabel,
                             const uint8_t       uSimple)
@@ -4071,14 +4079,6 @@ QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pMe, const int64_t nLabel)
    QCBOREncode_AddUndef(pMe);
 }
 
-
-static inline void
-QCBOREncode_AddSimpleToMap(QCBOREncodeContext *pMe,
-                           const char         *szLabel,
-                           const uint8_t       uSimple)
-{
-   QCBOREncode_AddSimpleToMapSZ(pMe, szLabel, uSimple);
-}
 
 static inline void
 QCBOREncode_OpenArray(QCBOREncodeContext *pMe)

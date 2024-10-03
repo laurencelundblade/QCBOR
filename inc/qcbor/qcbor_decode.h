@@ -1605,7 +1605,6 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
                             QCBORTagListOut    *pTagList);
 
 
-
 /* ========================================================================= *
  *    END OF DEPRECATED FUNCTIONS                                            *
  * ========================================================================= */
@@ -1613,9 +1612,8 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
 
 
 
-
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE IMPLEMENTATION                                    *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
 static inline uint32_t

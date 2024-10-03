@@ -2009,7 +2009,7 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE IMPLEMENTATION                                    *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
 

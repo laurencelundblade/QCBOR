@@ -523,6 +523,9 @@ this is the attachment text\n\
 
 static void AddAll(QCBOREncodeContext *pECtx)
 {
+   /* This calls a mix of deprecated and non-deprecated to test both.
+    * Sometimes only deprecated because the deprecated calls the
+    * non-deprecated */
    QCBOREncode_OpenArray(pECtx);
 
    /* Some ints that are tagged and have strings preceeding them
@@ -550,7 +553,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    /* Epoch date with labels */
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000);
-   QCBOREncode_AddDateEpochToMap(pECtx, "time()", 1477263730);
+   QCBOREncode_AddTDateEpochToMapSZ(pECtx, "time()", QCBOR_ENCODE_AS_TAG, 1477263730);
    QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222);
    QCBOREncode_CloseMap(pECtx);
 
@@ -563,7 +566,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddTag(pECtx, 100000);
    QCBOREncode_AddBytes(pECtx, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
    QCBOREncode_AddBytesToMap(pECtx, "empty", NULLUsefulBufC); // Empty string
-   QCBOREncode_AddBytesToMap(pECtx, "blabel", ((UsefulBufC) {(uint8_t []){0x01, 0x02, 0x03}, 3}));
+   QCBOREncode_AddBytesToMapSZ(pECtx, "blabel", ((UsefulBufC) {(uint8_t []){0x01, 0x02, 0x03}, 3}));
    QCBOREncode_AddBytesToMapN(pECtx, 0, ((UsefulBufC){(uint8_t []){0x04, 0x02, 0x03, 0xfe}, 4}));
    QCBOREncode_CloseMap(pECtx);
 
@@ -582,7 +585,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    /* text blobs in maps */
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddTextToMap(pECtx, "#####", UsefulBuf_FROM_SZ_LITERAL("foo bar foo foo"));
-   QCBOREncode_AddTextToMap(pECtx, "____", UsefulBuf_FROM_SZ_LITERAL("foo bar"));
+   QCBOREncode_AddTextToMapSZ(pECtx, "____", UsefulBuf_FROM_SZ_LITERAL("foo bar"));
    QCBOREncode_AddSZString(pECtx, "()()()");
    QCBOREncode_AddTag(pECtx, 1000);
    QCBOREncode_AddSZString(pECtx, "rab rab oof");
