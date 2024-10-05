@@ -681,7 +681,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddBool(pECtx, true);
    QCBOREncode_AddBool(pECtx, false);
    QCBOREncode_OpenMap(pECtx);
-   QCBOREncode_AddBoolToMap(pECtx, "George is the man", true);
+   QCBOREncode_AddBoolToMapSZ(pECtx, "George is the man", true);
    QCBOREncode_AddBoolToMapN(pECtx, 010101, true);
    QCBOREncode_CloseMap(pECtx);
 
@@ -929,7 +929,7 @@ int32_t SimpleValuesTest1(void)
 
    QCBOREncode_OpenMap(&ECtx);
 
-   QCBOREncode_AddUndefToMap(&ECtx, "UNDef");
+   QCBOREncode_AddUndefToMapSZ(&ECtx, "UNDef");
    QCBOREncode_CloseMap(&ECtx);
 
    QCBOREncode_CloseArray(&ECtx);
@@ -1191,32 +1191,32 @@ int32_t EncodeLengthThirtyoneTest(void)
    QCBOREncode_OpenMap(&ECtx);
 
    // add array with 31 items
-   QCBOREncode_OpenArrayInMap(&ECtx, "arr");
+   QCBOREncode_OpenArrayInMapSZ(&ECtx, "arr");
    for (size_t ix = 0; ix < 31; ix++) {
       QCBOREncode_AddInt64(&ECtx, (int64_t)ix);
    }
    QCBOREncode_CloseArray(&ECtx);
 
    // add map with 31 items
-   QCBOREncode_OpenMapInMap(&ECtx, "map");
+   QCBOREncode_OpenMapInMapSZ(&ECtx, "map");
    for (int ix = 0; ix < 31; ix++) {
       // make sure we have unique keys in the map (a-z then follow by A-Z)
       int c = 'a';
       if (ix < 26) c = c + ix;
       else c = 'A' + (ix - 26);
       char buffer[2] = { (char)c, 0 };
-      QCBOREncode_AddInt64ToMap(&ECtx, buffer, ix);
+      QCBOREncode_AddInt64ToMapSZ(&ECtx, buffer, ix);
    }
    QCBOREncode_CloseMap(&ECtx);
 
    // add -31 and +31
-   QCBOREncode_AddInt64ToMap(&ECtx, "min31", -31);
-   QCBOREncode_AddInt64ToMap(&ECtx, "plus31", 31);
+   QCBOREncode_AddInt64ToMapSZ(&ECtx, "min31", -31);
+   QCBOREncode_AddInt64ToMapSZ(&ECtx, "plus31", 31);
 
    // add string with length 31
    const char *str = "testtesttesttesttesttestqcbor11";
    UsefulBufC str_b = { str, 31 };
-   QCBOREncode_AddTextToMap(&ECtx, "str", str_b);
+   QCBOREncode_AddTextToMapSZ(&ECtx, "str", str_b);
 
    QCBOREncode_CloseMap(&ECtx);
 
@@ -1295,9 +1295,10 @@ int32_t EncodeDateTest(void)
 
    QCBOREncode_OpenMap(&ECtx);
 
-   QCBOREncode_AddDateStringToMap(&ECtx,
-                                  "Sample Date from RFC 3339",
-                                  "1985-04-12T23:20:50.52Z");
+   QCBOREncode_AddTDateStringToMapSZ(&ECtx,
+                                     "Sample Date from RFC 3339",
+                                     QCBOR_ENCODE_AS_TAG,
+                                     "1985-04-12T23:20:50.52Z");
    QCBOREncode_AddDateEpochToMap(&ECtx, "SD", 999);
    QCBOREncode_AddTDaysStringToMapSZ(&ECtx,
                                      "Sample Date from RFC 8943",
@@ -1537,16 +1538,16 @@ static int32_t CreateMap(uint8_t **pEncoded, size_t *pEncodedLen)
    do {
       QCBOREncode_Init(&ECtx, (UsefulBuf){*pEncoded, *pEncodedLen});
       QCBOREncode_OpenMap(&ECtx);
-      QCBOREncode_AddInt64ToMap(&ECtx, "first integer", 42);
-      QCBOREncode_OpenArrayInMap(&ECtx, "an array of two strings");
+      QCBOREncode_AddInt64ToMapSZ(&ECtx, "first integer", 42);
+      QCBOREncode_OpenArrayInMapSZ(&ECtx, "an array of two strings");
       QCBOREncode_AddText(&ECtx, ((UsefulBufC) {"string1", 7}));
       QCBOREncode_AddText(&ECtx, ((UsefulBufC) {"string2", 7}));
       QCBOREncode_CloseArray(&ECtx);
-      QCBOREncode_OpenMapInMap(&ECtx, "map in a map");
+      QCBOREncode_OpenMapInMapSZ(&ECtx, "map in a map");
       QCBOREncode_AddBytesToMap(&ECtx,"bytes 1", ((UsefulBufC) { "xxxx", 4}));
-      QCBOREncode_AddBytesToMap(&ECtx, "bytes 2",((UsefulBufC) { "yyyy", 4}));
-      QCBOREncode_AddInt64ToMap(&ECtx, "another int", 98);
-      QCBOREncode_AddTextToMap(&ECtx, "text 2", ((UsefulBufC) {"lies, damn lies and statistics", 30}));
+      QCBOREncode_AddBytesToMapSZ(&ECtx, "bytes 2",((UsefulBufC) { "yyyy", 4}));
+      QCBOREncode_AddInt64ToMapSZ(&ECtx, "another int", 98);
+      QCBOREncode_AddTextToMapSZ(&ECtx, "text 2", ((UsefulBufC) {"lies, damn lies and statistics", 30}));
       QCBOREncode_CloseMap(&ECtx);
       QCBOREncode_CloseMap(&ECtx);
 
@@ -1683,10 +1684,10 @@ FormatRTICResults(uint8_t uRResult,
 
       // The result: 0 if scan happened and found nothing; 1 if it happened and
       // found something wrong; 2 if it didn't happen
-      QCBOREncode_AddSimpleToMap(&ECtx, "integrity", uRResult);
+      QCBOREncode_AddSimpleToMapSZ(&ECtx, "integrity", uRResult);
 
       // Add the diagnostic code
-      QCBOREncode_AddSZStringToMap(&ECtx, "type", szType);
+      QCBOREncode_AddSZStringToMapSZ(&ECtx, "type", szType);
 
       // Add a time stamp
       if(time) {
@@ -1694,24 +1695,24 @@ FormatRTICResults(uint8_t uRResult,
       }
 
       // Add the diagnostic code
-      QCBOREncode_AddSZStringToMap(&ECtx, "diag", szAlexString);
+      QCBOREncode_AddSZStringToMapSZ(&ECtx, "diag", szAlexString);
 
       // Open a subordinate map for telemtry data
-      QCBOREncode_OpenMapInMap(&ECtx, "telemetry");
+      QCBOREncode_OpenMapInMapSZ(&ECtx, "telemetry");
 
       { // Brace / indention just to show CBOR encoding nesting
 
          // Add a few fake integers and buffers for now.
-         QCBOREncode_AddInt64ToMap(&ECtx, "Shoe Size", 12);
+         QCBOREncode_AddInt64ToMapSZ(&ECtx, "Shoe Size", 12);
 
          // Add a few fake integers and buffers for now.
-         QCBOREncode_AddInt64ToMap(&ECtx, "IQ", 0xffffffff);
+         QCBOREncode_AddInt64ToMapSZ(&ECtx, "IQ", 0xffffffff);
 
          // Add a few fake integers and buffers for now.
          static const uint8_t pPV[] = {0x66, 0x67, 0x00, 0x56, 0xaa, 0xbb, 0x01, 0x01};
          const UsefulBufC WSPV = {pPV, sizeof(pPV)};
 
-         QCBOREncode_AddBytesToMap(&ECtx, "WhaleSharkPatternVector", WSPV);
+         QCBOREncode_AddBytesToMapSZ(&ECtx, "WhaleSharkPatternVector", WSPV);
       }
    }
 
@@ -2914,12 +2915,12 @@ int32_t ExponentAndMantissaEncodeTests(void)
    QCBOREncode_AddTDecimalFraction(&EC, QCBOR_ENCODE_AS_BORROWED, 4, -1); // 3 * (10 ^ -1)
    QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum , false, -20);
    QCBOREncode_AddTDecimalFractionBigNum(&EC, QCBOR_ENCODE_AS_BORROWED, BigNum , false, 2);
-   QCBOREncode_AddDecimalFractionBigNum(&EC, BigNum, true, INT64_MAX);
+   QCBOREncode_AddTDecimalFractionBigNum(&EC, QCBOR_ENCODE_AS_TAG, BigNum, true, INT64_MAX);
    QCBOREncode_AddBigFloat(&EC, 100, 300);
    QCBOREncode_AddTBigFloat(&EC, QCBOR_ENCODE_AS_BORROWED, 200, 600);
    QCBOREncode_AddBigFloatBigNum(&EC, BigNum, false, -20);
    QCBOREncode_AddTBigFloatBigNum(&EC, QCBOR_ENCODE_AS_BORROWED, BigNum, false, 4);
-   QCBOREncode_AddBigFloatBigNum(&EC, BigNum, true, INT64_MIN);
+   QCBOREncode_AddTBigFloatBigNum(&EC, QCBOR_ENCODE_AS_TAG, BigNum, true, INT64_MIN);
    QCBOREncode_CloseArray(&EC);
 
    if(QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa)) {
@@ -2952,17 +2953,19 @@ int32_t ExponentAndMantissaEncodeTests(void)
                                               false,
                                               INT32_MAX);
 
-   QCBOREncode_AddDecimalFractionBigNumToMapSZ(&EC,
-                                             "decimal fraction bignum negative",
-                                             BigNum,
-                                             true,
-                                             INT64_MAX);
+   QCBOREncode_AddTDecimalFractionBigNumToMapSZ(&EC,
+                                                "decimal fraction bignum negative",
+                                                QCBOR_ENCODE_AS_TAG,
+                                                BigNum,
+                                                true,
+                                                INT64_MAX);
 
-   QCBOREncode_AddDecimalFractionBigNumToMapN(&EC,
-                                              500,
-                                              BigNum,
-                                              true,
-                                              INT64_MAX);
+   QCBOREncode_AddTDecimalFractionBigNumToMapN(&EC,
+                                               500,
+                                               QCBOR_ENCODE_AS_TAG,
+                                               BigNum,
+                                               true,
+                                               INT64_MAX);
 
    QCBOREncode_AddBigFloatToMap(&EC, "big float", 100, 300);
 
@@ -2980,17 +2983,19 @@ int32_t ExponentAndMantissaEncodeTests(void)
                                        false,
                                        -20);
 
-   QCBOREncode_AddBigFloatBigNumToMap(&EC,
-                                      "big float bignum negative",
-                                      BigNum,
-                                      true,
-                                      INT64_MIN);
+   QCBOREncode_AddTBigFloatBigNumToMapSZ(&EC,
+                                         "big float bignum negative",
+                                         QCBOR_ENCODE_AS_TAG,
+                                         BigNum,
+                                         true,
+                                         INT64_MIN);
 
-   QCBOREncode_AddBigFloatBigNumToMapN(&EC,
-                                       800,
-                                       BigNum,
-                                       true,
-                                       INT64_MIN);
+   QCBOREncode_AddTBigFloatBigNumToMapN(&EC,
+                                        800,
+                                        QCBOR_ENCODE_AS_TAG,
+                                        BigNum,
+                                        true,
+                                        INT64_MIN);
 
    QCBOREncode_CloseMap(&EC);
 

@@ -6264,8 +6264,8 @@ int32_t ExponentAndMantissaDecodeTestsSecondary(void)
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(pBuf));
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_AddDecimalFraction(&EC, 999, 1000); // 999 * (10 ^ 1000)
-   QCBOREncode_AddBigFloat(&EC, 100, INT32_MIN);
-   QCBOREncode_AddDecimalFractionBigNum(&EC, BN, false, INT32_MAX);
+   QCBOREncode_AddTBigFloat(&EC, QCBOR_ENCODE_AS_TAG, 100, INT32_MIN);
+   QCBOREncode_AddTDecimalFractionBigNum(&EC, QCBOR_ENCODE_AS_TAG, BN, false, INT32_MAX);
    QCBOREncode_CloseArray(&EC);
    QCBOREncode_Finish(&EC, &Encoded);
 

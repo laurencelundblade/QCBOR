@@ -270,32 +270,32 @@ typedef enum {
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
 
 /** A decimal fraction made of decimal exponent and integer mantissa.
- *  See @ref expAndMantissa and QCBOREncode_AddDecimalFraction(). */
+ *  See @ref expAndMantissa and QCBOREncode_AddTDecimalFraction(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION            14
 
 /** A decimal fraction made of decimal exponent and positive big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
+ *  QCBOREncode_AddTDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
 
 /** A decimal fraction made of decimal exponent and negative big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
+ *  QCBOREncode_AddTDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
 
 /** A floating-point number made of base-2 exponent and integer
  *  mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloat(). */
+ *  QCBOREncode_AddTBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT                    17
 
 /** A floating-point number made of base-2 exponent and positive big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
+ *  QCBOREncode_AddTBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM         18
 
 /** A floating-point number made of base-2 exponent and negative big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
+ *  QCBOREncode_AddTBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
 
 /** Type for the simple value false. */

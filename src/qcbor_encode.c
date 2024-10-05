@@ -693,8 +693,8 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum)
  * To output a mantissa that is between INT64_MAX and UINT64_MAX from 0,
  * it must be as a big number.
  *
- * Typically, QCBOREncode_AddDecimalFraction(), QCBOREncode_AddBigFloat(),
- * QCBOREncode_AddDecimalFractionBigNum() or QCBOREncode_AddBigFloatBigNum()
+ * Typically, QCBOREncode_AddTDecimalFraction(), QCBOREncode_AddTBigFloat(),
+ * QCBOREncode_AddTDecimalFractionBigNum() or QCBOREncode_AddTBigFloatBigNum()
  * is called instead of this.
  */
 void
@@ -718,9 +718,9 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nExponent);
    if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
       if(bBigNumIsNegative) {
-         QCBOREncode_AddNegativeBignum(pMe, BigNumMantissa);
+         QCBOREncode_AddTNegativeBignum(pMe, QCBOR_ENCODE_AS_TAG, BigNumMantissa);
       } else {
-         QCBOREncode_AddPositiveBignum(pMe, BigNumMantissa);
+         QCBOREncode_AddTPositiveBignum(pMe, QCBOR_ENCODE_AS_TAG, BigNumMantissa);
       }
    } else {
       QCBOREncode_AddInt64(pMe, nMantissa);
@@ -968,7 +968,7 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
       return;
    }
    /* QCBOREncode_CancelBstrWrap() can't correctly undo
-    * QCBOREncode_BstrWrapInMap() or QCBOREncode_BstrWrapInMapN(). It
+    * QCBOREncode_BstrWrapInMapSZ() or QCBOREncode_BstrWrapInMapN(). It
     * can't undo the labels they add. It also doesn't catch the error
     * of using it this way.  QCBOREncode_CancelBstrWrap() is used
     * infrequently and the the result is incorrect CBOR, not a
