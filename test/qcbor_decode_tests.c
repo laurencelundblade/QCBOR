@@ -4106,6 +4106,11 @@ static const uint8_t spSpiffyTagInput[] = {
 };
 
 
+static const uint8_t spTaggedString[] = {
+   0xd8, 0xf0, 0x61, 0x40,
+};
+
+
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
 
@@ -4114,6 +4119,21 @@ int32_t OptTagParseTest(void)
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
    QCBORError         uError;
+   UsefulBufC         UBC;
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedString),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   QCBORDecode_GetTextString(&DCtx, &UBC);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return -9999;
+   }
+   if(UBC.len != 1) {
+      return -9998;
+   }
+
+
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
