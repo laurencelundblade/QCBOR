@@ -1336,7 +1336,7 @@ QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_DATE_EPOCH, QCBOREncode_AddDateEpoch() and
+ * See also @ref CBOR_TAG_DATE_EPOCH, QCBOREncode_AddTDateEpoch() and
  * @ref QCBOR_TYPE_DATE_EPOCH.
 */
 void
@@ -1435,7 +1435,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
  *
  * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
- * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
+ * QCBOREncode_AddTPositiveBignum(), QCBOREncode_AddTNegativeBignum(),
  * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
  */
 // Improvement: Add function that converts integers and other to big nums
@@ -1502,7 +1502,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetDoubleConvertAll() which can convert big numbers.
  *
  * See also @ref CBOR_TAG_DECIMAL_FRACTION,
- * QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * QCBOREncode_AddTDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
  * and QCBORDecode_GetDecimalFractionBig().
  *
  * If QCBOR_DISABLE_TAGS is set, the only input this will decode is an
@@ -1555,7 +1555,7 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
  * fractions.
  *
  * See also @ref CBOR_TAG_DECIMAL_FRACTION,
- * QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * QCBOREncode_AddTDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
  * and QCBORDecode_GetDecimalFraction().
  */
 void
@@ -1609,7 +1609,7 @@ QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetUInt64ConvertAll() and
  * QCBORDecode_GetDoubleConvertAll() which can convert big floats.
  *
- * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddBigFloat(), @ref
+ * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddTBigFloat(), @ref
  * QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloatBig().
  */
 void
@@ -1652,7 +1652,7 @@ QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetUInt64ConvertAll() and
  * QCBORDecode_GetDoubleConvertAll() which can convert big floats.
  *
- * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddBigFloat(),
+ * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddTBigFloat(),
  * @ref QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloat().
  */
 void
@@ -1700,7 +1700,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_URI, QCBOREncode_AddURI() and
+ * See also @ref CBOR_TAG_URI, QCBOREncode_AddTURI() and
  *  @ref QCBOR_TYPE_URI.
  */
 static void
@@ -1775,7 +1775,7 @@ QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pCtx,
  *
  * Note that this does not actually remove the base64url encoding.
  *
- * See also @ref CBOR_TAG_B64URL, QCBOREncode_AddB64URLText() and
+ * See also @ref CBOR_TAG_B64URL, QCBOREncode_AddTB64URLText() and
  * @ref QCBOR_TYPE_BASE64URL.
  */
 static void
@@ -1810,7 +1810,7 @@ QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_REGEX, QCBOREncode_AddRegex() and
+ * See also @ref CBOR_TAG_REGEX, QCBOREncode_AddTRegex() and
  * @ref QCBOR_TYPE_REGEX.
  */
 static void
@@ -1898,7 +1898,7 @@ QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddBinaryUUID() and
+ * See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddTBinaryUUID() and
  * @ref QCBOR_TYPE_UUID.
  */
 static void
@@ -2008,9 +2008,9 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
 
 
 
-/* ===========================================================================
-   BEGINNING OF PRIVATE INLINE IMPLEMENTATION
-   ========================================================================== */
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
@@ -3037,6 +3037,9 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
 }
 
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
 
 #ifdef __cplusplus
 }

@@ -270,32 +270,32 @@ typedef enum {
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
 
 /** A decimal fraction made of decimal exponent and integer mantissa.
- *  See @ref expAndMantissa and QCBOREncode_AddDecimalFraction(). */
+ *  See @ref expAndMantissa and QCBOREncode_AddTDecimalFraction(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION            14
 
 /** A decimal fraction made of decimal exponent and positive big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
+ *  QCBOREncode_AddTDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
 
 /** A decimal fraction made of decimal exponent and negative big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
+ *  QCBOREncode_AddTDecimalFractionBigNum(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
 
 /** A floating-point number made of base-2 exponent and integer
  *  mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloat(). */
+ *  QCBOREncode_AddTBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT                    17
 
 /** A floating-point number made of base-2 exponent and positive big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
+ *  QCBOREncode_AddTBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM         18
 
 /** A floating-point number made of base-2 exponent and negative big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
+ *  QCBOREncode_AddTBigFloatBigNum(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
 
 /** Type for the simple value false. */
@@ -1483,11 +1483,12 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 
-/* ------------------------------------------------------------------------
- * Deprecated functions retained for backwards compatibility. Their use is
- * not recommended.
- * ---- */
-
+/* ========================================================================= *
+ *    BEGINNING OF DEPRECATED FUNCTIONS                                      *
+ *                                                                           *
+ *    There is no plan to remove these in future versions.                   *
+ *    They just have been replaced by something better.                      *
+ * ========================================================================= */
 
 /**
  * Deprecated -- Tag handling has been revised and this is no longer
@@ -1604,11 +1605,16 @@ QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx,
                             QCBORTagListOut    *pTagList);
 
 
+/* ========================================================================= *
+ *    END OF DEPRECATED FUNCTIONS                                            *
+ * ========================================================================= */
 
 
-/* ------------------------------------------------------------------------
- * Inline implementations of public functions defined above.
- * ---- */
+
+
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
 
 static inline uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pMe)
@@ -1669,6 +1675,10 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 {
    pMe->uLastError = (uint8_t)uError;
 }
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
 
 
 /* A few cross checks on size constants and special value lengths */
