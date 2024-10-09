@@ -4106,6 +4106,14 @@ static const uint8_t spSpiffyTagInput[] = {
 };
 
 
+static const uint8_t spTaggedString[] = {
+   0xd8, 0xf0, 0x61, 0x40,
+};
+
+static const uint8_t spTaggedInt[] = {
+   0xd8, 0xf4, 0x01,
+};
+
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
 
@@ -4114,6 +4122,9 @@ int32_t OptTagParseTest(void)
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
    QCBORError         uError;
+   UsefulBufC         UBC;
+   int64_t            nInt;
+
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
@@ -4581,7 +4592,6 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
       return 234;
    }
-   int64_t nInt;
    QCBORDecode_GetInt64(&DCtx, &nInt);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
       return 240;
@@ -4596,6 +4606,8 @@ int32_t OptTagParseTest(void)
       return 243;
    }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+
 
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
@@ -4664,6 +4676,42 @@ int32_t OptTagParseTest(void)
    QCBORDecode_ExitArray(&DCtx);
    if(QCBORDecode_Finish(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 305;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedString),
+                    QCBOR_DECODE_MODE_NORMAL);
+
+   /* See that QCBORDecode_GetTextString() ignores tags */
+   QCBORDecode_GetTextString(&DCtx, &UBC);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 400;
+   }
+   if(UBC.len != 1) {
+      return 401;
+   }
+
+   uint64_t uTagNumber = QCBORDecode_GetNthTagOfLast(&DCtx, 0);
+   if(uTagNumber != 240) {
+      return 404;
+   }
+
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedInt),
+                    QCBOR_DECODE_MODE_NORMAL);
+   /* See that QCBORDecode_GetInt64() ignores tags */
+   QCBORDecode_GetInt64(&DCtx, &nInt);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 410;
+   }
+   if(nInt != 1) {
+      return 411;
+   }
+
+   uTagNumber = QCBORDecode_GetNthTagOfLast(&DCtx, 0);
+   if(uTagNumber != 244) {
+      return 414;
    }
 
    return 0;

@@ -3788,10 +3788,11 @@ QCBOR_Private_CheckTypeList(const int     uDataType,
  * This checks the data item type as possibly representing the tag
  * number or as the tag content type.
  *
- * If QCBOR_DISABLE_TAGS is #defined,  this primarily checks the item
- * data type against the allowed tag content types. It will also error out
- * if the caller tries to require a tag because there is no way that can
- * ever be fulfilled.
+ * If QCBOR_DISABLE_TAGS is #defined, this primarily checks the item
+ * data type against the allowed tag content types, but also checks
+ * against the tagged types. The QCBOR_TYPEs checked will never be
+ * associated with tag numbers, but this checking is needed for the
+ * text and byte string use cases .
  */
 static QCBORError
 QCBOR_Private_CheckTagRequirement(const QCBOR_Private_TagSpec TagSpec,
@@ -3826,17 +3827,20 @@ QCBOR_Private_CheckTagRequirement(const QCBOR_Private_TagSpec TagSpec,
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-   /* QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG: If here it can match either the tag or the content
-    * and it hasn't matched the content, so the end
-    * result is whether it matches the tag. This is
-    * the tag optional case that the CBOR standard discourages.
+   /* QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG: If here it can match either
+    * the tag or the content and it hasn't matched the content, so the
+    * end result is whether it matches the tag. This is the tag
+    * optional case that the CBOR standard discourages.
     */
 
    return QCBOR_Private_CheckTypeList(nItemType, TagSpec.uTaggedTypes);
 
 #else /* QCBOR_DISABLE_TAGS */
    if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-      return QCBOR_ERR_UNEXPECTED_TYPE;
+      /* This is only checking base QCBOR types, not those associated
+       * with tag numbers since you can get here with tag numbers.
+       */
+      return QCBOR_Private_CheckTypeList(nItemType, TagSpec.uTaggedTypes);
    }
 
    return QCBOR_Private_CheckTypeList(nItemType, TagSpec.uAllowedContentTypes);
