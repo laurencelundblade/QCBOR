@@ -4123,6 +4123,7 @@ int32_t OptTagParseTest(void)
    QCBORItem          Item;
    QCBORError         uError;
    UsefulBufC         UBC;
+   int64_t            nInt;
 
 
    QCBORDecode_Init(&DCtx,
@@ -4591,7 +4592,6 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 3) != CBOR_TAG_INVALID64) {
       return 234;
    }
-   int64_t nInt;
    QCBORDecode_GetInt64(&DCtx, &nInt);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
       return 240;
