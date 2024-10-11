@@ -116,7 +116,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(BignumDecodeTest),
 
 #ifndef QCBOR_DISABLE_TAGS
-   TEST_ENTRY(OptTagParseTest),
+   TEST_ENTRY(TagNumberDecodeTest),
    TEST_ENTRY(DateParseTest),
    TEST_ENTRY(DecodeTaggedTypeTests),
 #endif /* QCBOR_DISABLE_TAGS */

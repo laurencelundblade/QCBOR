@@ -187,7 +187,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * 4, 5             QCBOREncode_OpenMapOrArray(), QCBOREncode_CloseMapOrArray(),
  *                  QCBOREncode_OpenMapOrArrayIndefiniteLength(),
  *                  QCBOREncode_CloseMapOrArrayIndefiniteLength()
- * 6                QCBOREncode_AddTag()
+ * 6                QCBOREncode_AddTagNumber()
  * 7                QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
  *                  QCBOREncode_AddDoubleNoPreferred(),
  *                  QCBOREncode_AddFloatNoPreferred(), QCBOREncode_AddType7()
@@ -772,7 +772,7 @@ QCBOREncode_Private_AddTBignum(QCBOREncodeContext *pMe,
                                const UsefulBufC    BigNum)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, uTag);
+      QCBOREncode_AddTagNumber(pMe, uTag);
    }
    QCBOREncode_AddBytes(pMe, BigNum);
 }
@@ -833,7 +833,7 @@ QCBOREncode_Private_AddTNegativeBignum(QCBOREncodeContext *pMe,
    UsefulBufC NextSubString;
 
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_NEG_BIGNUM);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_NEG_BIGNUM);
    }
 
    /* This works on any length without the need of an additional buffer */
@@ -1105,7 +1105,7 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
     * that has no effect on the code here.
     */
    if(uTag != CBOR_TAG_INVALID64) {
-      QCBOREncode_AddTag(pMe, uTag);
+      QCBOREncode_AddTagNumber(pMe, uTag);
    }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);

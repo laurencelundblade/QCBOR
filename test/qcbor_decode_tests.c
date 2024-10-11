@@ -3949,8 +3949,37 @@ int32_t SpiffyDateDecodeTest(void)
       return 208;
    }
 
+
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterArray(&DC, NULL);
+   QCBORDecode_EnterMap(&DC, NULL);
+   QCBORDecode_ExitMap(&DC);
+   QCBORDecode_EnterMap(&DC, NULL);
+
+   /*
+    Item with label 01. It has an extra tag number and the date tag number.
+    */
+   // QCBOR_TAG_REQUIREMENT_TAG
+   // QCBOR_TAG_REQUIREMENT_NOT_A_TAG
+   // QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG
+   // QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS
+   /*   0x01,
+    0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
+    0xc1, // tag for epoch date
+    0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
+   */
+   QCBORDecode_GetNextTagNumberInMapN(&DC, 1, &uTag1);
+   QCBORDecode_GetEpochDateInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDate2);
+
+
+
+
+
    return 0;
 }
+
 
 #ifndef QCBOR_DISABLE_TAGS
 // Input for one of the tagging tests
@@ -4108,14 +4137,14 @@ static const uint8_t spSpiffyTagInput[] = {
    0x4a, '1','9','8','5','-','0','4','-','1','2', // Date string in byte string
 
    // This last case makes the array untraversable because it is
-   // an uncrecoverable error. Make sure it stays last and is the only
+   // an unrecoverable error. Make sure it stays last and is the only
    // instance so the other tests can work.
 };
 
 
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
-int32_t OptTagParseTest(void)
+int32_t TagNumberDecodeTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
@@ -4384,13 +4413,63 @@ int32_t OptTagParseTest(void)
                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
                      QCBOR_DECODE_MODE_NORMAL);
 
-   QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 55799) {
+      return 6000;
+   }
    QCBORDecode_EnterMap(&DCtx, NULL);
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 0);
+   if(uTagNumber != 55799) {
+      return 6000;
+   }
 
    QCBORDecode_GetNextTagNumberInMapN(&DCtx, -22, &uTagNumber);
+   if(uTagNumber != 23) {
+      return 6000;
+   }
    QCBORDecode_GetItemInMapN(&DCtx, -22, QCBOR_TYPE_ANY, &Item);
+
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 0);
+   if(uTagNumber != 23) {
+      return 6000;
+   }
+
+
+
+   //---
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -23, &uTagNumber);
+
+   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
+      return -99;
+   }
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -23, &uTagNumber);
+
+   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
+
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 1);
+   if(uTagNumber != 7) {
+      return 6000;
+   }
+   UsefulBufC TX;
+
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -20, &uTagNumber);
+   QCBORDecode_EnterMapFromMapN(&DCtx, -20);
+
+   QCBORDecode_GetTextStringInMapN(&DCtx, -18, &TX);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
+      return -99;
+   }
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
+   QCBORDecode_GetTextStringInMapN(&DCtx, -18, &TX);
+
+
+
+   QCBORDecode_ExitMap(&DCtx);
 
 
 

@@ -118,7 +118,7 @@ CBOR tags are an enclosing or encapsulating format. When one tag
 encloses another, the enclosed tag is the content for the enclosing
 tag.
 
-Encoding nested tags is easy with QCBOREncode_AddTag(). Just call it
+Encoding nested tags is easy with QCBOREncode_AddTagNumber(). Just call it
 several times before calling the functions to encode the tag content.
 
 When QCBOR decodes tags it does so by first completely processing the

@@ -2261,7 +2261,23 @@ typedef struct {
    /* The types of the content, which are used to match implicit
     * tagging */
    uint8_t uAllowedContentTypes[QCBOR_TAGSPEC_NUM_TYPES];
+   
 } QCBOR_Private_TagSpec;
+
+
+typedef struct {
+   /* One of QCBOR_TAGSPEC_MATCH_xxx */
+   uint8_t uTagRequirement;
+   /* The tagged type translated into QCBOR_TYPE_XXX. Used to match
+    * explicit tagging */
+   uint8_t uTaggedTypes[QCBOR_TAGSPEC_NUM_TYPES];
+   /* The types of the content, which are used to match implicit
+    * tagging */
+   uint8_t uAllowedContentTypes[QCBOR_TAGSPEC_NUM_TYPES];
+
+   uint64_t uTagNumber;
+
+} QCBOR_Private_TagSpec2;
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
@@ -3054,6 +3070,28 @@ QCBORDecode_GetRegexInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pRegex);
 }
+
+void
+QCBORDecode_Private_GetTaggedStringInMapN2(QCBORDecodeContext         *pMe,
+                                           const int64_t               nLabel,
+                                           uint8_t uTagRequirement,
+                                           uint8_t uQCBOR_Type,
+                                           uint64_t uTagNumber,
+                                           UsefulBufC                 *pString);
+static inline void
+QCBORDecode_GetRegexInMapN2(QCBORDecodeContext *pMe,
+                           const int64_t       nLabel,
+                           const uint8_t       uTagRequirement,
+                           UsefulBufC         *pRegex)
+{
+   QCBORDecode_Private_GetTaggedStringInMapN2(pMe,
+                                              nLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_REGEX,
+                                              CBOR_TAG_REGEX,
+                                              pRegex);
+}
+
 
 static inline void
 QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pMe,
