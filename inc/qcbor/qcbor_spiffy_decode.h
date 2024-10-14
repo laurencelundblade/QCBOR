@@ -2265,42 +2265,46 @@ typedef struct {
 } QCBOR_Private_TagSpec;
 
 
-typedef struct {
-   /* One of QCBOR_TAGSPEC_MATCH_xxx */
-   uint8_t uTagRequirement;
-   /* The tagged type translated into QCBOR_TYPE_XXX. Used to match
-    * explicit tagging */
-   uint8_t uTaggedTypes[QCBOR_TAGSPEC_NUM_TYPES];
-   /* The types of the content, which are used to match implicit
-    * tagging */
-   uint8_t uAllowedContentTypes[QCBOR_TAGSPEC_NUM_TYPES];
 
-   uint64_t uTagNumber;
 
-} QCBOR_Private_TagSpec2;
+
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
 void
-QCBORDecode_Private_GetTaggedString(QCBORDecodeContext   *pCtx,
-                                    QCBOR_Private_TagSpec TagSpec,
-                                    UsefulBufC           *pBstr);
-
-
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
-void
-QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext   *pCtx,
-                                          int64_t               nLabel,
-                                          QCBOR_Private_TagSpec TagSpec,
-                                          UsefulBufC           *pString);
+QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
+                                          const int64_t        nLabel,
+                                          const uint8_t        uTagRequirement,
+                                          const uint8_t        uQCBOR_Type,
+                                          const uint64_t       uTagNumber,
+                                          UsefulBufC          *pString);
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
 void
-QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext   *pCtx,
+QCBORDecode_Private_GetTaggedStringInMapSZOld(QCBORDecodeContext   *pCtx,
                                            const char           *szLabel,
                                            QCBOR_Private_TagSpec TagSpec,
                                            UsefulBufC           *pString);
 
+
+
+void
+QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
+                                    uint8_t              uTagRequirement,
+                                    uint8_t              uQCBOR_Type,
+                                    uint64_t             uTagNumber,
+                                    UsefulBufC          *pBstr);
+
+
+
+
+void
+QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
+                                           const char          *szLabel,
+                                           uint8_t              uTagRequirement,
+                                           uint8_t              uQCBOR_Type,
+                                           uint64_t             uTagNumber,
+                                           UsefulBufC          *pString);
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
 QCBORError
@@ -2654,63 +2658,65 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-
 static inline void
-QCBORDecode_GetByteString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
+QCBORDecode_GetByteString(QCBORDecodeContext *pMe, UsefulBufC *pBytes)
 {
-   // Complier should make this just a 64-bit integer parameter
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
+   QCBORItem  Item;
 
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pValue);
+   QCBORDecode_VGetNext(pMe, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS && Item.uDataType == QCBOR_TYPE_BYTE_STRING) {
+      *pBytes = Item.val.string;
+   } else {
+      *pBytes = NULLUsefulBufC;
+   }
 }
 
 static inline void
 QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pMe,
                                 const int64_t       nLabel,
-                                UsefulBufC         *pBstr)
+                                UsefulBufC         *pBytes)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pBstr);
+   QCBORItem  Item;
+
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_BYTE_STRING, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pBytes = Item.val.string;
+   } else {
+      *pBytes = NULLUsefulBufC;
+   }
 }
 
 static inline void
 QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pMe,
                                  const char         *szLabel,
-                                 UsefulBufC         *pBstr)
+                                 UsefulBufC         *pBytes)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
+   QCBORItem  Item;
 
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pBstr);
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_BYTE_STRING, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pBytes = Item.val.string;
+   } else {
+      *pBytes = NULLUsefulBufC;
+   }
 }
 
 
 static inline void
-QCBORDecode_GetTextString(QCBORDecodeContext *pMe,  UsefulBufC *pValue)
+QCBORDecode_GetTextString(QCBORDecodeContext *pMe, UsefulBufC *pText)
 {
-   // Complier should make this just 64-bit integer parameter
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
+   QCBORItem  Item;
 
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pValue);
+   QCBORDecode_VGetNext(pMe, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS && Item.uDataType == QCBOR_TYPE_TEXT_STRING) {
+      *pText = Item.val.string;
+   } else {
+      *pText = NULLUsefulBufC;
+   }
 }
 
 static inline void
@@ -2718,32 +2724,33 @@ QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pMe,
                                 const int64_t       nLabel,
                                 UsefulBufC         *pText)
 {
-   // This TagSpec only matches text strings; it also should optimize down
-   // to passing a 64-bit integer
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
+   QCBORItem  Item;
 
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_TEXT_STRING, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pText = Item.val.string;
+   } else {
+      *pText = NULLUsefulBufC;
+   }
 }
 
 static inline void
 QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pMe,
-                                 const               char *szLabel,
+                                 const char         *szLabel,
                                  UsefulBufC         *pText)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
+   QCBORItem  Item;
 
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_TEXT_STRING, &Item);
+
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pText = Item.val.string;
+   } else {
+      *pText = NULLUsefulBufC;
+   }
 }
+
 
 static inline void
 QCBORDecode_GetNull(QCBORDecodeContext *pMe)
@@ -2806,14 +2813,11 @@ QCBORDecode_GetDateString(QCBORDecodeContext *pMe,
                           const uint8_t       uTagRequirement,
                           UsefulBufC         *pValue)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pValue);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_DATE_STRING,
+                                       CBOR_TAG_DATE_STRING,
+                                       pValue);
 }
 
 static inline void
@@ -2822,14 +2826,12 @@ QCBORDecode_GetDateStringInMapN(QCBORDecodeContext *pMe,
                                 const uint8_t       uTagRequirement,
                                 UsefulBufC         *pText)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
+                                              nLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_DATE_STRING,
+                                              CBOR_TAG_DATE_STRING,
+                                              pText);
 }
 
 static inline void
@@ -2838,14 +2840,12 @@ QCBORDecode_GetDateStringInMapSZ(QCBORDecodeContext *pMe,
                                  const uint8_t       uTagRequirement,
                                  UsefulBufC         *pText)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DATE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_DATE_STRING,
+                                              CBOR_TAG_DATE_STRING,
+                                              pText);
 }
 
 static inline void
@@ -2853,14 +2853,11 @@ QCBORDecode_GetDaysString(QCBORDecodeContext *pMe,
                           const uint8_t       uTagRequirement,
                           UsefulBufC         *pValue)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pValue);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_DATE_STRING,
+                                       CBOR_TAG_DATE_STRING,
+                                       pValue);
 }
 
 static inline void
@@ -2869,15 +2866,14 @@ QCBORDecode_GetDaysStringInMapN(QCBORDecodeContext *pMe,
                                 const uint8_t       uTagRequirement,
                                 UsefulBufC         *pText)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pText);
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
+                                             nLabel,
+                                             uTagRequirement,
+                                             QCBOR_TYPE_DAYS_STRING,
+                                             CBOR_TAG_DAYS_STRING,
+                                             pText);
 }
+
 
 static inline void
 QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pMe,
@@ -2885,14 +2881,13 @@ QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pMe,
                                  const uint8_t       uTagRequirement,
                                  UsefulBufC         *pText)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_DAYS_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_DAYS_STRING,
+                                              CBOR_TAG_DAYS_STRING,
+                                              pText);
 
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pText);
 }
 
 
@@ -2902,14 +2897,11 @@ QCBORDecode_GetURI(QCBORDecodeContext *pMe,
                    const uint8_t       uTagRequirement,
                    UsefulBufC         *pUUID)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pUUID);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_URI,
+                                       CBOR_TAG_URI,
+                                       pUUID);
 }
 
 static inline void
@@ -2918,14 +2910,12 @@ QCBORDecode_GetURIInMapN(QCBORDecodeContext *pMe,
                          const uint8_t       uTagRequirement,
                          UsefulBufC         *pUUID)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pUUID);
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
+                                              nLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_URI,
+                                              CBOR_TAG_URI,
+                                              pUUID);
 }
 
 static inline void
@@ -2934,14 +2924,12 @@ QCBORDecode_GetURIInMapSZ(QCBORDecodeContext *pMe,
                           const uint8_t       uTagRequirement,
                           UsefulBufC         *pUUID)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_URI, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_URI,
+                                              CBOR_TAG_URI,
+                                              pUUID);
 }
 
 
@@ -2950,14 +2938,11 @@ QCBORDecode_GetB64(QCBORDecodeContext *pMe,
                    const uint8_t       uTagRequirement,
                    UsefulBufC         *pB64Text)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_BASE64, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pB64Text);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_BASE64,
+                                       CBOR_TAG_B64,
+                                       pB64Text);
 }
 
 static inline void
@@ -2966,14 +2951,12 @@ QCBORDecode_GetB64InMapN(QCBORDecodeContext *pMe,
                          const uint8_t       uTagRequirement,
                          UsefulBufC         *pB64Text)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_BASE64, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pB64Text);
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
+                                             nLabel,
+                                             uTagRequirement,
+                                             QCBOR_TYPE_BASE64,
+                                             CBOR_TAG_B64,
+                                             pB64Text);
 }
 
 static inline void
@@ -2982,13 +2965,12 @@ QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pMe,
                           const uint8_t       uTagRequirement,
                           UsefulBufC         *pB64Text)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_BASE64, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pB64Text);
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_BASE64,
+                                              CBOR_TAG_B64,
+                                              pB64Text);
 }
 
 
@@ -2997,14 +2979,11 @@ QCBORDecode_GetB64URL(QCBORDecodeContext *pMe,
                       const uint8_t       uTagRequirement,
                       UsefulBufC         *pB64Text)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_BASE64URL, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pB64Text);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_BASE64URL,
+                                       CBOR_TAG_B64URL,
+                                       pB64Text);
 }
 
 static inline void
@@ -3013,14 +2992,12 @@ QCBORDecode_GetB64URLInMapN(QCBORDecodeContext *pMe,
                             const uint8_t       uTagRequirement,
                             UsefulBufC         *pB64Text)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_BASE64URL, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pB64Text);
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
+                                              nLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_BASE64URL,
+                                              CBOR_TAG_B64URL,
+                                              pB64Text);
 }
 
 static inline void
@@ -3029,14 +3006,12 @@ QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pMe,
                              const uint8_t       uTagRequirement,
                              UsefulBufC         *pB64Text)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_BASE64URL, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pB64Text);
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_BASE64URL,
+                                              CBOR_TAG_B64URL,
+                                              pB64Text);
 }
 
 
@@ -3045,15 +3020,14 @@ QCBORDecode_GetRegex(QCBORDecodeContext *pMe,
                      const uint8_t      uTagRequirement,
                      UsefulBufC         *pRegex)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_REGEX, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pRegex);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_REGEX,
+                                       CBOR_TAG_REGEX,
+                                       pRegex);
 }
+
+
 
 static inline void
 QCBORDecode_GetRegexInMapN(QCBORDecodeContext *pMe,
@@ -3061,30 +3035,7 @@ QCBORDecode_GetRegexInMapN(QCBORDecodeContext *pMe,
                            const uint8_t       uTagRequirement,
                            UsefulBufC         *pRegex)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_REGEX, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pRegex);
-}
-
-void
-QCBORDecode_Private_GetTaggedStringInMapN2(QCBORDecodeContext         *pMe,
-                                           const int64_t               nLabel,
-                                           uint8_t uTagRequirement,
-                                           uint8_t uQCBOR_Type,
-                                           uint64_t uTagNumber,
-                                           UsefulBufC                 *pString);
-static inline void
-QCBORDecode_GetRegexInMapN2(QCBORDecodeContext *pMe,
-                           const int64_t       nLabel,
-                           const uint8_t       uTagRequirement,
-                           UsefulBufC         *pRegex)
-{
-   QCBORDecode_Private_GetTaggedStringInMapN2(pMe,
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
                                               nLabel,
                                               uTagRequirement,
                                               QCBOR_TYPE_REGEX,
@@ -3099,14 +3050,12 @@ QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pMe,
                             const uint8_t       uTagRequirement,
                             UsefulBufC         *pRegex)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_REGEX, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_TEXT_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pRegex);
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_REGEX,
+                                              CBOR_TAG_REGEX,
+                                              pRegex);
 }
 
 
@@ -3176,14 +3125,11 @@ QCBORDecode_GetBinaryUUID(QCBORDecodeContext *pMe,
                           const uint8_t       uTagRequirement,
                           UsefulBufC         *pUUID)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_UUID, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedString(pMe, TagSpec, pUUID);
+   QCBORDecode_Private_GetTaggedString(pMe,
+                                       uTagRequirement,
+                                       QCBOR_TYPE_UUID,
+                                       CBOR_TAG_BIN_UUID,
+                                       pUUID);
 }
 
 static inline void
@@ -3192,14 +3138,12 @@ QCBORDecode_GetBinaryUUIDInMapN(QCBORDecodeContext *pMe,
                                 const uint8_t       uTagRequirement,
                                 UsefulBufC         *pUUID)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_UUID, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapN(pMe, nLabel, TagSpec, pUUID);
+   QCBORDecode_Private_GetTaggedStringInMapN(pMe,
+                                             nLabel,
+                                             uTagRequirement,
+                                             QCBOR_TYPE_UUID,
+                                             CBOR_TAG_BIN_UUID,
+                                             pUUID);
 }
 
 static inline void
@@ -3208,14 +3152,12 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
                                  const uint8_t       uTagRequirement,
                                  UsefulBufC         *pUUID)
 {
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QCBOR_TYPE_UUID, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe, szLabel, TagSpec, pUUID);
+   QCBORDecode_Private_GetTaggedStringInMapSZ(pMe,
+                                              szLabel,
+                                              uTagRequirement,
+                                              QCBOR_TYPE_UUID,
+                                              CBOR_TAG_BIN_UUID,
+                                              pUUID);
 }
 
 

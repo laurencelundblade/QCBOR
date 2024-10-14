@@ -231,6 +231,81 @@ in a CBOR protocol without the explicit tag, so in a way the registry
 is a registry of data types.
 
 
+
+## Tag Decoding
+
+QCBOR offers two ways to decoding tags.
+
+The first is by registering a call back that can transform the tag into
+a QCBORItem itendified by a new QCBOR Type. It is limited in that
+the decoded data must fit into the 24 bytes of a QCBORItem values. It is
+good for new data types.
+
+The second is by getting tag numbers in the course of decoding. This 
+is more suitable for tags numbers that indicate message types, those
+that alter the decode flow.
+
+QCBOR v2 (when not in v1 compatibility) requires all tags be consumed.
+If they are not consumed by one of the above methods, xxxx error occurs.
+They are never optional (as they were described in RFC 7049) just is
+it is not optional to ignore whether an item is a string rather than
+an integer.
+
+In v2
+
+TODO: make clean this up
+
+When asking for specific tag decode, for example GetDateEpoch()
+
+Tag required
+ - No tag gives error xxxx
+ - The epoch date tag by itself succeeds
+ - The epoch date tag with wrong content gives error yyy
+ - The epoch date tag with additional
+ - The additional have been consumed -- suceeds
+ - The aditional tags have not been consumed -- gives error aaa
+ - Another tag gives --- error zzz
+ 
+ Tag not required
+ - No tags, correct tag content -- success
+ - No tags, incorrect tag content type error yyy
+ - Another tag, not consumed ---  error aaa
+ - Another tag consumed -- success
+ - Another tag consumed and made into another type --- error xxxx
+ 
+ Tag optional
+ - No tags, correct content -- success
+ - No tags, incorrect content -- error yyy
+ - Expected tag -- success
+ - Another tag, consumed -- success
+ - Another tag, not consumed tag content correct -- error, probably aaa
+ - Another tag, consumed and made into another type -- error xxx
+ - Expected tag + another tag, not consumed -- error aaa
+ 
+ 
+ Now fan out for ALLOW_EXTRA --- yuckkkkk
+ 
+ Ignore ALLOW_EXTRA in v2?
+ 
+ Fan out for v1
+ 
+ 
+ 
+ 
+ 0(140) good date tag
+ 50000(140) 
+    interpret as a date with some other tag on it -- must be consumed, so unconsumed tag error
+    intepret this as not a date -- wrong type error
+    subjective depending on whether tag content decoder is installed
+ 1(140) same as above
+ 
+ Tag optional
+
+
+
+
+
+
 ## See Also
 
 See @ref Tags-Overview and @ref Tag-Usage.

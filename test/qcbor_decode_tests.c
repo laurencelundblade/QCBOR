@@ -3676,7 +3676,7 @@ int32_t SpiffyDateDecodeTest(void)
    int64_t            nEpochDate3, nEpochDate5,
                       nEpochDate4, nEpochDate6,
                       nEpochDays2;
-   UsefulBufC         StringDate1, StringDate2, StringDays2;
+   UsefulBufC         StringDate1, StringDate2, StringDays2, StringDate3;
 
    // TODO: test spSpiffyDateTestInput in v2 mode
    QCBORDecode_Initv1(&DC,
@@ -3880,7 +3880,8 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Bad content for string date
-   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
+   // TODO: should this set StringDate3 to NULL? variance between v1 and v2
+   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate3);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 4;
@@ -4493,7 +4494,7 @@ int32_t TagNumberDecodeTest(void)
    }
    // untagged byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 101;
    }
    // tagged regex
@@ -4610,12 +4611,12 @@ int32_t TagNumberDecodeTest(void)
    }
    // untagged byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 251;
    }
    // tagged regex
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 252;
    }
    // tagged date string with a byte string
@@ -4651,12 +4652,12 @@ int32_t TagNumberDecodeTest(void)
    }
    // tagged regex
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 303;
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 304;
    }
    // See comments above
@@ -6053,11 +6054,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x03}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */ // TODO: think about error code here
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */ // TODO: think about error code here
       0,
       {(const uint8_t []){0x00}, 1},
       false
@@ -6075,11 +6076,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 1},
 
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFraction */ // TODO: think about error code
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */ // TODO: think about error code
       0,
       {(const uint8_t []){0x03}, 1},
       false,
@@ -6093,7 +6094,6 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x64}, 1},
       false
    },
-
    {
       "5. Tagged 4([-20, 4759477275222530853136]) decimal fraction, tag 4 required",
       {(const uint8_t []){0xC4, 0x82, 0x33,
@@ -6157,6 +6157,7 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 0},
       false
    },
+
    {
       "7. Tagged 5([-20, 4294967295]) big float, big num mantissa, tag 5 required",
       {(const uint8_t []){0xC5, 0x82, 0x33,
@@ -6243,11 +6244,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
       true,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 1},
       false
