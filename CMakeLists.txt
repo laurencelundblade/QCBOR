@@ -1,5 +1,6 @@
 #-------------------------------------------------------------------------------
 # Copyright (c) 2022-2023, Arm Limited. All rights reserved.
+# Copyright (c) 2024, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -39,6 +40,7 @@ target_sources(qcbor
     PRIVATE
         src/ieee754.c
         src/qcbor_decode.c
+        src/qcbor_tag_decode.c
         src/qcbor_encode.c
         src/qcbor_err_to_str.c
         src/UsefulBuf.c
@@ -78,6 +80,7 @@ set(HEADERS
     inc/qcbor/qcbor_private.h
     inc/qcbor/qcbor_encode.h
     inc/qcbor/qcbor_decode.h
+    inc/qcbor/qcbor_tag_decode.h
     inc/qcbor/qcbor_spiffy_decode.h
     inc/qcbor/UsefulBuf.h
 )
