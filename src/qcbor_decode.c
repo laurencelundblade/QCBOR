@@ -2030,7 +2030,8 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
          goto Done;
       }
    if(uErr2 != QCBOR_SUCCESS) {
-      /* The recoverable error for the value overrides the recoverable error for the label, if there was an error for the label */
+      /* The recoverable error for the value overrides the recoverable
+       * error for the label, if there was an error for the label */
       uErr = uErr2;
    }
 
@@ -4006,6 +4007,7 @@ QCBORDecode_GetTaggedItemInMapSZ(QCBORDecodeContext          *pMe,
    pMe->uLastError = (uint8_t)QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
 }
 
+#ifndef QCBOR_DISABLE_TAGS
 static void
 QCBORDecode_Private_ProcessTagOne(QCBORDecodeContext      *pMe,
                                   QCBORItem               *pItem,
@@ -4104,7 +4106,7 @@ QCBORDecode_Private_GetTaggedStringInMapSZOld(QCBORDecodeContext         *pMe,
       *pString = Item.val.string;
    }
 }
-
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /*
  * Public function, see header qcbor/qcbor_decode.h file
@@ -4510,6 +4512,15 @@ Done:
 }
 
 
+static QCBORError
+QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
+                                  const QCBORItem *pItem,
+                                  const size_t uOffset,
+                                  const uint8_t *uQCBORTypes,
+                                  const uint64_t *uTagNumbers,
+                                  const uint8_t uTagRequirement,
+                                  bool *bTypeMatched);
+
 /**
  * @brief The main work of entering some byte-string wrapped CBOR.
  *
@@ -4528,30 +4539,41 @@ static QCBORError
 QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
                                      const QCBORItem    *pItem,
                                      const uint8_t       uTagRequirement,
+                                     size_t uOffset,
                                      UsefulBufC         *pBstr)
 {
+   bool       bTypeMatched;
+   QCBORError uError;
+
+
+   const uint8_t uTypes[] = {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE};
+   const uint64_t uTagNumbers[] = {CBOR_TAG_CBOR, CBOR_TAG_CBOR_SEQUENCE, CBOR_TAG_INVALID64};
+
+
    if(pBstr) {
       *pBstr = NULLUsefulBufC;
    }
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state; do nothing. */
       return pMe->uLastError;
    }
 
-   QCBORError uError;
-
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   uError = QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
-   if(uError != QCBOR_SUCCESS) {
-      goto Done;
+   if(pItem->uDataAlloc) {
+      return QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
    }
+
+   uError = QCBORDecode_Private_CheckTagNType(pMe,
+                                     pItem,
+                                              uOffset,
+                                              uTypes, // TODO: maybe this should be empty
+                                              uTagNumbers,
+                                              uTagRequirement,
+                                     &bTypeMatched);
+
+   if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      uError = QCBOR_ERR_BAD_TAG_CONTENT; // TODO: error
+   }
+
 
    if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
       /* Reverse the decrement done by GetNext() for the bstr so the
@@ -4612,26 +4634,24 @@ QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
                              const uint8_t       uTagRequirement,
                              UsefulBufC         *pBstr)
 {
+   QCBORItem Item;
+   size_t    uOffset;
+
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state; do nothing.
       return;
    }
 
    /* Get the data item that is the byte string being entered */
-   QCBORItem Item;
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
+   uOffset = QCBORDecode_Tell(pMe);
+   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   if(Item.uDataAlloc) {
-      pMe->uLastError = QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
       return;
    }
 
    pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
                                                                   &Item,
                                                                    uTagRequirement,
+                                                                   uOffset,
                                                                    pBstr);
 }
 
@@ -4646,11 +4666,13 @@ QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
                                      UsefulBufC         *pBstr)
 {
    QCBORItem Item;
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   size_t    uOffset;
 
+   QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_BYTE_STRING, &Item, &uOffset);
    pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
                                                                   &Item,
                                                                    uTagRequirement,
+                                                                   uOffset,
                                                                    pBstr);
 }
 
@@ -4665,11 +4687,13 @@ QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
                                       UsefulBufC         *pBstr)
 {
    QCBORItem Item;
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   size_t    uOffset;
 
+   QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_BYTE_STRING, &Item, &uOffset);
    pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
                                                                   &Item,
                                                                    uTagRequirement,
+                                                                   uOffset,
                                                                    pBstr);
 }
 
@@ -4920,7 +4944,6 @@ Done:
    pMe->uLastError = (uint8_t)uErr;
 }
 
-
 // Probably uTagNumber has to be a list
 static QCBORError
 QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
@@ -4933,9 +4956,11 @@ QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
       return QCBOR_SUCCESS;
    }
 
-   /* There are some tag numbes, so keep checking. This check passes
+   /* There are some tag numbers, so keep checking. This check passes
     * if there is one and only one tag number that matches uTagNumber
     */
+
+   // TODO: behave different in v1 and v2?
 
    const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
 
@@ -4956,6 +4981,102 @@ QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
    return QCBOR_SUCCESS;
 }
 
+
+
+static QCBORError
+QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
+                                  const QCBORItem *pItem,
+                                  const size_t uOffset,
+                                  const uint8_t *uQCBORTypes,
+                                  const uint64_t *uTagNumbers,
+                                  const uint8_t uTagRequirement,
+                                  bool *bTypeMatched)
+{
+   bool        bTagNumberMatched;
+   QCBORError uErr;
+
+   const int      nTagReq   = uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
+   const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
+
+   
+   *bTypeMatched = false;
+   for(const uint8_t *pTNum = uQCBORTypes; *pTNum != QCBOR_TYPE_NONE; pTNum++) {
+      if(pItem->uDataType == *pTNum) {
+         *bTypeMatched = true;
+         break;
+      }
+   }
+   
+   bTagNumberMatched = false;
+   for(const uint64_t *pQType = uTagNumbers; *pQType != CBOR_TAG_INVALID64; pQType++) {
+      if(uInnerTag == *pQType) {
+         bTagNumberMatched = true;
+         break;
+      }
+   }
+   
+
+   if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
+      /* There must be a tag number */
+      if(!bTagNumberMatched && !*bTypeMatched) {
+         return QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
+      }
+      
+   } else if(nTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
+      if(bTagNumberMatched || *bTypeMatched) {
+         return QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
+      }
+
+   } else if(nTagReq == QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG) {
+      /* No check necessary */
+   }
+   
+   /* Now check if there are extra tags and if there's an error in them */
+   if(!(uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) {
+      /* The flag to ignore extra is not set, so keep checking */
+      for(const uint64_t *pTNum = uTagNumbers; *pTNum != CBOR_TAG_INVALID64; pTNum++) {
+         uErr = QCBORDecode_Private_Check1TagNumber(pMe, pItem, *pTNum, uOffset);
+         if(uErr != QCBOR_SUCCESS) {
+            return uErr;
+         }
+      }
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+void
+QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
+                                   QCBORItem               *pItem,
+                                   const uint8_t            uTagRequirement,
+                                   const uint8_t            uQCBORTypes[],
+                                   const uint64_t           uTagNumbers[],
+                                   QCBORTagContentCallBack *pfCB,
+                                   size_t                   uOffset)
+{
+   QCBORError uErr;
+   bool       bTypeMatched;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   uErr = QCBORDecode_Private_CheckTagNType(pMe, pItem, uOffset, uQCBORTypes, uTagNumbers, uTagRequirement, &bTypeMatched);
+   if(uErr != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   if(!bTypeMatched) {
+      /* Tag content wasn't previously processed, do it now */
+      uErr = (*pfCB)(pMe, NULL, uTagNumbers[0], pItem);
+      if(uErr != QCBOR_SUCCESS) {
+         goto Done;
+      }
+   }
+
+Done:
+   pMe->uLastError = (uint8_t)uErr;
+}
 
 /*
 
@@ -5017,8 +5138,32 @@ QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
  * Big float
  * Decimal frac -- One processor for two tags
  **/
-static void
+ void
 QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
+                                   QCBORItem               *pItem,
+                                   const uint8_t            uTagRequirement,
+                                   const uint8_t            uQCBORTypes[],
+                                   const uint64_t           uTagNumber,
+                                   QCBORTagContentCallBack *pfCB,
+                                   size_t                   uOffset)
+{
+   uint64_t auTagNumbers[2];
+
+   auTagNumbers[0] = uTagNumber;
+   auTagNumbers[1] = CBOR_TAG_INVALID64;
+
+   QCBORDecode_Private_ProcessTagItemMulti(pMe,
+                                           pItem,
+                                           uTagRequirement,
+                                           uQCBORTypes,
+                                           auTagNumbers,
+                                           pfCB,
+                                           uOffset);
+}
+
+
+ void // TODO: delete this
+QCBORDecode_Private_ProcessTagItemOO(QCBORDecodeContext      *pMe,
                                    QCBORItem               *pItem,
                                    const uint8_t            uTagRequirement,
                                    const uint8_t            uQCBORTypes[],
@@ -5082,7 +5227,6 @@ QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
 Done:
    pMe->uLastError = (uint8_t)uErr;
 }
-
 
 static void
 QCBORDecode_Private_ProcessTagOne(QCBORDecodeContext *pMe,
@@ -5164,70 +5308,9 @@ QCBORDecode_Private_ProcessTagItemOld(QCBORDecodeContext *pMe,
 
 Done:
    pMe->uLastError = (uint8_t)uErr;
-
 }
 
 
-
-
-// TODO: git rid of this
- void
-QCBORDecode_Private_ProcessEpochDate2(QCBORDecodeContext *pMe,
-                                     QCBORItem          *pItem,
-                                     const uint8_t       uTagRequirement,
-                                      size_t uOffset,
-                                     int64_t            *pnTime)
-{
-   QCBORError uErr;
-   const int nTagReq = uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
-
-   const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
-
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   uErr = QCBOR_SUCCESS;
-
-   if(nTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-      /* There must be a tag number */
-      if(uInnerTag != CBOR_TAG_DATE_EPOCH &&
-         pItem->uDataType != QCBOR_TYPE_DATE_EPOCH) {
-         uErr =  QCBOR_ERR_UNEXPECTED_TAG_NUMBER; // TODO: error code
-         goto Done;
-      }
-
-   } else if(nTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-      if(pItem->uDataType == QCBOR_TYPE_DATE_EPOCH ||pItem->auTagNumbers[0] != CBOR_TAG_DATE_EPOCH) {
-         uErr =  QCBOR_ERR_UNEXPECTED_TAG_NUMBER; // TODO: error code
-         goto Done;
-      }
-   } else if(nTagReq == QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG) {
-      /* No check necessary */
-   }
-
-   /* Now check if there are extra tags and if there's an error in them */
-   if(!(uTagRequirement & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) {
-      /* The flag to ignore extra is not set, so keep checking */
-      uErr = QCBORDecode_Private_Check1TagNumber(pMe, pItem, CBOR_TAG_DATE_EPOCH, uOffset);
-      if(uErr != QCBOR_SUCCESS) {
-         goto Done;
-      }
-   }
-
-   /* Now process the tag content */
-   if(pItem->uDataType != QCBOR_TYPE_DATE_EPOCH) {
-      uErr = QCBORDecode_DateEpochTagCB(pMe, NULL, CBOR_TAG_DATE_EPOCH, pItem);
-      if(uErr != QCBOR_SUCCESS) {
-         goto Done;
-      }
-   }
-
-   *pnTime = pItem->val.epochDate.nSeconds;
-
-Done:
-   pMe->uLastError = (uint8_t)uErr;
-}
 
 
 
@@ -5244,7 +5327,13 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
 
    uOffset = QCBORDecode_Tell(pMe);
    QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   QCBORDecode_Private_ProcessTagOne(pMe, &Item, uTagRequirement, QCBOR_TYPE_DATE_EPOCH, CBOR_TAG_DATE_EPOCH, QCBORDecode_DateEpochTagCB, uOffset);
+   QCBORDecode_Private_ProcessTagOne(pMe,
+                                     &Item,
+                                     uTagRequirement,
+                                     QCBOR_TYPE_DATE_EPOCH,
+                                     CBOR_TAG_DATE_EPOCH,
+                                     QCBORDecode_DateEpochTagCB,
+                                     uOffset);
    *pnTime = Item.val.epochDate.nSeconds;
 }
 
@@ -5262,7 +5351,13 @@ QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
    size_t uOffset;
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_ProcessTagOne(pMe, &Item, uTagRequirement, QCBOR_TYPE_DATE_EPOCH, CBOR_TAG_DATE_EPOCH, QCBORDecode_DateEpochTagCB, uOffset);
+   QCBORDecode_Private_ProcessTagOne(pMe,
+                                     &Item,
+                                     uTagRequirement,
+                                     QCBOR_TYPE_DATE_EPOCH,
+                                     CBOR_TAG_DATE_EPOCH,
+                                     QCBORDecode_DateEpochTagCB,
+                                     uOffset);
    *pnTime = Item.val.epochDate.nSeconds;
 }
 
@@ -5280,7 +5375,13 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
    size_t uOffset;
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_ProcessTagOne(pMe, &Item, uTagRequirement, QCBOR_TYPE_DATE_EPOCH, CBOR_TAG_DATE_EPOCH, QCBORDecode_DateEpochTagCB, uOffset);
+   QCBORDecode_Private_ProcessTagOne(pMe,
+                                     &Item,
+                                     uTagRequirement,
+                                     QCBOR_TYPE_DATE_EPOCH,
+                                     CBOR_TAG_DATE_EPOCH,
+                                     QCBORDecode_DateEpochTagCB,
+                                     uOffset);
    *pnTime = Item.val.epochDate.nSeconds;
 }
 
@@ -5350,7 +5451,13 @@ QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
 
    uOffset = QCBORDecode_Tell(pMe);
    QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   QCBORDecode_Private_ProcessTagOne(pMe, &Item, uTagRequirement, QCBOR_TYPE_DAYS_EPOCH, CBOR_TAG_DAYS_EPOCH, QCBORDecode_DaysEpochTagCB, uOffset);
+   QCBORDecode_Private_ProcessTagOne(pMe,
+                                     &Item,
+                                     uTagRequirement,
+                                     QCBOR_TYPE_DAYS_EPOCH,
+                                     CBOR_TAG_DAYS_EPOCH,
+                                     QCBORDecode_DaysEpochTagCB,
+                                     uOffset);
    *pnDays = Item.val.epochDays;
 }
 
@@ -5368,7 +5475,13 @@ QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pMe,
    size_t uOffset;
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_ProcessTagOne(pMe, &Item, uTagRequirement, QCBOR_TYPE_DAYS_EPOCH, CBOR_TAG_DAYS_EPOCH, QCBORDecode_DaysEpochTagCB, uOffset);
+   QCBORDecode_Private_ProcessTagOne(pMe,
+                                     &Item,
+                                     uTagRequirement,
+                                     QCBOR_TYPE_DAYS_EPOCH,
+                                     CBOR_TAG_DAYS_EPOCH,
+                                     QCBORDecode_DaysEpochTagCB,
+                                     uOffset);
    *pnDays = Item.val.epochDays;
 }
 
@@ -5479,6 +5592,82 @@ QCBOR_Private_ProcessBigNum2(QCBORDecodeContext *pMe,
 {
    QCBORError uErr;
 
+   const uint8_t puTypes[] = {QCBOR_TYPE_POSBIGNUM,QCBOR_TYPE_NEGBIGNUM, QCBOR_TYPE_NONE};
+
+   const uint64_t puTNs[] = {CBOR_TAG_POS_BIGNUM, CBOR_TAG_NEG_BIGNUM, CBOR_TAG_INVALID64};
+
+   QCBORDecode_Private_ProcessTagItemMulti(pMe,
+                                           pItem,
+                                           uTagRequirement,
+                                           puTypes,
+                                           puTNs, QCBORDecode_StringsTagCB, uOffset);
+   if(pMe->uLastError) {
+      return;
+   }
+
+
+   // TODO: is this right? Tests are passing. Fix after merges.
+   // TODO: make this work for GetBigNum and GetBigNumber(). They are different.
+   if(pItem->uDataType == QCBOR_TYPE_POSBIGNUM) {
+      *pbIsNegative = false;
+   } else if(pItem->uDataType == QCBOR_TYPE_NEGBIGNUM) {
+      *pbIsNegative = true;
+   }
+
+   uErr = QCBOR_SUCCESS;
+
+   pMe->uLastError = (uint8_t)uErr;
+}
+
+static void
+QCBORDecode_Private_GetMIME2(QCBORDecodeContext *pMe,
+                             const uint8_t       uTagRequirement,
+                             QCBORItem          *pItem,
+                             UsefulBufC         *pValue,
+                             bool               *pbIsTag257,
+                             size_t              uOffset)
+{
+   QCBORError uErr;
+
+   const uint8_t puTypes[] = {QCBOR_TYPE_MIME, QCBOR_TYPE_BINARY_MIME, QCBOR_TYPE_NONE};
+
+   const uint64_t puTNs[] = {CBOR_TAG_MIME, CBOR_TAG_BINARY_MIME, CBOR_TAG_INVALID64};
+
+   QCBORDecode_Private_ProcessTagItemMulti(pMe,
+                                           pItem,
+                                           uTagRequirement,
+                                           puTypes,
+                                           puTNs,
+                                           QCBORDecode_MIMETagCB,
+                                           uOffset);
+   if(pMe->uLastError) {
+      return;
+   }
+
+   // TODO: is this right? Tests are passing. Fix after merges.
+   // TODO: make this work for GetBigNum and GetBigNumber(). They are different.
+   if(pItem->uDataType == QCBOR_TYPE_MIME) {
+      *pbIsTag257 = false;
+   } else if(pItem->uDataType == QCBOR_TYPE_BINARY_MIME) {
+      *pbIsTag257 = true;
+   }
+
+   uErr = QCBOR_SUCCESS;
+
+   pMe->uLastError = (uint8_t)uErr;
+}
+
+
+ void // TODO: get rid of this.
+QCBOR_Private_ProcessBigNum2Old(QCBORDecodeContext *pMe,
+                             const uint8_t       uTagRequirement,
+                             QCBORItem          *pItem,
+                             UsefulBufC         *pValue,
+                             bool               *pbIsNegative,
+                             size_t              uOffset)
+{
+   QCBORError uErr;
+
    const int      nTagReq   = uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
    const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
 
@@ -5545,6 +5734,71 @@ Done:
    pMe->uLastError = (uint8_t)uErr;
 }
 
+
+
+void
+QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
+                           const uint8_t       uTagRequirement,
+                           UsefulBufC         *pMessage,
+                           bool               *pbIsTag257)
+{
+   QCBORItem  Item;
+   size_t     uOffset;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   uOffset = QCBORDecode_Tell(pMe);
+   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+   QCBORDecode_Private_GetMIME2(pMe,
+                                uTagRequirement,
+                               &Item,
+                                pMessage,
+                                pbIsTag257,
+                                uOffset);
+}
+
+void
+QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
+                                 const int64_t       nLabel,
+                                 const uint8_t       uTagRequirement,
+                                 UsefulBufC         *pMessage,
+                                 bool               *pbIsTag257)
+{
+   QCBORItem  Item;
+   size_t     uOffset;
+
+   QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
+   QCBORDecode_Private_GetMIME2(pMe,
+                                uTagRequirement,
+                               &Item,
+                                pMessage,
+                                pbIsTag257,
+                                uOffset);
+}
+
+void
+QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
+                                  const char         *szLabel,
+                                  const uint8_t       uTagRequirement,
+                                  UsefulBufC         *pMessage,
+                                  bool               *pbIsTag257)
+{
+   QCBORItem  Item;
+   size_t     uOffset;
+
+   QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
+   QCBORDecode_Private_GetMIME2(pMe,
+                                uTagRequirement,
+                               &Item,
+                                pMessage,
+                                pbIsTag257,
+                                uOffset);
+}
 
 /*
  * Public function, see header qcbor/qcbor_spiffy_decode.h
@@ -7805,6 +8059,7 @@ QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
+   // TODO: put the next few lines in a separate function?
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }

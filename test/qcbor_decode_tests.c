@@ -3676,7 +3676,7 @@ int32_t SpiffyDateDecodeTest(void)
    int64_t            nEpochDate3, nEpochDate5,
                       nEpochDate4, nEpochDate6,
                       nEpochDays2;
-   UsefulBufC         StringDate1, StringDate2, StringDays2, StringDate3;
+   UsefulBufC         StringDate1, StringDate2, StringDays2;
 
    // TODO: test spSpiffyDateTestInput in v2 mode
    QCBORDecode_Initv1(&DC,
@@ -3778,7 +3778,7 @@ int32_t SpiffyDateDecodeTest(void)
    int64_t            nEpochDate2,
                       nEpochDateFail,
                       nEpochDate1400000000, nEpochDays1;
-   UsefulBufC         StringDays1;
+   UsefulBufC         StringDays1, StringDate3;
    uint64_t           uTag1, uTag2;
 
    // Tagged date string
@@ -3971,9 +3971,11 @@ int32_t SpiffyDateDecodeTest(void)
     0xc1, // tag for epoch date
     0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
    */
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetNextTagNumberInMapN(&DC, 1, &uTag1);
    QCBORDecode_GetEpochDateInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDate2);
 
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
 

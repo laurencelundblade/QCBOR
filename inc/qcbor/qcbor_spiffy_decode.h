@@ -2005,13 +2005,13 @@ QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pCtx,
  * This does no translation of line endings. See QCBOREncode_AddText()
  * for a discussion of line endings in CBOR.
  */
-static void
+void
 QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pCtx,
                            uint8_t             uTagRequirement,
                            UsefulBufC         *pMessage,
                            bool               *pbIsTag257);
 
-static void
+ void
 QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pCtx,
                                  int64_t              nLabel,
                                  uint8_t              uTagRequirement,
@@ -2019,7 +2019,7 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pCtx,
                                  bool                *pbIsTag257);
 
 
-static void
+void
 QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
                                   const char         *szLabel,
                                   uint8_t             uTagRequirement,
@@ -3059,8 +3059,11 @@ QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-static inline void
-QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
+
+
+
+ inline void // TODO: get rid of this
+QCBORDecode_GetMIMEMessageOld(QCBORDecodeContext *pMe,
                            const uint8_t       uTagRequirement,
                            UsefulBufC         *pMessage,
                            bool               *pbIsTag257)
@@ -3084,7 +3087,7 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
 }
 
 static inline void
-QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
+QCBORDecode_GetMIMEMessageInMapNOld(QCBORDecodeContext *pMe,
                                  const int64_t       nLabel,
                                  const uint8_t       uTagRequirement,
                                  UsefulBufC         *pMessage,
@@ -3101,23 +3104,6 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
    }
 }
 
-static inline void
-QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
-                                  const char         *szLabel,
-                                  const uint8_t       uTagRequirement,
-                                  UsefulBufC         *pMessage,
-                                  bool               *pbIsTag257)
-{
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
-
-   if(pMe->uLastError == QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)QCBORDecode_Private_GetMIME(uTagRequirement,
-                                                             &Item,
-                                                             pMessage,
-                                                             pbIsTag257);
-   }
-}
 
 
 static inline void
