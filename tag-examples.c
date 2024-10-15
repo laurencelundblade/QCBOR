@@ -23,6 +23,7 @@ static const uint8_t spAddrs[] = {
 
 #ifndef QCBOR_DISABLE_TAGS
 
+
 #define USER_TYPE_IPV4_ADDR 130
 #define USER_TYPE_IPV6_ADDR 131
 
@@ -91,6 +92,7 @@ Example_DecodeIPAddrWithCallBack(void)
 #endif /* ! QCBOR_DISABLE_TAGS */
 
 
+
 /* If bMustBeTag is true, the input to decode must start with
  * a tag number indicating an IP address. The type of IP address
  * is returned in puIPVersion.
@@ -135,6 +137,7 @@ GetIPAddr(QCBORDecodeContext *pDecodeCtx,
         }
     }
 #endif /* ! QCBOR_DISABLE_TAGS */
+
 
     if(*puIPVersion == 4) {
         nExpectedLen = 4;
