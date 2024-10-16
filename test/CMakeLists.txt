@@ -1,5 +1,6 @@
 #-------------------------------------------------------------------------------
 # Copyright (c) 2022-2023, Arm Limited. All rights reserved.
+# Copyright (c) 2024, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -55,6 +56,7 @@ if (BUILD_QCBOR_TEST STREQUAL "APP")
         PRIVATE
             ../cmd_line_main.c
             ../example.c
+            ../tag-examples.c
             ../ub-example.c
     )
 

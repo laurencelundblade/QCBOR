@@ -278,7 +278,7 @@ extern "C" {
  * See also @ref CBORTags and @ref Tag-Usage
  *
  * The encoding side of tags not built-in is handled by
- * QCBOREncode_AddTag() and is relatively simple. Tag decoding is more
+ * QCBOREncode_AddTagNumber() and is relatively simple. Tag decoding is more
  * complex and mainly handled by QCBORDecode_GetNext(). Decoding of the
  * structure of tagged data not built-in (if there is any) has to be
  * implemented by the caller.
@@ -684,7 +684,9 @@ void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 static void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nNum);
+QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
+// TODO: QCBOREncode_AddInt64ToMap for backwards compat?
+
 
 static void
 QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t nNum);
@@ -954,7 +956,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 
 
 /**
- * @brief Add an optional tag.
+ * @brief Add a tag number.
  *
  * @param[in] pCtx  The encoding context to add the tag to.
  * @param[in] uTag  The tag to add
@@ -977,6 +979,9 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
  * tags.
  */
 static void
+QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTag);
+
+static void
 QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
 
 
@@ -984,6 +989,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  * @brief  Add an epoch-based date.
  *
  * @param[in] pCtx             The encoding context to add the date to.
+ *   bOmitTagNumber
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] nDate            Number of seconds since 1970-01-01T00:00Z
@@ -1008,7 +1014,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  *
  * This implementation cannot encode fractional seconds using float or
  * double even though that is allowed by CBOR, but you can encode them
- * if you want to by calling QCBOREncode_AddTag() and QCBOREncode_AddDouble().
+ * if you want to by calling QCBOREncode_AddTagNumber() and QCBOREncode_AddDouble().
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -2192,7 +2198,7 @@ QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
  * An array itself must have a label if it is being added to a map.
  * Note that array elements do not have labels (but map elements do).
  *
- * An array itself may be tagged by calling QCBOREncode_AddTag()
+ * An array itself may be tagged by calling QCBOREncode_AddTagNumber()
  * before this call.
  */
 static void
@@ -2768,6 +2774,12 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 
 
 
+/* DEPRECATED */
+static void
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
+
+
+
 /* =========================================================================
      BEGINNING OF PRIVATE IMPLEMENTATION
    ========================================================================= */
@@ -2913,12 +2925,21 @@ QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
 
 
 static inline void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
-                          const char        *szLabel,
-                          const int64_t      nNum)
+QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pMe,
+                            const char        *szLabel,
+                            const int64_t      nNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddInt64(pMe, nNum);
+}
+
+/* Deprecated */
+static inline void
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
+                            const char        *szLabel,
+                            const int64_t      uNum)
+{
+   QCBOREncode_AddInt64ToMapSZ(pMe, szLabel, uNum);
 }
 
 static inline void
@@ -3029,9 +3050,16 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+QCBOREncode_AddTagNumber(QCBOREncodeContext *pMe, const uint64_t uTag)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTag, 0);
+}
+
+
+static inline void
+QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+{
+   QCBOREncode_AddTagNumber(pMe, uTag);
 }
 
 
@@ -3160,7 +3188,7 @@ QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe,
                           const int64_t       nDate)
 {
    if(uTag == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DATE_EPOCH);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DATE_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDate);
 }
@@ -3217,7 +3245,7 @@ QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe,
                           const int64_t       nDays)
 {
    if(uTag == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_EPOCH);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DAYS_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDays);
 }
@@ -3294,7 +3322,7 @@ QCBOREncode_AddTBinaryUUID(QCBOREncodeContext *pMe,
                            const UsefulBufC    Bytes)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_BIN_UUID);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_BIN_UUID);
    }
    QCBOREncode_AddBytes(pMe, Bytes);
 }
@@ -3821,7 +3849,7 @@ QCBOREncode_AddTURI(QCBOREncodeContext *pMe,
                     const UsefulBufC    URI)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_URI);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_URI);
    }
    QCBOREncode_AddText(pMe, URI);
 }
@@ -3876,7 +3904,7 @@ QCBOREncode_AddTB64Text(QCBOREncodeContext *pMe,
                         const UsefulBufC    B64Text)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_B64);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_B64);
    }
    QCBOREncode_AddText(pMe, B64Text);
 }
@@ -3931,7 +3959,7 @@ QCBOREncode_AddTB64URLText(QCBOREncodeContext *pMe,
                            const UsefulBufC    B64Text)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_B64URL);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_B64URL);
    }
    QCBOREncode_AddText(pMe, B64Text);
 }
@@ -3989,7 +4017,7 @@ QCBOREncode_AddTRegex(QCBOREncodeContext *pMe,
                       const UsefulBufC    Bytes)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_REGEX);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_REGEX);
    }
    QCBOREncode_AddText(pMe, Bytes);
 }
@@ -4044,7 +4072,7 @@ QCBOREncode_AddTMIMEData(QCBOREncodeContext *pMe,
                          const UsefulBufC    MIMEData)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_BINARY_MIME);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_BINARY_MIME);
    }
    QCBOREncode_AddBytes(pMe, MIMEData);
 }
@@ -4098,7 +4126,7 @@ QCBOREncode_AddTDateString(QCBOREncodeContext *pMe,
                            const char         *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DATE_STRING);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DATE_STRING);
    }
    QCBOREncode_AddSZString(pMe, szDate);
 }
@@ -4152,7 +4180,7 @@ QCBOREncode_AddTDaysString(QCBOREncodeContext *pMe,
                            const char         *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_STRING);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DAYS_STRING);
    }
    QCBOREncode_AddSZString(pMe, szDate);
 }
@@ -4475,6 +4503,31 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
    }
 
    return (QCBORError)pMe->uError;
+}
+
+
+static inline void
+QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pMe,
+                         const char         *szLabel,
+                           uint64_t            uTagNumber,
+                         const UsefulBufC    Text)
+{
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
+   if(uTagNumber != CBOR_TAG_INVALID64) {
+      QCBOREncode_AddTagNumber(pMe, uTagNumber);
+   }
+   QCBOREncode_AddText(pMe, Text);
+}
+
+
+static inline void
+QCBOREncode_AddURIToMapSZ(QCBOREncodeContext *pMe,
+                          const char         *szLabel,
+                          bool                bWithTagNumer,
+                          const UsefulBufC    URI)
+{
+    uint64_t uTagNumber = bWithTagNumer ? CBOR_TAG_URI : CBOR_TAG_INVALID64;
+    QCBOREncode_AddTextToMapSZ(pMe, szLabel, uTagNumber, URI);
 }
 
 
