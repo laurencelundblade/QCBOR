@@ -425,6 +425,7 @@ QCBORDecode_GetBigNumPreferredInMapSZ(QCBORDecodeContext *pCtx,
  */
 void
 QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
+                         const uint8_t       uTagRequirement,
                          UsefulBuf           BigNumberBuf,
                          UsefulBufC         *pBigNumber,
                          bool               *pbIsNegative);
@@ -2306,14 +2307,6 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
                                            uint64_t             uTagNumber,
                                            UsefulBufC          *pString);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
-QCBORError
-QCBORDecode_Private_GetMIME(uint8_t           uTagRequirement,
-                            const QCBORItem  *pItem,
-                            UsefulBufC       *pMessage,
-                            bool             *pbIsTag257);
-
-
 
 
 
@@ -3062,47 +3055,6 @@ QCBORDecode_GetRegexInMapSZ(QCBORDecodeContext *pMe,
 
 
 
- inline void // TODO: get rid of this
-QCBORDecode_GetMIMEMessageOld(QCBORDecodeContext *pMe,
-                           const uint8_t       uTagRequirement,
-                           UsefulBufC         *pMessage,
-                           bool               *pbIsTag257)
-{
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state, do nothing */
-      return;
-   }
-
-   QCBORItem  Item;
-   QCBORError uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError != QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)uError;
-      return;
-   }
-
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetMIME(uTagRequirement,
-                                                          &Item,
-                                                          pMessage,
-                                                          pbIsTag257);
-}
-
-static inline void
-QCBORDecode_GetMIMEMessageInMapNOld(QCBORDecodeContext *pMe,
-                                 const int64_t       nLabel,
-                                 const uint8_t       uTagRequirement,
-                                 UsefulBufC         *pMessage,
-                                 bool               *pbIsTag257)
-{
-   QCBORItem Item;
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
-
-   if(pMe->uLastError == QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)QCBORDecode_Private_GetMIME(uTagRequirement,
-                                                             &Item,
-                                                             pMessage,
-                                                             pbIsTag257);
-   }
-}
 
 
 

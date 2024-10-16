@@ -1532,7 +1532,7 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * @param[in] Item    The number to process.
  * @param[in] BigNumBuf  The buffer to output to.
  * @param[out] pBigNum   The resulting big number.
- * @param[out] pIsNegative  The sign of the resulting big number.
+ * @param[in,out] pbIsNegative  The sign of the resulting big number.
  *
  * This exists to process an item that is expected to be a big number
  * encoded with preferred serialization.  This processing is not part
@@ -1548,7 +1548,9 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * big numbers.  In terms of QCBOR types, this works on
  * \ref QCBOR_TYPE_INT64, \ref QCBOR_TYPE_UINT64,
  * \ref QCBOR_TYPE_65BIT_NEG, \ref QCBOR_TYPE_POSBIGNUM and
- * \ref QCBOR_TYPE_NEGBIGNUM.
+ * \ref QCBOR_TYPE_NEGBIGNUM. This also works on
+ * \ref QCBOR_TYPE_BYTES in which case pIsNegative
+ * becomes an in parameter indicating the sign.
  *
  * This always returns the result as a big number. The integer types 0
  * and 1 are converted. Leading zeros are removed. The value 0 is
@@ -1587,7 +1589,7 @@ QCBORError
 QCBORDecode_BignumPreferred(const QCBORItem Item,
                             UsefulBuf       BigNumBuf,
                             UsefulBufC     *pBigNum,
-                            bool           *pIsNegative);
+                            bool           *pbIsNegative);
 
 
 /**
