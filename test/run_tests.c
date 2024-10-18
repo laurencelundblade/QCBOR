@@ -377,6 +377,5 @@ void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORDecodeNesting)",  (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORDecodeContext)",  (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
-   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(QCBOR_Private_TagSpec),pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

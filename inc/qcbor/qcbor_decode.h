@@ -49,33 +49,6 @@ extern "C" {
 #endif
 
 
-/*
-
-
- TODO: remove this
-
- In v1, some spiffy decode functions ignored tag numbers and
- some didn't.  For example, GetInt64 ignored and GetString didn't.
- The "GetXxx" where Xxxx is a tag ignore conditionally based
- on an argument.
- (Would be good to verify this with tests)
-
- Do we fix the behavior of GetString in v1?  Relax so it
- allows tag numbers like the rest? Probably.
-
- In v2, the whole mechanism is with GetTagNumbers. They are
- never ignored and they must always be consumed.
-
- With v2 in v1 mode, the functions that were ignoring
- tags must go back to ignoring them.
-
- How does TagRequirement work in v2?
-
- GetInt64 and GetString require all tag numbs to be processed
- to work.
-
-
- */
 
 
 
@@ -399,9 +372,6 @@ typedef enum {
  * and warning. */
 #define QCBOR_TYPE_65BIT_NEG_INT 28
 
-/** Type for CBOR tag number, (CBOR type 6) */
-#define QCBOR_TYPE_TAG_NUMBER    29 // TODO: back to internal-only
-
 #define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
 
 /** For @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is
@@ -459,11 +429,13 @@ typedef enum {
 /** End of user-defined data types. */
 #define QCBOR_TYPE_END_USER_DEFINED 255
 
+#define QCBOR_TYPE_TAG_NUMBER 254 /* Used internally; never returned */
+
 #define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG_NUMBER /* Deprecated. See QCBOR_TYPE_TAG_NUMBER */
 
 /**
  * The largest value in @c utags that is unmapped and can be used without
- * mapping it through QCBORDecode_GetNthTag().
+ * mapping it through QCBORDecode_GetNthTagNumber().
  */
 #define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS - 1)
 
@@ -954,34 +926,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * array. For indefinite-length arrays, @c QCBORItem.val.uCount
  * is @c UINT16_MAX.
  *
- * TODO: revise tag documentation here
- * All tags defined in RFC 8949 are automatically fully decoded. There
- * are QCBOR_TYPES and members in @ref QCBORItem for them. For
- * example, the tag 9 will show up in the @ref QCBORItem as type
- * @ref QCBOR_TYPE_POSBIGNUM with the value in
- * @c QCBORItem.val.bignum. There is also support for
- * some of the tags in the IANA tag registry.
- *
- * Most tags with a CBOR_TAG_XXX define in qcbor_common.h like @ref
- * CBOR_TAG_DATE_STRING are automaticlly decoded by QCBOR. Those that
- * are defined but not decoded are so noted.
- *
- * Tags that are not decoded by QCBOR will be identified and recorded
- * in @ref QCBORItem. Use QCBORDecode_GetNthTag() to get them. Only
- * @ref QCBOR_MAX_TAGS_PER_ITEM tags are recorded per item and an
- * error is returned if there are more than that.
- *
- * Previous versions of QCBOR handled tags in a more complex way using
- * QCBORDecode_SetCallerConfiguredTagList() and
- * QCBORDecode_GetNextWithTags().  This version is largely compatible, but
- * imposes the limit of @ref QCBOR_MAX_TAGS_PER_ITEM tags per item.
- *
- * See @ref Tags-Overview for a description of how to go about
- * creating custom tags.
- *
- * This tag decoding design is to be open-ended and flexible to be
- * able to handle newly defined tags, while using very little memory,
- * in particular keeping @ref QCBORItem as small as possible.
+ * See extensive discussion in @ref Tag-Decoding.
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
@@ -1289,7 +1234,7 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pCtx, uint64_t *puTagNumber);
  * the constant can be increased and the library recompiled. It will
  * use more memory).
  *
- * See also @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
+ * See also @ref Tag-Decoding @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
  *
  * To reduce memory used by a @ref QCBORItem, tag numbers larger than
  * @c UINT16_MAX are mapped so the tag numbers in @c uTags should be
@@ -1334,6 +1279,8 @@ QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
  * @param[in] uTagNumber The tag number to match.
  *
  * @returns true if the item has one and only one tag number that matches uTagNumber.
+ *
+ * TODO: keep this?
  */
 bool
 QCBORDecode_MatchOneTagNumber(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTagNumber);

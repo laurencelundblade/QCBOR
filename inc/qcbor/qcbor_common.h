@@ -30,7 +30,6 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
-
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
@@ -232,7 +231,7 @@ extern "C" {
 /** The 64-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID64 0xffffffffffffffff
 
-/* Allows tag matchers to match any tag */
+/** Allows tag content handler installed by QCBORDecode_InstallTagDecoders to match any tag number */
 #define CBOR_TAG_ANY (CBOR_TAG_INVALID64 - 1)
 
 

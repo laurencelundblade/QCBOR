@@ -2244,26 +2244,7 @@ QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
 #endif /* !USEFULBUF_DISABLE_ALL_FLOAT */
 
 #define QCBOR_TAGSPEC_NUM_TYPES 4
-/* Semi-private data structure (which might change).
- *
- * See QCBOR_Private_CheckTagRequirement() which uses this to check the
- * type of an item to be decoded as a tag or tag content.
- *
- * Improvement: Carefully understand what compilers do with this,
- * particularly initialization and see if it can be optimized so there
- * is less code and maybe so it can be smaller.
- */
-typedef struct {
-   /* One of QCBOR_TAGSPEC_MATCH_xxx */
-   uint8_t uTagRequirement;
-   /* The tagged type translated into QCBOR_TYPE_XXX. Used to match
-    * explicit tagging */
-   uint8_t uTaggedTypes[QCBOR_TAGSPEC_NUM_TYPES];
-   /* The types of the content, which are used to match implicit
-    * tagging */
-   uint8_t uAllowedContentTypes[QCBOR_TAGSPEC_NUM_TYPES];
-   
-} QCBOR_Private_TagSpec;
+
 
 
 
@@ -2272,6 +2253,14 @@ typedef struct {
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+
+void
+QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
+                                    uint8_t              uTagRequirement,
+                                    uint8_t              uQCBOR_Type,
+                                    uint64_t             uTagNumber,
+                                    UsefulBufC          *pBstr);
+
 void
 QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
                                           const int64_t        nLabel,
@@ -2280,21 +2269,8 @@ QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
                                           const uint64_t       uTagNumber,
                                           UsefulBufC          *pString);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
-void
-QCBORDecode_Private_GetTaggedStringInMapSZOld(QCBORDecodeContext   *pCtx,
-                                           const char           *szLabel,
-                                           QCBOR_Private_TagSpec TagSpec,
-                                           UsefulBufC           *pString);
 
 
-
-void
-QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
-                                    uint8_t              uTagRequirement,
-                                    uint8_t              uQCBOR_Type,
-                                    uint64_t             uTagNumber,
-                                    UsefulBufC          *pBstr);
 
 
 

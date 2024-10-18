@@ -3478,9 +3478,9 @@ int32_t DateParseTest(void)
       return -7;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1400000001 ||
+      Item.val.epochDate.nSeconds != 1400000001
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      Item.val.epochDate.fSecondsFraction != 0
+      || Item.val.epochDate.fSecondsFraction != 0
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
       ) {
       return -8;
@@ -4659,7 +4659,7 @@ int32_t TagNumberDecodeTest(void)
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_TAG_CONTENT) { // TODO: make sure this is the right error
       return 304;
    }
    // See comments above

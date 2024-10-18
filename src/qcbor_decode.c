@@ -2339,30 +2339,28 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
          goto Done;
       }
    }
-   if(pDecodedItem->uDataType != QCBOR_TYPE_TAG_NUMBER){
-      if(!QCBORItem_IsMapOrArray(*pDecodedItem) ||
-         QCBORItem_IsEmptyDefiniteLengthMapOrArray(*pDecodedItem) ||
-         QCBORItem_IsIndefiniteLengthMapOrArray(*pDecodedItem)) {
-         /* The following cases are handled here:
-          *  - A non-aggregate item like an integer or string
-          *  - An empty definite-length map or array
-          *  - An indefinite-length map or array that might be empty or might not.
-          *
-          * QCBORDecode_NestLevelAscender() does the work of decrementing the count
-          * for an definite-length map/array and break detection for an
-          * indefinite-0length map/array. If the end of the map/array was
-          * reached, then it ascends nesting levels, possibly all the way
-          * to the top level.
+   if(!QCBORItem_IsMapOrArray(*pDecodedItem) ||
+      QCBORItem_IsEmptyDefiniteLengthMapOrArray(*pDecodedItem) ||
+      QCBORItem_IsIndefiniteLengthMapOrArray(*pDecodedItem)) {
+      /* The following cases are handled here:
+       *  - A non-aggregate item like an integer or string
+       *  - An empty definite-length map or array
+       *  - An indefinite-length map or array that might be empty or might not.
+       *
+       * QCBORDecode_NestLevelAscender() does the work of decrementing the count
+       * for an definite-length map/array and break detection for an
+       * indefinite-0length map/array. If the end of the map/array was
+       * reached, then it ascends nesting levels, possibly all the way
+       * to the top level.
+       */
+      QCBORError uAscendErr;
+      uAscendErr = QCBORDecode_Private_NestLevelAscender(pMe, true, pbBreak);
+      if(uAscendErr != QCBOR_SUCCESS) {
+         /* This error is probably a traversal error and it overrides
+          * the non-traversal error.
           */
-         QCBORError uAscendErr;
-         uAscendErr = QCBORDecode_Private_NestLevelAscender(pMe, true, pbBreak);
-         if(uAscendErr != QCBOR_SUCCESS) {
-            /* This error is probably a traversal error and it overrides
-             * the non-traversal error.
-             */
-            uReturn = uAscendErr;
-            goto Done;
-         }
+         uReturn = uAscendErr;
+         goto Done;
       }
    }
 
@@ -2827,10 +2825,7 @@ static uint64_t
 QCBORDecode_Private_ReverseSearchTagNumbers(const QCBORDecodeContext *pMe, const uint16_t puTagNumbers[], const uint32_t uIndex)
 {
    uint32_t uArrayIndex;
-   // TODO: check index extent?
-
-   // TODO: change order of uTags? Will that break backwards compat?
-   // TODO: rename pItem->uTags to pItem->uTagNumbers globally?
+   // TODO: check uIndex extent?
 
    for(uArrayIndex = QCBOR_MAX_TAGS_PER_ITEM-1; uArrayIndex > 0; uArrayIndex--) {
       if(puTagNumbers[uArrayIndex] != CBOR_TAG_INVALID16) {
@@ -3438,9 +3433,6 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
          goto Done;
       }
 
-//      if(Item.uDataType == QCBOR_TYPE_TAG_NUMBER) {
-  //       continue;
-    //  }
 
       /* See if item has one of the labels that are of interest */
       bool bMatched = false;
@@ -3879,7 +3871,6 @@ QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pMe,
 
 
 
-#ifndef QCBOR_DISABLE_TAGS
 static void
 QCBORDecode_Private_ProcessTagOne(QCBORDecodeContext      *pMe,
                                   QCBORItem               *pItem,
@@ -3927,13 +3918,25 @@ QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
 }
 
 
+/**
+  * @brief Semi-private to get an string by label to match a tag specification.
+  *
+  * @param[in] pMe      The decode context.
+  * @param[in] szLabel   The label to search map for.
+  * TODO: Xparam[in] TagSpec  The tag number specification to match.
+  * @param[out] pString   The string found.
+  *
+  * This finds the string  with the given label in currently open
+  * map. Then checks that its tag number and types matches the tag
+  * specification. If not, an error is set in the decode context.
+  */
 void
 QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
-                                            const char *        szLabel,
-                                           uint8_t uTagRequirement,
-                                           uint8_t uQCBOR_Type,
-                                           uint64_t uTagNumber,
-                                           UsefulBufC                 *pString)
+                                           const char          *szLabel,
+                                           uint8_t              uTagRequirement,
+                                           uint8_t              uQCBOR_Type,
+                                           uint64_t             uTagNumber,
+                                           UsefulBufC          *pString)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -3951,9 +3954,7 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
    if(pMe->uLastError == QCBOR_SUCCESS) {
       *pString = Item.val.string;
    }
-
 }
-#endif /* ! QCBOR_DISABLE_TAGS */
 
 /*
  * Public function, see header qcbor/qcbor_decode.h file
@@ -4410,12 +4411,12 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
    }
 
    uError = QCBORDecode_Private_CheckTagNType(pMe,
-                                     pItem,
+                                              pItem,
                                               uOffset,
                                               uTypes, // TODO: maybe this should be empty
                                               uTagNumbers,
                                               uTagRequirement,
-                                     &bTypeMatched);
+                                             &bTypeMatched);
 
    if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
       uError = QCBOR_ERR_BAD_TAG_CONTENT; // TODO: error
@@ -4473,6 +4474,23 @@ Done:
 }
 
 
+static void
+QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
+{
+#ifndef QCBOR_DISABLE_TAGS
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   *uOffset = QCBORDecode_Tell(pMe);
+#else
+   *uOffset = SIZE_MAX;
+
+#endif /* ! QCBOR_DISABLE_TAGS */
+   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, Item);
+}
+
+
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
@@ -4484,17 +4502,7 @@ QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
    QCBORItem Item;
    size_t    uOffset;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   /* Get the data item that is the byte string being entered */
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
                                                                   &Item,
                                                                    uTagRequirement,
@@ -4741,8 +4749,8 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-
-// Probably uTagNumber has to be a list
+#ifndef QCBOR_DISABLE_TAGS
+// TODO: Probably uTagNumber has to be a list
 static QCBORError
 QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
                                     const QCBORItem          *pItem,
@@ -4778,23 +4786,22 @@ QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 }
+#endif
 
 
 
 static QCBORError
 QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
-                                  const QCBORItem *pItem,
-                                  const size_t uOffset,
-                                  const uint8_t *uQCBORTypes,
-                                  const uint64_t *uTagNumbers,
-                                  const uint8_t uTagRequirement,
-                                  bool *bTypeMatched)
+                                  const QCBORItem    *pItem,
+                                  const size_t        uOffset,
+                                  const uint8_t      *uQCBORTypes,
+                                  const uint64_t     *uTagNumbers,
+                                  const uint8_t       uTagRequirement,
+                                  bool               *bTypeMatched)
 {
-   bool        bTagNumberMatched;
-   QCBORError uErr;
+
 
    const int      nTagReq   = uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
-   const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
 
    
    *bTypeMatched = false;
@@ -4804,7 +4811,12 @@ QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
          break;
       }
    }
-   
+
+#ifndef QCBOR_DISABLE_TAGS
+   bool        bTagNumberMatched;
+   QCBORError  uErr;
+   const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
+
    bTagNumberMatched = false;
    for(const uint64_t *pQType = uTagNumbers; *pQType != CBOR_TAG_INVALID64; pQType++) {
       if(uInnerTag == *pQType) {
@@ -4841,16 +4853,26 @@ QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
    }
 
    return QCBOR_SUCCESS;
+#else
+
+   if(nTagReq != QCBOR_TAG_REQUIREMENT_TAG && bTypeMatched) {
+      return QCBOR_SUCCESS;
+   } else {
+      return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+#endif
+
 }
 
 void
 QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
-                                   QCBORItem               *pItem,
-                                   const uint8_t            uTagRequirement,
-                                   const uint8_t            uQCBORTypes[],
-                                   const uint64_t           uTagNumbers[],
-                                   QCBORTagContentCallBack *pfCB,
-                                   size_t                   uOffset)
+                                        QCBORItem               *pItem,
+                                        const uint8_t            uTagRequirement,
+                                        const uint8_t            uQCBORTypes[],
+                                        const uint64_t           uTagNumbers[],
+                                        QCBORTagContentCallBack *pfCB,
+                                        size_t                   uOffset)
 {
    QCBORError uErr;
    bool       bTypeMatched;
@@ -4998,8 +5020,7 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   uOffset = QCBORDecode_Tell(pMe);
-   QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ProcessTagOne(pMe,
                                      &Item,
                                      uTagRequirement,
@@ -5007,6 +5028,7 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
                                      CBOR_TAG_DATE_EPOCH,
                                      QCBORDecode_DateEpochTagCB,
                                      uOffset);
+   // TODO: this will set value even on error
    *pnTime = Item.val.epochDate.nSeconds;
 }
 
@@ -5070,8 +5092,7 @@ QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   uOffset = QCBORDecode_Tell(pMe);
-   QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ProcessTagOne(pMe,
                                      &Item,
                                      uTagRequirement,
@@ -5142,8 +5163,7 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
    QCBORItem  Item;
    size_t uOffset;
 
-   uOffset = QCBORDecode_Tell(pMe);
-   QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ProcessTagOne(pMe,
                                      &Item,
                                       uTagRequirement,
@@ -5261,21 +5281,13 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_GetMIME(pMe,
-                                uTagRequirement,
-                               &Item,
-                                pMessage,
-                                pbIsTag257,
-                                uOffset);
+                               uTagRequirement,
+                              &Item,
+                               pMessage,
+                               pbIsTag257,
+                               uOffset);
 }
 
 void
@@ -5328,14 +5340,13 @@ QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   uOffset = QCBORDecode_Tell(pMe);
-   QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBOR_Private_ProcessBigNum(pMe,
-                                uTagRequirement,
-                               &Item,
-                                pValue,
-                                pbIsNegative,
-                                uOffset);
+                               uTagRequirement,
+                              &Item,
+                               pValue,
+                               pbIsNegative,
+                               uOffset);
 }
 
 
@@ -7175,17 +7186,31 @@ QCBOR_Private_ProcessExpMantissa(QCBORDecodeContext         *pMe,
 
 
 
-
+/*
+ * @brief Decode exponent and mantissa into a big number.
+ *
+ * @param[in] pMe                The decode context.
+ * @param[in] TagSpec            The expected/allowed tags.
+ * @param[in] pItem              Item to decode and convert.
+ * @param[in] BufferForMantissa  Buffer to output mantissa into.
+ * @param[out] pMantissa         The output mantissa.
+ * @param[out] pbIsNegative      The sign of the output.
+ * @param[out] pnExponent        The mantissa of the output.
+ *
+ * This is the common processing of a decimal fraction or a big float
+ * into a big number. This will decode and consume all the CBOR items
+ * that make up the decimal fraction or big float.
+ */
 static void
-QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
-                                             uint8_t uTagRequirement,
-                                             uint64_t uTagNumber,
-                                             size_t uOffset,
-                                             QCBORItem                   *pItem,
-                                          const UsefulBuf              BufferForMantissa,
-                                          UsefulBufC                  *pMantissa,
-                                          bool                        *pbIsNegative,
-                                          int64_t                     *pnExponent)
+QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext  *pMe,
+                                          const uint8_t        uTagRequirement,
+                                          const uint64_t       uTagNumber,
+                                          const size_t         uOffset,
+                                          QCBORItem           *pItem,
+                                          const UsefulBuf      BufferForMantissa,
+                                          UsefulBufC          *pMantissa,
+                                          bool                *pbIsNegative,
+                                          int64_t             *pnExponent)
 {
    QCBORError uErr = QCBOR_SUCCESS;
    const uint8_t *qTypes;
@@ -7270,27 +7295,10 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
 
 }
 
+
 /*
- * @brief Decode exponent and mantissa into a big number.
- *
- * @param[in] pMe                The decode context.
- * @param[in] TagSpec            The expected/allowed tags.
- * @param[in] pItem              Item to decode and convert.
- * @param[in] BufferForMantissa  Buffer to output mantissa into.
- * @param[out] pMantissa         The output mantissa.
- * @param[out] pbIsNegative      The sign of the output.
- * @param[out] pnExponent        The mantissa of the output.
- *
- * This is the common processing of a decimal fraction or a big float
- * into a big number. This will decode and consume all the CBOR items
- * that make up the decimal fraction or big float.
- *
- * TODO: integerate this
+ * Public function, see header qcbor/qcbor_decode.h file
  */
-
-
-
-
 void
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
                                const uint8_t       uTagRequirement,
@@ -7300,24 +7308,14 @@ QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   // TODO: put the next few lines in a separate function?
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBOR_Private_ProcessExpMantissa(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_DECIMAL_FRACTION,
-                                       uOffset,
-                                       &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                    uTagRequirement,
+                                    CBOR_TAG_DECIMAL_FRACTION,
+                                    uOffset,
+                                   &Item,
+                                    pnMantissa,
+                                    pnExponent);
 }
 
 
@@ -7336,12 +7334,12 @@ QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBOR_Private_ProcessExpMantissa(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_DECIMAL_FRACTION,
-                                       uOffset,
-                                       &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                    uTagRequirement,
+                                    CBOR_TAG_DECIMAL_FRACTION,
+                                    uOffset,
+                                   &Item,
+                                    pnMantissa,
+                                    pnExponent);
 
 }
 
@@ -7361,12 +7359,12 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBOR_Private_ProcessExpMantissa(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_DECIMAL_FRACTION,
-                                       uOffset,
-                                       &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                    uTagRequirement,
+                                    CBOR_TAG_DECIMAL_FRACTION,
+                                    uOffset,
+                                   &Item,
+                                    pnMantissa,
+                                    pnExponent);
 }
 
 
@@ -7384,25 +7382,16 @@ QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   // TODO: make the next 8 lines or so into a common function?
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ProcessExpMantissaBig(pMe,
-                                                uTagRequirement,
-                                                CBOR_TAG_DECIMAL_FRACTION,
-                                                uOffset,
-                                                &Item,
-                                                MantissaBuffer,
-                                                pMantissa,
-                                                pbMantissaIsNegative,
-                                                pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_DECIMAL_FRACTION,
+                                             uOffset,
+                                            &Item,
+                                             MantissaBuffer,
+                                             pMantissa,
+                                             pbMantissaIsNegative,
+                                             pnExponent);
 }
 
 
@@ -7423,14 +7412,14 @@ QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ProcessExpMantissaBig(pMe,
-                                                uTagRequirement,
-                                                CBOR_TAG_DECIMAL_FRACTION,
-                                                uOffset,
-                                                &Item,
-                                                BufferForMantissa,
-                                                pMantissa,
-                                                pbIsNegative,
-                                                pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_DECIMAL_FRACTION,
+                                             uOffset,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -7451,14 +7440,14 @@ QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ProcessExpMantissaBig(pMe,
-                                                uTagRequirement,
-                                                CBOR_TAG_DECIMAL_FRACTION,
-                                                uOffset,
-                                                &Item,
-                                                BufferForMantissa,
-                                                pMantissa,
-                                                pbIsNegative,
-                                                pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_DECIMAL_FRACTION,
+                                             uOffset,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -7474,22 +7463,14 @@ QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
    QCBORItem Item;
    size_t    uOffset;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBOR_Private_ProcessExpMantissa(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_BIGFLOAT,
-                                       uOffset,
-                                       &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                    uTagRequirement,
+                                    CBOR_TAG_BIGFLOAT,
+                                    uOffset,
+                                   &Item,
+                                    pnMantissa,
+                                    pnExponent);
 }
 
 
@@ -7508,12 +7489,12 @@ QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBOR_Private_ProcessExpMantissa(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_BIGFLOAT,
-                                       uOffset,
-                                       &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                    uTagRequirement,
+                                    CBOR_TAG_BIGFLOAT,
+                                    uOffset,
+                                   &Item,
+                                    pnMantissa,
+                                    pnExponent);
 }
 
 
@@ -7556,24 +7537,16 @@ QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ProcessExpMantissaBig(pMe,
-                                                uTagRequirement,
-                                                CBOR_TAG_BIGFLOAT,
-                                                uOffset,
-                                                &Item,
-                                                MantissaBuffer,
-                                                pMantissa,
-                                                pbMantissaIsNegative,
-                                                pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_BIGFLOAT,
+                                             uOffset,
+                                            &Item,
+                                             MantissaBuffer,
+                                             pMantissa,
+                                             pbMantissaIsNegative,
+                                             pnExponent);
 }
 
 
@@ -8022,17 +7995,7 @@ QCBORDecode_GetBigNumPreferred(QCBORDecodeContext *pMe,
    QCBORItem Item;
    size_t    uOffset;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   /* Get the data item that is the byte string being entered */
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBOR_Private_ProcessPreferredBigNum(pMe, uTagRequirement, &Item, uOffset, BigNumBuf, pValue, pbIsNegative);
 }
 
@@ -8048,17 +8011,7 @@ QCBORDecode_GetBigNumber(QCBORDecodeContext *pMe,
    QCBORItem  Item;
    size_t     uOffset;
 
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   /* Get the data item that is the byte string being entered */
-   uOffset = QCBORDecode_Tell(pMe);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
+   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBOR_Private_ProcessBigNumber(pMe, 
                                   uTagRequirement,
                                   &Item,
@@ -8117,3 +8070,4 @@ QCBORDecode_GetPreferredBignumInMapSZ(QCBORDecodeContext *pMe,
                                         pbIsNegative);
 }
 
+// TODO: re order above functions in tag number order

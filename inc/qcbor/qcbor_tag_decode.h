@@ -29,10 +29,41 @@
  * other is QCBORDecode_GetNextTagNumber().
  *
  * This file is new in QCBOR v2.
+ *
+ * @anchor Tag-Decoding
+ *
+ * ## Tags Decoding
+ *
+ * TODO: lots to write here
  */
 
 
-#ifndef QCBOR_DISABLE_TAGS
+
+/*
+
+ In v1, some spiffy decode functions ignored tag numbers and
+ some didn't.  For example, GetInt64 ignored and GetString didn't.
+ The "GetXxx" where Xxxx is a tag ignore conditionally based
+ on an argument.
+ (Would be good to verify this with tests)
+
+ Do we fix the behavior of GetString in v1?  Relax so it
+ allows tag numbers like the rest? Probably.
+
+ In v2, the whole mechanism is with GetTagNumbers. They are
+ never ignored and they must always be consumed.
+
+ With v2 in v1 mode, the functions that were ignoring
+ tags must go back to ignoring them.
+
+ How does TagRequirement work in v2?
+
+ GetInt64 and GetString require all tag numbs to be processed
+ to work.
+
+
+ */
+
 
 /**
  * @brief Prototype for callback for decoding tag content.
@@ -107,6 +138,7 @@ typedef QCBORError (QCBORTagContentCallBack)(QCBORDecodeContext *pCtx,
                                              uint64_t            uTagNumber,
                                              QCBORItem          *pItem);
 
+#ifndef QCBOR_DISABLE_TAGS
 
 /**
  * An entry in the tag decoders table installed with QCBORDecode_InstallTagDecoders().
@@ -125,11 +157,11 @@ struct QCBORTagDecoderEntry {
  *
  * @param[in] pCtx         The decode context.
  * @param[in] pTagDecoderTable  The table of tag struct QCBORTagDecoderEntry content decoders.
- *                              The table is terminated by an entry with a NULL pfContentDecoder.
+ *                              The table is terminated by an entry with a @c NULL pfContentDecoder.
  *
  * @param[in] pTagDecodersContext  Context passed to tag decoders. May be @c NULL.
  *
- * There is only one table of tag decoders at a time. This replaces
+ * There is only one table of tag decoders at a time. A call to this replaces
  * the previous table.
  */
 static void

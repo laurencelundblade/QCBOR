@@ -981,9 +981,6 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 static void
 QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTag);
 
-static void
-QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
-
 
 /**
  * @brief  Add an epoch-based date.
@@ -2778,6 +2775,9 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 static void
 QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
 
+/* Use QCBOREncode_AddTagNumber() instead */
+static void
+QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
 
 
 /* =========================================================================
@@ -4520,15 +4520,6 @@ QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pMe,
 }
 
 
-static inline void
-QCBOREncode_AddURIToMapSZ(QCBOREncodeContext *pMe,
-                          const char         *szLabel,
-                          bool                bWithTagNumer,
-                          const UsefulBufC    URI)
-{
-    uint64_t uTagNumber = bWithTagNumer ? CBOR_TAG_URI : CBOR_TAG_INVALID64;
-    QCBOREncode_AddTextToMapSZ(pMe, szLabel, uTagNumber, URI);
-}
 
 
 static inline size_t
