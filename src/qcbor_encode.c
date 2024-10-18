@@ -1,7 +1,7 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2024, Laurence Lundblade.
- * Copyright (c) 2021, Arm Limited.
+ * Copyright (c) 2021-2024, Arm Limited.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -618,6 +618,33 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
+/**
+ * @brief Semi-private method to add an external buffer full of bytes to
+ * encoded output.
+ *
+ * @param[in] pMe             The encoding context to add the string to.
+ * @param[in] uMajorType      The CBOR major type of the bytes.
+ * @param[in] pExternalBuffer Reference to the bytes to be added.
+ *
+ * Called by inline functions to add text and byte strings.
+ */
+void
+QCBOREncode_Private_AddExternalBuffer(QCBOREncodeContext  *pMe,
+                                      const uint8_t        uMajorType,
+                                      QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, pExternalBuffer->Bytes.len, 0);
+   /* Insert the QCBORExternalBuffer in the linked list. */
+   /* First get to the tail of the external's list. */
+   QCBORExternalBuffer **ppTail = &(pMe->pNextExternalBuffer);
+   while (*ppTail != NULL) {
+      ppTail = &((*ppTail)->pNextExternalBuffer);
+   }
+   /* Then insert it after the last, and save the insertion point in it. */
+   *ppTail = pExternalBuffer;
+   pExternalBuffer->uEncodedOffset = pMe->OutBuf.data_len;
+}
+
 
 /*
  * Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h
@@ -886,9 +913,26 @@ QCBOREncode_Private_CloseAggregate(QCBOREncodeContext *pMe,
     * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is no
     * security hole introduced.
     */
+   size_t uNestingStartPos = Nesting_GetStartPos(&(pMe->nesting));
    UsefulOutBuf_InsertUsefulBuf(&(pMe->OutBuf),
                                 EncodedHead,
-                                Nesting_GetStartPos(&(pMe->nesting)));
+                                uNestingStartPos);
+
+   /* If there are external buffers in the range that needs to be moved due to
+    * the insertion, move those as well.
+    */
+   QCBORExternalBuffer *pExternalBuffer = pMe->pNextExternalBuffer;
+   while(pExternalBuffer != NULL) {
+      /* When there is a reference to external bytes, it is always preceded in
+       * the encoding buffer with a CBOR_MAJOR_TYPE_BYTE_STRING CBOR head. So if
+       * uEncodedOffset == uNestingStartPos we can be sure that the external
+       * buffer was added before the nesting start, so we don't need to move it.
+       */
+      if (pExternalBuffer->uEncodedOffset > uNestingStartPos) {
+         pExternalBuffer->uEncodedOffset += EncodedHead.len;
+      }
+      pExternalBuffer = pExternalBuffer->pNextExternalBuffer;
+   }
 
    Nesting_Decrease(&(pMe->nesting));
 }
@@ -1044,14 +1088,17 @@ QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
-/*
- * Public function to finish and get the encoded result. See qcbor/qcbor_encode.h
- */
-QCBORError
-QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
+static QCBORError
+QCBOREncode_Finish_Internal(QCBOREncodeContext *pMe,
+                            UsefulBufC *pEncodedCBOR,
+                            bool external_allowed)
 {
    if(QCBOREncode_GetErrorState(pMe) != QCBOR_SUCCESS) {
       goto Done;
+   }
+
+   if(!external_allowed && pMe->pNextExternalBuffer != NULL) {
+      return QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL;
    }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
@@ -1067,6 +1114,15 @@ Done:
    return pMe->uError;
 }
 
+/*
+ * Public function to finish and get the encoded result. See qcbor/qcbor_encode.h
+ */
+QCBORError
+QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
+{
+   return QCBOREncode_Finish_Internal(pMe, pEncodedCBOR, false);
+}
+
 
 /*
  * Public function to get size of the encoded result. See qcbor/qcbor_encode.h
@@ -1075,14 +1131,159 @@ QCBORError
 QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
 {
    UsefulBufC Enc;
+   size_t uLen = 0;
+   QCBORExternalBuffer *pNextExternalBuffer;
 
-   QCBORError nReturn = QCBOREncode_Finish(pMe, &Enc);
+   QCBORError nReturn = QCBOREncode_Finish_Internal(pMe, &Enc, true);
 
-   if(nReturn == QCBOR_SUCCESS) {
-      *puEncodedLen = Enc.len;
+   if(nReturn != QCBOR_SUCCESS) {
+      return nReturn;
    }
 
+   uLen += Enc.len;
+   pNextExternalBuffer = pMe->pNextExternalBuffer;
+   while (pNextExternalBuffer != NULL) {
+      uLen += pNextExternalBuffer->Bytes.len;
+      pNextExternalBuffer = pNextExternalBuffer->pNextExternalBuffer;
+   }
+
+   *puEncodedLen = uLen;
+
    return nReturn;
+}
+
+
+QCBORError
+QCBOREncode_InitExternalBuffer(QCBORExternalBuffer *pExternalBuffer,
+                               const UsefulBufC Bytes)
+{
+   memset(pExternalBuffer, 0, sizeof(*pExternalBuffer));
+   pExternalBuffer->Bytes = Bytes;
+   return QCBOR_SUCCESS;
+}
+
+QCBORError
+QCBOREncode_InitCopyResultContext(QCBOREncodeCopyContext *pCopyContext,
+                                  QCBOREncodeContext *pEncodeContext)
+{
+   memset(pCopyContext, 0, sizeof(*pCopyContext));
+   pCopyContext->pNextExternalBuffer = pEncodeContext->pNextExternalBuffer;
+   return QCBOR_SUCCESS;
+}
+
+/* Copies data to TargetBuf at target_offset from the buffer pointed by
+ * pCopyContext->pNextExternalBuffer.
+ *
+ * In case the buffer of pCopyContext->pNextExternalBuffer is exhausted then
+ * this function updates pCopyContext->pNextExternalBuffer to the next element
+ * in the linked list, and also resets pCopyContext->uExternalOffset to 0.
+ *
+ * Returns the number of bytes copied.
+ */
+static size_t CopyFromExternalBuffer(QCBOREncodeCopyContext *pCopyContext,
+                                     UsefulBuf TargetBuf,
+                                     size_t target_offset)
+{
+   size_t uBytesCopied = 0;
+   size_t uBytesleftInExternal = pCopyContext->pNextExternalBuffer->Bytes.len - pCopyContext->uExternalOffset;
+   size_t uBytesToCopy = TargetBuf.len - target_offset - uBytesCopied;
+   if (uBytesToCopy > uBytesleftInExternal) {
+      uBytesToCopy = uBytesleftInExternal;
+   }
+   memcpy((uint8_t *)TargetBuf.ptr + target_offset + uBytesCopied,
+            (const uint8_t *)(pCopyContext->pNextExternalBuffer->Bytes.ptr) + pCopyContext->uExternalOffset,
+            uBytesToCopy);
+   uBytesCopied += uBytesToCopy;
+   pCopyContext->uExternalOffset += uBytesToCopy;
+   if (uBytesleftInExternal == uBytesToCopy) {
+      pCopyContext->pNextExternalBuffer = pCopyContext->pNextExternalBuffer->pNextExternalBuffer;
+      pCopyContext->uExternalOffset = 0;
+   }
+   return uBytesCopied;
+}
+
+/*
+ * Copies data from pMe->OutBuf to TargetBuf at target_offset.
+ *
+ * It only copies bytes up until the uEncodeBuffOffset in
+ * pCopyContext->pNextExternalBuffer, if it is not null.
+ *
+ * Returns the number of bytes copied.
+ */
+static size_t CopyFromEncodeBuffer(QCBOREncodeContext *pMe,
+                                   QCBOREncodeCopyContext *pCopyContext,
+                                   UsefulBuf TargetBuf,
+                                   size_t target_offset)
+{
+   size_t uEncodeBufLen;
+   size_t uBytesCopied = 0;
+   if (pCopyContext->pNextExternalBuffer!= NULL) {
+      /* At this point pCopyContext->pNextExternalBuffer->uEncodedOffset >
+                        pCopyContext->uEncodeBuffOffset */
+      uEncodeBufLen = pCopyContext->pNextExternalBuffer->uEncodedOffset;
+   } else {
+      uEncodeBufLen = pMe->OutBuf.data_len;
+   }
+   size_t uBytesToCopy = TargetBuf.len - target_offset - uBytesCopied;
+   size_t uBytesLeftInBuffer = uEncodeBufLen - pCopyContext->uEncodeBuffOffset;
+   if (uBytesToCopy > uBytesLeftInBuffer)
+   {
+      uBytesToCopy = uBytesLeftInBuffer;
+   }
+   memcpy((uint8_t *)(TargetBuf.ptr) + target_offset + uBytesCopied,
+            (uint8_t *)(pMe->OutBuf.UB.ptr) + pCopyContext->uEncodeBuffOffset,
+            uBytesToCopy);
+   uBytesCopied += uBytesToCopy;
+   pCopyContext->uEncodeBuffOffset += uBytesCopied;
+   return uBytesCopied;
+}
+
+
+QCBORError
+QCBOREncode_CopyResult(QCBOREncodeContext *pMe,
+                       QCBOREncodeCopyContext *pCopyContext,
+                       UsefulBuf TargetBuf,
+                       UsefulBufC *Result,
+                       bool *pBytesLeft)
+{
+   size_t uBytesCopied = 0;
+   bool bytesLeft = true;
+
+   if(QCBOREncode_GetErrorState(pMe) != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+   while(uBytesCopied < TargetBuf.len) {
+      /* Check whether to copy from an external buffer */
+      if (pCopyContext->pNextExternalBuffer!= NULL &&
+          pCopyContext->pNextExternalBuffer->uEncodedOffset == pCopyContext->uEncodeBuffOffset) {
+         uBytesCopied += CopyFromExternalBuffer(pCopyContext, TargetBuf, uBytesCopied);
+         continue;
+      }
+
+      /* Copy from the encode context buffer */
+      if (pCopyContext->uEncodeBuffOffset < pMe->OutBuf.data_len) {
+         uBytesCopied += CopyFromEncodeBuffer(pMe, pCopyContext, TargetBuf, uBytesCopied);
+      }
+
+      if (pCopyContext->uEncodeBuffOffset == pMe->OutBuf.data_len &&
+          pCopyContext->pNextExternalBuffer == NULL) {
+         bytesLeft = false;
+         break;
+      }
+   }
+
+   if (pCopyContext->uEncodeBuffOffset == pMe->OutBuf.data_len &&
+         pCopyContext->pNextExternalBuffer == NULL) {
+      bytesLeft = false;
+   }
+
+   Result->ptr = TargetBuf.ptr;
+   Result->len = uBytesCopied;
+   *pBytesLeft = bytesLeft;
+
+Done:
+   return pMe->uError;
 }
 
 

@@ -1,7 +1,7 @@
 /* ==========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2024, Laurence Lundblade.
- * Copyright (c) 2021, Arm Limited.
+ * Copyright (c) 2021-2024, Arm Limited.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -299,6 +299,9 @@ typedef enum {
    /** Trying to cancel a byte string wrapping after items have been
     *  added to it. */
    QCBOR_ERR_CANNOT_CANCEL = 10,
+
+   /** This API cannot be used when external bytes are added to the encoding. */
+   QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL = 11,
 
 #define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 20
 
