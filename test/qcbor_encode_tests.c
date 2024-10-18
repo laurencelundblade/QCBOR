@@ -535,10 +535,10 @@ static void AddAll(QCBOREncodeContext *pECtx)
    /* Some ints that are tagged and have strings preceeding them
     * (not labels becase it is not a map) */
    QCBOREncode_AddSZString(pECtx, "UINT62");
-   QCBOREncode_AddTag(pECtx, 100);
+   QCBOREncode_AddTagNumber(pECtx, 100);
    QCBOREncode_AddUInt64(pECtx, 89989909);
    QCBOREncode_AddSZString(pECtx, "INT64");
-   QCBOREncode_AddTag(pECtx, 76);
+   QCBOREncode_AddTagNumber(pECtx, 76);
    QCBOREncode_AddInt64(pECtx, 77689989909);
    QCBOREncode_AddUInt64(pECtx, 0);
    QCBOREncode_AddInt64(pECtx, -44);
@@ -567,7 +567,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    /* binary blobs in maps */
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "binbin");
-   QCBOREncode_AddTag(pECtx, 100000);
+   QCBOREncode_AddTagNumber(pECtx, 100000);
    QCBOREncode_AddBytes(pECtx, ((UsefulBufC) {(uint8_t []){0x00}, 1}));
    QCBOREncode_AddBytesToMap(pECtx, "empty", NULLUsefulBufC); // Empty string
    QCBOREncode_AddBytesToMap(pECtx, "blabel", ((UsefulBufC) {(uint8_t []){0x01, 0x02, 0x03}, 3}));
@@ -619,7 +619,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddUndef(pECtx);
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "dare");
-   QCBOREncode_AddTag(pECtx, 66);
+   QCBOREncode_AddTagNumber(pECtx, 66);
    QCBOREncode_AddBool(pECtx, true);
    QCBOREncode_AddBoolToMap(pECtx, "uu", false);
    QCBOREncode_AddNULLToMapN(pECtx, 737634);
@@ -632,7 +632,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    /* opening arrays in a map */
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddSZString(pECtx, "label and tagged empty array");
-   QCBOREncode_AddTag(pECtx, 1093);
+   QCBOREncode_AddTagNumber(pECtx, 1093);
    QCBOREncode_OpenArray(pECtx);
    QCBOREncode_CloseArray(pECtx);
    QCBOREncode_OpenArrayInMap(pECtx, "alabl");
@@ -646,7 +646,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_OpenMapInMap(pECtx, "in a map");
    QCBOREncode_OpenMapInMapN(pECtx, 5556);
    QCBOREncode_AddSZString(pECtx, "in a in a in a");
-   QCBOREncode_AddTag(pECtx, 9087);
+   QCBOREncode_AddTagNumber(pECtx, 9087);
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_CloseMap(pECtx);
    QCBOREncode_CloseMap(pECtx);

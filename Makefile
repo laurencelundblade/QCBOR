@@ -24,11 +24,11 @@ LIBS=-lm
 CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC
 
 
-QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o src/qcbor_err_to_str.o
+QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/qcbor_tag_decode.o src/ieee754.o src/qcbor_err_to_str.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
     test/qcbor_decode_tests.o test/run_tests.o \
-    test/float_tests.o test/half_to_double_from_rfc7049.o example.o ub-example.o
+    test/float_tests.o test/half_to_double_from_rfc7049.o example.o tag-examples.o ub-example.o
 
 .PHONY: all so install uninstall clean warn
 
@@ -58,12 +58,14 @@ PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor
 
 src/UsefulBuf.o: inc/qcbor/UsefulBuf.h
 src/qcbor_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_spiffy_decode.h src/ieee754.h
+src/qcbor_tag_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_tag_decode.h
 src/qcbor_encode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_encode.h src/ieee754.h
 src/iee754.o: src/ieee754.h
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
 example.o:	$(PUBLIC_INTERFACE)
 ub-example.o:	$(PUBLIC_INTERFACE)
+tag-examples.o:	$(PUBLIC_INTERFACE)
 
 test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h test/qcbor_encode_tests.h test/qcbor_decode_tests.h inc/qcbor/qcbor_private.h
 test/UsefulBuf_Tests.o: test/UsefulBuf_Tests.h inc/qcbor/UsefulBuf.h
