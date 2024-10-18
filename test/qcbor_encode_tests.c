@@ -1,7 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2025, Laurence Lundblade.
- Copyright (c) 2022, Arm Limited. All rights reserved.
+ Copyright (c) 2022-2024, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -4315,4 +4315,570 @@ int32_t SubStringTest(void)
    }
 
    return 0;
+}
+
+/* Compare the results of two encodings.
+ * EC is encoded without using external buffers, ECExt is encoded using external
+ * buffers.
+ *
+ * Returns 0 on success, non-zero otherwise
+ */
+static int32_t TestCopyResult(QCBOREncodeContext *EC, QCBOREncodeContext *ECExt)
+{
+   UsefulBufC Result;
+   uint8_t OutCopyBuffer[16];
+   UsefulBuf TargetBuf = {OutCopyBuffer, sizeof(OutCopyBuffer)};
+   UsefulBufC Encoded;
+   size_t EncodedLen;
+   size_t Gran;
+   QCBOREncodeCopyContext CopyContext;
+
+   if(QCBOREncode_Finish(EC, &Encoded)) {
+      return -1;
+   }
+   if(QCBOREncode_FinishGetSize(ECExt, &EncodedLen)) {
+      return -2;
+   }
+
+   if(Encoded.len != EncodedLen) {
+      return -3;
+   }
+
+   /* Call QCBOREncode_CopyResult with different granularities for greater coverage */
+   for(Gran = 1; Gran <= sizeof(OutCopyBuffer); ++Gran) {
+      if (QCBOREncode_InitCopyResultContext(&CopyContext, ECExt)) {
+         return -100 * (int)Gran - 1;
+      }
+
+      size_t offset = 0;
+      bool BytesLeft;
+      bool EndOfEncodedData;
+      TargetBuf.len = Gran;
+
+      /* call QCBOREncode_CopyResult while there is data left */
+      do {
+         if (QCBOREncode_CopyResult(ECExt, &CopyContext, TargetBuf, &Result, &BytesLeft)) {
+            return -100 * (int)Gran - 2;
+         }
+
+         if (Result.len > 0) {
+            if (memcmp(TargetBuf.ptr, (const uint8_t *)(Encoded.ptr) + offset, Result.len)) {
+               return -100 * (int)Gran - 3;
+            }
+         }
+
+         offset += Result.len;
+
+         EndOfEncodedData = (offset == EncodedLen);
+
+         if (BytesLeft == EndOfEncodedData) {
+            /* Some bytes left reported but end of data reached or
+             * no bytes left reported but not at the end of the data
+             */
+            return -100 * (int)Gran - 4;
+         }
+      } while (BytesLeft);
+
+      if (offset != EncodedLen) {
+         return -100 * (int)Gran - 5;
+      }
+
+      /* Call QCBOREncode_CopyResult again to verify it works with exhausted buffer */
+      if (QCBOREncode_CopyResult(ECExt, &CopyContext, TargetBuf, &Result, &BytesLeft)) {
+         return -100 * (int)Gran - 6;
+      }
+      if (BytesLeft) {
+         return -100 * (int)Gran - 7;
+      }
+      if (Result.len != 0) {
+         return -100 * (int)Gran - 8;
+      }
+
+   }
+   return 0;
+}
+/*
+ * spBigBuf is reused to testing encoding using external buffer like this:
+ *
+ * +---------+-----------------------+-----------------------+
+ * | ExtPool |      EncBufNoExt      |       EncBufExt       |
+ * +---------+-----------------------+-----------------------+
+ *
+ * Where
+ *  - ExtPool is a pool of QCBORExternalBuffer structures
+ *  - EncBufNoExt is a buffer that is used to initialise the encoding context
+ *    for the non-external API encoding
+ *  - EncBufExt is a buffer that is used to initialise the encoding context
+ *    for the external API encoding.
+ *
+ * For further details see the function ExternalBufferTest.
+ */
+
+#define EXT_BUF_COUNT 24
+#define EXT_BUF_POOL_SIZE (EXT_BUF_COUNT * sizeof(QCBORExternalBuffer))
+#define TEST_BUF_SIZE ((sizeof(spBigBuf) - EXT_BUF_POOL_SIZE) / 2)
+
+static char SZStringData[] = "test";
+static UsefulBufC SZStringDataUB = {SZStringData, sizeof(SZStringData) - 1};
+
+static UsefulBuf GetTestBuf(void) {
+   UsefulBuf buf = {&spBigBuf[EXT_BUF_POOL_SIZE], TEST_BUF_SIZE};
+   return buf;
+}
+
+static UsefulBuf GetTestBufExt(void) {
+   UsefulBuf buf = {&spBigBuf[EXT_BUF_POOL_SIZE + TEST_BUF_SIZE], TEST_BUF_SIZE};
+   return buf;
+}
+
+QCBORExternalBuffer *GetExtBufPool(void)
+{
+   return (QCBORExternalBuffer *)spBigBuf;
+}
+
+static void InitEncode(QCBOREncodeContext *EC, bool external)
+{
+   if (external) {
+      QCBOREncode_Init(EC, GetTestBufExt());
+   } else {
+      QCBOREncode_Init(EC, GetTestBuf());
+   }
+}
+
+/* Encode a CBOR without using external buffers */
+static void EncodeSimpleCbor(QCBOREncodeContext *EC)
+{
+   QCBOREncode_Init(EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 500);
+}
+
+/* Encode a CBOR using a simple case of external (no array or map) */
+static void EncodeSimple1External(QCBOREncodeContext *EC, bool external)
+{
+   /* Reuse spCoseSign1Signature to save memory */
+   UsefulBufC Bytes = {spCoseSign1Signature, 8};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[0]), Bytes);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[0]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes);
+   }
+   QCBOREncode_AddInt64(EC, 500);
+}
+
+/* Encode a CBOR using externals: simple, array and map) */
+static int EncodeSimple3External(QCBOREncodeContext *EC, bool external)
+{
+   /* Reuse spCoseSign1Signature to save memory */
+   UsefulBufC Bytes0 = {spCoseSign1Signature, 8};
+   UsefulBufC Bytes1 = {spCoseSign1Signature + 8, 13};
+   UsefulBufC Bytes2 = {spCoseSign1Signature + 16, 5};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+   size_t CurrentExtBufIndex = 0;
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 990);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes0);
+      QCBOREncode_AddExternalText(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), SZStringDataUB);
+      QCBOREncode_AddExternalSZString(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes0);
+      QCBOREncode_AddExternalTB64Text(EC, QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes0);
+      QCBOREncode_AddExternalTB64URLText(EC, QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes0);
+      QCBOREncode_AddExternalEncoded(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+      QCBOREncode_AddText(EC, Bytes0);
+      QCBOREncode_AddSZString(EC, SZStringData);
+      QCBOREncode_AddTB64Text(EC, QCBOR_ENCODE_AS_TAG, Bytes0);
+      QCBOREncode_AddTB64URLText(EC, QCBOR_ENCODE_AS_TAG, Bytes0);
+      QCBOREncode_AddEncoded(EC, Bytes0);
+   }
+
+   QCBOREncode_OpenMap(EC);
+   QCBOREncode_AddUInt64ToMapN(EC, 33, 5000);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalBytesToMapN(EC, 55, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalBytesToMapSZ(EC, "str", &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalTextToMapN(EC, 33, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalTextToMapSZ(EC, "str", &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), SZStringDataUB);
+      QCBOREncode_AddExternalSZStringToMapN(EC, 42, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), SZStringDataUB);
+      QCBOREncode_AddExternalSZStringToMapSZ(EC, "str", &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalTB64TextToMapN(EC, 57, QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalTB64TextToMapSZ(EC, "str", QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalTB64URLTextToMapN(EC, 96, QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalTB64URLTextToMapSZ(EC, "str", QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalEncodedToMapN(EC, 100, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalEncodedToMapSZ(EC, "str", &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddBytesToMapN(EC, 55, Bytes1);
+      QCBOREncode_AddBytesToMapSZ(EC, "str", Bytes1);
+      QCBOREncode_AddTextToMapN(EC, 33, Bytes1);
+      QCBOREncode_AddTextToMapSZ(EC, "str", Bytes1);
+      QCBOREncode_AddSZStringToMapN(EC, 42, SZStringData);
+      QCBOREncode_AddSZStringToMapSZ(EC, "str", SZStringData);
+      QCBOREncode_AddTB64TextToMapN(EC, 57, QCBOR_ENCODE_AS_TAG, Bytes1);
+      QCBOREncode_AddTB64TextToMapSZ(EC, "str", QCBOR_ENCODE_AS_TAG, Bytes1);
+      QCBOREncode_AddTB64URLTextToMapN(EC, 96, QCBOR_ENCODE_AS_TAG, Bytes1);
+      QCBOREncode_AddTB64URLTextToMapSZ(EC, "str", QCBOR_ENCODE_AS_TAG, Bytes1);
+      QCBOREncode_AddEncodedToMapN(EC, 100, Bytes1);
+      QCBOREncode_AddEncodedToMapSZ(EC, "str", Bytes1);
+   }
+   QCBOREncode_CloseMap(EC);
+
+   QCBOREncode_OpenArray(EC);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes2);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes2);
+      QCBOREncode_AddExternalText(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), SZStringDataUB);
+      QCBOREncode_AddExternalSZString(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes2);
+      QCBOREncode_AddExternalTB64Text(EC, QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes2);
+      QCBOREncode_AddExternalTB64URLText(EC, QCBOR_ENCODE_AS_TAG, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes2);
+      QCBOREncode_AddExternalEncoded(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes2);
+      QCBOREncode_AddText(EC, Bytes2);
+      QCBOREncode_AddSZString(EC, SZStringData);
+      QCBOREncode_AddTB64Text(EC, QCBOR_ENCODE_AS_TAG, Bytes2);
+      QCBOREncode_AddTB64URLText(EC, QCBOR_ENCODE_AS_TAG, Bytes2);
+      QCBOREncode_AddEncoded(EC, Bytes2);
+   }
+   QCBOREncode_CloseArray(EC);
+
+   QCBOREncode_AddInt64(EC, 500);
+
+   if (CurrentExtBufIndex > EXT_BUF_COUNT) {
+      return -10000;
+   }
+   return 0;
+}
+
+/* Encode a CBOR using externals: with nesting) */
+static int EncodeNesting(QCBOREncodeContext *EC, bool external)
+{
+   /* Reuse spCoseSign1Signature to save memory */
+   UsefulBufC Bytes0 = {spCoseSign1Signature, 8};
+   UsefulBufC Bytes1 = {spCoseSign1Signature + 8, 13};
+   UsefulBufC Bytes2 = {spCoseSign1Signature + 16, 5};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+   size_t CurrentExtBufIndex = 0;
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 990);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+   }
+
+   QCBOREncode_OpenMap(EC);
+   QCBOREncode_AddUInt64ToMapN(EC, 33, 5000);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalBytesToMapN(EC, 55, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddBytesToMapN(EC, 55, Bytes1);
+   }
+   QCBOREncode_OpenArrayInMapN(EC, 99);
+
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), SZStringDataUB);
+      QCBOREncode_AddExternalSZString(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddSZString(EC, SZStringData);
+   }
+
+   QCBOREncode_OpenMap(EC);
+
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes1);
+      QCBOREncode_AddExternalBytesToMapN(EC, 13, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddBytesToMapN(EC, 13, Bytes1);
+   }
+
+   QCBOREncode_CloseMap(EC);
+
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), SZStringDataUB);
+      QCBOREncode_AddExternalSZString(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddSZString(EC, SZStringData);
+   }
+   QCBOREncode_CloseArray(EC);
+   QCBOREncode_CloseMap(EC);
+
+   QCBOREncode_OpenArray(EC);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[CurrentExtBufIndex]), Bytes2);
+      QCBOREncode_AddExternalText(EC, &(ExternalBuffers[CurrentExtBufIndex]));
+      ++CurrentExtBufIndex;
+   } else {
+      QCBOREncode_AddText(EC, Bytes2);
+   }
+   QCBOREncode_CloseArray(EC);
+
+   QCBOREncode_AddInt64(EC, 500);
+
+   if (CurrentExtBufIndex > EXT_BUF_COUNT) {
+      return -10000;
+   }
+}
+
+/* Encode a CBOR external being the last element in the CBOR */
+static void EncodeExternalLast1(QCBOREncodeContext *EC, bool external)
+{
+   /* Reuse spCoseSign1Signature to save memory */
+   UsefulBufC Bytes0 = {spCoseSign1Signature, 8};
+   UsefulBufC Bytes1 = {spCoseSign1Signature + 8, 13};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 990);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[0]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[0]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+   }
+
+   QCBOREncode_OpenMap(EC);
+   QCBOREncode_AddUInt64ToMapN(EC, 33, 5000);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[1]), Bytes1);
+      QCBOREncode_AddExternalBytesToMapN(EC, 55, &(ExternalBuffers[1]));
+   } else {
+      QCBOREncode_AddBytesToMapN(EC, 55, Bytes1);
+   }
+   QCBOREncode_CloseMap(EC);
+}
+
+/* Encode a CBOR external being the last element in the CBOR in an array */
+static void EncodeExternalLast2(QCBOREncodeContext *EC, bool external)
+{
+   /* Reuse spCoseSign1Signature to save memory */
+   UsefulBufC Bytes0 = {spCoseSign1Signature, 8};
+   UsefulBufC Bytes1 = {spCoseSign1Signature + 8, 13};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 990);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[0]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[0]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+   }
+
+   QCBOREncode_OpenArray(EC);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[1]), Bytes1);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[1]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes1);
+   }
+   QCBOREncode_CloseArray(EC);
+}
+
+/* Encode a CBOR external being the last element in the CBOR in a map */
+static void EncodeExternalLast3(QCBOREncodeContext *EC, bool external)
+{
+   /* Reuse spCoseSign1Signature to save memory */
+   UsefulBufC Bytes0 = {spCoseSign1Signature, 8};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 990);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[0]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[0]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+   }
+}
+
+/* Encode a cbor using 0 long byte buffers */
+static void EncodeSimple3ZeroExternal(QCBOREncodeContext *EC, bool external)
+{
+   UsefulBufC Bytes0 = {NULL, 0};
+   QCBORExternalBuffer *ExternalBuffers = GetExtBufPool();
+
+   InitEncode(EC, external);
+   QCBOREncode_AddInt64(EC, 1000);
+   QCBOREncode_AddInt64(EC, 990);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[0]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[0]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+   }
+
+   QCBOREncode_OpenMap(EC);
+   QCBOREncode_AddUInt64ToMapN(EC, 33, 5000);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[1]), Bytes0);
+      QCBOREncode_AddExternalBytesToMapN(EC, 55, &(ExternalBuffers[1]));
+   } else {
+      QCBOREncode_AddBytesToMapN(EC, 55, Bytes0);
+   }
+   QCBOREncode_CloseMap(EC);
+
+   QCBOREncode_OpenArray(EC);
+   if (external) {
+      QCBOREncode_InitExternalBuffer(&(ExternalBuffers[2]), Bytes0);
+      QCBOREncode_AddExternalBytes(EC, &(ExternalBuffers[2]));
+   } else {
+      QCBOREncode_AddBytes(EC, Bytes0);
+   }
+   QCBOREncode_CloseArray(EC);
+
+   QCBOREncode_AddInt64(EC, 500);
+}
+
+/*
+ * The idea of the testing is to encode the same data in two separate contexts.
+ * In the first case without using external buffers, in the second case use
+ * external buffers (according to the test scenario). Then call TestCopyResult
+ * which compares the output of QCBOREncode_CopyResult with the encoding buffer
+ * of the first case.
+ */
+int32_t ExternalBufferTest(void)
+{
+   QCBOREncodeContext EC;
+   QCBOREncodeContext ECExt;
+   UsefulBufC Encoded;
+   int32_t ret;
+
+   /* Do test without using externals */
+   EncodeSimpleCbor(&EC);
+   ret = TestCopyResult(&EC, &EC);
+   if (ret) {
+      return ret;
+   }
+
+   /* Do test with single external */
+   EncodeSimple1External(&EC, false);
+   EncodeSimple1External(&ECExt, true);
+   /* Make sure that QCBOREncode_Finish throws error when externals are used */
+   if(QCBOREncode_Finish(&ECExt, &Encoded) !=
+      QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL) {
+      return -50;
+   }
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   ret = EncodeSimple3External(&EC, false);
+   if (ret) {
+      return ret;
+   }
+   ret = EncodeSimple3External(&ECExt, true);
+   if (ret) {
+      return ret;
+   }
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   EncodeExternalLast1(&EC, false);
+   EncodeExternalLast1(&ECExt, true);
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   EncodeExternalLast2(&EC, false);
+   EncodeExternalLast2(&ECExt, true);
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   EncodeExternalLast3(&EC, false);
+   EncodeExternalLast3(&ECExt, true);
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   EncodeSimple3ZeroExternal(&EC, false);
+   EncodeSimple3ZeroExternal(&ECExt, true);
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   EncodeNesting(&EC, false);
+   EncodeNesting(&ECExt, true);
+   ret = TestCopyResult(&EC, &ECExt);
+   if (ret) {
+      return ret;
+   }
+
+   return 0;
+
 }

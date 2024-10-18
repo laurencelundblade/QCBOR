@@ -361,6 +361,22 @@ QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext    *pCtx,
                               enum QCBOREncodeTagReq uTagRequirement,
                               UsefulBufC             B64Text);
 
+static void
+QCBOREncode_AddExternalTB64Text(QCBOREncodeContext     *pCtx,
+                                enum QCBOREncodeTagReq  uTagRequirement,
+                                QCBORExternalBuffer    *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalTB64TextToMapSZ(QCBOREncodeContext    *pCtx,
+                                       const char            *szLabel,
+                                       enum QCBOREncodeTagReq uTagRequirement,
+                                       QCBORExternalBuffer   *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalTB64TextToMapN(QCBOREncodeContext    *pCtx,
+                                      int64_t                nLabel,
+                                      enum QCBOREncodeTagReq uTagRequirement,
+                                      QCBORExternalBuffer   *pExternalBuffer);
 
 /**
  * @brief Add base64url encoded data to encoded output.
@@ -396,6 +412,22 @@ QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext    *pCtx,
                                  enum QCBOREncodeTagReq uTagRequirement,
                                  UsefulBufC             B64Text);
 
+static void
+QCBOREncode_AddExternalTB64URLText(QCBOREncodeContext    *pCtx,
+                                   enum QCBOREncodeTagReq uTagRequirement,
+                                   QCBORExternalBuffer   *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalTB64URLTextToMapSZ(QCBOREncodeContext    *pCtx,
+                                          const char            *szLabel,
+                                          enum QCBOREncodeTagReq uTagRequirement,
+                                          QCBORExternalBuffer   *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalTB64URLTextToMapN(QCBOREncodeContext    *pCtx,
+                                         int64_t                nLabel,
+                                         enum QCBOREncodeTagReq uTagRequirement,
+                                         QCBORExternalBuffer   *pExternalBuffer);
 
 /**
  * @brief Add Perl Compatible Regular Expression.
@@ -959,6 +991,37 @@ QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext          *pMe,
 }
 
 static inline void
+QCBOREncode_AddExternalTB64Text(QCBOREncodeContext          *pMe,
+                                const enum QCBOREncodeTagReq uTagRequirement,
+                                QCBORExternalBuffer         *pExternalBuffer)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_B64);
+   }
+   QCBOREncode_AddExternalText(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalTB64TextToMapSZ(QCBOREncodeContext          *pMe,
+                                       const char                  *szLabel,
+                                       const enum QCBOREncodeTagReq uTagRequirement,
+                                       QCBORExternalBuffer         *pExternalBuffer)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddExternalTB64Text(pMe, uTagRequirement, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalTB64TextToMapN(QCBOREncodeContext          *pMe,
+                                      const int64_t                nLabel,
+                                      const enum QCBOREncodeTagReq uTagRequirement,
+                                      QCBORExternalBuffer         *pExternalBuffer)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddExternalTB64Text(pMe, uTagRequirement, pExternalBuffer);
+}
+
+static inline void
 QCBOREncode_AddB64Text(QCBOREncodeContext *pMe, const UsefulBufC B64Text)
 {
    QCBOREncode_AddTB64Text(pMe, QCBOR_ENCODE_AS_TAG, B64Text);
@@ -1011,6 +1074,37 @@ QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext          *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTB64URLText(pMe, uTagRequirement, B64Text);
+}
+
+static inline void
+QCBOREncode_AddExternalTB64URLText(QCBOREncodeContext          *pMe,
+                                   const enum QCBOREncodeTagReq uTagRequirement,
+                                   QCBORExternalBuffer         *pExternalBuffer)
+{
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, CBOR_TAG_B64URL);
+   }
+   QCBOREncode_AddExternalText(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalTB64URLTextToMapSZ(QCBOREncodeContext          *pMe,
+                                          const char                  *szLabel,
+                                          const enum QCBOREncodeTagReq uTagRequirement,
+                                          QCBORExternalBuffer         *pExternalBuffer)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddExternalTB64URLText(pMe, uTagRequirement, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalTB64URLTextToMapN(QCBOREncodeContext          *pMe,
+                                         const int64_t                nLabel,
+                                         const enum QCBOREncodeTagReq uTagRequirement,
+                                         QCBORExternalBuffer         *pExternalBuffer)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddExternalTB64URLText(pMe, uTagRequirement, pExternalBuffer);
 }
 
 static inline void

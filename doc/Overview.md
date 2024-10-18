@@ -18,8 +18,10 @@ CBOR is intentionally designed to be translatable to JSON, but not
 all CBOR can convert to JSON. See RFC 8949 for more info on how to
 construct CBOR that is the most JSON friendly.
 
-The memory model for encoding and decoding is that encoded CBOR must
-be in a contiguous buffer in memory.  During encoding the caller must
+The memory model for decoding is that encoded CBOR must be in a
+contiguous buffer in memory. In case of encoding it is possible that
+parts of the encoded CBOR are in multiple buffers scattered around in
+memory. For details see @ref Encoding. During encoding the caller must
 supply an output buffer and if the encoding would go off the end of
 the buffer an error is returned.  During decoding the caller supplies
 the encoded CBOR in a contiguous buffer and the decoder returns

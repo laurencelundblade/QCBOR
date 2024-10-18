@@ -2,7 +2,7 @@
  run_tests.c -- test aggregator and results reporting
 
  Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
- Copyright (c) 2021, Arm Limited. All rights reserved.
+ Copyright (c) 2021-2024, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -182,6 +182,7 @@ static test_entry s_tests[] = {
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(ParseEmptyMapInMapTest),
     TEST_ENTRY(SubStringTest),
+    TEST_ENTRY(ExternalBufferTest),
     TEST_ENTRY(BoolTest)
 };
 
