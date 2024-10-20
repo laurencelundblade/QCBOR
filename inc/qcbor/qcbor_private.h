@@ -407,7 +407,6 @@ struct _QCBORDecodeContext {
 
    size_t      uTagNumberCheckOffset;
    uint8_t     uTagNumberIndex;
-   uint8_t     uAllowUnproccesdTagNumbers;
 };
 
 

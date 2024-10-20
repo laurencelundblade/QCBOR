@@ -1094,10 +1094,22 @@ void
 QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 
 
-
+/**
+ * @brief Position traversal cursor by map label.
+ *
+ * TODO: finish this documentation
+ */
 void
 QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
+
+/**
+ * @brief Position traversal cursor by map label.
+ *
+ * TODO: finish this documentation
+ */
+void
+QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel);
 
 
 /**

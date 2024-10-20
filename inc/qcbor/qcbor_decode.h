@@ -49,9 +49,6 @@ extern "C" {
 #endif
 
 
-
-
-
 /**
  * @file qcbor_decode.h
  *
@@ -222,18 +219,14 @@ typedef enum {
    
    /** This requires integer-float unification. It performs all the checks that
     * QCBOR_DECODE_MODE_CDE does. */
-   QCBOR_DECODE_MODE_DCBOR = 5
+   QCBOR_DECODE_MODE_DCBOR = 5,
+
+   /** Makes QCBOR v2 compatible with v1. The error @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.
+    * This can be or'd with the above modes. */
+   QCBOR_DECODE_UNPROCESSED_TAG_NUMBERS = 8,
 
    /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
-
-
-/** If set, tag numbers do not have to be consumed or processed. This is how
- * tag numbers worked in QCBOR v1, but is not recommended. 
- * See @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER 
- * and QCBORDecode_Config() */
-#define QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS  0x01
-
 
 
 /**
@@ -422,6 +415,9 @@ typedef enum {
  *  @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
 
+
+#define QCBOR_TYPE_TAG_NUMBER 127 /* Used internally; never returned */
+
 /** Start of user-defined data types. The range is mainly for user-defined tag content
  * decoders. See QCBORTagContentCallBack */
 #define QCBOR_TYPE_START_USER_DEFINED 128
@@ -429,9 +425,6 @@ typedef enum {
 /** End of user-defined data types. */
 #define QCBOR_TYPE_END_USER_DEFINED 255
 
-#define QCBOR_TYPE_TAG_NUMBER 254 /* Used internally; never returned */
-
-#define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG_NUMBER /* Deprecated. See QCBOR_TYPE_TAG_NUMBER */
 
 /**
  * The largest value in @c utags that is unmapped and can be used without
@@ -734,14 +727,6 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
  */
 void
 QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
-
-
-/* Configure the decoder with one of QCBOR_CONFIG_XXX.  */
-static void
-QCBORDecode_Config(QCBORDecodeContext *pCtx, uint32_t uConfig);
-
-
-
 
 
 /**
@@ -1271,21 +1256,6 @@ uint64_t
 QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
 
 
-/**
- * @brief Check an item to match one tag number.
- *
- * @param[in] pCtx    The decoder context.
- * @param[in] pItem The CBOR item to check.
- * @param[in] uTagNumber The tag number to match.
- *
- * @returns true if the item has one and only one tag number that matches uTagNumber.
- *
- * TODO: keep this?
- */
-bool
-QCBORDecode_MatchOneTagNumber(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint64_t uTagNumber);
-
-
 #endif /* ! QCBOR_DISABLE_TAGS */
 
 /**
@@ -1674,29 +1644,28 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
  * ---- */
 
 /**
- * Initialize the CBOR decoder context with QCBOR v1 compatibility (deprecated).
+ * TODO: Initialize the CBOR decoder context with QCBOR v1 compatibility (deprecated).
  *
  * @param[in] pCtx         The context to initialize.
- * @param[in] EncodedCBOR  The buffer with CBOR encoded bytes to be decoded.
- * @param[in] nMode        See below and @ref QCBORDecodeMode.
  *
  * This is listed as deprecated even though it is new in QCBOR v2 because
  * it recommended that v1 mode not be used because the tag number processing
  * is too loose.
  *
+ * This links in a fair bit of object code for all the tag handlers that were
+ * always present in v1. If you don't care about them, use pass XXX to init().
+ *
  * This is the same as QCBORDecode_Init() except it changes the
- * tag number decoding behavior.
+ * tag number decoding behavior in two ways:
  *
- * The only thing this does different is call
- *   QCBORDecode_InstallTagDecoders(QCBORDecode_TagDecoderTablev1)
+ * First, it sets @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS which
+ * causes no error to be returned when un processed tag numbers are encountered.
  *
- * This links the tag content decoders for the standard tags like epoch dates,
- * big numbers and decimal fractions. It also links a special tag content
- * decoder that matches all tag numbers and causes them to be returned
- * in the @ref QCBORItem.
+ * Second, it installs all the same tag handlers that v1 had hardwwired.
+ *    QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
  */
 void
-QCBORDecode_Initv1(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
+QCBORDecode_CompatibilityV1(QCBORDecodeContext *pCtx);
 
 
 
@@ -1741,16 +1710,6 @@ QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  * ---- */
-
-static inline void
-QCBORDecode_Config(QCBORDecodeContext *pMe, uint32_t uConfig)
-{
-   /* When uConfig is a constant which happens often, this will often optimize to
-    * very little. */
-   if(QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS == uConfig) {
-      pMe->uAllowUnproccesdTagNumbers = 1;
-   }
-}
 
 static inline uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pMe)

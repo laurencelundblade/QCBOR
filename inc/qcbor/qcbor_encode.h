@@ -684,8 +684,7 @@ void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 static void
-QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
-// TODO: QCBOREncode_AddInt64ToMap for backwards compat?
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
 
 
 static void
@@ -2925,7 +2924,7 @@ QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
 
 
 static inline void
-QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pMe,
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
                             const char        *szLabel,
                             const int64_t      nNum)
 {
@@ -2933,14 +2932,6 @@ QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nNum);
 }
 
-/* Deprecated */
-static inline void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
-                            const char        *szLabel,
-                            const int64_t      uNum)
-{
-   QCBOREncode_AddInt64ToMapSZ(pMe, szLabel, uNum);
-}
 
 static inline void
 QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,
@@ -4504,22 +4495,6 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 
    return (QCBORError)pMe->uError;
 }
-
-
-static inline void
-QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pMe,
-                         const char         *szLabel,
-                           uint64_t            uTagNumber,
-                         const UsefulBufC    Text)
-{
-   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
-   if(uTagNumber != CBOR_TAG_INVALID64) {
-      QCBOREncode_AddTagNumber(pMe, uTagNumber);
-   }
-   QCBOREncode_AddText(pMe, Text);
-}
-
-
 
 
 static inline size_t
