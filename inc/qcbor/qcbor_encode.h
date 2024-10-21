@@ -684,8 +684,7 @@ void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 static void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
-
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nNum);
 
 static void
 QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t nNum);
@@ -985,7 +984,6 @@ QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTag);
  * @brief  Add an epoch-based date.
  *
  * @param[in] pCtx             The encoding context to add the date to.
- *   bOmitTagNumber
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] nDate            Number of seconds since 1970-01-01T00:00Z
@@ -2771,8 +2769,6 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 
 
 /* DEPRECATED */
-static void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t uNum);
 
 /* Use QCBOREncode_AddTagNumber() instead */
 static void
@@ -2925,13 +2921,12 @@ QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
 
 static inline void
 QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
-                            const char        *szLabel,
-                            const int64_t      nNum)
+                          const char        *szLabel,
+                          const int64_t      nNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddInt64(pMe, nNum);
 }
-
 
 static inline void
 QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,

@@ -1608,7 +1608,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
-void 
+void
 QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;
@@ -1629,7 +1629,7 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
-void 
+void
 QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;

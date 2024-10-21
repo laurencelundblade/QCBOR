@@ -1095,7 +1095,7 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uDecodeMode3Bit,
       pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
    }
 #else
-   (void)uMode;
+   (void)uDecodeMode3Bit;
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    uReturn = QCBOR_SUCCESS;
@@ -1242,7 +1242,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode3Bit)
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
-   
+
    /* See if it could have been encoded shorter */
    if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_PREFERRED) {
       ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
@@ -2014,18 +2014,18 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 
    /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
-   
+
    if(puLabelEndOffset != NULL) {
        /* Cast is OK because lengths are all 32-bit in QCBOR */
        *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
     }
 
    /* Get the value of the map item */
-      uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
-      if(QCBORDecode_IsUnrecoverableError(uErr2)) {
-         uErr = uErr2;
-         goto Done;
-      }
+   uErr2 = QCBORDecode_Private_GetNextTagNumber(pMe, pDecodedItem);
+   if(QCBORDecode_IsUnrecoverableError(uErr2)) {
+      uErr = uErr2;
+      goto Done;
+   }
    if(uErr2 != QCBOR_SUCCESS) {
       /* The recoverable error for the value overrides the recoverable
        * error for the label, if there was an error for the label */
@@ -2336,9 +2336,10 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
          goto Done;
       }
    }
+
    if(!QCBORItem_IsMapOrArray(*pDecodedItem) ||
-      QCBORItem_IsEmptyDefiniteLengthMapOrArray(*pDecodedItem) ||
-      QCBORItem_IsIndefiniteLengthMapOrArray(*pDecodedItem)) {
+       QCBORItem_IsEmptyDefiniteLengthMapOrArray(*pDecodedItem) ||
+       QCBORItem_IsIndefiniteLengthMapOrArray(*pDecodedItem)) {
       /* The following cases are handled here:
        *  - A non-aggregate item like an integer or string
        *  - An empty definite-length map or array
@@ -2657,7 +2658,7 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
 
 
 static QCBORError
-QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe, QCBORError uErr, size_t uOffset, QCBORItem *pDecodedItem)
+QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe, QCBORError uErr, const size_t uOffset, QCBORItem *pDecodedItem)
 {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(uErr == QCBOR_SUCCESS && (pMe->uDecodeMode &0x7) >= QCBOR_ENCODE_MODE_CDE && pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
@@ -2817,28 +2818,6 @@ QCBORDecode_Finish(QCBORDecodeContext *pMe)
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
-static uint64_t
-QCBORDecode_Private_ReverseSearchTagNumbers(const QCBORDecodeContext *pMe, const uint16_t puTagNumbers[], const uint32_t uIndex)
-{
-   uint32_t uArrayIndex;
-   // TODO: check uIndex extent?
-
-   for(uArrayIndex = QCBOR_MAX_TAGS_PER_ITEM-1; uArrayIndex > 0; uArrayIndex--) {
-      if(puTagNumbers[uArrayIndex] != CBOR_TAG_INVALID16) {
-         break;
-      }
-   }
-   if(uIndex > uArrayIndex) {
-      return CBOR_TAG_INVALID64;
-   }
-
-   return QCBORDecode_Private_UnMapTagNumber(pMe, puTagNumbers[uArrayIndex - uIndex]);
-}
-
-
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
 uint64_t
 QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pMe,
                             const QCBORItem          *pItem,
@@ -2853,7 +2832,6 @@ QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pMe,
 
    return QCBORDecode_Private_UnMapTagNumber(pMe, pItem->auTagNumbers[uIndex]);
 }
-
 
 
 /*
@@ -2873,6 +2851,29 @@ QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pMe,
    return QCBORDecode_Private_UnMapTagNumber(pMe, pMe->auLastTags[uIndex]);
 }
 
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+static uint64_t
+QCBORDecode_Private_GetNthTagNumberReverse(const QCBORDecodeContext *pMe, const uint16_t puTagNumbers[], const uint32_t uIndex)
+{
+   uint32_t uArrayIndex;
+
+   /* Find number of tag numbers */
+   for(uArrayIndex = QCBOR_MAX_TAGS_PER_ITEM-1; uArrayIndex > 0; uArrayIndex--) {
+      if(puTagNumbers[uArrayIndex] != CBOR_TAG_INVALID16) {
+         break;
+      }
+   }
+   if(uIndex > uArrayIndex) {
+      return CBOR_TAG_INVALID64;
+   }
+
+   return QCBORDecode_Private_UnMapTagNumber(pMe, puTagNumbers[uArrayIndex - uIndex]);
+}
+
+
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
@@ -2885,7 +2886,7 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pMe,
       return CBOR_TAG_INVALID64;
    }
 
-   return QCBORDecode_Private_ReverseSearchTagNumbers(pMe, pItem->auTagNumbers, uIndex);
+   return QCBORDecode_Private_GetNthTagNumberReverse(pMe, pItem->auTagNumbers, uIndex);
 }
 
 
@@ -2903,7 +2904,7 @@ QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe,
       return CBOR_TAG_INVALID64;
    }
 
-   return QCBORDecode_Private_ReverseSearchTagNumbers(pMe, pMe->auLastTags, uIndex);
+   return QCBORDecode_Private_GetNthTagNumberReverse(pMe, pMe->auLastTags, uIndex);
 }
 
 
@@ -2935,7 +2936,7 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, uint64_t *puTagNumber)
 
    *puTagNumber = QCBORDecode_GetNthTagNumber(pMe, &Item, pMe->uTagNumberIndex);
    if(*puTagNumber == CBOR_TAG_INVALID64 || QCBORDecode_GetNthTagNumber(pMe, &Item, pMe->uTagNumberIndex+1) == CBOR_TAG_INVALID64 ) {
-      pMe->uTagNumberIndex = 255; /* All tags clear for this item */
+      pMe->uTagNumberIndex = 255; /* TODO: const for this. All tags clear for this item */
    }
    pMe->uTagNumberCheckOffset = uOffset;
 
@@ -2953,38 +2954,6 @@ void
 QCBORDecode_VGetNextTagNumber(QCBORDecodeContext *pMe, uint64_t *puTagNumber)
 {
    pMe->uLastError = (uint8_t)QCBORDecode_GetNextTagNumber(pMe, puTagNumber);
-}
-
-
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
-QCBORError
-QCBORDecode_TagNumberCheck(QCBORDecodeContext *pMe, uint64_t uTagNumber)
-{
-   QCBORItem Item;
-   size_t    uOffset;
-   uint64_t  utagNumber;
-
-   uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
-   QCBORDecode_VPeekNext(pMe, &Item);
-   if(pMe->uLastError) {
-      return pMe->uLastError;
-   }
-
-   utagNumber = QCBORDecode_GetNthTag(pMe, &Item, 0);
-   if(uTagNumber != Item.val.uTagNumber) {
-      return QCBOR_ERR_UNEXPECTED_TAG_NUMBER;
-   }
-
-   if(QCBORDecode_GetNthTag(pMe, &Item, 1) != CBOR_TAG_INVALID64) {
-      return QCBOR_ERR_UNEXPECTED_TAG_NUMBER;
-   }
-
-   QCBORDecode_VGetNextConsume(pMe, &Item);
-   pMe->uTagNumberCheckOffset = uOffset;
-
-   return QCBOR_SUCCESS;
 }
 
 #endif /* ! QCBOR_DISABLE_TAGS */
@@ -3407,7 +3376,6 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
          goto Done;
       }
 
-
       /* See if item has one of the labels that are of interest */
       bool bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
@@ -3470,11 +3438,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
          pInfo->uItemCount++;
       }
 
-      if(uNextNestLevel < uMapNestLevel) {
-         break; /* Successful exist */
-      }
-
-   } while(1);
+   } while (uNextNestLevel >= uMapNestLevel);
 
    uReturn = QCBOR_SUCCESS;
 
@@ -3536,6 +3500,7 @@ QCBORDecode_SeekToLabelN(QCBORDecodeContext *pMe, int64_t nLabel)
 void
 QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel)
 {
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
@@ -3552,6 +3517,11 @@ QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel)
    // TODO: OK to ignore??
 
    UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
+#else
+   (void)pMe;
+   (void)szLabel;
+   pMe->uLastError = QCBOR_ERR_LABEL_NOT_FOUND;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
 
@@ -3599,8 +3569,6 @@ QCBORDecode_Private_GetItemInMap(QCBORDecodeContext *pMe, QCBORItem *OneItemSeac
 Done:
    pMe->uLastError = (uint8_t)uErr;
 }
-
-
 
 
 /*
@@ -3717,6 +3685,7 @@ QCBORDecode_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
    pMe->uLastError = QCBOR_ERR_LABEL_NOT_FOUND;
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
+
 
 
 
@@ -3952,6 +3921,7 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
    }
 }
 
+
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
@@ -4027,6 +3997,53 @@ QCBORDecode_GetNextTagNumberInMapN(QCBORDecodeContext *pMe, int64_t nLabel, uint
    return uReturn;
 }
 
+
+/*
+ * Public function, see header qcbor/qcbor_decode.h file
+ */
+QCBORError
+QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pMe, const char *szLabel, uint64_t *puTagNumber)
+{
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   size_t uOffset;
+   MapSearchInfo Info;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return pMe->uLastError;
+   }
+
+   QCBORItem OneItemSeach[2];
+   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSeach[0].uDataType    = QCBOR_TYPE_ANY;
+   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+
+   QCBORError uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, &Info, NULL);
+
+
+   uOffset = Info.uStartOffset;
+   if(uOffset == pMe->uTagNumberCheckOffset) {
+      pMe->uTagNumberIndex++;
+   } else {
+      pMe->uTagNumberIndex = 0;
+   }
+
+   *puTagNumber = CBOR_TAG_INVALID64;
+
+   *puTagNumber = QCBORDecode_GetNthTagNumber(pMe, &OneItemSeach[0], pMe->uTagNumberIndex);
+   if(*puTagNumber == CBOR_TAG_INVALID64 || QCBORDecode_GetNthTagNumber(pMe, &OneItemSeach[0], pMe->uTagNumberIndex+1) == CBOR_TAG_INVALID64 ) {
+      pMe->uTagNumberIndex = 255; /* All tags clear for this item */
+   }
+   pMe->uTagNumberCheckOffset = uOffset;
+
+   return uReturn;
+#else
+   (void)pMe;
+   (void)szLabel;
+   (void)puTagNumber;
+   return QCBOR_ERR_LABEL_NOT_FOUND;
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+}
 #endif /* ! QCBOR_DISABLE_TAGS */
 
 
@@ -4356,6 +4373,7 @@ Done:
 }
 
 
+// TODO: re order this file with tags stuff last. bstr is a tag thing
 static QCBORError
 QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
                                   const QCBORItem *pItem,
@@ -4894,59 +4912,8 @@ Done:
    pMe->uLastError = (uint8_t)uErr;
 }
 
-/*
-
- Valid input cases
-  - borrowed content, an integer
-  - unprocessed , a tag number and an integer
-  - processed, a QCBOR type
-
- There may or may not be extra tag numbers
-
- Must run a check on the extra tag numbers
 
 
-
- This works when the input is a tag, when it is
- borrowed content and when it has been converted
- to a QCBOR_TYPE
-
- What is recommended for tags that are simple
- things like dates? Probably implementing a
- tag content callback. They just use GetNext
- or PeekNext or GetItemInMap.
-
- The other is a GetXxx implementation. There are several
- flavors.
- - Requires the tag and returns invalid type if tag is missing
-   Implement by calling GetTagNumber().
- - Doesn't expect the tag and just cares about the
-   tag content format.
-
-
-
- Date string X
- Time epoch  X
- Days string X
- Days Epoch X
- Regex X
- URI X
- UUID X
- B64 X
- B64URL X
-
- MIME
-
- CBOR
-
- BigNum X
- BigFloat
- DecimalFrac
- 
-
-
-
- */
 /*
  * Big num -- one public API for two tags
  * MIME type -- one plublic API for two tags
@@ -7181,7 +7148,6 @@ QCBOR_Private_ProcessExpMantissa(QCBORDecodeContext         *pMe,
 }
 
 
-
 /*
  * @brief Decode exponent and mantissa into a big number.
  *
@@ -7288,7 +7254,6 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext  *pMe,
    }
 
    pMe->uLastError = (uint8_t)uErr;
-
 }
 
 
