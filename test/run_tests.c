@@ -116,7 +116,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(BignumDecodeTest),
 
 #ifndef QCBOR_DISABLE_TAGS
-   TEST_ENTRY(OptTagParseTest),
+   TEST_ENTRY(TagNumberDecodeTest),
    TEST_ENTRY(DateParseTest),
    TEST_ENTRY(DecodeTaggedTypeTests),
 #endif /* QCBOR_DISABLE_TAGS */
@@ -377,8 +377,5 @@ void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORDecodeNesting)",  (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORDecodeContext)",  (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
-   PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn),     pfOutput, pOutCtx);
-   PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut),    pfOutput, pOutCtx);
-   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(QCBOR_Private_TagSpec),pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

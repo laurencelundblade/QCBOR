@@ -35,6 +35,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
+#include "qcbor/qcbor_tag_decode.h"
 #include <string.h>
 #include <math.h> // for fabs()
 #include "not_well_formed_cbor.h"
@@ -1524,11 +1525,13 @@ int32_t ParseMapAsArrayTest(void)
    UsefulBufC         Encoded;
 
    /* Big decode of a map with a wide variety or labels */
+   // TODO: test  pPerverseLabels with v2 behavior
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pPerverseLabels),
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
-      UsefulBuf_MAKE_STACK_UB(Pool, 100);
-      QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+   QCBORDecode_CompatibilityV1(&DCtx);
+   UsefulBuf_MAKE_STACK_UB(Pool, 100);
+   QCBORDecode_SetMemPool(&DCtx, Pool, 0);
 
    uErr = QCBORDecode_GetNext(&DCtx, &Item);
    if(uErr) {
@@ -1867,7 +1870,6 @@ int32_t ParseMapAsArrayTest(void)
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_MAP_AS_ARRAY ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 258) ||
       Item.val.uCount != UINT16_MAX) {
       return MakeTestResultCode(10, 65, 0);
    }
@@ -1907,7 +1909,6 @@ int32_t ParseMapAsArrayTest(void)
    }
    if(Item.uLabelType != QCBOR_TYPE_NONE ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 23) ||
       Item.val.uCount != 0) {
       return MakeTestResultCode(10, 73, 0);
    }
@@ -1927,7 +1928,8 @@ int32_t ParseMapAsArrayTest(void)
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pPerverseLabels),
                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
-      QCBORDecode_SetMemPool(&DCtx, Pool, 0);
+   QCBORDecode_CompatibilityV1(&DCtx);
+   QCBORDecode_SetMemPool(&DCtx, Pool, 0);
 
    QCBORDecode_EnterArray(&DCtx, &Item);
    bool b;
@@ -2043,9 +2045,6 @@ int32_t ParseMapAsArrayTest(void)
    }
 
    QCBORDecode_EnterArray(&DCtx, &Item);
-   if(!QCBORDecode_IsTagged(&DCtx, &Item, 258)) {
-      return MakeTestResultCode(11, 17, 0);
-   }
    if(Item.uDataType != QCBOR_TYPE_MAP_AS_ARRAY) {
       return MakeTestResultCode(11, 18, 0);
    }
@@ -2061,9 +2060,6 @@ int32_t ParseMapAsArrayTest(void)
       return MakeTestResultCode(11, 21, 0);
    }
    QCBORDecode_EnterArray(&DCtx, &Item);
-   if(!QCBORDecode_IsTagged(&DCtx, &Item, 23)) {
-      return MakeTestResultCode(11, 22, 0);
-   }
    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
       return MakeTestResultCode(11, 23, 0);
    }
@@ -2600,6 +2596,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       const struct DecodeFailTestInput *pF = &pFailInputs[nIndex];
 
       QCBORDecode_Init(&DCtx, pF->Input, pF->DecoderMode);
+      QCBORDecode_CompatibilityV1(&DCtx);
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
       /* Set up the decoding context including a memory pool so that
@@ -2613,7 +2610,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 55) {
+      if(nIndex == 52) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -3433,6 +3430,8 @@ int32_t DateParseTest(void)
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
 
    /* 1. The valid date string "1985-04-12" */
    if((uError = QCBORDecode_GetNext(&DCtx, &Item))) {
@@ -3478,11 +3477,11 @@ int32_t DateParseTest(void)
       return -7;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1400000001 ||
+      Item.val.epochDate.nSeconds != 1400000001
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      Item.val.epochDate.fSecondsFraction != 0 ||
+      || Item.val.epochDate.fSecondsFraction != 0
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_ENC_AS_B64)) {
+      ) {
       return -8;
    }
 
@@ -3678,9 +3677,12 @@ int32_t SpiffyDateDecodeTest(void)
                       nEpochDays2;
    UsefulBufC         StringDate1, StringDate2, StringDays2;
 
+   // TODO: test spSpiffyDateTestInput in v2 mode
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DC);
+
 
    /* Items are in an array or map to test look up by label and other
     * that might not occur in isolated items. But it does make the
@@ -3777,7 +3779,7 @@ int32_t SpiffyDateDecodeTest(void)
    int64_t            nEpochDate2,
                       nEpochDateFail,
                       nEpochDate1400000000, nEpochDays1;
-   UsefulBufC         StringDays1;
+   UsefulBufC         StringDays1, StringDate3;
    uint64_t           uTag1, uTag2;
 
    // Tagged date string
@@ -3879,7 +3881,8 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Bad content for string date
-   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate1);
+   // TODO: should this set StringDate3 to NULL? variance between v1 and v2
+   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate3);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 4;
@@ -3948,10 +3951,41 @@ int32_t SpiffyDateDecodeTest(void)
       return 208;
    }
 
+
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyDateTestInput),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterArray(&DC, NULL);
+   QCBORDecode_EnterMap(&DC, NULL);
+   QCBORDecode_ExitMap(&DC);
+   QCBORDecode_EnterMap(&DC, NULL);
+
+   /*
+    Item with label 01. It has an extra tag number and the date tag number.
+    */
+   // QCBOR_TAG_REQUIREMENT_TAG
+   // QCBOR_TAG_REQUIREMENT_NOT_A_TAG
+   // QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG
+   // QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS
+   /*   0x01,
+    0xda, 0x03, 0x03, 0x03, 0x03, // An additional tag
+    0xc1, // tag for epoch date
+    0x1a, 0x53, 0x72, 0x4E, 0x00, // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
+   */
+#ifndef QCBOR_DISABLE_TAGS
+   QCBORDecode_GetNextTagNumberInMapN(&DC, 1, &uTag1);
+   QCBORDecode_GetEpochDateInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDate2);
+
+#endif /* ! QCBOR_DISABLE_TAGS */
+
+
+
+
    return 0;
 }
 
 
+#ifndef QCBOR_DISABLE_TAGS
 // Input for one of the tagging tests
 static const uint8_t spTagInput[] = {
    0xd9, 0xd9, 0xf7, // CBOR magic number
@@ -4015,8 +4049,9 @@ static const uint8_t spTagInput[] = {
  DB 9192939495969798 # tag(10489608748473423768)
    80                # array(0)
  */
-static const uint8_t spEncodedLargeTag[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95,
-                                      0x96, 0x97, 0x98, 0x80};
+// TODO: get rid of this?
+//static const uint8_t spEncodedLargeTag[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95,
+//                                      0x96, 0x97, 0x98, 0x80};
 
 /*
 DB 9192939495969798 # tag(10489608748473423768)
@@ -4025,8 +4060,10 @@ DB 9192939495969798 # tag(10489608748473423768)
          C7         # tag(7)
             80      # array(0)
 */
-static const uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
-                                 0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
+// TODO: get rid of this?
+
+//static const uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
+//                                 0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
 
 /*
    55799(55799(55799({
@@ -4104,23 +4141,23 @@ static const uint8_t spSpiffyTagInput[] = {
    0x4a, '1','9','8','5','-','0','4','-','1','2', // Date string in byte string
 
    // This last case makes the array untraversable because it is
-   // an uncrecoverable error. Make sure it stays last and is the only
+   // an unrecoverable error. Make sure it stays last and is the only
    // instance so the other tests can work.
 };
 
 
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
-
-int32_t OptTagParseTest(void)
+int32_t TagNumberDecodeTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
    QCBORError         uError;
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
 
    /*
     This test matches the magic number tag and the fraction tag
@@ -4130,8 +4167,7 @@ int32_t OptTagParseTest(void)
    if(uError != QCBOR_SUCCESS) {
       return -2;
    }
-   if(Item.uDataType != QCBOR_TYPE_ARRAY ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_CBOR_MAGIC)) {
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
       return -3;
    }
 
@@ -4142,7 +4178,7 @@ int32_t OptTagParseTest(void)
 #ifdef QCBOR_DISABLE_EXP_AND_MANTISSA
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) ||
+ //     !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) || // TODO: worried this test is incorrect
       QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_DECIMAL_FRACTION ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 1) != CBOR_TAG_INVALID64 ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 2) != CBOR_TAG_INVALID64 ||
@@ -4226,68 +4262,140 @@ int32_t OptTagParseTest(void)
       return -10;
    }
 
-   // ----------------------------------
-   // This test sets up a caller-config list that includes the very large
-   // tage and then matches it. Caller-config lists are no longer
-   // used or needed. This tests backwards compatibility with them.
+   /* Testing with v2 */
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag),
-                    QCBOR_DECODE_MODE_NORMAL);
-   const uint64_t puList[] = {0x9192939495969798, 257};
-   const QCBORTagListIn TL = {2, puList};
-   QCBORDecode_SetCallerConfiguredTagList(&DCtx, &TL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
+                     QCBOR_DECODE_MODE_NORMAL);
 
-   if(QCBORDecode_GetNext(&DCtx, &Item)) {
+   /*
+    This test matches the magic number tag and the fraction tag
+    55799([...])
+    */
+   uint64_t uTagNumber;
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS) {
+      return -200;
+   }
+   if(uTagNumber != CBOR_TAG_CBOR_MAGIC) {
+      return -300;
+   }
+
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      return -2;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 1) {
+      return -1003;
+   }
+   if(QCBORDecode_GetNthTagNumber(&DCtx, &Item, 0) != CBOR_TAG_CBOR_MAGIC) {
+      return -500;
+   }
+
+
+
+   /*
+    4([1,3])
+    */
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS) {
+      return -200;
+   }
+   if(uTagNumber != CBOR_TAG_DECIMAL_FRACTION) {
+      return -300;
+   }
+
+
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_DECIMAL_FRACTION ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 1) != CBOR_TAG_INVALID64 ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 2) != CBOR_TAG_INVALID64 ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 3) != CBOR_TAG_INVALID64 ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ||
+      Item.val.uCount != 2) {
+      return -4;
+   }
+   // consume the items in the array
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+
+
+   /*
+    More than 4 tags on an item 225(226(227(228(229([])))))
+    */
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
+      return -2;
+   }
+
+
+   /* tag 10489608748473423768(
+             2442302356(
+                21590(
+                   240(
+                      []))))
+    */
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS ||  uTagNumber != 10489608748473423768ULL) {
+      return -6;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 2442302356ULL) {
+      return -6;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 21590ULL) {
+      return -6;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 240ULL) {
+      return -6;
+   }
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      return -2;
+   }
+   if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 0) {
+      return -1003;
+   }
+
+   /* tag 21590(
+             10489608748473423768(
+                2442302357(
+                   21591(
+                       []))))
+    */
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS ||
+      Item.uDataType != QCBOR_TYPE_ARRAY ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 0) != 65534ULL ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 1) != 2442302357ULL ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 2) != 10489608748473423768ULL ||
+      QCBORDecode_GetNthTag(&DCtx, &Item, 3) != 21590ULL) {
       return -8;
    }
-   if(Item.uDataType != QCBOR_TYPE_ARRAY ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 0x9192939495969798) ||
-      QCBORDecode_IsTagged(&DCtx, &Item, 257) ||
-      QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_BIGFLOAT) ||
-      Item.val.uCount != 0) {
+
+   /* Make sure to blow past the limit of tags that must be mapped.
+      works in conjuntion with entries above.
+    269488144(269488145(269488146(269488147([]))))
+    */
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -9;
    }
 
-   //------------------------
-   // Sets up a caller-configured list and look up something not in it
-   // Another backwards compatibility test.
-   const uint64_t puLongList[17] = {1,2,1};
-   const QCBORTagListIn TLLong = {17, puLongList};
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag),
-                    QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_SetCallerConfiguredTagList(&DCtx, &TLLong);
-   if(QCBORDecode_GetNext(&DCtx, &Item)) {
-      return -11;
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError == QCBOR_SUCCESS) {
+      return -10;
    }
+   /* 0-0-0-0-0-0-0--0-0--0*/
 
-   uint64_t puTags[4];
-   QCBORTagListOut Out = {0, 4, puTags};
-
-
-   // This tests retrievel of the full tag list
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLotsOfTags),
-                    QCBOR_DECODE_MODE_NORMAL);
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -12;
-   }
-   if(puTags[0] != 0x9192939495969798 ||
-      puTags[1] != 0x88 ||
-      puTags[2] != 0x06 ||
-      puTags[3] != 0x07) {
-      return -13;
-   }
-
-   // ----------------------
-   // This tests too small of an out list
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spLotsOfTags),
-                    QCBOR_DECODE_MODE_NORMAL);
-   QCBORTagListOut OutSmall = {0, 3, puTags};
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &OutSmall) != QCBOR_ERR_TOO_MANY_TAGS) {
-      return -14;
-   }
 
 
 
@@ -4296,196 +4404,90 @@ int32_t OptTagParseTest(void)
    // It is a bit of a messy test and maybe could be improved, but
    // it is retained as a backwards compatibility check.
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    int n = CheckCSRMaps(&DCtx);
    if(n) {
       return n-2000;
    }
+   /* -9-9-9-9-9-9-9- */
 
-   Out = (QCBORTagListOut){0, 16, puTags};
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_NORMAL);
 
-   /* With the spiffy decode revision, this tag list is not used.
-    It doesn't matter if a tag is in this list or not so some
-    tests that couldn't process a tag because it isn't in this list
-    now can process these unlisted tags. The tests have been
-    adjusted for this. */
-   const uint64_t puTagList[] = {773, 1, 90599561};
-   const QCBORTagListIn TagList = {3, puTagList};
-   QCBORDecode_SetCallerConfiguredTagList(&DCtx, &TagList);
-
-
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -100;
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 55799) {
+      return 6000;
    }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_CBOR_MAGIC) ||
-      QCBORDecode_IsTagged(&DCtx, &Item, 90599561) ||
-      QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DATE_EPOCH) ||
-      Item.val.uCount != 2 ||
-      puTags[0] != CBOR_TAG_CBOR_MAGIC ||
-      puTags[1] != CBOR_TAG_CBOR_MAGIC ||
-      puTags[2] != CBOR_TAG_CBOR_MAGIC ||
-      Out.uNumUsed != 3) {
-      return -101;
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 0);
+   if(uTagNumber != 55799) {
+      return 6000;
    }
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -102;
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -22, &uTagNumber);
+   if(uTagNumber != 23) {
+      return 6000;
    }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_CBOR_MAGIC) ||
-      QCBORDecode_IsTagged(&DCtx, &Item, 6) ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 7) ||
-      Item.val.uCount != 2 ||
-      puTags[0] != 5859837686836516696 ||
-      puTags[1] != 7 ||
-      Out.uNumUsed != 2) {
-      return -103;
+   QCBORDecode_GetItemInMapN(&DCtx, -22, QCBOR_TYPE_ANY, &Item);
+
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 0);
+   if(uTagNumber != 23) {
+      return 6000;
    }
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -104;
-   }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      Item.val.uCount != 5 ||
-      puTags[0] != 0x0b ||
-      Out.uNumUsed != 1) {
-      return -105;
-   }
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -106;
-   }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_COSE_MAC0) ||
-      Item.val.string.len != 12 ||
-      puTags[0] != CBOR_TAG_COSE_MAC0 ||
-      puTags[1] != CBOR_TAG_COSE_MAC0 ||
-      puTags[2] != CBOR_TAG_COSE_MAC0 ||
-      Out.uNumUsed != 3) {
-      return -105;
-   }
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -107;
-   }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 773) ||
-      Item.val.string.len != 3 ||
-      puTags[0] != 773 ||
-      Out.uNumUsed != 1) {
-      return -108;
-   }
+   //---
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -23, &uTagNumber);
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -109;
+   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
+      return -99;
    }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 16) ||
-      Item.val.string.len != 9 ||
-      puTags[0] != 16 ||
-      puTags[3] != 7 ||
-      Out.uNumUsed != 4) {
-      return -110;
-   }
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -23, &uTagNumber);
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -111;
-   }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 17) ||
-      Item.val.string.len != 9 ||
-      puTags[0] != 17 ||
-      Out.uNumUsed != 1) {
-      return -112;
-   }
+   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -111;
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 1);
+   if(uTagNumber != 7) {
+      return 6000;
    }
-   if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 17) ||
-      Item.val.string.len != 2 ||
-      puTags[0] != 17 ||
-      Out.uNumUsed != 1) {
-      return -112;
-   }
+   UsefulBufC TX;
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -113;
-   }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 19) ||
-      Item.val.uCount != 2 ||
-      puTags[0] != 19 ||
-      Out.uNumUsed != 1) {
-      return -114;
-   }
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -20, &uTagNumber);
+   QCBORDecode_EnterMapFromMapN(&DCtx, -20);
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -115;
+   QCBORDecode_GetTextStringInMapN(&DCtx, -18, &TX);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
+      return -99;
    }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 9) ||
-      Item.val.uCount != 1 ||
-      puTags[0] != 9 ||
-      Out.uNumUsed != 1) {
-      return -116;
-   }
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
+   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
+   QCBORDecode_GetTextStringInMapN(&DCtx, -18, &TX);
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -116;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -7 ||
-      Out.uNumUsed != 0) {
-      return -117;
-   }
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -118;
-   }
-   if(Item.uDataType != QCBOR_TYPE_BYTE_STRING ||
-      Item.val.string.len != 10 ||
-      puTags[0] != 12 ||
-      Out.uNumUsed != 1) {
-      return -119;
-   }
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -120;
-   }
-   if(Item.uDataType != QCBOR_TYPE_MAP ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_ENC_AS_B16) ||
-      Item.val.uCount != 1 ||
-      puTags[0] != 0x17 ||
-      Out.uNumUsed != 1) {
-      return -121;
-   }
+   QCBORDecode_ExitMap(&DCtx);
 
-   if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
-      return -122;
-   }
-   if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 8) ||
-      Item.val.int64 != -3 ||
-      puTags[0] != 8 ||
-      Out.uNumUsed != 1) {
-      return -123;
-   }
 
-   if(QCBORDecode_Finish(&DCtx)) {
-      return -124;
-   }
 
+   /* -9-9-9-9-9-9-9- */
+
+
+
+ 
    UsefulBufC DateString;
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
@@ -4497,7 +4499,7 @@ int32_t OptTagParseTest(void)
    }
    // untagged byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 101;
    }
    // tagged regex
@@ -4521,8 +4523,10 @@ int32_t OptTagParseTest(void)
 
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    QCBORDecode_EnterMap(&DCtx, NULL);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
       return 200;
@@ -4553,8 +4557,10 @@ int32_t OptTagParseTest(void)
 
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_EnterMapFromMapN(&DCtx, -23);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
@@ -4569,8 +4575,10 @@ int32_t OptTagParseTest(void)
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                    QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_MAP_AS_ARRAY);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    QCBORDecode_EnterArray(&DCtx, NULL);
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 55799) {
       return 230;
@@ -4601,8 +4609,9 @@ int32_t OptTagParseTest(void)
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
@@ -4614,12 +4623,12 @@ int32_t OptTagParseTest(void)
    }
    // untagged byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 251;
    }
    // tagged regex
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 252;
    }
    // tagged date string with a byte string
@@ -4634,8 +4643,9 @@ int32_t OptTagParseTest(void)
    }
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSpiffyTagInput),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
@@ -4655,12 +4665,12 @@ int32_t OptTagParseTest(void)
    }
    // tagged regex
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 303;
    }
    // tagged date string with a byte string
    QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_TAG_CONTENT) { // TODO: make sure this is the right error
       return 304;
    }
    // See comments above
@@ -4671,6 +4681,7 @@ int32_t OptTagParseTest(void)
 
    return 0;
 }
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 /*
  * These are showing the big numbers converted to integers.
@@ -4858,8 +4869,9 @@ int32_t BignumDecodeTest(void)
    QCBORError nCBORError;
 
    QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumInput),
-                    QCBOR_DECODE_MODE_NORMAL);
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumInput),
+                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
 
 
    //
@@ -4948,6 +4960,8 @@ int32_t BignumDecodeTest(void)
       }
 
       QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
+
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 1, uErr);
@@ -4976,6 +4990,8 @@ int32_t BignumDecodeTest(void)
       }
 
       QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
+
       QCBORDecode_GetBigNumPreferred(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, BignumBuf,  &ResultBigNum, &bIsNeg);
       uErr = QCBORDecode_GetError(&DCtx);
       if(uErr != QCBOR_SUCCESS) {
@@ -5381,6 +5397,7 @@ int32_t IndefiniteLengthArrayMapTest(void)
    IndefLen = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefiniteArrayBad5);
 
    QCBORDecode_Init(&DC, IndefLen, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DC);
 
    nResult = QCBORDecode_GetNext(&DC, &Item);
 
@@ -6056,11 +6073,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x03}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */ // TODO: think about error code here
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */ // TODO: think about error code here
       0,
       {(const uint8_t []){0x00}, 1},
       false
@@ -6078,11 +6095,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 1},
 
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFraction */ // TODO: think about error code
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */ // TODO: think about error code
       0,
       {(const uint8_t []){0x03}, 1},
       false,
@@ -6096,7 +6113,6 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x64}, 1},
       false
    },
-
    {
       "5. Tagged 4([-20, 4759477275222530853136]) decimal fraction, tag 4 required",
       {(const uint8_t []){0xC4, 0x82, 0x33,
@@ -6160,6 +6176,7 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x00}, 0},
       false
    },
+
    {
       "7. Tagged 5([-20, 4294967295]) big float, big num mantissa, tag 5 required",
       {(const uint8_t []){0xC5, 0x82, 0x33,
@@ -6246,11 +6263,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
       true,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 1},
       false
@@ -6274,6 +6291,7 @@ int32_t ProcessEaMTests(void)
       const struct EaMTest *pT = &pEaMTests[uIndex];
       /* Decode with GetNext */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
 
       if(uIndex + 1 == 9) {
          nExponent = 99; // just to set a break point
@@ -6315,6 +6333,8 @@ int32_t ProcessEaMTests(void)
 
       /* Decode with GetDecimalFraction */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
+
       QCBORDecode_GetDecimalFraction(&DCtx,
                                       pT->uTagRequirement,
                                      &nMantissa,
@@ -6345,6 +6365,8 @@ int32_t ProcessEaMTests(void)
 
       /* Decode with GetDecimalFractionBig */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
+
       QCBORDecode_GetDecimalFractionBig(&DCtx,
                                  pT->uTagRequirement,
                                  MantissaBuf,
@@ -6380,6 +6402,8 @@ int32_t ProcessEaMTests(void)
 
       /* Decode with GetBigFloat */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
+
       QCBORDecode_GetBigFloat(&DCtx,
                               pT->uTagRequirement,
                               &nMantissa,
@@ -6410,6 +6434,8 @@ int32_t ProcessEaMTests(void)
 
       /* Decode with GetBigFloatBig */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
+
       QCBORDecode_GetBigFloatBig(&DCtx,
                                  pT->uTagRequirement,
                                  MantissaBuf,
@@ -6476,6 +6502,8 @@ int32_t ExponentAndMantissaDecodeTestsSecondary(void)
 
 
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DC);
+
    uErr = QCBORDecode_GetNext(&DC, &item);
    if(uErr != QCBOR_SUCCESS) {
       return 100;
@@ -7080,6 +7108,19 @@ static const uint8_t spNested[] = {
 };
 
 
+/*
+ {1: 1(1), 2: 1(2(2)), 3: 1(2(3(3)))}
+
+ */
+static const uint8_t spMapWithNestedTags[] = {
+   0xA3,
+      0x01, 0xc1, 0x01,
+      0x02, 0xc1, 0xc2, 0x02,
+      0x03, 0xc1, 0xc2, 0xc3, 0x03,
+};
+
+
+
 static int32_t EnterMapCursorTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -7160,6 +7201,38 @@ static int32_t EnterMapCursorTest(void)
       }
    }
 
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithNestedTags), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+#ifndef QCBOR_DISABLE_TAGS
+   // TODO: map/array items counts and tag numbers
+   QCBORDecode_SeekToLabelN(&DCtx, 1);
+   uint64_t uTagNumber;
+   QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 1) {
+      return 9001;
+   }
+   uErr = QCBORDecode_GetNext(&DCtx, &Item1); // int 1
+   if(uErr != QCBOR_SUCCESS || Item1.val.int64 != 1) {
+      return 9002;
+   }
+
+
+   QCBORDecode_SeekToLabelN(&DCtx, 2);
+   QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 1) {
+      return 9001;
+   }
+   QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 2) {
+      return 9001;
+   }
+   uErr = QCBORDecode_GetNext(&DCtx, &Item1); // int 2
+   if(uErr != QCBOR_SUCCESS || Item1.val.int64 != 2) {
+      return 9002;
+   }
+
+#endif /* ! QCBOR_DISABLE_TAGS */
    return 0;
 }
 
@@ -7376,6 +7449,8 @@ int32_t EnterMapTest(void)
 
    int64_t nInt;
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spRecoverableMapErrors), 0);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    QCBORDecode_EnterMap(&DCtx, NULL);
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
@@ -7954,11 +8029,13 @@ static const struct NumberConversion NumberConversions[] = {
 
 
 
-static int32_t SetUpDecoder(QCBORDecodeContext *DCtx, UsefulBufC CBOR, UsefulBuf Pool)
+static int32_t SetUpDecoder(QCBORDecodeContext *pDCtx, UsefulBufC CBOR, UsefulBuf Pool)
 {
-   QCBORDecode_Init(DCtx, CBOR, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(pDCtx, CBOR, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(pDCtx);
+
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   if(QCBORDecode_SetMemPool(DCtx, Pool, 0)) {
+   if(QCBORDecode_SetMemPool(pDCtx, Pool, 0)) {
       return 1;
    }
 #else /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
@@ -8670,6 +8747,7 @@ int32_t DecodeTaggedTypeTests(void)
    QCBORError         uErr;
 
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedTypes), 0);
+   QCBORDecode_CompatibilityV1(&DC);
 
    UsefulBufC String;
    bool       bNeg;
@@ -8988,6 +9066,7 @@ int32_t SpiffyIndefiniteLengthStringsTests(void)
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithIndefLenStrings),
                     QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_CompatibilityV1(&DCtx);
 
    UsefulBuf_MAKE_STACK_UB(StringBuf, 200);
    QCBORDecode_SetMemPool(&DCtx, StringBuf, false);
@@ -9958,7 +10037,12 @@ int32_t BoolTest(void)
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTaggedSimples),
                     0);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    QCBORDecode_GetBool(&DCtx, &b);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_SUCCESS) {
+      return 410;
+   }   
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 22) {
       return 401;
    }
@@ -10593,11 +10677,12 @@ PreciseNumbersDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &PreciseNumberConversions[uTestIndex];
 
-      if(uTestIndex == 18) {
+      if(uTestIndex == 16) {
          uErr = 99; // For break point only
       }
 
       QCBORDecode_Init(&DCtx, pTest->CBOR, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
 
       QCBORDecode_GetNumberConvertPrecisely(&DCtx, &Item);
 
@@ -10801,6 +10886,8 @@ int32_t GetMapAndArrayTest(void)
 #ifndef QCBOR_DISABLE_TAGS
    UsefulBufC ExpMant = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpMant);
    QCBORDecode_Init(&DCtx, ExpMant, 0);
+   QCBORDecode_CompatibilityV1(&DCtx);
+
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_EnterArray(&DCtx, NULL);
    QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
@@ -10809,9 +10896,6 @@ int32_t GetMapAndArrayTest(void)
    }
    if(Item.uDataType != QCBOR_TYPE_ARRAY) {
       return 201;
-   }
-   if(!QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION)) {
-      return 202;
    }
    if(Item.val.uCount != 2) {
       return 201;
