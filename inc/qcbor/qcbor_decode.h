@@ -228,6 +228,8 @@ typedef enum {
    /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
 
+#define QCBOR_DECODE_MODE_MASK 0x07
+
 
 /**
  * The maximum size of input to the decoder. Slightly less than

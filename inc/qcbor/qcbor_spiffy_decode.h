@@ -1182,6 +1182,16 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * is more efficient than scanning each individually because the map
  * only needs to be traversed once.
  *
+ * Warning, this does not check that the tag numbers have been
+ * consumed or checked. This can be remedied by checking that
+ * every pItemList.auTagNumbers is empty or has tag numbers that are
+ * expected. While tag numbers were once described as "optional",
+ * they really do have critical information that should not be ignored.
+ * See @ref Tag-Decoding
+ *
+ * This function works well with tag content decoders as described in
+ * QCBORDecode_InstallTagDecoders().
+ *
  * This will return maps and arrays that are in the map, but provides
  * no way to descend into and decode them. Use
  * QCBORDecode_EnterMapinMapN(), QCBORDecode_EnterArrayInMapN() and
@@ -2415,7 +2425,7 @@ QCBORDecode_GetArray(QCBORDecodeContext *pMe,
 
 static inline void
 QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pMe,
-                             int64_t             nLabel,
+                             const int64_t       nLabel,
                              QCBORItem          *pItem,
                              UsefulBufC         *pEncodedCBOR)
 {
@@ -2462,7 +2472,7 @@ QCBORDecode_GetMap(QCBORDecodeContext *pMe,
 
 static inline void
 QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pMe,
-                           int64_t             nLabel,
+                           const int64_t       nLabel,
                            QCBORItem          *pItem,
                            UsefulBufC         *pEncodedCBOR)
 {

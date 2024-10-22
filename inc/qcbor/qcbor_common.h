@@ -564,7 +564,7 @@ typedef enum {
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
    /** An unconsumed tag number was encountered. */
-   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89,
+   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89, // TODO: rid of this in favor of below?
 
    /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber(). 
     * See @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS. */
@@ -575,7 +575,7 @@ typedef enum {
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
    QCBOR_ERR_FIRST_USER_DEFINED = 128,
 
-   /** See \ref QCBOR_ERR_FIRST_USER_DEFINED */
+   /** See @ref QCBOR_ERR_FIRST_USER_DEFINED */
    QCBOR_ERR_LAST_USER_DEFINED = 255
 
    /* This is stored in uint8_t; never add values > 255 */

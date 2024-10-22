@@ -407,6 +407,7 @@ struct _QCBORDecodeContext {
 
    size_t      uTagNumberCheckOffset;
    uint8_t     uTagNumberIndex;
+#define QCBOR_ALL_TAGS_PROCESSED UINT8_MAX
 };
 
 
@@ -438,6 +439,8 @@ struct _QCBORDecodeContext {
 
 /* The number of elements in a C array of a particular type */
 #define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
+
+#define ABSOLUTE_VALUE(x) ((x) < 0 ? -(x) : (x))
 
 
 #ifdef __cplusplus
