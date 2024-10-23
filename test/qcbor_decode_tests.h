@@ -179,7 +179,7 @@ int32_t SpiffyDateDecodeTest(void);
 /*
   Test decode of CBOR tagging like the CBOR magic number and many others.
  */
-int32_t OptTagParseTest(void);
+int32_t TagNumberDecodeTest(void);
 
 
 /*

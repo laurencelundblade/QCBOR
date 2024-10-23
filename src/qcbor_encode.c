@@ -187,7 +187,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * 4, 5             QCBOREncode_OpenMapOrArray(), QCBOREncode_CloseMapOrArray(),
  *                  QCBOREncode_OpenMapOrArrayIndefiniteLength(),
  *                  QCBOREncode_CloseMapOrArrayIndefiniteLength()
- * 6                QCBOREncode_AddTag()
+ * 6                QCBOREncode_AddTagNumber()
  * 7                QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
  *                  QCBOREncode_AddDoubleNoPreferred(),
  *                  QCBOREncode_AddFloatNoPreferred(), QCBOREncode_AddType7()
@@ -762,7 +762,15 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
+/* =======
+ if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+    QCBOREncode_AddTagNumber(pMe, uTag);
+ }
+ QCBOREncode_AddBytes(pMe, BigNum);
+}
 
+>>>>>>> dev
+ */
 
 /**
  * @brief Convert a big number to unsigned integer.
@@ -778,6 +786,7 @@ QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
 {
    uint64_t uInt;
    size_t   uIndex;
+
 
    uInt = 0;
    for(uIndex = 0; uIndex < BigNumber.len; uIndex++) {
@@ -842,6 +851,8 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
    UsefulBufC NextSubString;
 
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, true);
+
+   /* This works on any length without the need of an additional buffer */
 
    /* This subtracts one, possibly making the string shorter by one
     * 0x01 -> 0x00
@@ -1047,7 +1058,7 @@ QCBOREncode_Private_AddTExpMantissaInt(QCBOREncodeContext *pMe,
     * that has no effect on the code here.
     */
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, uTagNumber);
+      QCBOREncode_AddTagNumber(pMe, uTagNumber);
    }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
@@ -1599,7 +1610,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
-void 
+void
 QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;
@@ -1620,7 +1631,7 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
 /*
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
-void 
+void
 QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;

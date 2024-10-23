@@ -30,10 +30,10 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
-
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+//TODO: get rid of  QCBOR_DISABLE_EXP_AND_MANTISSA and uncommon tags
 
 #ifdef __cplusplus
 extern "C" {
@@ -153,13 +153,13 @@ extern "C" {
 /** A hint that the following byte string should be encoded in
  *  Base64URL when converting to JSON or similar text-based
  *  representations. Call @c
- *  QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B64URL) before the call to
+ *  QCBOREncode_AddTagNumber(pCtx,CBOR_TAG_ENC_AS_B64URL) before the call to
  *  QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B64URL 21
 /** A hint that the following byte string should be encoded in Base64
  *  when converting to JSON or similar text-based
  *  representations. Call @c
- *  QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B64) before the call to
+ *  QCBOREncode_AddTagNumber(pCtx,CBOR_TAG_ENC_AS_B64) before the call to
  *  QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B64    22
 /** A hint that the following byte string should be encoded in base-16
@@ -167,7 +167,7 @@ extern "C" {
  *  (https://www.rfc-editor.org/rfc/rfc4648.html) when converting to
  *  JSON or similar text-based representations. Essentially, Base-16
  *  encoding is the standard case- insensitive hex encoding and may be
- *  referred to as "hex". Call @c QCBOREncode_AddTag(pCtx,CBOR_TAG_ENC_AS_B16)
+ *  referred to as "hex". Call @c QCBOREncode_AddTagNumber(pCtx,CBOR_TAG_ENC_AS_B16)
  *  before the call to QCBOREncode_AddBytes(). */
 #define CBOR_TAG_ENC_AS_B16    23
 /** See QCBORDecode_EnterBstrWrapped()). */
@@ -231,6 +231,9 @@ extern "C" {
 #define CBOR_TAG_INVALID32 0xffffffff
 /** The 64-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID64 0xffffffffffffffff
+
+/** Allows tag content handler installed by QCBORDecode_InstallTagDecoders to match any tag number */
+#define CBOR_TAG_ANY (CBOR_TAG_INVALID64 - 1)
 
 
 
@@ -560,12 +563,19 @@ typedef enum {
    /* Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
+   /** An unconsumed tag number was encountered. */
+   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89, // TODO: rid of this in favor of below?
+
+   /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber(). 
+    * See @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS. */
+   QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
    QCBOR_ERR_FIRST_USER_DEFINED = 128,
 
-   /** See \ref QCBOR_ERR_FIRST_USER_DEFINED */
+   /** See @ref QCBOR_ERR_FIRST_USER_DEFINED */
    QCBOR_ERR_LAST_USER_DEFINED = 255
 
    /* This is stored in uint8_t; never add values > 255 */

@@ -278,7 +278,7 @@ extern "C" {
  * See also @ref CBORTags and @ref Tag-Usage
  *
  * The encoding side of tags not built-in is handled by
- * QCBOREncode_AddTag() and is relatively simple. Tag decoding is more
+ * QCBOREncode_AddTagNumber() and is relatively simple. Tag decoding is more
  * complex and mainly handled by QCBORDecode_GetNext(). Decoding of the
  * structure of tagged data not built-in (if there is any) has to be
  * implemented by the caller.
@@ -833,7 +833,6 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
-<<<<<<< HEAD
  * This encodes using preferred serialization, selectively encoding
  * the input floating-point number as either double-precision,
  * single-precision or half-precision. Infinity, NaN and 0 are always
@@ -857,32 +856,6 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * can't be directly decoded into an int64_t or uint64_t. See
  * QCBORDecode_GetNumberConvertPrecisely(), a good method to use to
  * decode dCBOR.
-=======
- * This encodes and outputs a double-precision floating-point
- * number. CBOR major type 7 is used.
- *
- * This implements preferred serialization, selectively encoding the
- * double-precision floating-point number as either double-precision,
- * single-precision or half-precision. Infinity, NaN and zero are
- * always encoded as half-precision. If no precision will be lost in
- * the conversion to half-precision, then it will be converted and
- * encoded. If not and no precision will be lost in conversion to
- * single-precision, then it will be converted and encoded. If not,
- * then no conversion is performed, and it encoded as a
- * double-precision.
- *
- * Half-precision floating-point numbers take up two bytes, half that
- * of single-precision, one quarter of double-precision. Preferred
- * serialization can therefore reduce message size down to one quarter
- * of the original if most of the values are zero, infinity or NaN.
- *
- * When decoded, QCBOR returns these values as double-precision even
- * if they were encoded as single or half-precision.
- *
- * It is possible to disable preferred serialization when compiling
- * QCBOR. In that case, this operates the same as
- * QCBOREncode_AddDoubleNoPreferred().
->>>>>>> master
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -916,12 +889,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * @param[in] fNum  The single-precision number to add.
  *
  * This is identical to QCBOREncode_AddDouble() except the input is
-<<<<<<< HEAD
  * single-precision. It also supports dCBOR.
-=======
- * single-precision. The preferred serialization output will be either
- * single-precision or half-precision.
->>>>>>> master
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleNoPreferred(),
  * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
@@ -986,7 +954,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
 
 
 /**
- * @brief Add an optional tag.
+ * @brief Add a tag number.
  *
  * @param[in] pCtx  The encoding context to add the tag to.
  * @param[in] uTag  The tag to add
@@ -1010,7 +978,7 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, 
  */
 // AddTagNumber
 static void
-QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
+QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTag);
 
 
 /**
@@ -1041,7 +1009,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
  *
  * This implementation cannot encode fractional seconds using float or
  * double even though that is allowed by CBOR, but you can encode them
- * if you want to by calling QCBOREncode_AddTag() and QCBOREncode_AddDouble().
+ * if you want to by calling QCBOREncode_AddTagNumber() and QCBOREncode_AddDouble().
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -2051,7 +2019,7 @@ QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pMe,
  * An array itself must have a label if it is being added to a map.
  * Note that array elements do not have labels (but map elements do).
  *
- * An array itself may be tagged by calling QCBOREncode_AddTag()
+ * An array itself may be tagged by calling QCBOREncode_AddTagNumber()
  * before this call.
  */
 static void
@@ -2628,6 +2596,11 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
 /* ================ Deprecated ============================ */
 
 
+/* Use QCBOREncode_AddTagNumber() instead */
+static void
+QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
+
+
 /**
  * @brief Add a positive big number to the encoded output (deprecated).
  *
@@ -2653,7 +2626,6 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
  * named with "BigNumber" and the older deprecated are named
  * with "BigNum".
  */
-
 static void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pCtx,
                                uint8_t             uTagRequirement,
@@ -3231,9 +3203,16 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+QCBOREncode_AddTagNumber(QCBOREncodeContext *pMe, const uint64_t uTag)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTag, 0);
+}
+
+
+static inline void
+QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+{
+   QCBOREncode_AddTagNumber(pMe, uTag);
 }
 
 
@@ -3362,7 +3341,7 @@ QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe,
                           const int64_t       nDate)
 {
    if(uTag == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DATE_EPOCH);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DATE_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDate);
 }
@@ -3419,7 +3398,7 @@ QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe,
                           const int64_t       nDays)
 {
    if(uTag == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_EPOCH);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DAYS_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDays);
 }
@@ -3496,7 +3475,7 @@ QCBOREncode_AddTBinaryUUID(QCBOREncodeContext *pMe,
                            const UsefulBufC    Bytes)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_BIN_UUID);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_BIN_UUID);
    }
    QCBOREncode_AddBytes(pMe, Bytes);
 }
@@ -4175,7 +4154,7 @@ QCBOREncode_AddTURI(QCBOREncodeContext *pMe,
                     const UsefulBufC    URI)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_URI);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_URI);
    }
    QCBOREncode_AddText(pMe, URI);
 }
@@ -4230,7 +4209,7 @@ QCBOREncode_AddTB64Text(QCBOREncodeContext *pMe,
                         const UsefulBufC    B64Text)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_B64);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_B64);
    }
    QCBOREncode_AddText(pMe, B64Text);
 }
@@ -4285,7 +4264,7 @@ QCBOREncode_AddTB64URLText(QCBOREncodeContext *pMe,
                            const UsefulBufC    B64Text)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_B64URL);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_B64URL);
    }
    QCBOREncode_AddText(pMe, B64Text);
 }
@@ -4343,7 +4322,7 @@ QCBOREncode_AddTRegex(QCBOREncodeContext *pMe,
                       const UsefulBufC    Bytes)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_REGEX);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_REGEX);
    }
    QCBOREncode_AddText(pMe, Bytes);
 }
@@ -4398,7 +4377,7 @@ QCBOREncode_AddTMIMEData(QCBOREncodeContext *pMe,
                          const UsefulBufC    MIMEData)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_BINARY_MIME);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_BINARY_MIME);
    }
    QCBOREncode_AddBytes(pMe, MIMEData);
 }
@@ -4452,7 +4431,7 @@ QCBOREncode_AddTDateString(QCBOREncodeContext *pMe,
                            const char         *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DATE_STRING);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DATE_STRING);
    }
    QCBOREncode_AddSZString(pMe, szDate);
 }
@@ -4506,7 +4485,7 @@ QCBOREncode_AddTDaysString(QCBOREncodeContext *pMe,
                            const char         *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, CBOR_TAG_DAYS_STRING);
+      QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DAYS_STRING);
    }
    QCBOREncode_AddSZString(pMe, szDate);
 }

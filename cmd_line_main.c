@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include "run_tests.h"
 #include "example.h"
+#include "tag-examples.h"
 #include "ub-example.h"
 
 
@@ -34,6 +35,7 @@ int main(int argc, const char * argv[])
    (void)argc; // Avoid unused parameter error
 
    RunQCborExample();
+   RunTagExamples();
    RunUsefulBufExample();
 
 
