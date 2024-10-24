@@ -180,10 +180,20 @@ QCBOR_Private_ExpMantissaDataType(const uint64_t   uTagToProcess,
    uint8_t uBase = uTagToProcess == CBOR_TAG_DECIMAL_FRACTION ?
                                        QCBOR_TYPE_DECIMAL_FRACTION :
                                        QCBOR_TYPE_BIGFLOAT;
-   if(pDecodedItem->uDataType != QCBOR_TYPE_INT64) {
-      uBase = (uint8_t)(uBase + pDecodedItem->uDataType - QCBOR_TYPE_POSBIGNUM + 1);
+
+   switch(pDecodedItem->uDataType) {
+      case QCBOR_TYPE_INT64:
+         return uBase;
+
+      case QCBOR_TYPE_UINT64:
+         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_POS_U64- QCBOR_TYPE_DECIMAL_FRACTION); // TODO: test this
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64- QCBOR_TYPE_DECIMAL_FRACTION); // TODO: test this
+
+      default:
+         return (uint8_t)(uBase + pDecodedItem->uDataType - QCBOR_TYPE_POSBIGNUM + 1);
    }
-   return uBase;
 }
 
 
@@ -197,6 +207,10 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
    (void)pTagDecodersContext;
 
    QCBORError uReturn;
+   QCBORItem  ExponentItem;
+   QCBORItem  MantissaItem;
+
+
 
    /* --- Make sure it is an array; track nesting level of members --- */
    if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
@@ -211,7 +225,6 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
    const uint8_t uNestLevel = pDecodedItem->uNestingLevel + 1;
 
    /* --- Get the exponent --- */
-   QCBORItem ExponentItem;
    uReturn = QCBORDecode_GetNext(pDecodeCtx, &ExponentItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
@@ -235,7 +248,6 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
    }
 
    /* --- Get the mantissa --- */
-   QCBORItem MantissaItem;
    uReturn = QCBORDecode_GetNext(pDecodeCtx, &MantissaItem);
    if(uReturn != QCBOR_SUCCESS) {
       goto Done;
@@ -263,8 +275,12 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
       /* Got a good big num mantissa */
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = MantissaItem.val.bigNum;
 #endif /* QCBOR_DISABLE_TAGS */
+   } else if(MantissaItem.uDataType == QCBOR_TYPE_UINT64) {
+      pDecodedItem->val.expAndMantissa.Mantissa.uInt = MantissaItem.val.uint64;
+   } else if(MantissaItem.uDataType == QCBOR_TYPE_65BIT_NEG_INT) {
+      pDecodedItem->val.expAndMantissa.Mantissa.uInt = MantissaItem.val.uint64;
    } else {
-      /* Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX */
+      /* Wrong type of mantissa */
       uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }
