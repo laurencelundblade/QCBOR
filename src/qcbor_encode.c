@@ -761,7 +761,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-
+// TODO: what is this?
 /* =======
  if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
     QCBOREncode_AddTagNumber(pMe, uTag);

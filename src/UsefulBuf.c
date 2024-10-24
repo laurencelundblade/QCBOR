@@ -166,11 +166,10 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 UsefulBufC
 UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte)
 {
-   while(String.len > 0) {
+   for(;String.len; String.len--) {
       if(*(const uint8_t *)String.ptr != uByte) {
          break;
       }
-      String.len--;
       String.ptr = (const uint8_t *)String.ptr + 1;
    }
 

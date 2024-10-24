@@ -1485,8 +1485,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * @brief Decode a preferred serialization big number.
  *
  * @param[in] Item    The number to process.
- * @param[in] BigNumBuf  The buffer to output to.
- * @param[out] pBigNum   The resulting big number.
+ * @param[in] BigNumberBuf  The buffer to output to.
+ * @param[out] pBigNumber   The resulting big number.
  * @param[in,out] pbIsNegative  The sign of the resulting big number.
  *
  * This exists to process an item that is expected to be a big number
@@ -1511,8 +1511,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * and 1 are converted. Leading zeros are removed. The value 0 is
  * always returned as a one-byte big number with the value 0x00.
  *
- * If \c BigNumBuf is too small, \c pBigNum.ptr will be \c NULL and \c
- * pBigNum.len reports the required length. The size of \c BigNumBuf
+ * If \c BigNumberBuf is too small, \c pBigNum.ptr will be \c NULL and \c
+ * pBigNum.len reports the required length. The size of \c BigNumberBuf
  * might have to be one larger than the size of the tag 2 or 3 being
  * decode because of two cases. In CBOR the value of a tag 3 big
  * number is -n - 1. The subtraction of one might have a carry.  For
@@ -1544,8 +1544,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
-                             UsefulBuf       BigNumBuf,
-                             UsefulBufC     *pBigNum,
+                             UsefulBuf       BigNumberBuf,
+                             UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative);
 
 
@@ -1553,7 +1553,7 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
  * @brief Decode a big number.
  *
  * @param[in] Item    The number to process.
- * @param[in] BigNumBuf  The buffer to output to.
+ * @param[in] BigNumberBuf  The buffer to output to.
  * @param[out] pBigNumber   The resulting big number.
  * @param[out] pbIsNegative  The sign of the resulting big number.
  *
@@ -1564,7 +1564,7 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
  */
 QCBORError
 QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
-                                        UsefulBuf       BigNumBuf,
+                                        UsefulBuf       BigNumberBuf,
                                         UsefulBufC     *pBigNumber,
                                         bool           *pbIsNegative);
 

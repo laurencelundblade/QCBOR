@@ -363,8 +363,8 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  *
  * @param[in] pCtx          The decode context.
  * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[in] BigNumBuf     The buffer to write the result into.
- * @param[out] pBigNum      The output big number.
+ * @param[in] BigNumberBuf     The buffer to write the result into.
+ * @param[out] pBigNumber     The output big number.
  * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
  *
  * See QCBORDecode_PreferedBigNumber() in full detail.
@@ -394,24 +394,24 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
 void
 QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
                          const uint8_t       uTagRequirement,
-                         UsefulBuf           BigNumBuf,
-                         UsefulBufC         *pBigNum,
+                         UsefulBuf           BigNumberBuf,
+                         UsefulBufC         *pBigNumber,
                          bool               *pbIsNegative);
 
 void
 QCBORDecode_GetBigNumberInMapN(QCBORDecodeContext *pCtx,
                                int64_t             nLabel,
                                uint8_t             uTagRequirement,
-                               UsefulBuf           BigNumBuf,
-                               UsefulBufC         *pBigNum,
+                               UsefulBuf           BigNumberBuf,
+                               UsefulBufC         *pBigNumber,
                                bool               *pbIsNegative);
 
 void
 QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
                                 const char         *szLabel,
                                 uint8_t             uTagRequirement,
-                                UsefulBuf           BigNumBuf,
-                                UsefulBufC         *pBigNum,
+                                UsefulBuf           BigNumberBuf,
+                                UsefulBufC         *pBigNumber,
                                 bool               *pbIsNegative);
 
 
@@ -420,8 +420,8 @@ QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
  *
  * @param[in] pCtx          The decode context.
  * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[in] BigNumBuf     The buffer to write the result into.
- * @param[out] pBigNum      The output big number.
+ * @param[in] BigNumberBuf     The buffer to write the result into.
+ * @param[out] pBigNumber      The output big number.
  * @param[in,out] pbIsNegative  Set to true if the resulting big number is negative.
  *
  * This is the same as QCBORDecode_GetBigNumber(), but will error
@@ -430,24 +430,24 @@ QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
 void
 QCBORDecode_GetBigNumberNoPreferred(QCBORDecodeContext *pCtx,
                                     const uint8_t       uTagRequirement,
-                                    UsefulBuf           BigNumBuf,
-                                    UsefulBufC         *pBigNum,
+                                    UsefulBuf           BigNumberBuf,
+                                    UsefulBufC         *pBigNumber,
                                     bool               *pbIsNegative);
 
 void
 QCBORDecode_GetBigNumberNoPreferredInMapN(QCBORDecodeContext *pCtx,
-                                          uint8_t             uTagRequirement,
                                           int64_t             nLabel,
-                                          UsefulBuf           BigNumBuf,
-                                          UsefulBufC         *pBigNum,
+                                          uint8_t             uTagRequirement,
+                                          UsefulBuf           BigNumberBuf,
+                                          UsefulBufC         *pBigNumber,
                                           bool               *pbIsNegative);
 
 void
 QCBORDecode_GetBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pCtx,
-                                           uint8_t             uTagRequirement,
                                            const char         *szLabel,
-                                           UsefulBuf           BigNumBuf,
-                                           UsefulBufC         *pBigNum,
+                                           uint8_t             uTagRequirement,
+                                           UsefulBuf           BigNumberBuf,
+                                           UsefulBufC         *pBigNumber,
                                            bool               *pbIsNegative);
 
 

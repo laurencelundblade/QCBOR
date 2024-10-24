@@ -280,7 +280,7 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
    } else if(MantissaItem.uDataType == QCBOR_TYPE_65BIT_NEG_INT) {
       pDecodedItem->val.expAndMantissa.Mantissa.uInt = MantissaItem.val.uint64;
    } else {
-      /* Wrong type of mantissa or a QCBOR_TYPE_UINT64 > INT64_MAX */
+      /* Wrong type of mantissa */
       uReturn = QCBOR_ERR_BAD_EXP_AND_MANTISSA;
       goto Done;
    }

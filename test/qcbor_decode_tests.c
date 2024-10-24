@@ -4954,7 +4954,7 @@ int32_t BignumDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &BignumDecodeTests[uTestIndex];
 
-      if(uTestIndex == 6) {
+      if(uTestIndex == 9) {
          bIsNeg = false; /* Line of code so a break point can be set. */
       }
 
@@ -6115,12 +6115,12 @@ static const struct EaMTest pEaMTests[] = {
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBigNumber */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBigNumber */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 1},
       false
@@ -6144,7 +6144,7 @@ static const struct EaMTest pEaMTests[] = {
       0,
 
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBigNumber */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBigNumber */
       0,
       {(const uint8_t []){0x03}, 1},
       false,
@@ -6372,7 +6372,7 @@ static const struct EaMTest pEaMTests[] = {
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBigNumber */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBigNumber */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
@@ -6398,16 +6398,16 @@ static const struct EaMTest pEaMTests[] = {
       0UL,
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* GetDecimalFraction */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* GetDecimalFraction */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBigNumber */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBigNumber */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
@@ -6441,16 +6441,16 @@ static const struct EaMTest pEaMTests[] = {
       0xffffffffffffffff,
       {(const uint8_t []){0x00}, 0},
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* GetDecimalFraction */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* GetDecimalFraction */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBigNumber */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBigNumber */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
@@ -6484,16 +6484,16 @@ static const struct EaMTest pEaMTests[] = {
       0xffffffffffffffff,
       {(const uint8_t []){0x00}, 0},
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* GetDecimalFraction */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* GetDecimalFraction */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBigNumber */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBigNumber */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetDecimalFractionBig */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
@@ -6529,14 +6529,14 @@ int32_t ProcessEaMTests(void)
 
    for(uIndex = 0; uIndex < C_ARRAY_COUNT(pEaMTests, struct EaMTest); uIndex++) {
       const struct EaMTest *pT = &pEaMTests[uIndex];
-      /* Decode with GetNext */
-      QCBORDecode_Init(&DCtx, pT->Input, 0);
-      QCBORDecode_CompatibilityV1(&DCtx);
 
       if(uIndex + 1 == 12) {
          nExponent = 99; // just to set a break point
       }
 
+      /* Decode with GetNext */
+      QCBORDecode_Init(&DCtx, pT->Input, 0);
+      QCBORDecode_CompatibilityV1(&DCtx);
       uError = QCBORDecode_GetNext(&DCtx, &Item);
 #ifdef QCBOR_DISABLE_TAGS
       /* Test 8 is a special case when tags are disabled */
@@ -6579,7 +6579,6 @@ int32_t ProcessEaMTests(void)
       /* Decode with GetDecimalFraction */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
-
       QCBORDecode_GetDecimalFraction(&DCtx,
                                       pT->uTagRequirement,
                                      &nMantissa,
@@ -6611,7 +6610,6 @@ int32_t ProcessEaMTests(void)
       /* Decode with GetDecimalFractionBig */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
-
       QCBORDecode_GetDecimalFractionBigNumber(&DCtx,
                                                pT->uTagRequirement,
                                                MantissaBuf,
@@ -6646,7 +6644,6 @@ int32_t ProcessEaMTests(void)
       /* Decode with GetDecimalFractionBig */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
-
       QCBORDecode_GetDecimalFractionBig(&DCtx,
                                          pT->uTagRequirement,
                                          MantissaBuf,
@@ -6683,7 +6680,6 @@ int32_t ProcessEaMTests(void)
       /* Decode with GetBigFloat */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
-
       QCBORDecode_GetBigFloat(&DCtx,
                               pT->uTagRequirement,
                               &nMantissa,
@@ -6715,7 +6711,6 @@ int32_t ProcessEaMTests(void)
       /* Decode with GetBigFloatBig */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
-
       QCBORDecode_GetBigFloatBig(&DCtx,
                                  pT->uTagRequirement,
                                  MantissaBuf,
@@ -6748,6 +6743,7 @@ int32_t ProcessEaMTests(void)
 
          /* Decode with GetBigFloatBigNumber */
          QCBORDecode_Init(&DCtx, pT->Input, 0);
+         QCBORDecode_CompatibilityV1(&DCtx);
          QCBORDecode_GetBigFloatBigNumber(&DCtx,
                                            pT->uTagRequirement,
                                            MantissaBuf,
