@@ -6534,7 +6534,7 @@ int32_t ProcessEaMTests(void)
          nExponent = 99; // just to set a break point
       }
 
-      /* Decode with GetNext */
+      /* --- Decode with GetNext --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       uError = QCBORDecode_GetNext(&DCtx, &Item);
@@ -6576,7 +6576,7 @@ int32_t ProcessEaMTests(void)
       }
 #endif
 
-      /* Decode with GetDecimalFraction */
+      /* --- Decode with GetDecimalFraction --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       QCBORDecode_GetDecimalFraction(&DCtx,
@@ -6607,7 +6607,7 @@ int32_t ProcessEaMTests(void)
       }
 #endif
 
-      /* Decode with GetDecimalFractionBig */
+      /* --- Decode with GetDecimalFractionBig --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       QCBORDecode_GetDecimalFractionBigNumber(&DCtx,
@@ -6639,9 +6639,11 @@ int32_t ProcessEaMTests(void)
                 return (int32_t)(1+uIndex) * 1000 + 84;
             }
          }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
 
-
-      /* Decode with GetDecimalFractionBig */
+      /* --- Decode with GetDecimalFractionBig ---v*/
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       QCBORDecode_GetDecimalFractionBig(&DCtx,
@@ -6677,7 +6679,8 @@ int32_t ProcessEaMTests(void)
       }
 #endif
 
-      /* Decode with GetBigFloat */
+
+      /* --- Decode with GetBigFloat --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       QCBORDecode_GetBigFloat(&DCtx,
@@ -6708,7 +6711,9 @@ int32_t ProcessEaMTests(void)
       }
 #endif
 
-      /* Decode with GetBigFloatBig */
+
+
+      /* --- Decode with GetBigFloatBig --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       QCBORDecode_GetBigFloatBig(&DCtx,
@@ -6740,8 +6745,12 @@ int32_t ProcessEaMTests(void)
                 return (int32_t)(1+uIndex) * 1000 + 24;
             }
          }
+#ifdef QCBOR_DISABLE_TAGS
+      }
+#endif
 
-         /* Decode with GetBigFloatBigNumber */
+
+         /* --- Decode with GetBigFloatBigNumber --- */
          QCBORDecode_Init(&DCtx, pT->Input, 0);
          QCBORDecode_CompatibilityV1(&DCtx);
          QCBORDecode_GetBigFloatBigNumber(&DCtx,
