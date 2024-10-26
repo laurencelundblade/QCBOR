@@ -8303,6 +8303,7 @@ static UsefulBufC EncodeBstrWrapTestData(UsefulBuf OutputBuffer)
 
    QCBOREncode_Init(&EC, OutputBuffer);
 
+   QCBOREncode_AddTag(&EC, CBOR_TAG_CBOR);
    QCBOREncode_BstrWrap(&EC);
      QCBOREncode_OpenMap(&EC);
        QCBOREncode_AddInt64ToMapN(&EC, 100, 1);
@@ -8349,7 +8350,7 @@ int32_t EnterBstrTest(void)
    int64_t n1, n2, n3, n4, n5, n6, n7, n8;
 
 
-   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_TAG, NULL);
      QCBORDecode_EnterMap(&DC, NULL);
        QCBORDecode_GetInt64InMapN(&DC, 100, &n1);
        QCBORDecode_GetInt64InMapN(&DC, 200, &n2);
