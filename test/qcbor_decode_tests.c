@@ -5832,7 +5832,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetDecimalFractionBig */
       -1,
-      {(const uint8_t []){0x03}, 1},
+      {(const uint8_t []){0x02}, 1},
       false,
 
       QCBOR_SUCCESS, /* for GetBigFloat */
@@ -5841,7 +5841,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       -1,
-      {(const uint8_t []){0x03}, 1},
+      {(const uint8_t []){0x02}, 1},
       false
    },
 
@@ -5896,7 +5896,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetDecimalFractionBig */
       -1,
-      {(const uint8_t []){0x03}, 1},
+      {(const uint8_t []){0x02}, 1},
       false,
 
       QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
@@ -5927,7 +5927,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFractionBig */
       0,
-      {(const uint8_t []){0x03}, 1},
+      {(const uint8_t []){0x02}, 1},
       false,
 
       QCBOR_SUCCESS, /* for GetBigFloat */
@@ -5936,7 +5936,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       300,
-      {(const uint8_t []){0x64}, 1},
+      {(const uint8_t []){0x63}, 1},
       false
    },
 

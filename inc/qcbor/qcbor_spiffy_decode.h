@@ -1549,6 +1549,22 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
  * will convert all these to a big number. The limit to this
  * conversion is the size of @c MantissaBuffer.
  *
+ * The mantissa returned does NOT have the offset
+ * of one applied when it is negative. To get the true value
+ * one must be added to @c *pMantissa (which requires
+ * some big number arithmetic and may increase the length
+ * of it by one).
+ *
+ * For QCBOR before v1.5, this function had a bug where
+ * by the negative mantissa sometimes had the offset of
+ * one applied, making this function somewhat usless for
+ * negative mantissas. Specifically if the to-be-decode CBOR
+ * was a type 1 integer the offset was applied and when it
+ * was a tag 3, the offset was not applied. It is possible
+ * that a tag 3 could contain a value in the range of a type 1
+ * integer. @ref QCBORExpAndMantissa is
+ * correct and can be used instead of this.
+ *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll() and
  * QCBORDecode_GetDoubleConvertAll() which can convert decimal
@@ -1647,6 +1663,8 @@ QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
  * important distinction that the value is computed by:
  *
  *     mantissa * ( 2 ** exponent )
+ *
+ * This has the same issue with negative mantissas as QCBORDecode_GetDecimalFractionBig().
  *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll() and
