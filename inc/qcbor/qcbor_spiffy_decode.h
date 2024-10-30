@@ -1664,7 +1664,8 @@ QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
  *
  *     mantissa * ( 2 ** exponent )
  *
- * This has the same issue with negative mantissas as QCBORDecode_GetDecimalFractionBig().
+ * This has the same issue with negative mantissas as
+ * QCBORDecode_GetDecimalFractionBig().
  *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll() and

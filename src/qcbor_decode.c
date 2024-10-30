@@ -6469,7 +6469,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* ndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
       case QCBOR_TYPE_POSBIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
@@ -6498,33 +6498,33 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-           /* Must subtract 1 for CBOR negative integer offset */
-         double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            /* Must subtract 1 for CBOR negative integer offset */
+            double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            double dMantissa = QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* ndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
