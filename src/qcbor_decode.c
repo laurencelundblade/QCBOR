@@ -6469,7 +6469,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* ndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
       case QCBOR_TYPE_POSBIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
@@ -6498,32 +6498,33 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-         double dMantissa = -QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            /* Must subtract 1 for CBOR negative integer offset */
+            double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            double dMantissa = QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* ndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -6859,6 +6860,7 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
                                           int64_t                     *pnExponent)
 {
    QCBORError uErr;
+   uint64_t   uMantissa;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -6869,25 +6871,29 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
       goto Done;
    }
 
-   uint64_t uMantissa;
-
    switch (pItem->uDataType) {
 
       case QCBOR_TYPE_DECIMAL_FRACTION:
       case QCBOR_TYPE_BIGFLOAT:
-         /* See comments in ExponentiateNN() on handling INT64_MIN */
          if(pItem->val.expAndMantissa.Mantissa.nInt >= 0) {
             uMantissa = (uint64_t)pItem->val.expAndMantissa.Mantissa.nInt;
             *pbIsNegative = false;
-         } else if(pItem->val.expAndMantissa.Mantissa.nInt != INT64_MIN) {
-            uMantissa = (uint64_t)-pItem->val.expAndMantissa.Mantissa.nInt;
-            *pbIsNegative = true;
          } else {
-            uMantissa = (uint64_t)INT64_MAX+1;
+            if(pItem->val.expAndMantissa.Mantissa.nInt != INT64_MIN) {
+               uMantissa = (uint64_t)-pItem->val.expAndMantissa.Mantissa.nInt;
+            } else {
+               /* Can't negate like above when int64_t is INT64_MIN because it
+                * will overflow. See ExponentNN() */
+               uMantissa = (uint64_t)INT64_MAX+1;
+            }
             *pbIsNegative = true;
          }
-         *pMantissa = QCBOR_Private_ConvertIntToBigNum(uMantissa,
-                                                       BufferForMantissa);
+         /* Reverse the offset by 1 for type 1 negative value to be consistent
+          * with big num case below which don't offset because it requires
+          * big number arithmetic. This is a bug fix for QCBOR v1.5.
+          */
+         uMantissa--;
+         *pMantissa = QCBOR_Private_ConvertIntToBigNum(uMantissa, BufferForMantissa);
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          break;
 
