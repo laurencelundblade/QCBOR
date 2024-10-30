@@ -7555,6 +7555,26 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
+      "Decimal fraction -3/10",
+      {(uint8_t[]){0xC4, 0x82, 0x20, 0x22}, 4},
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -0.30000000000000004,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+   },
+   {
+      "Decimal fraction -3/10, neg bignum mantissa",
+      {(uint8_t[]){0xC4, 0x82, 0x20, 0xc3, 0x41, 0x02}, 6},
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0,
+      EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -0.30000000000000004,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+   },
+   {
       "extreme pos bignum",
       {(uint8_t[]){0xc2, 0x59, 0x01, 0x90,
          // 50 rows of 8 is 400 digits.
@@ -7790,7 +7810,6 @@ static const struct NumberConversion NumberConversions[] = {
       INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
-
 };
 
 
@@ -7817,6 +7836,10 @@ int32_t IntegerConvertTest(void)
 
    for(int nIndex = 0; nIndex < nNumTests; nIndex++) {
       const struct NumberConversion *pF = &NumberConversions[nIndex];
+
+      //if(nIndex == 14) {
+        // nIndex = 12;
+      //}
 
       // Set up the decoding context including a memory pool so that
       // indefinite length items can be checked

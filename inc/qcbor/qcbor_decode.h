@@ -382,34 +382,36 @@ typedef enum {
 /**
  * @anchor expAndMantissa
  *
- * This holds the value for big floats and decimal fractions.  For big
- * floats, the base for exponentiation is 2. For decimal fractions it
- * is 10. Whether this is a big float or decimal fraction is known by
- * context, usually by @c uDataType in @ref QCBORItem which might be
- * @ref QCBOR_TYPE_DECIMAL_FRACTION, @ref QCBOR_TYPE_BIGFLOAT, ...
+ * This holds the value for big floats and decimal fractions, as an
+ * exponent and mantissa.  For big floats the base for exponentiation
+ * is 2. For decimal fractions it is 10. Whether an instance is a big
+ * float or decimal fraction is known by context, usually by @c uDataType
+ * in @ref QCBORItem which might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+ * @ref QCBOR_TYPE_BIGFLOAT, ...
  *
- * The mantissa may be an int64_t or a big number. This is again
+ * The mantissa may be an @c int64_t or a big number. This is again
  * determined by context, usually @c uDataType in @ref QCBORItem which
- * might be @ref QCBOR_TYPE_DECIMAL_FRACTION, @ref
- * QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  This context indicates
- * the sign of the big number too.
+ * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+ * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
+ * big number also comes from the context
+ * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+ * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
  *
- * @c bigNum is big endian, network byte order, with the most significant
- * bytes first.
+ * @c bigNum is big endian or network byte order. The most significant
+ * byte is first.
  *
- * When @c Mantissa is an @c int64_t, it represents the true value of
- * the mantissa with the offset of 1 for CBOR negative values
- * applied. When it is a negative big number (@ref
- * QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM or @ref
- * QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM , the offset of 1 has NOT been
- * applied (it requires somewhat complex big number arithmetic and may
- * increase the length of the big number). To get the correct value
- * bigNum must be incremented by one before use.
+ * When @c Mantissa is @c int64_t, it represents the true value of the
+ * mantissa with the offset of 1 for CBOR negative values
+ * applied. When it is a negative big number
+ * (@ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM or
+ * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM), the offset of 1 has NOT been
+ * applied (doing so requires somewhat complex big number arithmetic
+ * and may increase the length of the big number). To get the correct
+ * value @c bigNum must be incremented by one before use.
  *
  * Also see QCBOREncode_AddTDecimalFraction(),
- * QCBOREncode_AddTBigFloat(),
- * QCBOREncode_AddTDecimalFractionBigNum() and
- * QCBOREncode_AddTBigFloatBigNum().
+ * QCBOREncode_AddTBigFloat(), QCBOREncode_AddTDecimalFractionBigNum()
+ * and QCBOREncode_AddTBigFloatBigNum().
  */
 typedef struct  {
    int64_t nExponent;
@@ -514,7 +516,7 @@ typedef struct _QCBORItem {
       uint8_t     uSimple;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       QCBORExpAndMantissa expAndMantissa;
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagV;  /* Used internally during decoding */
 
    } val;

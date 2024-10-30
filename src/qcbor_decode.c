@@ -6499,7 +6499,8 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-         double dMantissa = -QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+           /* Must subtract 1 for CBOR negative integer offset */
+         double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
          *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -6859,6 +6860,7 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
                                           int64_t                     *pnExponent)
 {
    QCBORError uErr;
+   uint64_t   uMantissa;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -6868,8 +6870,6 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
-
-   uint64_t uMantissa;
 
    switch (pItem->uDataType) {
 
@@ -6890,7 +6890,7 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
          }
          /* Reverse the offset by 1 for type 1 negative value to be consistent
           * with big num case below which don't offset because it requires
-          * big number arithmetic.
+          * big number arithmetic. This is a bug fix for QCBOR v1.5.
           */
          uMantissa--;
          *pMantissa = QCBOR_Private_ConvertIntToBigNum(uMantissa, BufferForMantissa);
