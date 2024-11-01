@@ -720,6 +720,15 @@ const char *UBUtilTests(void)
       return "SkipLeading didn't return empty";
    }
 
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("x"), 'x');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ(""))) {
+      return "SkipLeading didn't return empty";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("xxxxxxxxxxxx"), 'x');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ(""))) {
+      return "SkipLeading didn't return empty";
+   }
 
    const uint8_t pB[] = {0x01, 0x02, 0x03};
    UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);

@@ -33,6 +33,8 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+//#define QCBOR_DISABLE_TAGS
+
 //TODO: get rid of  QCBOR_DISABLE_EXP_AND_MANTISSA and uncommon tags
 
 #ifdef __cplusplus

@@ -390,30 +390,110 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * big number. The sign must be known because the decoding of a
  * positive big number is different than a negative.
  */
-// TODO: add "T" to name of this and other Get Tag methods? Would be a big change.
 void
-QCBORDecode_GetBigNumber(QCBORDecodeContext *pCtx,
-                         const uint8_t       uTagRequirement,
-                         UsefulBuf           BigNumberBuf,
-                         UsefulBufC         *pBigNumber,
-                         bool               *pbIsNegative);
+QCBORDecode_GetTBigNumber(QCBORDecodeContext *pCtx,
+                          const uint8_t       uTagRequirement,
+                          UsefulBuf           BigNumberBuf,
+                          UsefulBufC         *pBigNumber,
+                          bool               *pbIsNegative);
 
 void
-QCBORDecode_GetBigNumberInMapN(QCBORDecodeContext *pCtx,
-                               int64_t             nLabel,
-                               uint8_t             uTagRequirement,
-                               UsefulBuf           BigNumberBuf,
-                               UsefulBufC         *pBigNumber,
-                               bool               *pbIsNegative);
-
-void
-QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
-                                const char         *szLabel,
+QCBORDecode_GetTBigNumberInMapN(QCBORDecodeContext *pCtx,
+                                int64_t             nLabel,
                                 uint8_t             uTagRequirement,
                                 UsefulBuf           BigNumberBuf,
                                 UsefulBufC         *pBigNumber,
                                 bool               *pbIsNegative);
 
+void
+QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext *pCtx,
+                                 const char         *szLabel,
+                                 uint8_t             uTagRequirement,
+                                 UsefulBuf           BigNumberBuf,
+                                 UsefulBufC         *pBigNumber,
+                                 bool               *pbIsNegative);
+
+ /**
+  * @brief Decode the next item as a big number with no processing
+  *
+  * @param[in] pCtx             The decode context.
+  * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+  * @param[out] pBigNumber          The returned big number.
+  * @param[out] pbIsNegative    Is @c true if the big number is negative. This
+  *                             is only valid when @c uTagRequirement is
+  *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
+  *
+  * This decodes a standard CBOR big number, integer tag number of 2 or
+  * 3, or encoded CBOR that is not a tag, but borrows the content
+  * format.
+  *
+  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
+  *
+  * The big number is in network byte order. The first byte in @c
+  * pValue is the most significant byte. There may be leading zeros.
+  *
+  * This does not apply the offset of 1 to negative big numbers
+  * because it does no processing. To get the correct value
+  * one must be subtracted when the value is negative. That
+  * is one must be added to pBigNumber. Note that this
+  * operation may increase the length of pBigNumber
+  * because of the arithmetic carry. See
+  *
+  * The negative value is computed as -1 - n, where n is the postive
+  * big number in @c pValue. There is no standard representation for
+  * big numbers, positive or negative in C, so this function
+  * leaves it up to the caller to apply this computation for negative
+  * big numbers, but QCBORDecode_ProcessBigNumber() can be
+  * used too.
+  *
+  * See @ref Tag-Usage for discussion on tag requirements.
+  *
+  * Determination of the sign of the big number depends on the tag
+  * requirement of the protocol using the big number. If the protocol
+  * requires tagging, @ref QCBOR_TAG_REQUIREMENT_TAG, then the sign
+  * indication is in the protocol and @c pbIsNegative indicates the
+  * sign. If the protocol doesn't use a tag,
+  * @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG, then the protocol design must
+  * have some way of indicating the sign.
+  *
+  * See also QCBORDecode_GetInt64ConvertAll(),
+  * QCBORDecode_GetUInt64ConvertAll(),
+  * QCBORDecode_GetDoubleConvertAll() and
+  * QCBORDecode_ProcessBigNumber() which can convert big numbers.
+  *
+  * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
+  * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
+  * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
+  *
+  * To feed the output of this to QCBORDecode_ProcessBigNumber() construct
+  * a temporary QCBORItem and feed it to QCBORDecode_ProcessBigNumber().
+  * Set the data type to @ref CBOR_TAG_POS_BIGNUM or @ref CBOR_TAG_NEG_BIGNUM,
+  * and value to @c *pValue in the QCBORItem.
+  *
+  * This is the same as QCBORDecode_GetBignum() in QCBOR v1.
+  *
+  * This links in much less object code than QCBORDecode_GetTBitNumber() and
+  * QCBORDecode_GetTBitNumberNoPreferred().
+  */
+void
+QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext *pCtx,
+                             const uint8_t       uTagRequirement,
+                             UsefulBufC         *pBigNumber,
+                             bool               *pbIsNegative);
+
+void
+QCBORDecode_GetTBigNumberRawInMapN(QCBORDecodeContext *pMe,
+                                   const int64_t       nLabel,
+                                   const uint8_t       uTagRequirement,
+                                   UsefulBufC         *pBigNumber,
+                                   bool               *pbIsNegative);
+
+void
+QCBORDecode_GetTBigNumberRawInMapSZ(QCBORDecodeContext *pMe,
+                                   const char        *szLabel,
+                                   const uint8_t       uTagRequirement,
+                                   UsefulBufC         *pBigNumber,
+                                   bool               *pbIsNegative);
 
 /**
  * @brief Decode next item as a big number encoded using preferred serialization.
@@ -428,14 +508,14 @@ QCBORDecode_GetBigNumberInMapSZ(QCBORDecodeContext *pCtx,
  * out on type 0 and 1 integers. It only succeeds on tag 2 and tag 3.
  */
 void
-QCBORDecode_GetBigNumberNoPreferred(QCBORDecodeContext *pCtx,
-                                    const uint8_t       uTagRequirement,
-                                    UsefulBuf           BigNumberBuf,
-                                    UsefulBufC         *pBigNumber,
-                                    bool               *pbIsNegative);
+QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext *pCtx,
+                                     const uint8_t       uTagRequirement,
+                                     UsefulBuf           BigNumberBuf,
+                                     UsefulBufC         *pBigNumber,
+                                     bool               *pbIsNegative);
 
 void
-QCBORDecode_GetBigNumberNoPreferredInMapN(QCBORDecodeContext *pCtx,
+QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext *pCtx,
                                           int64_t             nLabel,
                                           uint8_t             uTagRequirement,
                                           UsefulBuf           BigNumberBuf,
@@ -443,7 +523,7 @@ QCBORDecode_GetBigNumberNoPreferredInMapN(QCBORDecodeContext *pCtx,
                                           bool               *pbIsNegative);
 
 void
-QCBORDecode_GetBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pCtx,
+QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pCtx,
                                            const char         *szLabel,
                                            uint8_t             uTagRequirement,
                                            UsefulBuf           BigNumberBuf,
@@ -1583,7 +1663,6 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
 
 
 
-
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief Decode the next item as a decimal fraction.
@@ -1636,24 +1715,24 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * preceded by by a tag number or if the mantissa is a big number.
  */
 void
-QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
-                               uint8_t             uTagRequirement,
-                               int64_t            *pnMantissa,
-                               int64_t            *pnExponent);
+QCBORDecode_GetTDecimalFraction(QCBORDecodeContext *pCtx,
+                                uint8_t             uTagRequirement,
+                                int64_t            *pnMantissa,
+                                int64_t            *pnExponent);
 
 void
-QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pCtx,
-                                     int64_t             nLabel,
-                                     uint8_t             uTagRequirement,
-                                     int64_t            *pnMantissa,
-                                     int64_t            *pnExponent);
-
-void
-QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
-                                      const char         *szLabel,
+QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext *pCtx,
+                                      int64_t             nLabel,
                                       uint8_t             uTagRequirement,
                                       int64_t            *pnMantissa,
                                       int64_t            *pnExponent);
+
+void
+QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
+                                       const char         *szLabel,
+                                       uint8_t             uTagRequirement,
+                                       int64_t            *pnMantissa,
+                                       int64_t            *pnExponent);
 
 
 /**
@@ -1666,44 +1745,103 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
  * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
  * @param[out] pnExponent      The base 10 exponent.
  *
- * This is the same as QCBORDecode_GetDecimalFraction() except the
- * mantissa is returned as a big number. The only limit to precision
- * is the size of @c MantissaBuffer.
+ * This is the same as QCBORDecode_GetTDecimalFraction() except the
+ * mantissa is returned as a big number.
  *
- * The encoded mantissa may be an integer or a big number.  The
- * standard CBOR offset of 1 for negative integers is applied, unlike
- * QCBORDecode_GetDecimalFractionBig(), so the mantissa can be used directly as
- * returned.
+ * In the encoded CBOR, the mantissa may be a type 0 (positive
+ * integer), type 1 (negative integer), type 2 tag 2 (positive big
+ * number) or type 2 tag 3 (negative big number). This implementation
+ * will convert all these to a big number. The limit to this
+ * conversion is the size of @c MantissaBuffer.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert decimal
+ * fractions.
  *
  * See also @ref CBOR_TAG_DECIMAL_FRACTION,
- * QCBOREncode_AddTDecimalFractionBigNumber(),
- * @ref QCBOR_TYPE_DECIMAL_FRACTION and QCBORDecode_GetDecimalFraction().
+ * QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * and QCBORDecode_GetDecimalFraction().
  */
 void
-QCBORDecode_GetDecimalFractionBigNumber(QCBORDecodeContext *pCtx,
-                                        uint8_t             uTagRequirement,
-                                        UsefulBuf           MantissaBuffer,
-                                        UsefulBufC         *pMantissa,
-                                        bool               *pbMantissaIsNegative,
-                                        int64_t            *pnExponent);
+QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pCtx,
+                                           uint8_t             uTagRequirement,
+                                           UsefulBuf           MantissaBuffer,
+                                           UsefulBufC         *pMantissa,
+                                           bool               *pbMantissaIsNegative,
+                                           int64_t            *pnExponent);
 
 void
-QCBORDecode_GetDecimalFractionBigNumberInMapN(QCBORDecodeContext *pCtx,
-                                              int64_t             nLabel,
+QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pCtx,
+                                                 int64_t             nLabel,
+                                                 uint8_t             uTagRequirement,
+                                                 UsefulBuf           MantissaBuffer,
+                                                 UsefulBufC         *pbMantissaIsNegative,
+                                                 bool               *pbIsNegative,
+                                                 int64_t            *pnExponent);
+
+void
+QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pCtx,
+                                                  const char         *szLabel,
+                                                  uint8_t             uTagRequirement,
+                                                  UsefulBuf           MantissaBuffer,
+                                                  UsefulBufC         *pMantissa,
+                                                  bool               *pbMantissaIsNegative,
+                                                  int64_t            *pnExponent);
+
+
+void
+QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pCtx,
                                               uint8_t             uTagRequirement,
                                               UsefulBuf           MantissaBuffer,
-                                              UsefulBufC         *pbMantissaIsNegative,
-                                              bool               *pbIsNegative,
+                                              UsefulBufC         *pMantissa,
+                                              bool               *pbMantissaIsNegative,
                                               int64_t            *pnExponent);
 
 void
-QCBORDecode_GetDecimalFractionBigNumberInMapSZ(QCBORDecodeContext *pCtx,
-                                               const char         *szLabel,
-                                               uint8_t             uTagRequirement,
-                                               UsefulBuf           MantissaBuffer,
-                                               UsefulBufC         *pMantissa,
-                                               bool               *pbMantissaIsNegative,
-                                               int64_t            *pnExponent);
+QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pCtx,
+                                                    int64_t             nLabel,
+                                                    uint8_t             uTagRequirement,
+                                                    UsefulBuf           MantissaBuffer,
+                                                    UsefulBufC         *pbMantissaIsNegative,
+                                                    bool               *pbIsNegative,
+                                                    int64_t            *pnExponent);
+
+void
+QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pCtx,
+                                                     const char         *szLabel,
+                                                     uint8_t             uTagRequirement,
+                                                     UsefulBuf           MantissaBuffer,
+                                                     UsefulBufC         *pMantissa,
+                                                     bool               *pbMantissaIsNegative,
+                                                     int64_t            *pnExponent);
+
+
+static void
+QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
+                                  uint8_t             uTagRequirement,
+                                  UsefulBuf           MantissaBuffer,
+                                  UsefulBufC         *pMantissa,
+                                  bool               *pbMantissaIsNegative,
+                                  int64_t            *pnExponent);
+
+static void
+QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pCtx,
+                                        int64_t             nLabel,
+                                        uint8_t             uTagRequirement,
+                                        UsefulBuf           MantissaBuffer,
+                                        UsefulBufC         *pbMantissaIsNegative,
+                                        bool               *pbIsNegative,
+                                        int64_t            *pnExponent);
+
+static void
+QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
+                                         const char         *szLabel,
+                                         uint8_t             uTagRequirement,
+                                         UsefulBuf           MantissaBuffer,
+                                         UsefulBufC         *pMantissa,
+                                         bool               *pbMantissaIsNegative,
+                                         int64_t            *pnExponent);
 
 
 /**
@@ -1746,35 +1884,85 @@ QCBORDecode_GetDecimalFractionBigNumberInMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetDoubleConvertAll() which can convert big floats.
  *
  * See also @ref CBOR_TAG_BIGFLOAT, QCBOREncode_AddTBigFloat(),
- * @ref QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetBigFloatBig().
+ * @ref QCBOR_TYPE_BIGFLOAT and QCBORDecode_GetTBigFloatBigMantissa().
  *
  * If QCBOR_DISABLE_TAGS is set, the only input this will decode is an
  * array of two integers. It will set an error if the the array is
  * preceded by by a tag number or if the mantissa is a big number.
  */
 void
-QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
-                        uint8_t             uTagRequirement,
-                        int64_t            *pnMantissa,
-                        int64_t            *pnExponent);
+QCBORDecode_GetTBigFloat(QCBORDecodeContext *pCtx,
+                         uint8_t             uTagRequirement,
+                         int64_t            *pnMantissa,
+                         int64_t            *pnExponent);
 
 void
-QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pCtx,
-                              int64_t             nLabel,
-                              uint8_t             uTagRequirement,
-                              int64_t            *pnMantissa,
-                              int64_t            *pnExponent);
-
-void
-QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
-                               const char         *szLabel,
+QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pCtx,
+                               int64_t             nLabel,
                                uint8_t             uTagRequirement,
                                int64_t            *pnMantissa,
                                int64_t            *pnExponent);
 
+void
+QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext *pCtx,
+                                const char         *szLabel,
+                                uint8_t             uTagRequirement,
+                                int64_t            *pnMantissa,
+                                int64_t            *pnExponent);
+
 
 /**
  * @brief Decode the next item as a big float with a big number mantissa.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] MantissaBuffer   The buffer in which to put the mantissa.
+ * @param[out] pMantissa       The big num mantissa.
+ * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
+ * @param[out] pnExponent      The base 2 exponent.
+ *
+ * This is the same as QCBORDecode_GetTBigFloat() except the mantissa
+ * is returned as a big number. The only limit to precision is the
+ * size of @c MantissaBuffer.
+ *
+ * The encoded mantissa may be an integer or a big number.  The
+ * standard CBOR offset of 1 for negative is applied, so the mantissa can be used as
+ * returned.
+ *
+ * See also @ref CBOR_TAG_BIGFLOAT,
+ * QCBOREncode_AddTBigFloatBigNumber(), @ref QCBOR_TYPE_BIGFLOAT and
+ * QCBORDecode_GetTBigFloat().
+ */
+void
+QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext *pCtx,
+                                    uint8_t             uTagRequirement,
+                                    UsefulBuf           MantissaBuffer,
+                                    UsefulBufC         *pMantissa,
+                                    bool               *pbMantissaIsNegative,
+                                    int64_t            *pnExponent);
+
+
+void
+QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pCtx,
+                                          int64_t             nLabel,
+                                          uint8_t             uTagRequirement,
+                                          UsefulBuf           MantissaBuffer,
+                                          UsefulBufC         *pMantissa,
+                                          bool               *pbMantissaIsNegative,
+                                          int64_t            *pnExponent);
+
+void
+QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext *pCtx,
+                                           const char         *szLabel,
+                                           uint8_t             uTagRequirement,
+                                           UsefulBuf           MantissaBuffer,
+                                           UsefulBufC         *pMantissa,
+                                           bool               *pbMantissaIsNegative,
+                                           int64_t            *pnExponent);
+
+
+/**
+ * @brief Decode the next item as a big float with a big number mantissa with out offsetting the mantissa
  *
  * @param[in] pCtx             The decode context.
  * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
@@ -1788,42 +1976,46 @@ QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
  * size of @c MantissaBuffer.
  *
  * The encoded mantissa may be an integer or a big number.  The
- * standard CBOR offset of 1 for negative is applied, unlike
- * QCBORDecode_GetBigFloatBig(), so the mantissa can be used as
- * returned.
+ * standard CBOR offset of 1 for negative is NOT applied. If the ma
+ * mantissa is negative, one must be added to get it's actual value.
+ *
+ * Because this doesn't offset the negative big numbers, this links in
+ * a lot less object code. It is suitable for uses where a big number
+ * library is already linked in for other purposes as it can trivially
+ * do the increment by one.
  *
  * See also @ref CBOR_TAG_BIGFLOAT,
  * QCBOREncode_AddTBigFloatBigNumber(), @ref QCBOR_TYPE_BIGFLOAT and
- * QCBORDecode_GetBigFloat().
+ * QCBORDecode_GetTBigFloat().
  */
 void
-QCBORDecode_GetBigFloatBigNumber(QCBORDecodeContext *pCtx,
-                                 uint8_t             uTagRequirement,
-                                 UsefulBuf           MantissaBuffer,
-                                 UsefulBufC         *pMantissa,
-                                 bool               *pbMantissaIsNegative,
-                                 int64_t            *pnExponent);
-
-void
-QCBORDecode_GetBigFloatBigNumberInMapN(QCBORDecodeContext *pCtx,
-                                       int64_t             nLabel,
+QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pCtx,
                                        uint8_t             uTagRequirement,
                                        UsefulBuf           MantissaBuffer,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
                                        int64_t            *pnExponent);
 
+
 void
-QCBORDecode_GetBigFloatBigNumberInMapSZ(QCBORDecodeContext *pCtx,
-                                        const char         *szLabel,
-                                        uint8_t             uTagRequirement,
-                                        UsefulBuf           MantissaBuffer,
-                                        UsefulBufC         *pMantissa,
-                                        bool               *pbMantissaIsNegative,
-                                        int64_t            *pnExponent);
-#endif /* #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pCtx,
+                                             int64_t             nLabel,
+                                             uint8_t             uTagRequirement,
+                                             UsefulBuf           MantissaBuffer,
+                                             UsefulBufC         *pMantissa,
+                                             bool               *pbMantissaIsNegative,
+                                             int64_t            *pnExponent);
 
+void
+QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext *pCtx,
+                                              const char         *szLabel,
+                                              uint8_t             uTagRequirement,
+                                              UsefulBuf           MantissaBuffer,
+                                              UsefulBufC         *pMantissa,
+                                              bool               *pbMantissaIsNegative,
+                                              int64_t            *pnExponent);
 
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -2152,150 +2344,68 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
    DEPRECATED methods
    ========================================================================== */
 
-
-/**
- * @brief Decode the next item as a big number (deprecated).
- *
- * @param[in] pCtx             The decode context.
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[out] pValue          The returned big number.
- * @param[out] pbIsNegative    Is @c true if the big number is negative. This
- *                             is only valid when @c uTagRequirement is
- *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
- *
- * This decodes a standard CBOR big number, integer tag number of 2 or
- * 3, or encoded CBOR that is not a tag, but borrows the content
- * format.
- *
- * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
- *
- * The big number is in network byte order. The first byte in @c
- * pValue is the most significant byte. There may be leading zeros.
- *
- * The negative value is computed as -1 - n, where n is the postive
- * big number in @c pValue. There is no standard representation for
- * big numbers, positive or negative in C, so this function
- * leaves it up to the caller to apply this computation for negative
- * big numbers, but QCBORDecode_ProcessBigNumber() can be
- * used too.
- *
- * See @ref Tag-Usage for discussion on tag requirements.
- *
- * Determination of the sign of the big number depends on the tag
- * requirement of the protocol using the big number. If the protocol
- * requires tagging, @ref QCBOR_TAG_REQUIREMENT_TAG, then the sign
- * indication is in the protocol and @c pbIsNegative indicates the
- * sign. If the protocol doesn't use a tag,
- * @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG, then the protocol design must
- * have some way of indicating the sign.
- *
- * See also QCBORDecode_GetInt64ConvertAll(),
- * QCBORDecode_GetUInt64ConvertAll(),
- * QCBORDecode_GetDoubleConvertAll() and
- * QCBORDecode_ProcessBigNumber() which can convert big numbers.
- *
- * See also @ref CBOR_TAG_POS_BIGNUM, @ref CBOR_TAG_NEG_BIGNUM,
- * QCBOREncode_AddPositiveBignum(), QCBOREncode_AddNegativeBignum(),
- * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
- *
- * To feed the output of this to QCBORDecode_ProcessBigNumber() construct
- * a temporary QCBORItem and feed it to QCBORDecode_ProcessBigNumber().
- * Set the data type to @ref CBOR_TAG_POS_BIGNUM or @ref CBOR_TAG_NEG_BIGNUM,
- * and value to @c *pValue in the QCBORItem.
- */
-void
+/* Deprecated. Use QCBORDecode_GetTBigNumberRaw() instead. */
+static void
 QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                       uint8_t             uTagRequirement,
                       UsefulBufC         *pValue,
                       bool               *pbIsNegative);
 
-void
+static void
 QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pCtx,
                             int64_t             nLabel,
                             uint8_t             uTagRequirement,
                             UsefulBufC         *pValue,
                             bool               *pbIsNegative);
 
-void
+static void
 QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
                              const char         *szLabel,
                              uint8_t             uTagRequirement,
                              UsefulBufC         *pValue,
                              bool               *pbIsNegative);
 
+static void
+QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
+                               uint8_t             uTagRequirement,
+                               int64_t            *pnMantissa,
+                               int64_t            *pnExponent);
 
-/**
- * @brief Decode the next item as a decimal fraction with a big number mantissa (deprecated).
- *
- * @param[in] pCtx             The decode context.
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[in] MantissaBuffer   The buffer in which to put the mantissa.
- * @param[out] pMantissa       The big num mantissa.
- * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
- * @param[out] pnExponent      The base 10 exponent.
- *
- * This is the same as QCBORDecode_GetDecimalFractionBigNumber()
- * except that it doesn't apply offset of one for negative mantissas
- * and links significantly less object code because of that. The
- * caller must subtract one from the mantissa to get the correct
- * value.
- *
- * This function is in QCBOR v1.x and v2.x while
- * QCBORDecode_GetDecimalFractionBigNumber() is only in QCBOR v2.x.
- *
- * While this function is indicated as deprecated, there is no plan to
- * remove it from QCBOR.
- */
-void
-QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
-                                  uint8_t             uTagRequirement,
-                                  UsefulBuf           MantissaBuffer,
-                                  UsefulBufC         *pMantissa,
-                                  bool               *pbMantissaIsNegative,
-                                  int64_t            *pnExponent);
+static void
+QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pCtx,
+                                     int64_t             nLabel,
+                                     uint8_t             uTagRequirement,
+                                     int64_t            *pnMantissa,
+                                     int64_t            *pnExponent);
 
-void
-QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pCtx,
-                                        int64_t             nLabel,
-                                        uint8_t             uTagRequirement,
-                                        UsefulBuf           MantissaBuffer,
-                                        UsefulBufC         *pbMantissaIsNegative,
-                                        bool               *pbIsNegative,
-                                        int64_t            *pnExponent);
+static void
+QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
+                                      const char         *szLabel,
+                                      uint8_t             uTagRequirement,
+                                      int64_t            *pnMantissa,
+                                      int64_t            *pnExponent);
 
-void
-QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
-                                         const char         *szLabel,
-                                         uint8_t             uTagRequirement,
-                                         UsefulBuf           MantissaBuffer,
-                                         UsefulBufC         *pMantissa,
-                                         bool               *pbMantissaIsNegative,
-                                         int64_t            *pnExponent);
+static void
+QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
+                        uint8_t             uTagRequirement,
+                        int64_t            *pnMantissa,
+                        int64_t            *pnExponent);
 
+static void
+QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pCtx,
+                              int64_t             nLabel,
+                              uint8_t             uTagRequirement,
+                              int64_t            *pnMantissa,
+                              int64_t            *pnExponent);
 
+static void
+QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
+                               const char         *szLabel,
+                               uint8_t             uTagRequirement,
+                               int64_t            *pnMantissa,
+                               int64_t            *pnExponent);
 
-/**
- * @brief Decode the next item as a big float with a big number mantissa (deprecated).
- *
- * @param[in] pCtx             The decode context.
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[in] MantissaBuffer   The buffer in which to put the mantissa.
- * @param[out] pMantissa       The big num mantissa.
- * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
- * @param[out] pnExponent      The base 2 exponent.
- *
- * This is the same as QCBORDecode_GetBigFloatBigNumber() except that
- * it doesn't apply offset of one for negative mantissas and links
- * significantly less object code because of that. The caller must
- * subtract one from the mantissa to get the correct value.
- *
- * This function is in QCBOR v1.x and v2.x while
- * QCBORDecode_GetDecimalFractionBigNumber() is only in QCBOR v2.x.
- *
- * While this function is indicated as deprecated, there is no plan to
- * remove it from QCBOR.
- */
-void
+static void
 QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                            uint8_t             uTagRequirement,
                            UsefulBuf           MantissaBuffer,
@@ -2303,8 +2413,7 @@ QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                            bool               *pbMantissaIsNegative,
                            int64_t            *pnExponent);
 
-
-void
+static void
 QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pCtx,
                                  int64_t             nLabel,
                                  uint8_t             uTagRequirement,
@@ -2313,7 +2422,7 @@ QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pCtx,
                                  bool               *pbMantissaIsNegative,
                                  int64_t            *pnExponent);
 
-void
+static void
 QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                   const char         *szLabel,
                                   uint8_t             uTagRequirement,
@@ -2321,7 +2430,6 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                   UsefulBufC         *pMantissa,
                                   bool               *pbMantissaIsNegative,
                                   int64_t            *pnExponent);
-
 
 /* ===========================================================================
    BEGINNING OF PRIVATE INLINE IMPLEMENTATION
@@ -3243,6 +3351,170 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
                                               QCBOR_TYPE_UUID,
                                               CBOR_TAG_BIN_UUID,
                                               pUUID);
+}
+
+
+static inline void
+QCBORDecode_GetBignum(QCBORDecodeContext *pMe,
+                      uint8_t             uTagRequirement,
+                      UsefulBufC         *pBigNumber,
+                      bool               *pbIsNegative)
+{
+   QCBORDecode_GetTBigNumberRaw(pMe, uTagRequirement, pBigNumber, pbIsNegative);
+}
+
+static inline void
+QCBORDecode_GetBignumInMapN(QCBORDecodeContext *pMe,
+                            int64_t             nLabel,
+                            uint8_t             uTagRequirement,
+                            UsefulBufC         *pBigNumber,
+                            bool               *pbIsNegative)
+{
+   QCBORDecode_GetTBigNumberRawInMapN(pMe, nLabel, uTagRequirement, pBigNumber, pbIsNegative);
+}
+
+static inline void
+QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
+                             const char         *szLabel,
+                             uint8_t             uTagRequirement,
+                             UsefulBufC         *pBigNumber,
+                             bool               *pbIsNegative)
+{
+   QCBORDecode_GetTBigNumberRawInMapSZ(pMe, szLabel, uTagRequirement, pBigNumber, pbIsNegative);
+}
+
+
+static inline void
+QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
+                               uint8_t             uTagRequirement,
+                               int64_t            *pnMantissa,
+                               int64_t            *pnExponent)
+{
+   QCBORDecode_GetTDecimalFraction(pMe, uTagRequirement, pnMantissa, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pMe,
+                                     int64_t             nLabel,
+                                     uint8_t             uTagRequirement,
+                                     int64_t            *pnMantissa,
+                                     int64_t            *pnExponent)
+{
+   QCBORDecode_GetTDecimalFractionInMapN(pMe, nLabel, uTagRequirement, pnMantissa, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
+                                      const char         *szLabel,
+                                      uint8_t             uTagRequirement,
+                                      int64_t            *pnMantissa,
+                                      int64_t            *pnExponent)
+{
+   QCBORDecode_GetTDecimalFractionInMapSZ(pMe, szLabel, uTagRequirement, pnMantissa, pnExponent);
+}
+
+
+static inline void
+QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pMe,
+                                  uint8_t             uTagRequirement,
+                                  UsefulBuf           MantissaBuffer,
+                                  UsefulBufC         *pMantissa,
+                                  bool               *pbMantissaIsNegative,
+                                  int64_t            *pnExponent)
+{
+   QCBORDecode_GetTDecimalFractionBigMantissaRaw(pMe, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
+                                        int64_t             nLabel,
+                                        uint8_t             uTagRequirement,
+                                        UsefulBuf           MantissaBuffer,
+                                        UsefulBufC         *pMantissa,
+                                        bool               *pbMantissaIsNegative,
+                                        int64_t            *pnExponent)
+{
+   QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(pMe, nLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pMe,
+                                         const char         *szLabel,
+                                         uint8_t             uTagRequirement,
+                                         UsefulBuf           MantissaBuffer,
+                                         UsefulBufC         *pMantissa,
+                                         bool               *pbMantissaIsNegative,
+                                         int64_t            *pnExponent)
+{
+   QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(pMe, szLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+
+}
+
+static inline void
+QCBORDecode_GetBigFloat(QCBORDecodeContext *pMe,
+                        uint8_t             uTagRequirement,
+                        int64_t            *pnMantissa,
+                        int64_t            *pnExponent)
+{
+   QCBORDecode_GetTBigFloat(pMe, uTagRequirement, pnMantissa, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pMe,
+                              int64_t             nLabel,
+                              uint8_t             uTagRequirement,
+                              int64_t            *pnMantissa,
+                              int64_t            *pnExponent)
+{
+   QCBORDecode_GetTBigFloatInMapN(pMe, nLabel, uTagRequirement, pnMantissa, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pMe,
+                               const char         *szLabel,
+                               uint8_t             uTagRequirement,
+                               int64_t            *pnMantissa,
+                               int64_t            *pnExponent)
+{
+   QCBORDecode_GetTBigFloatInMapSZ(pMe, szLabel, uTagRequirement, pnMantissa, pnExponent);
+}
+
+static inline void
+QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
+                           uint8_t             uTagRequirement,
+                           UsefulBuf           MantissaBuffer,
+                           UsefulBufC         *pMantissa,
+                           bool               *pbMantissaIsNegative,
+                           int64_t            *pnExponent)
+{
+   QCBORDecode_GetTBigFloatBigMantissaRaw(pMe, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+
+}
+
+
+static inline void
+QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
+                                 int64_t             nLabel,
+                                 uint8_t             uTagRequirement,
+                                 UsefulBuf           MantissaBuffer,
+                                 UsefulBufC         *pMantissa,
+                                 bool               *pbMantissaIsNegative,
+                                 int64_t            *pnExponent)
+{
+   QCBORDecode_GetTBigFloatBigMantissaRawInMapN(pMe, nLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+
+}
+
+static inline void
+QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
+                                  const char         *szLabel,
+                                  uint8_t             uTagRequirement,
+                                  UsefulBuf           MantissaBuffer,
+                                  UsefulBufC         *pMantissa,
+                                  bool               *pbMantissaIsNegative,
+                                  int64_t            *pnExponent)
+{
+   QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(pMe, szLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
 }
 
 

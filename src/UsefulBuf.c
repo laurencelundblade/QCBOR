@@ -162,7 +162,6 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 /*
  * Public function -- see UsefulBuf.h
  */
-// TODO: test this
 UsefulBufC
 UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte)
 {

@@ -761,16 +761,8 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-// TODO: what is this?
-/* =======
- if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-    QCBOREncode_AddTagNumber(pMe, uTag);
- }
- QCBOREncode_AddBytes(pMe, BigNum);
-}
 
->>>>>>> dev
- */
+
 
 /**
  * @brief Convert a big number to unsigned integer.
@@ -908,7 +900,8 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
  *
  * Conversion is possible if the big number is greater than -(2^64).
  * Conversion include offset of 1 for encoding CBOR negative numbers.
- */static bool
+ */
+static bool
 QCBOREncode_Private_NegBN2UInt(const UsefulBufC BigNumber, uint64_t *puInt)
 {
    bool bIs2exp64;
@@ -992,7 +985,7 @@ QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
       if(BigNumberNLZ.len <= sizeof(uint64_t)) {
          QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumberToUInt(BigNumberNLZ));
       } else {
-         QCBOREncode_Private_AddTBigNumber(pMe, bNegative, uTagRequirement, BigNumberNLZ);
+         QCBOREncode_AddTBigNumberRaw(pMe, bNegative, uTagRequirement, BigNumberNLZ);
       }
    }
 }
@@ -1012,7 +1005,7 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
    if(bNegative) {
       QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
    } else {
-      QCBOREncode_Private_AddTBigNumber(pMe, false, uTagRequirement, BigNumberNLZ);
+      QCBOREncode_AddTBigNumberRaw(pMe, false, uTagRequirement, BigNumberNLZ);
    }
 }
 
@@ -1045,7 +1038,7 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
  * is called instead of this.
  */
 void
-QCBOREncode_Private_AddTExpMantissaInt(QCBOREncodeContext *pMe,
+QCBOREncode_Private_AddTExpIntMantissa(QCBOREncodeContext *pMe,
                                        const int           uTagRequirement,
                                        const uint64_t      uTagNumber,
                                        const int64_t       nExponent,
@@ -1067,35 +1060,7 @@ QCBOREncode_Private_AddTExpMantissaInt(QCBOREncodeContext *pMe,
 }
 
 void
-QCBOREncode_Private_AddTExpMantissaBigNumber(QCBOREncodeContext *pMe,
-                                             const int           uTagRequirement,
-                                             const uint64_t      uTagNumber,
-                                             const int64_t       nExponent,
-                                             const UsefulBufC    BigNumMantissa,
-                                             const bool          bBigNumIsNegative)
-{
-   /* This is for encoding either a big float or a decimal fraction,
-    * both of which are an array of two items, an exponent and a
-    * mantissa.  The difference between the two is that the exponent
-    * is base-2 for big floats and base-10 for decimal fractions, but
-    * that has no effect on the code here.
-    */
-   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
-    * linking QCBOREncode_AddTBigNumber() adds a lot because it
-    * does preferred serialization of big numbers and the offset of 1
-    * for CBOR negative numbers.
-    */
-   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTag(pMe, uTagNumber);
-   }
-   QCBOREncode_OpenArray(pMe);
-   QCBOREncode_AddInt64(pMe, nExponent);
-   QCBOREncode_AddTBigNumber(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
-   QCBOREncode_CloseArray(pMe);
-}
-
-void
-QCBOREncode_Private_AddTExpMantissaBigNumberv1(QCBOREncodeContext *pMe,
+QCBOREncode_Private_AddTExpBigMantissa(QCBOREncodeContext *pMe,
                                                const int           uTagRequirement,
                                                const uint64_t      uTagNumber,
                                                const int64_t       nExponent,
@@ -1118,7 +1083,36 @@ QCBOREncode_Private_AddTExpMantissaBigNumberv1(QCBOREncodeContext *pMe,
    }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
-   QCBOREncode_Private_AddTBigNumber(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_AddTBigNumber(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_Private_AddTExpBigMantissaRaw(QCBOREncodeContext *pMe,
+                                          const int           uTagRequirement,
+                                          const uint64_t      uTagNumber,
+                                          const int64_t       nExponent,
+                                          const UsefulBufC    BigNumMantissa,
+                                          const bool          bBigNumIsNegative)
+{
+   /* This is for encoding either a big float or a decimal fraction,
+    * both of which are an array of two items, an exponent and a
+    * mantissa.  The difference between the two is that the exponent
+    * is base-2 for big floats and base-10 for decimal fractions, but
+    * that has no effect on the code here.
+    */
+   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTagNumber);
+   }
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_AddTBigNumberRaw(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
    QCBOREncode_CloseArray(pMe);
 }
 

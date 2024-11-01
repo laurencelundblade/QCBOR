@@ -3301,7 +3301,7 @@ ExponentAndMantissaEncodeTests(void)
          EAMTestSetup(pTest, &EC);
 
          //QCBOREncode_AddDecimalFractionBigNum(&EC, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
-         QCBOREncode_AddTDecimalFractionBigNumber(&EC, QCBOR_ENCODE_AS_TAG, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
+         QCBOREncode_AddTDecimalFractionBigMantissa(&EC, QCBOR_ENCODE_AS_TAG, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
          uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
          if(uErr) {
             return MakeTestResultCode((uint32_t)nIndex, 11, uErr);
@@ -3314,7 +3314,7 @@ ExponentAndMantissaEncodeTests(void)
          EAMTestSetup(pTest, &EC);
 
          //QCBOREncode_AddBigFloatBigNum(&EC, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
-         QCBOREncode_AddTBigFloatBigNumber(&EC, QCBOR_ENCODE_AS_TAG, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
+         QCBOREncode_AddTBigFloatBigMantissa(&EC, QCBOR_ENCODE_AS_TAG, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
          uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
          if(uErr) {
             return MakeTestResultCode((uint32_t)nIndex, 11, uErr);
