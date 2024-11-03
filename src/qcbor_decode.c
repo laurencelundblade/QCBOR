@@ -2128,7 +2128,7 @@ Done:
  *
  * pDecodedItem[in,out]  The data item to convert.
  *
- * The 0th tag is discarded. \ref CBOR_TAG_INVALID16 is
+ * The 0th tag is discarded. @ref CBOR_TAG_INVALID16 is
  * shifted into empty slot at the end of the tag list.
  */
 static void
@@ -2330,7 +2330,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
  *                              exponent.
  *
  * @returns  Decoding errors from getting primitive data items or
- *           \ref QCBOR_ERR_BAD_EXP_AND_MANTISSA.
+ *           @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA.
  *
  * When called pDecodedItem must be the array with two members, the
  * exponent and mantissa.
@@ -2511,8 +2511,8 @@ static const struct StringTagMapEntry QCBOR_Private_StringTagMap[] = {
  * @param[in,out] pDecodedItem  The data item.
  *
  * @returns  This returns QCBOR_SUCCESS if the tag was procssed,
- *           \ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
- *           \ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
+ *           @ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
+ *           @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
  *
  * Process the CBOR tags that whose content is a byte string or a text
  * string and for which the string is just passed on to the caller.
@@ -2570,7 +2570,7 @@ QCBOR_Private_ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
  *                           @ref CBOR_TAG_BIG_FLOAT.
  * @param[in] pDecodedItem   Item being decoded.
  *
- * @returns One of the 6 values between \ref QCBOR_TYPE_DECIMAL_FRACTION
+ * @returns One of the 6 values between @ref QCBOR_TYPE_DECIMAL_FRACTION
  *          and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
  *
  * Does mapping between a CBOR tag number and a QCBOR type.  with a
@@ -3320,7 +3320,7 @@ typedef struct {
  *
  * @retval Also errors returned by QCBORDecode_GetNext().
  *
- * On input, \c pItemArray contains a list of labels and data types of
+ * On input, @c pItemArray contains a list of labels and data types of
  * items to be found.
  *
  * On output, the fully retrieved items are filled in with values and
@@ -3608,10 +3608,10 @@ Done:
  * @param[out] pItem         The item for the array/map.
  * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
  *
- * The next item to be decoded must be a map or array as specified by \c uType.
+ * The next item to be decoded must be a map or array as specified by @c uType.
  *
- * \c pItem will be filled in with the label and tags of the array or map
- * in addition to \c pEncodedCBOR giving the pointer and length of the
+ * @c pItem will be filled in with the label and tags of the array or map
+ * in addition to @c pEncodedCBOR giving the pointer and length of the
  * encoded CBOR.
  *
  * When this is complete, the traversal cursor is at the end of the array or
@@ -3711,7 +3711,7 @@ Done:
  * @param[out] pItem         The item for the array/map.
  * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
  *
- * The next item to be decoded must be a map or array as specified by \c uType.
+ * The next item to be decoded must be a map or array as specified by @c uType.
  *
  * When this is complete, the traversal cursor is unchanged.
  */void
@@ -3774,8 +3774,8 @@ QCBOR_Private_CheckTypeList(const int     uDataType,
  * @param[in] TagSpec  Specification for matching tags.
  * @param[in] pItem    The item to check.
  *
- * @retval QCBOR_SUCCESS   \c uDataType is allowed by @c TagSpec
- * @retval QCBOR_ERR_UNEXPECTED_TYPE \c uDataType is not allowed by @c TagSpec
+ * @retval QCBOR_SUCCESS   @c uDataType is allowed by @c TagSpec
+ * @retval QCBOR_ERR_UNEXPECTED_TYPE @c uDataType is not allowed by @c TagSpec
  *
  * This checks the item data type of untagged items as well as of
  * tagged items against a specification to see if decoding should
@@ -5080,7 +5080,7 @@ typedef QCBORError (*fExponentiator)(uint64_t uMantissa, int64_t nExponent, uint
  * unsigned integer.
  *
  * There are many inputs for which the result will not fit in the
- * 64-bit integer and \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ * 64-bit integer and @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
  * be returned.
  */
 static QCBORError
@@ -5128,7 +5128,7 @@ QCBOR_Private_Exponentitate10(const uint64_t uMantissa,
  * output is a 64-bit unsigned integer.
  *
  * There are many inputs for which the result will not fit in the
- * 64-bit integer and \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ * 64-bit integer and @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
  * be returned.
  */
 static QCBORError
@@ -5175,7 +5175,7 @@ QCBOR_Private_Exponentitate2(const uint64_t uMantissa,
  *
  * @returns Error code
  *
- * \c pfExp performs exponentiation on and unsigned mantissa and
+ * @c pfExp performs exponentiation on and unsigned mantissa and
  * produces an unsigned result. This converts the mantissa from signed
  * and converts the result to signed. The exponentiation function is
  * either for base 2 or base 10 (and could be other if needed).
@@ -5263,7 +5263,7 @@ QCBOR_Private_ExponentiateNN(const int64_t  nMantissa,
  *
  * @returns Error code
  *
- * \c pfExp performs exponentiation on and unsigned mantissa and
+ * @c pfExp performs exponentiation on and unsigned mantissa and
  * produces an unsigned result. This errors out if the mantissa
  * is negative because the output is unsigned.
  */
@@ -5295,7 +5295,7 @@ QCBOR_Private_ExponentitateNU(const int64_t  nMantissa,
  *
  * @returns Error code
  *
- * \c pfExp performs exponentiation on and unsigned mantissa and
+ * @c pfExp performs exponentiation on and unsigned mantissa and
  * produces an unsigned result so this is just a wrapper that does
  * nothing (and is likely inlined).
  */

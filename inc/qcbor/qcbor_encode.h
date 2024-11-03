@@ -893,7 +893,7 @@ QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC 
  * multiple writes.
  *
  * The pointer in @c pPlace is where to start writing. Writing is just
- * copying bytes to the location by the pointer in \c pPlace.  Writing
+ * copying bytes to the location by the pointer in @c pPlace.  Writing
  * past the length in @c pPlace will be writing off the end of the
  * output buffer.
  *

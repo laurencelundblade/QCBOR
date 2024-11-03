@@ -908,8 +908,8 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
- * If a decoding error occurs or previously occured, \c uDataType and
- * \c uLabelType will be set to @ref QCBOR_TYPE_NONE. If there is no
+ * If a decoding error occurs or previously occured, @c uDataType and
+ * @c uLabelType will be set to @ref QCBOR_TYPE_NONE. If there is no
  * need to know the specific error, it is sufficient to check for @ref
  * QCBOR_TYPE_NONE.
  *
@@ -1352,11 +1352,11 @@ QCBORDecode_IsUnrecoverableError(QCBORError uErr);
  * and propagate up.
  *
  * When the error condition is set, QCBORDecode_VGetNext() will always
- * return an item with data and label type as \ref QCBOR_TYPE_NONE.
+ * return an item with data and label type as @ref QCBOR_TYPE_NONE.
  *
  * The main intent of this is to set a user-defined error code in the
- * range of \ref QCBOR_ERR_FIRST_USER_DEFINED to
- * \ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
+ * range of @ref QCBOR_ERR_FIRST_USER_DEFINED to
+ * @ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
  * error codes too.
  */
 static void
@@ -1599,7 +1599,7 @@ QCBORDecode_IsTagged(QCBORDecodeContext *pCtx,
  * internally.
  *
  * This works the same as QCBORDecode_GetNext() except that it also
- * returns the list of tags for the data item in \c pTagList.
+ * returns the list of tags for the data item in @c pTagList.
  *
  * The 0th tag returned here is the one furthest from the data
  * item. This is opposite the order for QCBORDecode_GetNthTag().
