@@ -459,6 +459,50 @@ typedef enum {
 
 
 /**
+ * @anchor expAndMantissa
+ *
+ * This holds the value for big floats and decimal fractions, as an
+ * exponent and mantissa.  For big floats the base for exponentiation
+ * is 2. For decimal fractions it is 10. Whether an instance is a big
+ * float or decimal fraction is known by context, usually by @c uDataType
+ * in @ref QCBORItem which might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+ * @ref QCBOR_TYPE_BIGFLOAT, ...
+ *
+ * The mantissa may be an @c int64_t or a big number. This is again
+ * determined by context, usually @c uDataType in @ref QCBORItem which
+ * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+ * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
+ * big number also comes from the context
+ * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+ * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
+ *
+ * @c bigNum is big endian or network byte order. The most significant
+ * byte is first.
+ *
+ * When @c Mantissa is @c int64_t, it represents the true value of the
+ * mantissa with the offset of 1 for CBOR negative values
+ * applied. When it is a negative big number
+ * (@ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM or
+ * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM), the offset of 1 has NOT been
+ * applied (doing so requires somewhat complex big number arithmetic
+ * and may increase the length of the big number). To get the correct
+ * value @c bigNum must be incremented by one before use.
+ *
+ * Also see QCBOREncode_AddTDecimalFraction(),
+ * QCBOREncode_AddTBigFloat(), QCBOREncode_AddTDecimalFractionBigNum()
+ * and QCBOREncode_AddTBigFloatBigNum().
+ */
+typedef struct  {
+   int64_t nExponent;
+   union {
+      int64_t    nInt;
+      uint64_t   uInt;
+      UsefulBufC bigNum;
+   } Mantissa;
+} QCBORExpAndMantissa;
+
+
+/**
  * This holds a decoded data item. It is returned by the
  * QCBORDecode_GetNext(), the principle decoding function.
  * It holds the type, value, label, tags and other details
@@ -550,62 +594,12 @@ typedef struct _QCBORItem {
       /** See @ref QCBOR_TYPE_UKNOWN_SIMPLE */
       uint8_t     uSimple;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
-      /**
-       * @anchor expAndMantissa
-       *
-       * This holds the value for big floats and decimal fractions.
-       * The use of the fields in this structure depends on @c uDataType.
-       *
-       * When @c uDataType indicates a decimal fraction, the
-       * @c nExponent is base 10. When it indicates a big float, it
-       * is base 2.
-       *
-       * When @c uDataType indicates a big number, then the @c bigNum
-       * member of @c Mantissa is valid. Otherwise the @c nInt member
-       * of @c Mantissa is valid.
-       *
-       * See @ref QCBOR_TYPE_DECIMAL_FRACTION,
-       * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
-       * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
-       * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_U64,
-       * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64,,
-       * @ref QCBOR_TYPE_BIGFLOAT, 
-       * @ref QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
-       * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
-       * @ref QCBOR_TYPE_BIGFLOAT_POS_U64.
-       * and @ref QCBOR_TYPE_BIGFLOAT_NEG_U64.
-       *
-       * When the mantissa is uInt or bigNum and negative, 1 must
-       * be further subtracted from the value returned to get the
-       * actual value of the mantissa. 
-       *
-       * See  QCBORDecode_GetTDecimalFractionBigMantissa(),
-       * and QCBORDecode_GetTBigFloatBigMantissa() for
-       * methods that fully process negative mantissas.
-       * Also, QCBORDecode_ProcessBigNumber() which
-       * can be used on the mantissa returned here.
-       *
-       * Also see QCBOREncode_AddTDecimalFraction(),
-       * QCBOREncode_AddTBigFloat(),
-       * QCBOREncode_AddTDecimalFractionBigMantissa() and
-       * QCBOREncode_AddTBigFloatBigMantissa().
-       */
-      struct {
-         int64_t nExponent;
-         union {
-            int64_t    nInt;
-            uint64_t   uInt;
-            UsefulBufC bigNum;
-         } Mantissa;
-      } expAndMantissa;
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+      QCBORExpAndMantissa expAndMantissa;
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
       uint64_t    uTagNumber;
 
       /* For use by user-defined tag content handlers */
       uint8_t     userDefined[24];
-
-      uint8_t     custom[24];
-
    } val;
 
    /** Union holding the different label types selected based on @c uLabelType */
