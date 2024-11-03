@@ -30,10 +30,8 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
-
 #ifndef qcbor_common_h
 #define qcbor_common_h
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -533,7 +531,7 @@ typedef enum {
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
    QCBOR_ERR_FIRST_USER_DEFINED = 128,
 
-   /** See \ref QCBOR_ERR_FIRST_USER_DEFINED */
+   /** See @ref QCBOR_ERR_FIRST_USER_DEFINED */
    QCBOR_ERR_LAST_USER_DEFINED = 255
 
    /* This is stored in uint8_t; never add values > 255 */

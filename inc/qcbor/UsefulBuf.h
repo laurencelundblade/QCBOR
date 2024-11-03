@@ -1339,8 +1339,8 @@ UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
  * @param[in] uAmount  The amount to advance.
  *
  * This advances the position in the output buffer
- * by \c uAmount. This assumes that the
- * caller has written \c uAmount to the pointer obtained
+ * by @c uAmount. This assumes that the
+ * caller has written @c uAmount to the pointer obtained
  * with UsefulOutBuf_GetOutPlace().
  *
  * Warning: this bypasses the buffer safety provided by

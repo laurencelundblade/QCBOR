@@ -130,7 +130,7 @@ static bool EngineCompare(const CarEngine *pE1, const CarEngine *pE2)
  * @return  The pointer and length of the encoded CBOR or
  *          @ref NULLUsefulBufC on error.
  *
- * This encodes the input structure \c pEngine as a CBOR map of
+ * This encodes the input structure @c pEngine as a CBOR map of
  * label-value pairs. An array of float is one of the items in the
  * map.
  *
