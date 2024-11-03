@@ -6395,7 +6395,7 @@ int32_t ProcessEaMTests(void)
    for(uIndex = 0; uIndex < C_ARRAY_COUNT(pEaMTests, struct EaMTest); uIndex++) {
       const struct EaMTest *pT = &pEaMTests[uIndex];
 
-      if(uIndex + 1 == 12) {
+      if(uIndex + 1 == 11) {
          nExponent = 99; // just to set a break point
       }
 
@@ -6672,18 +6672,6 @@ int32_t ExponentAndMantissaDecodeTests(void)
 
 
 static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
-#if 0
-   { "Exponent > INT64_MAX",
-      QCBOR_DECODE_MODE_NORMAL,
-      {"\xC4\x82\x1B\x7f\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x1B\x80\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 20},
-      QCBOR_ERR_BAD_EXP_AND_MANTISSA
-   },
-   { "Mantissa > INT64_MAX",
-      QCBOR_DECODE_MODE_NORMAL,
-      {"\xC4\x82\x1B\x80\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC3\x4A\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10", 23},
-      QCBOR_ERR_BAD_EXP_AND_MANTISSA
-   },
-#endif
    {
       "End of input",
       QCBOR_DECODE_MODE_NORMAL,

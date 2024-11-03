@@ -3677,7 +3677,7 @@ QCBOREncode_AddTNegativeBignumToMapSZ(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddTBigNumberRawToMapSZ(pMe,
                                        szLabel,
-                                       QCBOR_ENCODE_AS_TAG,
+                                       uTagRequirement,
                                        true,
                                        BigNumber);
 }
@@ -3690,7 +3690,7 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddTBigNumberRawToMapN(pMe,
                                       nLabel,
-                                      QCBOR_ENCODE_AS_TAG,
+                                      uTagRequirement,
                                       true,
                                       BigNumber);
 }
