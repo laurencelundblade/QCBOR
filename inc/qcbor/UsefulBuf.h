@@ -43,8 +43,10 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/31/2024   llundblade      Add UsefulBufC_NTH_BYTE().
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
+ 8/10/2024    llundblade      Add UsefulBuf_SkipLeading().
  08/08/2024   llundblade      Add UsefulOutBuf_SubString().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
  28/02/2024   llundblade      Rearrange UsefulOutBuf_Compare().
@@ -496,6 +498,10 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
 
 
+/* Get the nth byte from a UsefulBufC. There's no length check! */
+#define UsefulBufC_NTH_BYTE(UBC, n)  (((const uint8_t *)(UBC.ptr))[n])
+
+
 /**
  * @brief Copy one @ref UsefulBuf into another at an offset.
  *
@@ -653,6 +659,17 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
  * @return Position of found bytes or @c SIZE_MAX if not found.
  */
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
+
+
+/**
+ * @brief Skip leading bytes of a particular value in a string.
+ *
+ * @param[in] String  The input string. String.ptr must not be @c NULL.
+ * @param[in] uByte  The  byte value.
+ *
+ * @return Substring with leading bytes with value @c uByte removed.
+ */
+UsefulBufC UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte);
 
 
 /**

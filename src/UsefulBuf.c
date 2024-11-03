@@ -161,6 +161,24 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 
 /*
  * Public function -- see UsefulBuf.h
+ */
+UsefulBufC
+UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte)
+{
+   for(;String.len; String.len--) {
+      if(*(const uint8_t *)String.ptr != uByte) {
+         break;
+      }
+      String.ptr = (const uint8_t *)String.ptr + 1;
+   }
+
+   return String;
+}
+
+
+
+/*
+ * Public function -- see UsefulBuf.h
  *
  * Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */

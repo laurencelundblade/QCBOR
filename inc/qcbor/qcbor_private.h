@@ -231,6 +231,7 @@ typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
 #define QCBOR_ENCODE_MODE_DCBOR     3
 
 
+// TODO: probably get rid of this
 /* Operate in compatibility with QCBOR 1.0
  * So far the differences are:
  *  - AddNegativeBigNum and AddBigFloat with a negative big num

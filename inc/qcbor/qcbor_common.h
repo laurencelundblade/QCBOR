@@ -123,9 +123,9 @@ extern "C" {
 #define CBOR_TAG_DATE_STRING    0
 /** See QCBOREncode_AddTDateEpoch(). */
 #define CBOR_TAG_DATE_EPOCH     1
-/** See QCBOREncode_AddTPositiveBignum(). */
+/** See QCBOREncode_AddTBigNumber(). */
 #define CBOR_TAG_POS_BIGNUM     2
-/** See QCBOREncode_AddTNegativeBignum(). */
+/** See QCBOREncode_AddTBigNumber(). */
 #define CBOR_TAG_NEG_BIGNUM     3
 /** CBOR tag for a two-element array representing a fraction with a
  *  mantissa and base-10 scaling factor. See
