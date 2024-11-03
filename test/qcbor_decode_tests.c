@@ -6016,9 +6016,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       -1,
       {(const uint8_t []){0x03}, 1},
-      false,
+      false
    },
-
    {
       "2. Untagged pair (big float or decimal fraction), tag required",
       {(const uint8_t []){0x82, 0x20, 0x03}, 3},
@@ -6048,9 +6047,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 1},
-      false,
+      false
    },
-
    {
       "3. Tagged 1.5 decimal fraction, tag 4 optional",
       {(const uint8_t []){0xC4, 0x82, 0x20, 0x03}, 4},
@@ -6081,7 +6079,7 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 1},
-      false,
+      false
    },
    {
       "4. Tagged 100 * 2^300 big float, tag 5 optional",
@@ -6112,7 +6110,7 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       300,
       {(const uint8_t []){0x64}, 1},
-      false,
+      false
    },
    {
       "5. Tagged 4([-20, 4759477275222530853136]) decimal fraction, tag 4 required",
@@ -6144,9 +6142,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 0},
-      false,
+      false
    },
-
    {
       "6. Error: Mantissa and exponent inside a Mantissa and exponent",
       {(const uint8_t []){0xC4, 0x82, 0x33,
@@ -6177,9 +6174,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 0},
-      false,
+      false
    },
-
    {
       "7. Tagged 5([-20, 4294967295]) big float, big num mantissa, tag 5 required",
       {(const uint8_t []){0xC5, 0x82, 0x33,
@@ -6210,9 +6206,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       -20,
       {(const uint8_t []){0xff, 0xff, 0xff, 0xff}, 4},
-      false,
+      false
    },
-
    {
       /* Special case for test 8. Don't renumber it. */
       "8. Untagged pair with big num (big float or decimal fraction), tag optional",
@@ -6243,9 +6238,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       -20,
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
-      false,
+      false
    },
-
    {
       "9. decimal fraction with large exponent and negative big num mantissa",
       {(const uint8_t []){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -6276,9 +6270,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloatBig */
       0,
       {(const uint8_t []){0x00}, 1},
-      false,
+      false
    },
-
    {
       "10. big float with large exponent and negative big num mantissa",
       {(const uint8_t []){0xC5, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -6309,9 +6302,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       9223372036854775807,
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x11}, 10},
-      true,
+      true
    },
-
    {
       "11. big float with large exponent and negative big num mantissa",
       {(const uint8_t []){0xC5, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -6342,9 +6334,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       9223372036854775807,
       {(const uint8_t []){0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
-      true,
+      true
    },
-
    {
       "12. big float with large exponent and positive unsigned mantissa",
       {(const uint8_t []){0xC5, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -6375,8 +6366,8 @@ static const struct EaMTest pEaMTests[] = {
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       9223372036854775807,
       {(const uint8_t []){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 8},
-      false,
-   },
+      false
+   }
 };
 
 
