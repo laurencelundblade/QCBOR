@@ -312,52 +312,54 @@ typedef enum {
 #define QCBOR_TYPE_UKNOWN_SIMPLE 13
 
 /** A decimal fraction made of decimal exponent and integer mantissa.
- *  See @ref expAndMantissa and QCBOREncode_AddDecimalFraction(). */
+ *  See @ref expAndMantissa and QCBOREncode_AddTDecimalFraction(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION            14
 
 /** A decimal fraction made of decimal exponent and positive big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
+ *  QCBOREncode_AddTDecimalFractionBigMantissa(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM 15
 
-/** A decimal fraction made of decimal exponent and positive
- * uint64_t */
-#define QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 115
-
 /** A decimal fraction made of decimal exponent and negative big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
+ *  QCBOREncode_AddTDecimalFractionBigMantissa(). */
 #define QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM 16
 
+/** A decimal fraction made of decimal exponent and positive
+ * uint64_t . See QCBOREncode_AddTDecimalFractionBigMantissa(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION_POS_U64    79
+
 /** A decimal fraction made of decimal exponent and negative big
  *  number mantissa. See @ref expAndMantissa and
- *  QCBOREncode_AddDecimalFractionBigNum(). */
-#define QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 116 // TODO: is the the number we really want?
+ *  QCBOREncode_AddTDecimalFractionBigMantissa(). */
+#define QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64    80
 
 /** A floating-point number made of base-2 exponent and integer
  *  mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloat(). */
+ *  QCBOREncode_AddTBigFloat(). */
 #define QCBOR_TYPE_BIGFLOAT                    17
 
 /** A floating-point number made of base-2 exponent and positive big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
+ *  QCBOREncode_AddTBigFloatBigMantissa(). */
+// TODO: rename to BIGMANTISSA?
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM         18
 
 /** A floating-point number made of base-2 exponent and negative big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
+ *  QCBOREncode_AddTBigFloatBigMantissa(). */
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
 
 /** A floating-point number made of base-2 exponent and positive big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
-#define QCBOR_TYPE_BIGFLOAT_POS_U64        118
+ *  QCBOREncode_AddTBigFloatBigMantissa(). */
+// TODO: rename to U64MANTISSA
+#define QCBOR_TYPE_BIGFLOAT_POS_U64            82
 
 /** A floating-point number made of base-2 exponent and negative big
  *  number mantissa.  See @ref expAndMantissa and
- *  QCBOREncode_AddBigFloatBigNum(). */
-#define QCBOR_TYPE_BIGFLOAT_NEG_U64         119
+ *  QCBOREncode_AddTBigFloatBigMantissa(). */
+#define QCBOR_TYPE_BIGFLOAT_NEG_U64            83
 
 /** Type for the simple value false. */
 #define QCBOR_TYPE_FALSE         20
@@ -435,6 +437,8 @@ typedef enum {
  *  [RFC 8943](https://tools.ietf.org/html/rfc8943). Data is in
  *  @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
+
+/* 79, 80, 82, 83 is used above for decimal fraction and big float */
 
 
 #define QCBOR_TYPE_TAG_NUMBER 127 /* Used internally; never returned */
@@ -575,16 +579,16 @@ typedef struct _QCBORItem {
        * be further subtracted from the value returned to get the
        * actual value of the mantissa. 
        *
-       * See  QCBORDecode_GetDecimalFractionBigNumber(),
-       * and QCBORDecode_GetBigFloatBigNumber() for
+       * See  QCBORDecode_GetTDecimalFractionBigMantissa(),
+       * and QCBORDecode_GetTBigFloatBigMantissa() for
        * methods that fully process negative mantissas.
        * Also, QCBORDecode_ProcessBigNumber() which
        * can be used on the mantissa returned here.
        *
        * Also see QCBOREncode_AddTDecimalFraction(),
        * QCBOREncode_AddTBigFloat(),
-       * QCBOREncode_AddTDecimalFractionBigNumber() and
-       * QCBOREncode_AddTBigFloatBigNumber().
+       * QCBOREncode_AddTDecimalFractionBigMantissa() and
+       * QCBOREncode_AddTBigFloatBigMantissa().
        */
       struct {
          int64_t nExponent;

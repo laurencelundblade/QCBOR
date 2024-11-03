@@ -158,20 +158,16 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
 /**
- * @brief Figures out data type for exponent mantissa tags.
+ * @brief Figures out QCBOR data type for exponent and mantissa tags.
  *
  * @param[in] uTagToProcess  Either @ref CBOR_TAG_DECIMAL_FRACTION or
  *                           @ref CBOR_TAG_BIG_FLOAT.
  * @param[in] pDecodedItem   Item being decoded.
  *
- * @returns One of the 6 values between \ref QCBOR_TYPE_DECIMAL_FRACTION
- *          and @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM.
+ * @returns One of the ten values related to @ref QCBOR_TYPE_DECIMAL_FRACTION and @ref QCBOR_TYPE_BIGFLOAT
  *
- * Does mapping between a CBOR tag number and a QCBOR type.  with a
- * little bit of logic and arithmatic.
- *
- * Used in serveral contexts. Does the work where sometimes the data
- * item is explicitly tagged and sometimes not.
+ * Does mapping between a CBOR tag number and a QCBOR type with a
+ * little logic and arithmetic.
  */
 static uint8_t
 QCBOR_Private_ExpMantissaDataType(const uint64_t   uTagToProcess,
@@ -186,10 +182,10 @@ QCBOR_Private_ExpMantissaDataType(const uint64_t   uTagToProcess,
          return uBase;
 
       case QCBOR_TYPE_UINT64:
-         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_POS_U64- QCBOR_TYPE_DECIMAL_FRACTION); // TODO: test this
+         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 - QCBOR_TYPE_DECIMAL_FRACTION); // TODO: test this
 
       case QCBOR_TYPE_65BIT_NEG_INT:
-         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64- QCBOR_TYPE_DECIMAL_FRACTION); // TODO: test this
+         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 - QCBOR_TYPE_DECIMAL_FRACTION);
 
       default:
          return (uint8_t)(uBase + pDecodedItem->uDataType - QCBOR_TYPE_POSBIGNUM + 1);
@@ -209,8 +205,6 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
    QCBORError uReturn;
    QCBORItem  ExponentItem;
    QCBORItem  MantissaItem;
-
-
 
    /* --- Make sure it is an array; track nesting level of members --- */
    if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {

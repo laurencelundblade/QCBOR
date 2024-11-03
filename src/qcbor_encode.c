@@ -779,10 +779,9 @@ QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
    uint64_t uInt;
    size_t   uIndex;
 
-
    uInt = 0;
    for(uIndex = 0; uIndex < BigNumber.len; uIndex++) {
-      uInt = (uInt << 8) + ((const uint8_t *)BigNumber.ptr)[uIndex];
+      uInt = (uInt << 8) + UsefulBufC_NTH_BYTE(BigNumber, uIndex);
    }
 
    return uInt;
@@ -790,9 +789,9 @@ QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
 
 
 /**
- * @brief Is there a carry when you substract 1 from the BigNumber.
+ * @brief Is there a carry when you subtract 1 from the BigNumber.
  *
- * @param[in]  BigNumber  Big number to convert.
+ * @param[in]  BigNumber  Big number to check for carry.
  *
  * @return If there is a carry, \c true.
  *
@@ -812,7 +811,7 @@ QCBOREncode_Private_BigNumberCarry(const UsefulBufC BigNumber)
    } else {
       SubBigNum = UsefulBuf_Tail(BigNumber, 1);
       bCarry = QCBOREncode_Private_BigNumberCarry(SubBigNum);
-      if(*(const uint8_t *)BigNumber.ptr == 0x00 && bCarry) {
+      if(UsefulBufC_NTH_BYTE(BigNumber, 0) == 0x00 && bCarry) {
          /* Subtracting one from 0 gives a carry */
          return true;
       } else {
@@ -902,7 +901,7 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
  * Conversion include offset of 1 for encoding CBOR negative numbers.
  */
 static bool
-QCBOREncode_Private_NegBN2UInt(const UsefulBufC BigNumber, uint64_t *puInt)
+QCBOREncode_Private_NegativeBigNumberToUInt(const UsefulBufC BigNumber, uint64_t *puInt)
 {
    bool bIs2exp64;
 
@@ -960,7 +959,7 @@ QCBOREncode_Private_SkipLeadingZeros(const UsefulBufC BigNumber)
 
 
 /*
- * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
+ * Public functions for adding a big number. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
@@ -974,7 +973,7 @@ QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
 
    /* Preferred serialization requires reduction to type 0 and 1 integers */
    if(bNegative) {
-      if(QCBOREncode_Private_NegBN2UInt(BigNumberNLZ, &uInt)) {
+      if(QCBOREncode_Private_NegativeBigNumberToUInt(BigNumberNLZ, &uInt)) {
          /* Might be a 65-bit negative; use special add method for such */
          QCBOREncode_AddNegativeUInt64(pMe, uInt);
       } else {
@@ -992,7 +991,7 @@ QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
 
 
 /*
- * Public functions for adding raw encoded CBOR. See qcbor/qcbor_encode.h
+ * Public functions for adding a big number. See qcbor/qcbor_encode.h
  */
 void
 QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
@@ -1050,6 +1049,11 @@ QCBOREncode_Private_AddTExpIntMantissa(QCBOREncodeContext *pMe,
     * is base-2 for big floats and base-10 for decimal fractions, but
     * that has no effect on the code here.
     */
+   /* Separate from QCBOREncode_Private_AddTExpBigMantissa() because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, uTagNumber);
    }
@@ -1061,22 +1065,17 @@ QCBOREncode_Private_AddTExpIntMantissa(QCBOREncodeContext *pMe,
 
 void
 QCBOREncode_Private_AddTExpBigMantissa(QCBOREncodeContext *pMe,
-                                               const int           uTagRequirement,
-                                               const uint64_t      uTagNumber,
-                                               const int64_t       nExponent,
-                                               const UsefulBufC    BigNumMantissa,
-                                               const bool          bBigNumIsNegative)
+                                       const int           uTagRequirement,
+                                       const uint64_t      uTagNumber,
+                                       const int64_t       nExponent,
+                                       const UsefulBufC    BigNumMantissa,
+                                       const bool          bBigNumIsNegative)
 {
    /* This is for encoding either a big float or a decimal fraction,
     * both of which are an array of two items, an exponent and a
     * mantissa.  The difference between the two is that the exponent
     * is base-2 for big floats and base-10 for decimal fractions, but
     * that has no effect on the code here.
-    */
-   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
-    * linking QCBOREncode_AddTBigNumber() adds a lot because it
-    * does preferred serialization of big numbers and the offset of 1
-    * for CBOR negative numbers.
     */
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTag(pMe, uTagNumber);
@@ -1102,7 +1101,7 @@ QCBOREncode_Private_AddTExpBigMantissaRaw(QCBOREncodeContext *pMe,
     * is base-2 for big floats and base-10 for decimal fractions, but
     * that has no effect on the code here.
     */
-   /* Separate from QCBOREncode_Private_AddExpMantissaInt because
+   /* Separate from QCBOREncode_Private_AddTExpBigMantissa() because
     * linking QCBOREncode_AddTBigNumber() adds a lot because it
     * does preferred serialization of big numbers and the offset of 1
     * for CBOR negative numbers.

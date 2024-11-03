@@ -7366,12 +7366,12 @@ QCBORDecode_GetTDecimalFraction(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_DECIMAL_FRACTION,
-                                       uOffset,
-                                      &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                          uTagRequirement,
+                                          CBOR_TAG_DECIMAL_FRACTION,
+                                          uOffset,
+                                         &Item,
+                                          pnMantissa,
+                                          pnExponent);
 }
 
 
@@ -7390,12 +7390,12 @@ QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_DECIMAL_FRACTION,
-                                       uOffset,
-                                      &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                          uTagRequirement,
+                                          CBOR_TAG_DECIMAL_FRACTION,
+                                          uOffset,
+                                         &Item,
+                                          pnMantissa,
+                                          pnExponent);
 
 }
 
@@ -7415,12 +7415,12 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_DECIMAL_FRACTION,
-                                       uOffset,
-                                      &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                          uTagRequirement,
+                                          CBOR_TAG_DECIMAL_FRACTION,
+                                          uOffset,
+                                         &Item,
+                                          pnMantissa,
+                                          pnExponent);
 }
 
 
@@ -7456,15 +7456,15 @@ QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
-                                        const int64_t       nLabel,
-                                        const uint8_t       uTagRequirement,
-                                        const UsefulBuf     BufferForMantissa,
-                                        UsefulBufC         *pMantissa,
-                                        bool               *pbIsNegative,
-                                        int64_t            *pnExponent)
+                                                 const int64_t       nLabel,
+                                                 const uint8_t       uTagRequirement,
+                                                 const UsefulBuf     BufferForMantissa,
+                                                 UsefulBufC         *pMantissa,
+                                                 bool               *pbIsNegative,
+                                                 int64_t            *pnExponent)
 {
-   QCBORItem Item;
-   size_t    uOffset;
+   QCBORItem  Item;
+   size_t     uOffset;
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
@@ -7484,15 +7484,15 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
-                                         const char         *szLabel,
-                                         const uint8_t       uTagRequirement,
-                                         const UsefulBuf     BufferForMantissa,
-                                         UsefulBufC         *pMantissa,
-                                         bool               *pbIsNegative,
-                                         int64_t            *pnExponent)
+                                                  const char         *szLabel,
+                                                  const uint8_t       uTagRequirement,
+                                                  const UsefulBuf     BufferForMantissa,
+                                                  UsefulBufC         *pMantissa,
+                                                  bool               *pbIsNegative,
+                                                  int64_t            *pnExponent)
 {
-   QCBORItem Item;
-   size_t    uOffset;
+   QCBORItem  Item;
+   size_t     uOffset;
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
@@ -7511,25 +7511,25 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
-                                           const uint8_t       uTagRequirement,
-                                           const UsefulBuf     MantissaBuffer,
-                                           UsefulBufC         *pMantissa,
-                                           bool               *pbMantissaIsNegative,
-                                           int64_t            *pnExponent)
+                                              const uint8_t       uTagRequirement,
+                                              const UsefulBuf     MantissaBuffer,
+                                              UsefulBufC         *pMantissa,
+                                              bool               *pbMantissaIsNegative,
+                                              int64_t            *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                          uTagRequirement,
-                                          CBOR_TAG_DECIMAL_FRACTION,
-                                          uOffset,
-                                         &Item,
-                                          MantissaBuffer,
-                                          pMantissa,
-                                          pbMantissaIsNegative,
-                                          pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_DECIMAL_FRACTION,
+                                             uOffset,
+                                            &Item,
+                                             MantissaBuffer,
+                                             pMantissa,
+                                             pbMantissaIsNegative,
+                                             pnExponent);
 }
 
 
@@ -7538,26 +7538,26 @@ QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pMe,
-                                        const int64_t       nLabel,
-                                        const uint8_t       uTagRequirement,
-                                        const UsefulBuf     BufferForMantissa,
-                                        UsefulBufC         *pMantissa,
-                                        bool               *pbIsNegative,
-                                        int64_t            *pnExponent)
+                                                    const int64_t       nLabel,
+                                                    const uint8_t       uTagRequirement,
+                                                    const UsefulBuf     BufferForMantissa,
+                                                    UsefulBufC         *pMantissa,
+                                                    bool               *pbIsNegative,
+                                                    int64_t            *pnExponent)
 {
    QCBORItem Item;
    size_t    uOffset;
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                          uTagRequirement,
-                                          CBOR_TAG_DECIMAL_FRACTION,
-                                          uOffset,
-                                         &Item,
-                                          BufferForMantissa,
-                                          pMantissa,
-                                          pbIsNegative,
-                                          pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_DECIMAL_FRACTION,
+                                             uOffset,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -7566,26 +7566,26 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
-                                         const char         *szLabel,
-                                         const uint8_t       uTagRequirement,
-                                         const UsefulBuf     BufferForMantissa,
-                                         UsefulBufC         *pMantissa,
-                                         bool               *pbIsNegative,
-                                         int64_t            *pnExponent)
+                                                     const char         *szLabel,
+                                                     const uint8_t       uTagRequirement,
+                                                     const UsefulBuf     BufferForMantissa,
+                                                     UsefulBufC         *pMantissa,
+                                                     bool               *pbIsNegative,
+                                                     int64_t            *pnExponent)
 {
    QCBORItem Item;
    size_t    uOffset;
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                          uTagRequirement,
-                                          CBOR_TAG_DECIMAL_FRACTION,
-                                          uOffset,
-                                         &Item,
-                                          BufferForMantissa,
-                                          pMantissa,
-                                          pbIsNegative,
-                                          pnExponent);
+                                             uTagRequirement,
+                                             CBOR_TAG_DECIMAL_FRACTION,
+                                             uOffset,
+                                            &Item,
+                                             BufferForMantissa,
+                                             pMantissa,
+                                             pbIsNegative,
+                                             pnExponent);
 }
 
 
@@ -7594,21 +7594,21 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTBigFloat(QCBORDecodeContext *pMe,
-                        const uint8_t       uTagRequirement,
-                        int64_t             *pnMantissa,
-                        int64_t             *pnExponent)
+                         const uint8_t       uTagRequirement,
+                         int64_t             *pnMantissa,
+                         int64_t             *pnExponent)
 {
-   QCBORItem Item;
-   size_t    uOffset;
+   QCBORItem  Item;
+   size_t     uOffset;
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_BIGFLOAT,
-                                       uOffset,
-                                      &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                          uTagRequirement,
+                                          CBOR_TAG_BIGFLOAT,
+                                          uOffset,
+                                         &Item,
+                                          pnMantissa,
+                                          pnExponent);
 }
 
 
@@ -7617,22 +7617,22 @@ QCBORDecode_GetTBigFloat(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pMe,
-                              const int64_t       nLabel,
-                              const uint8_t       uTagRequirement,
-                              int64_t            *pnMantissa,
-                              int64_t            *pnExponent)
+                               const int64_t       nLabel,
+                               const uint8_t       uTagRequirement,
+                               int64_t            *pnMantissa,
+                               int64_t            *pnExponent)
 {
-   QCBORItem Item;
-   size_t    uOffset;
+   QCBORItem  Item;
+   size_t     uOffset;
 
    QCBORDecode_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_BIGFLOAT,
-                                       uOffset,
-                                      &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                          uTagRequirement,
+                                          CBOR_TAG_BIGFLOAT,
+                                          uOffset,
+                                         &Item,
+                                          pnMantissa,
+                                          pnExponent);
 }
 
 
@@ -7641,22 +7641,22 @@ QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext *pMe,
-                               const char         *szLabel,
-                               const uint8_t       uTagRequirement,
-                               int64_t            *pnMantissa,
-                               int64_t            *pnExponent)
+                                const char         *szLabel,
+                                const uint8_t       uTagRequirement,
+                                int64_t            *pnMantissa,
+                                int64_t            *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                       uTagRequirement,
-                                       CBOR_TAG_BIGFLOAT,
-                                       uOffset,
-                                       &Item,
-                                       pnMantissa,
-                                       pnExponent);
+                                          uTagRequirement,
+                                          CBOR_TAG_BIGFLOAT,
+                                          uOffset,
+                                         &Item,
+                                          pnMantissa,
+                                          pnExponent);
 }
 
 
@@ -7728,8 +7728,8 @@ QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext *pMe,
                                            bool               *pbIsNegative,
                                            int64_t            *pnExponent)
 {
-   QCBORItem Item;
-   size_t    uOffset;
+   QCBORItem  Item;
+   size_t     uOffset;
 
    QCBORDecode_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
@@ -8318,11 +8318,11 @@ QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext *pMe,
  */
 void
 QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext *pMe,
-                                          const int64_t       nLabel,
-                                          const uint8_t       uTagRequirement,
-                                          UsefulBuf           BigNumberBuf,
-                                          UsefulBufC         *pBigNumber,
-                                          bool               *pbIsNegative)
+                                           const int64_t       nLabel,
+                                           const uint8_t       uTagRequirement,
+                                           UsefulBuf           BigNumberBuf,
+                                           UsefulBufC         *pBigNumber,
+                                           bool               *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;

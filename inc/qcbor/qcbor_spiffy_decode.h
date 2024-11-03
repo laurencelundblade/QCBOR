@@ -1691,7 +1691,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  *
  * The mantissa is always returned as an @c int64_t.  If the value
  * won't fit, @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will be
- * set. Use QCBORDecode_GetDecimalFractionBigNumber() to avoid the
+ * set. Use QCBORDecode_GetTDecimalFractionBigMantissa() to avoid the
  * limit to @c int64_t.
  *
  * The value of this is computed by:
@@ -1760,8 +1760,8 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
  * fractions.
  *
  * See also @ref CBOR_TAG_DECIMAL_FRACTION,
- * QCBOREncode_AddDecimalFraction(), @ref QCBOR_TYPE_DECIMAL_FRACTION
- * and QCBORDecode_GetDecimalFraction().
+ * QCBOREncode_AddTDecimalFractionBigMantissa(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * and QCBORDecode_GetTDecimalFraction().
  */
 void
 QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pCtx,
@@ -1790,6 +1790,34 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pCtx,
                                                   int64_t            *pnExponent);
 
 
+/**
+ * @brief Decode the next item as a decimal fraction with a big number mantissa raw.
+ *
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] MantissaBuffer   The buffer in which to put the mantissa.
+ * @param[out] pMantissa       The big num mantissa.
+ * @param[out] pbMantissaIsNegative  Is @c true if @c pMantissa is negative.
+ * @param[out] pnExponent      The base 10 exponent.
+ *
+ * This is the same as QCBORDecode_GetTDecimalFractionBigMantissa() except the
+ * negative mantissas are NOT offset by one and this links in less object code.
+ *
+ * In the encoded CBOR, the mantissa may be a type 0 (positive
+ * integer), type 1 (negative integer), type 2 tag 2 (positive big
+ * number) or type 2 tag 3 (negative big number). This implementation
+ * will convert all these to a big number. The limit to this
+ * conversion is the size of @c MantissaBuffer.
+ *
+ * See also QCBORDecode_GetInt64ConvertAll(),
+ * QCBORDecode_GetUInt64ConvertAll() and
+ * QCBORDecode_GetDoubleConvertAll() which can convert decimal
+ * fractions.
+ *
+ * See also @ref CBOR_TAG_DECIMAL_FRACTION,
+ * QCBOREncode_AddTDecimalFractionBigMantissaRaw(), @ref QCBOR_TYPE_DECIMAL_FRACTION
+ * and QCBORDecode_GetTDecimalFractionBigMantissa().
+ */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pCtx,
                                               uint8_t             uTagRequirement,
@@ -1817,31 +1845,6 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pCtx,
                                                      int64_t            *pnExponent);
 
 
-static void
-QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
-                                  uint8_t             uTagRequirement,
-                                  UsefulBuf           MantissaBuffer,
-                                  UsefulBufC         *pMantissa,
-                                  bool               *pbMantissaIsNegative,
-                                  int64_t            *pnExponent);
-
-static void
-QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pCtx,
-                                        int64_t             nLabel,
-                                        uint8_t             uTagRequirement,
-                                        UsefulBuf           MantissaBuffer,
-                                        UsefulBufC         *pbMantissaIsNegative,
-                                        bool               *pbIsNegative,
-                                        int64_t            *pnExponent);
-
-static void
-QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
-                                         const char         *szLabel,
-                                         uint8_t             uTagRequirement,
-                                         UsefulBuf           MantissaBuffer,
-                                         UsefulBufC         *pMantissa,
-                                         bool               *pbMantissaIsNegative,
-                                         int64_t            *pnExponent);
 
 
 /**
@@ -2365,19 +2368,21 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
                              UsefulBufC         *pValue,
                              bool               *pbIsNegative);
 
+/* Use QCBORDecode_GetTDecimalFraction() instead */
 static void
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
                                uint8_t             uTagRequirement,
                                int64_t            *pnMantissa,
                                int64_t            *pnExponent);
 
+/* Use QCBORDecode_GetTDecimalFractionInMapN() instead */
 static void
 QCBORDecode_GetDecimalFractionInMapN(QCBORDecodeContext *pCtx,
                                      int64_t             nLabel,
                                      uint8_t             uTagRequirement,
                                      int64_t            *pnMantissa,
                                      int64_t            *pnExponent);
-
+/* Use QCBORDecode_GetTDecimalFractionInMapSZ() instead */
 static void
 QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
                                       const char         *szLabel,
@@ -2385,12 +2390,43 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
                                       int64_t            *pnMantissa,
                                       int64_t            *pnExponent);
 
+/* Use QCBORDecode_GetTDecimalFractionBigMantissaRaw() instead */
+static void
+QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
+                                  uint8_t             uTagRequirement,
+                                  UsefulBuf           MantissaBuffer,
+                                  UsefulBufC         *pMantissa,
+                                  bool               *pbMantissaIsNegative,
+                                  int64_t            *pnExponent);
+
+/* Use QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN() instead */
+static void
+QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pCtx,
+                                        int64_t             nLabel,
+                                        uint8_t             uTagRequirement,
+                                        UsefulBuf           MantissaBuffer,
+                                        UsefulBufC         *pbMantissaIsNegative,
+                                        bool               *pbIsNegative,
+                                        int64_t            *pnExponent);
+
+/* Use QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ() instead */
+static void
+QCBORDecode_GetDecimalFractionBigInMapSZ(QCBORDecodeContext *pCtx,
+                                         const char         *szLabel,
+                                         uint8_t             uTagRequirement,
+                                         UsefulBuf           MantissaBuffer,
+                                         UsefulBufC         *pMantissa,
+                                         bool               *pbMantissaIsNegative,
+                                         int64_t            *pnExponent);
+
+/* Deprecated. Use QCBORDecode_GetTBigFloat() instead */
 static void
 QCBORDecode_GetBigFloat(QCBORDecodeContext *pCtx,
                         uint8_t             uTagRequirement,
                         int64_t            *pnMantissa,
                         int64_t            *pnExponent);
 
+/* Deprecated. Use QCBORDecode_GetTBigFloatInMapN() instead */
 static void
 QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pCtx,
                               int64_t             nLabel,
@@ -2398,6 +2434,7 @@ QCBORDecode_GetBigFloatInMapN(QCBORDecodeContext *pCtx,
                               int64_t            *pnMantissa,
                               int64_t            *pnExponent);
 
+/* Deprecated. Use QCBORDecode_GetTBigFloatInMapSZ() instead */
 static void
 QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
                                const char         *szLabel,
@@ -2405,6 +2442,7 @@ QCBORDecode_GetBigFloatInMapSZ(QCBORDecodeContext *pCtx,
                                int64_t            *pnMantissa,
                                int64_t            *pnExponent);
 
+/* Deprecated. Use QCBORDecode_GetTBigFloatBigMantissaRaw() instead */
 static void
 QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                            uint8_t             uTagRequirement,
@@ -2413,6 +2451,7 @@ QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pCtx,
                            bool               *pbMantissaIsNegative,
                            int64_t            *pnExponent);
 
+/* Deprecated. Use QCBORDecode_GetTBigFloatBigMantissaRawInMapN() instead */
 static void
 QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pCtx,
                                  int64_t             nLabel,
@@ -2422,6 +2461,7 @@ QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pCtx,
                                  bool               *pbMantissaIsNegative,
                                  int64_t            *pnExponent);
 
+/* Deprecated. Use QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ() instead */
 static void
 QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                   const char         *szLabel,
@@ -3487,8 +3527,12 @@ QCBORDecode_GetBigFloatBig(QCBORDecodeContext *pMe,
                            bool               *pbMantissaIsNegative,
                            int64_t            *pnExponent)
 {
-   QCBORDecode_GetTBigFloatBigMantissaRaw(pMe, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
-
+   QCBORDecode_GetTBigFloatBigMantissaRaw(pMe,
+                                          uTagRequirement,
+                                          MantissaBuffer,
+                                          pMantissa,
+                                          pbMantissaIsNegative,
+                                          pnExponent);
 }
 
 
@@ -3501,8 +3545,13 @@ QCBORDecode_GetBigFloatBigInMapN(QCBORDecodeContext *pMe,
                                  bool               *pbMantissaIsNegative,
                                  int64_t            *pnExponent)
 {
-   QCBORDecode_GetTBigFloatBigMantissaRawInMapN(pMe, nLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
-
+   QCBORDecode_GetTBigFloatBigMantissaRawInMapN(pMe,
+                                                nLabel,
+                                                uTagRequirement,
+                                                MantissaBuffer,
+                                                pMantissa,
+                                                pbMantissaIsNegative,
+                                                pnExponent);
 }
 
 static inline void
@@ -3514,7 +3563,13 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
                                   bool               *pbMantissaIsNegative,
                                   int64_t            *pnExponent)
 {
-   QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(pMe, szLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+   QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(pMe,
+                                                 szLabel,
+                                                 uTagRequirement,
+                                                 MantissaBuffer,
+                                                 pMantissa,
+                                                 pbMantissaIsNegative,
+                                                 pnExponent);
 }
 
 
