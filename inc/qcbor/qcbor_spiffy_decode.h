@@ -1603,7 +1603,7 @@ QCBORDecode_GetDaysStringInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_DATE_EPOCH, QCBOREncode_AddDateEpoch() and
+ * See also @ref CBOR_TAG_DATE_EPOCH, QCBOREncode_AddTDateEpoch() and
  * @ref QCBOR_TYPE_DATE_EPOCH.
 */
 void
@@ -2036,7 +2036,7 @@ QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_URI, QCBOREncode_AddURI() and
+ * See also @ref CBOR_TAG_URI, QCBOREncode_AddTURI() and
  *  @ref QCBOR_TYPE_URI.
  */
 static void
@@ -2111,7 +2111,7 @@ QCBORDecode_GetB64InMapSZ(QCBORDecodeContext *pCtx,
  *
  * Note that this does not actually remove the base64url encoding.
  *
- * See also @ref CBOR_TAG_B64URL, QCBOREncode_AddB64URLText() and
+ * See also @ref CBOR_TAG_B64URL, QCBOREncode_AddTB64URLText() and
  * @ref QCBOR_TYPE_BASE64URL.
  */
 static void
@@ -2146,7 +2146,7 @@ QCBORDecode_GetB64URLInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_REGEX, QCBOREncode_AddRegex() and
+ * See also @ref CBOR_TAG_REGEX, QCBOREncode_AddTRegex() and
  * @ref QCBOR_TYPE_REGEX.
  */
 static void
@@ -2234,7 +2234,7 @@ QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pCtx,
  *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
- * See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddBinaryUUID() and
+ * See also @ref CBOR_TAG_BIN_UUID, QCBOREncode_AddTBinaryUUID() and
  * @ref QCBOR_TYPE_UUID.
  */
 static void
@@ -2392,6 +2392,18 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
                                       int64_t            *pnExponent);
 
 /* Use QCBORDecode_GetTDecimalFractionBigMantissaRaw() instead */
+
+/*
+ TODO: integrate this comment better
+* For QCBOR before v1.5, this function had a bug where
+* by the negative mantissa sometimes had the offset of
+* one applied, making this function somewhat usless for
+* negative mantissas. Specifically if the to-be-decode CBOR
+* was a type 1 integer the offset was applied and when it
+* was a tag 3, the offset was not applied. It is possible
+* that a tag 3 could contain a value in the range of a type 1
+* integer. @ref QCBORExpAndMantissa is
+* correct and can be used instead of this. */
 static void
 QCBORDecode_GetDecimalFractionBig(QCBORDecodeContext *pCtx,
                                   uint8_t             uTagRequirement,
@@ -2472,9 +2484,13 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                   bool               *pbMantissaIsNegative,
                                   int64_t            *pnExponent);
 #endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
-/* ===========================================================================
-   BEGINNING OF PRIVATE INLINE IMPLEMENTATION
-   ========================================================================== */
+
+
+
+
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
 
 
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
@@ -3394,6 +3410,9 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
                                               pUUID);
 }
 
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
 
 static inline void
 QCBORDecode_GetBignum(QCBORDecodeContext *pMe,

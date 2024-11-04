@@ -103,9 +103,9 @@ implementations as seen in the following example.
      /* Encode */
      QCBOREncode_Init(&EncodeCtx, Buffer);
      QCBOREncode_OpenMap(&EncodeCtx);
-     QCBOREncode_AddTextToMap(&EncodeCtx, "Manufacturer", pE->Manufacturer);
-     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Displacement", pE->uDisplacement);
-     QCBOREncode_AddInt64ToMap(&EncodeCtx, "Horsepower", pE->uHorsePower);
+     QCBOREncode_AddTextToMapSZ(&EncodeCtx, "Manufacturer", pE->Manufacturer);
+     QCBOREncode_AddInt64ToMapSZ(&EncodeCtx, "Displacement", pE->uDisplacement);
+     QCBOREncode_AddInt64ToMapSZ(&EncodeCtx, "Horsepower", pE->uHorsePower);
      QCBOREncode_CloseMap(&EncodeCtx);
      uErr = QCBOREncode_Finish(&EncodeCtx, &EncodedEngine);
 

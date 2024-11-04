@@ -596,7 +596,7 @@ typedef struct _QCBORItem {
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       QCBORExpAndMantissa expAndMantissa;
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
-      uint64_t    uTagNumber;
+      uint64_t    uTagNumber; /* Used internally during decoding */
 
       /* For use by user-defined tag content handlers */
       uint8_t     userDefined[24];
@@ -951,8 +951,8 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
- * If a decoding error occurs or previously occured, \c uDataType and
- * \c uLabelType will be set to @ref QCBOR_TYPE_NONE. If there is no
+ * If a decoding error occurs or previously occured, @c uDataType and
+ * @c uLabelType will be set to @ref QCBOR_TYPE_NONE. If there is no
  * need to know the specific error, it is sufficient to check for @ref
  * QCBOR_TYPE_NONE.
  *
@@ -1468,11 +1468,11 @@ QCBORDecode_IsUnrecoverableError(QCBORError uErr);
  * and propagate up.
  *
  * When the error condition is set, QCBORDecode_VGetNext() will always
- * return an item with data and label type as \ref QCBOR_TYPE_NONE.
+ * return an item with data and label type as @ref QCBOR_TYPE_NONE.
  *
  * The main intent of this is to set a user-defined error code in the
- * range of \ref QCBOR_ERR_FIRST_USER_DEFINED to
- * \ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
+ * range of @ref QCBOR_ERR_FIRST_USER_DEFINED to
+ * @ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
  * error codes too.
  */
 static void
@@ -1697,10 +1697,13 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 
 
 
-/* ------------------------------------------------------------------------
- * Deprecated functions retained for backwards compatibility. Their use is
- * not recommended.
- * ---- */
+
+/* ========================================================================= *
+ *    BEGINNING OF DEPRECATED FUNCTIONS                                      *
+ *                                                                           *
+ *    There is no plan to remove these in future versions.                   *
+ *    They just have been replaced by something better.                      *
+ * ========================================================================= */
 
 /**
  * TODO: Initialize the CBOR decoder context with QCBOR v1 compatibility (deprecated).
@@ -1764,11 +1767,16 @@ uint64_t
 QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
 #endif /* ! QCBOR_DISABLE_TAGS */
+/* ========================================================================= *
+ *    END OF DEPRECATED FUNCTIONS                                            *
+ * ========================================================================= */
 
 
-/* ------------------------------------------------------------------------
- * Inline implementations of public functions defined above.
- * ---- */
+
+
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
 
 static inline uint32_t
 QCBORDecode_Tell(QCBORDecodeContext *pMe)
@@ -1829,6 +1837,10 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 {
    pMe->uLastError = (uint8_t)uError;
 }
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
 
 
 /* A few cross checks on size constants and special value lengths */

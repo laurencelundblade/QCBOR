@@ -86,7 +86,9 @@ set(HEADERS
 )
 set_target_properties(
     qcbor PROPERTIES
-    PUBLIC_HEADER "${HEADERS}"
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        PUBLIC_HEADER "${HEADERS}"
 )
 include(GNUInstallDirs)
 install(

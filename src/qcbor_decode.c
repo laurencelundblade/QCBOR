@@ -3293,7 +3293,7 @@ typedef struct {
  *
  * @retval Also errors returned by QCBORDecode_GetNext().
  *
- * On input, \c pItemArray contains a list of labels and data types of
+ * On input, @c pItemArray contains a list of labels and data types of
  * items to be found.
  *
  * On output, the fully retrieved items are filled in with values and
@@ -3717,10 +3717,10 @@ QCBORDecode_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
  * @param[out] pItem         The item for the array/map.
  * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
  *
- * The next item to be decoded must be a map or array as specified by \c uType.
+ * The next item to be decoded must be a map or array as specified by @c uType.
  *
- * \c pItem will be filled in with the label and tags of the array or map
- * in addition to \c pEncodedCBOR giving the pointer and length of the
+ * @c pItem will be filled in with the label and tags of the array or map
+ * in addition to @c pEncodedCBOR giving the pointer and length of the
  * encoded CBOR.
  *
  * When this is complete, the traversal cursor is at the end of the array or
@@ -3820,7 +3820,7 @@ Done:
  * @param[out] pItem         The item for the array/map.
  * @param[out] pEncodedCBOR  Pointer and length of the encoded map or array.
  *
- * The next item to be decoded must be a map or array as specified by \c uType.
+ * The next item to be decoded must be a map or array as specified by @c uType.
  *
  * When this is complete, the traversal cursor is unchanged.
  */void
@@ -5409,7 +5409,7 @@ typedef QCBORError (*fExponentiator)(uint64_t uMantissa, int64_t nExponent, uint
  * unsigned integer.
  *
  * There are many inputs for which the result will not fit in the
- * 64-bit integer and \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ * 64-bit integer and @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
  * be returned.
  */
 static QCBORError
@@ -5457,7 +5457,7 @@ QCBOR_Private_Exponentitate10(const uint64_t uMantissa,
  * output is a 64-bit unsigned integer.
  *
  * There are many inputs for which the result will not fit in the
- * 64-bit integer and \ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
+ * 64-bit integer and @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW will
  * be returned.
  */
 static QCBORError
@@ -5504,7 +5504,7 @@ QCBOR_Private_Exponentitate2(const uint64_t uMantissa,
  *
  * @returns Error code
  *
- * \c pfExp performs exponentiation on and unsigned mantissa and
+ * @c pfExp performs exponentiation on and unsigned mantissa and
  * produces an unsigned result. This converts the mantissa from signed
  * and converts the result to signed. The exponentiation function is
  * either for base 2 or base 10 (and could be other if needed).
@@ -5592,7 +5592,7 @@ QCBOR_Private_ExponentiateNN(const int64_t  nMantissa,
  *
  * @returns Error code
  *
- * \c pfExp performs exponentiation on and unsigned mantissa and
+ * @c pfExp performs exponentiation on and unsigned mantissa and
  * produces an unsigned result. This errors out if the mantissa
  * is negative because the output is unsigned.
  */
@@ -5624,7 +5624,7 @@ QCBOR_Private_ExponentitateNU(const int64_t  nMantissa,
  *
  * @returns Error code
  *
- * \c pfExp performs exponentiation on and unsigned mantissa and
+ * @c pfExp performs exponentiation on and unsigned mantissa and
  * produces an unsigned result so this is just a wrapper that does
  * nothing (and is likely inlined).
  */
@@ -6816,7 +6816,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* ndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
       case QCBOR_TYPE_POSBIGNUM:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
@@ -6845,32 +6845,33 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-         double dMantissa = -QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
+            /* Must subtract 1 for CBOR negative integer offset */
+            double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * pow(10, (double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            double dMantissa = QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
       case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
-        if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
-         double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
-         *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
+         if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
+            double dMantissa = -1-QCBOR_Private_ConvertBigNumToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
+            *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* ndef QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -7171,8 +7172,8 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
                                           bool                *pbIsNegative,
                                           int64_t             *pnExponent)
 {
-   QCBORError    uErr;
-   uint64_t      uMantissa;
+   QCBORError     uErr;
+   uint64_t       uMantissa;
    const uint8_t *qTypes;
 
    if(pMe->uLastError) {

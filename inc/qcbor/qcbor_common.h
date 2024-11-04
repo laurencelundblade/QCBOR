@@ -172,17 +172,17 @@ extern "C" {
 #define CBOR_TAG_ENC_AS_B16    23
 /** See QCBORDecode_EnterBstrWrapped()). */
 #define CBOR_TAG_CBOR          24
-/** See QCBOREncode_AddURI(). */
+/** See QCBOREncode_AddTURI(). */
 #define CBOR_TAG_URI           32
-/** See QCBOREncode_AddB64URLText(). */
+/** See QCBOREncode_AddTB64URLText(). */
 #define CBOR_TAG_B64URL        33
 /** See QCBOREncode_AddB64Text(). */
 #define CBOR_TAG_B64           34
-/** See QCBOREncode_AddRegex(). */
+/** See QCBOREncode_AddTRegex(). */
 #define CBOR_TAG_REGEX         35
 /** See QCBOREncode_AddMIMEData(). */
 #define CBOR_TAG_MIME          36
-/** See QCBOREncode_AddBinaryUUID(). */
+/** See QCBOREncode_AddTBinaryUUID(). */
 #define CBOR_TAG_BIN_UUID      37
 /** The data is a CBOR Web Token per [RFC 8392]
  *  (https://www.rfc-editor.org/rfc/rfc8392.html). No API is provided for this
