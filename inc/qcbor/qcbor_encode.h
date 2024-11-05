@@ -633,13 +633,6 @@ static void
 QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
 
 
-/*
- * QCBOR_ENCODE_CONFIG_V1_COMPAT
- */
-static void
-QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pCtx);
-
-
 /**
  * @brief  Add a signed 64-bit integer to the encoded output.
  *
@@ -3287,12 +3280,6 @@ QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
    (void)uAllow;
    (void)pMe;
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-}
-
-static inline void
-QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
-{
-   pMe->uConfig = QCBOR_ENCODE_CONFIG_V1_COMPAT;
 }
 
 
