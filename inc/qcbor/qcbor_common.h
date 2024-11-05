@@ -30,10 +30,8 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
-
 #ifndef qcbor_common_h
 #define qcbor_common_h
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,8 +58,8 @@ extern "C" {
  *   - QCBOR 1.0 is indicated by the absence of all the above
  */
 #define QCBOR_VERSION_MAJOR 1
-#define QCBOR_VERSION_MINOR 4
-#define QCBOR_VERSION_PATCH 1
+#define QCBOR_VERSION_MINOR 5
+#define QCBOR_VERSION_PATCH 0
 
 
 /**
