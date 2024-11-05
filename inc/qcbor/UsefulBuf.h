@@ -43,10 +43,17 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 08/31/2024   llundblade      Add UsefulBufC_NTH_BYTE().
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
+ 8/10/2024    llundblade      Add UsefulBuf_SkipLeading().
  08/08/2024   llundblade      Add UsefulOutBuf_SubString().
  10/05/2024   llundblade      Add Xxx_OffsetToPointer.
+ 28/02/2024   llundblade      Rearrange UsefulOutBuf_Compare().
+ 1/7/2024     llundblade      Add UsefulInputBuf_Compare().
+ 19/11/2023   llundblade      Add UsefulOutBuf_GetOutput().
+ 19/11/2023   llundblade      Add UsefulOutBuf_Swap().
+ 19/11/2023   llundblade      Add UsefulOutBuf_Compare().
  19/12/2022   llundblade      Document that adding empty data is allowed.
  4/11/2022    llundblade      Add GetOutPlace and Advance to UsefulOutBuf.
  9/21/2021    llundbla        Clarify UsefulOutBuf size calculation mode
@@ -491,6 +498,10 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
 
 
+/* Get the nth byte from a UsefulBufC. There's no length check! */
+#define UsefulBufC_NTH_BYTE(UBC, n)  (((const uint8_t *)(UBC.ptr))[n])
+
+
 /**
  * @brief Copy one @ref UsefulBuf into another at an offset.
  *
@@ -648,6 +659,17 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue);
  * @return Position of found bytes or @c SIZE_MAX if not found.
  */
 size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
+
+
+/**
+ * @brief Skip leading bytes of a particular value in a string.
+ *
+ * @param[in] String  The input string. String.ptr must not be @c NULL.
+ * @param[in] uByte  The  byte value.
+ *
+ * @return Substring with leading bytes with value @c uByte removed.
+ */
+UsefulBufC UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte);
 
 
 /**
@@ -869,7 +891,7 @@ typedef struct useful_out_buf {
 
 
 /**
- * @brief Initialize and supply the actual output buffer.
+ * @brief Initialize and supply the output buffer.
  *
  * @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
  * @param[in] Storage    Buffer to output into.
@@ -1351,7 +1373,7 @@ UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
 
 
 /**
- *  @brief Returns the resulting valid data in a UsefulOutBuf
+ *  @brief Returns the data put into a UsefulOutBuf.
  *
  *  @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
  *
@@ -1369,7 +1391,7 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 
 
 /**
- * @brief Copies the valid data into a supplied buffer
+ * @brief Copy out the data put into a UsefulOutBuf.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[out] Dest     The destination buffer to copy into.
@@ -1379,13 +1401,37 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
  *         state was entered.
  *
  * This is the same as UsefulOutBuf_OutUBuf() except it copies the
- * data to @c Dest.
+ * data to @c Dest rather than returning a pointer.
  */
 UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
 /**
- * @beief Return a substring of the output data.
+ * @brief Returns data starting at an offset that was put into a UsefulOutBuf.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uOffset    Offset to bytes to return.
+ *
+ * @return NULLUsefulBufC or the bytes at the offset.
+ *
+ * This is the same as UsefulOutBuf_OutUBuf() except a starting offset
+ * maybe specified. It returns the bytes starting at @c uOffset to the
+ * end of what was encoded so far. Calling this with @c uOffset 0 is
+ * equivalent to UsefulOutBuf_OutUBuf().
+ *
+ * If there's nothing at @c uOffset or it is past the in the output
+ * buffer, a \ref NULLUsefulBufC is returned.
+ *
+ * This is typically not needed in typical use. It is used by QCBOR
+ * along with UsefulOutBuf_Compare() and UsefulOutBuf_Swap() for
+ * sorting CBOR maps.
+ */
+UsefulBufC
+UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
+
+
+/*
+ * @brief Return a substring of the output data.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[in] uStart    Offset of start of substring.
@@ -1412,6 +1458,77 @@ UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
  * to UsefulOutBuf_Init().
  */
 static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
+
+
+/**
+ * @brief Compare bytes at offsets.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uStart1   Offset of first bytes to compare.
+ * @param[in] uLen1     Length of first bytes to compare.
+ * @param[in] uStart2   Offset of second bytes to compare.
+ * @param[in] uLen2     Length of second bytes to compare.
+ *
+ * @return  0 for equality, positive if uStart1 is lexographically larger,
+ *          negative if uStart2 is lexographically larger.
+ * 
+ * This looks into bytes that have been output at the offsets @c start1
+ * and @c start2. It compares bytes at those two starting points until
+ * they are not equal or @c uLen1 or @c uLen2 is reached. If the
+ * length of the string given is off the end of the output data, the
+ * string will be effectively truncated to the data in the output
+ * buffer for the comparison.
+ *
+ * This returns positive when @c uStart1 lexographically sorts ahead
+ * of @c uStart2 and vice versa.  Zero is returned if the strings
+ * compare equally.
+ *
+ * If lengths are unequal and the first bytes are an exact subset of
+ * the second string, then a positve value will be returned and vice
+ * versa.
+ *
+ * If either start is past the end of data in the output buffer, 0
+ * will be returned. It is the caller's responsibility to make sure
+ * the offsets are not off the end so that a comparison is actually
+ * being made. No data will ever be read off the end of the buffer so
+ * this safe no matter what offsets are passed.
+ *
+ * This is a relatively odd function in that it works on data in the
+ * output buffer. It is employed by QCBOR to sort CBOR-encoded maps
+ * that are in the output buffer.
+ */
+int UsefulOutBuf_Compare(UsefulOutBuf *pUOutBuf,
+                         size_t uStart1, size_t uLen1,
+                         size_t uStart2, size_t uLen2);
+
+/**
+ * @brief Swap two regions of output bytes.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] uStartOffset   Offset to start of bytes to be swapped.
+ * @param[in] uPivotOffset   Offset to pivot around which bytes are swapped.
+ * @param[in] uEndOffset       Offset to end of region to be swappe.
+ *
+ * This reaches into bytes that have been output and swaps two
+ * adjacent regions.
+ *
+ * If any of the offsets are outside the range of valid data, no
+ * swapping will be performed. If the start is not the smallest and
+ * the pivot is not in the middle no swapping will be performed.
+ *
+ * The byte at @c uStartOffset will participate in the swapping.  The
+ * byte at @c uEndOffset will not participate in the swapping, only
+ * the byte before it.
+ *
+ * This is a relatively odd function in that it works on data in the
+ * output buffer. It is employed by QCBOR to bubble sort encoded CBOR
+ * maps.
+ */
+void UsefulOutBuf_Swap(UsefulOutBuf *pUOutBuf,
+                       size_t        uStartOffset,
+                       size_t        uPivotOffset,
+                       size_t        uEndOffset);
+
 
 
 
@@ -1756,8 +1873,7 @@ static inline size_t UsefulInputBuf_GetBufferLength(UsefulInputBuf *pUInBuf);
 static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewLen);
 
 
-/**
- * @brief  Retrieve the undecoded input buffer.
+/** @brief  Retrieve the undecoded input buffer.
  *
  * @param[in] pUInBuf  Pointer to the @ref UsefulInputBuf.
  *
@@ -1766,6 +1882,36 @@ static void UsefulInputBuf_SetBufferLength(UsefulInputBuf *pUInBuf, size_t uNewL
  * A simple convenience method, should it be useful to get the original input back.
  */
 static UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *pUInBuf);
+
+
+/**
+ * @brief Compare two ranges of bytes somewhere in the input buffer.
+ *
+ * @param[in] pUInBuf   The input buffer.
+ * @param[in] uOffset1  Offset of first range of bytes.
+ * @param[in] uLen1     Length of first range of bytes.
+ * @param[in] uOffset2  Offset of second range of bytes.
+ * @param[in] uLen2     Length of second range of bytes.
+ *
+ * This returns the same as UsefulBuf_Compare().
+ * 
+ * If the offset or the length plus offset or a range extends outside
+ * the input buffer, that range of bytes will be considered greater
+ * than the other string. If both are outside this is considered a
+ * degenerate condition and the first string is considered larger.
+ *
+ * This is a somewhat odd function of UsefulInputBuf as it is not used
+ * for consuming data. QCBOR uses it for map order and duplicate
+ * checking.
+ */
+int
+UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
+                       const size_t    uOffset1,
+                       const size_t    uLen1,
+                       const size_t    uOffset2,
+                       const size_t    uLen2);
+
+
 
 
 /*----------------------------------------------------------

@@ -61,106 +61,124 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
     TEST_ENTRY(UIBTest_IntegerFormat),
-    TEST_ENTRY(UBAdvanceTest)
+    TEST_ENTRY(UBAdvanceTest),
+    TEST_ENTRY(UOBExtraTests)
 };
 
 
 static test_entry s_tests[] = {
+   TEST_ENTRY(BigNumEncodeTests),
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+   TEST_ENTRY(DecodeConformanceTests),
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+   TEST_ENTRY(ErrorHandlingTests),
+   TEST_ENTRY(OpenCloseBytesTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-    TEST_ENTRY(GetMapAndArrayTest),
-    TEST_ENTRY(TellTests),
-    TEST_ENTRY(ParseMapAsArrayTest),
+   TEST_ENTRY(GetMapAndArrayTest),
+   TEST_ENTRY(TellTests),
+   TEST_ENTRY(ParseMapAsArrayTest),
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   TEST_ENTRY(ArrayNestingTest3),
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    TEST_ENTRY(SpiffyDateDecodeTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-    TEST_ENTRY(ErrorHandlingTests),
-    TEST_ENTRY(OpenCloseBytesTest),
-    TEST_ENTRY(EnterBstrTest),
-    TEST_ENTRY(IntegerConvertTest),
-    TEST_ENTRY(EnterMapTest),
-    TEST_ENTRY(QCBORHeadTest),
-    TEST_ENTRY(EmptyMapsAndArraysTest),
-    TEST_ENTRY(NotWellFormedTests),
+   TEST_ENTRY(EnterBstrTest),
+   TEST_ENTRY(IntegerConvertTest),
+   TEST_ENTRY(EnterMapTest),
+   TEST_ENTRY(QCBORHeadTest),
+   TEST_ENTRY(EmptyMapsAndArraysTest),
+   TEST_ENTRY(NotWellFormedTests),
+
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-    TEST_ENTRY(IndefiniteLengthNestTest),
-    TEST_ENTRY(IndefiniteLengthArrayMapTest),
-    TEST_ENTRY(NestedMapTestIndefLen),
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-    TEST_ENTRY(SimpleValueDecodeTests),
-    TEST_ENTRY(DecodeFailureTests),
-    TEST_ENTRY(EncodeRawTest),
-    TEST_ENTRY(RTICResultsTest),
-    TEST_ENTRY(MapEncodeTest),
-    TEST_ENTRY(ArrayNestingTest1),
-    TEST_ENTRY(ArrayNestingTest2),
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-    TEST_ENTRY(ArrayNestingTest3),
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-    TEST_ENTRY(EncodeDateTest),
-    TEST_ENTRY(SimpleValuesTest1),
-    TEST_ENTRY(IntegerValuesTest1),
-    TEST_ENTRY(AllAddMethodsTest),
-    TEST_ENTRY(ParseTooDeepArrayTest),
-    TEST_ENTRY(ComprehensiveInputTest),
+   TEST_ENTRY(IndefiniteLengthNestTest),
+   TEST_ENTRY(IndefiniteLengthArrayMapTest),
+   TEST_ENTRY(NestedMapTestIndefLen),
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+   TEST_ENTRY(SimpleValueDecodeTests),
+   TEST_ENTRY(DecodeFailureTests),
+   TEST_ENTRY(EncodeRawTest),
+   TEST_ENTRY(RTICResultsTest),
+   TEST_ENTRY(MapEncodeTest),
+   TEST_ENTRY(ArrayNestingTest1),
+   TEST_ENTRY(ArrayNestingTest2),
+   TEST_ENTRY(EncodeDateTest),
+   TEST_ENTRY(SimpleValuesTest1),
+   TEST_ENTRY(IntegerValuesTest1),
+   TEST_ENTRY(AllAddMethodsTest),
+   TEST_ENTRY(ParseTooDeepArrayTest),
+   TEST_ENTRY(ComprehensiveInputTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-    TEST_ENTRY(ParseMapTest),
+   TEST_ENTRY(ParseMapTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-    TEST_ENTRY(BasicEncodeTest),
-    TEST_ENTRY(NestedMapTest),
-    TEST_ENTRY(BignumParseTest),
+   TEST_ENTRY(BasicEncodeTest),
+   TEST_ENTRY(NestedMapTest),
+   TEST_ENTRY(BignumDecodeTest),
+
 #ifndef QCBOR_DISABLE_TAGS
-    TEST_ENTRY(OptTagParseTest),
-    TEST_ENTRY(DateParseTest),
-    TEST_ENTRY(DecodeTaggedTypeTests),
+   TEST_ENTRY(TagNumberDecodeTest),
+   TEST_ENTRY(DateParseTest),
+   TEST_ENTRY(DecodeTaggedTypeTests),
 #endif /* QCBOR_DISABLE_TAGS */
-    TEST_ENTRY(ShortBufferParseTest2),
-    TEST_ENTRY(ShortBufferParseTest),
-    TEST_ENTRY(ParseDeepArrayTest),
-    TEST_ENTRY(SimpleArrayTest),
-    TEST_ENTRY(IntegerValuesParseTest),
+
+   TEST_ENTRY(ShortBufferParseTest2),
+   TEST_ENTRY(ShortBufferParseTest),
+   TEST_ENTRY(ParseDeepArrayTest),
+   TEST_ENTRY(SimpleArrayTest),
+   TEST_ENTRY(IntegerValuesParseTest),
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-    TEST_ENTRY(AllocAllStringsTest),
-    TEST_ENTRY(MemPoolTest),
-    TEST_ENTRY(IndefiniteLengthStringTest),
+   TEST_ENTRY(AllocAllStringsTest),
+   TEST_ENTRY(MemPoolTest),
+   TEST_ENTRY(IndefiniteLengthStringTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-    TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
+   TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-    TEST_ENTRY(SetUpAllocatorTest),
-    TEST_ENTRY(CBORTestIssue134),
+   TEST_ENTRY(SetUpAllocatorTest),
+   TEST_ENTRY(CBORTestIssue134),
+
 #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
    TEST_ENTRY(FloatValuesTests),
+   TEST_ENTRY(PreciseNumbersDecodeTest),
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-    TEST_ENTRY(GeneralFloatEncodeTests),
-    TEST_ENTRY(GeneralFloatDecodeTests),
+   TEST_ENTRY(GeneralFloatEncodeTests),
+   TEST_ENTRY(GeneralFloatDecodeTests),
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-    TEST_ENTRY(BstrWrapTest),
-    TEST_ENTRY(BstrWrapErrorTest),
-    TEST_ENTRY(BstrWrapNestTest),
-    TEST_ENTRY(CoseSign1TBSTest),
+
+   TEST_ENTRY(BstrWrapTest),
+   TEST_ENTRY(BstrWrapErrorTest),
+   TEST_ENTRY(BstrWrapNestTest),
+   TEST_ENTRY(CoseSign1TBSTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-    TEST_ENTRY(StringDecoderModeFailTest),
+   TEST_ENTRY(StringDecoderModeFailTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-    TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
-    TEST_ENTRY_DISABLED(TooLargeInputTest),
-    TEST_ENTRY(EncodeErrorTests),
+   TEST_ENTRY_DISABLED(BigComprehensiveInputTest),
+   TEST_ENTRY_DISABLED(TooLargeInputTest),
+   TEST_ENTRY(EncodeErrorTests),
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     TEST_ENTRY(IndefiniteLengthTest),
 #endif
-    TEST_ENTRY(EncodeLengthThirtyoneTest),
-    TEST_ENTRY(CBORSequenceDecodeTests),
-    TEST_ENTRY(IntToTests),
+   TEST_ENTRY(EncodeLengthThirtyoneTest),
+   TEST_ENTRY(CBORSequenceDecodeTests),
+   TEST_ENTRY(IntToTests),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-    TEST_ENTRY(PeekAndRewindTest),
+   TEST_ENTRY(PeekAndRewindTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
-    TEST_ENTRY(ExponentAndMantissaDecodeTests),
+   TEST_ENTRY(ExponentAndMantissaDecodeTests),
 #ifndef QCBOR_DISABLE_TAGS
-    TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
+   TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
 #endif /* QCBOR_DISABLE_TAGS */
-    TEST_ENTRY(ExponentAndMantissaEncodeTests),
+   TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+   TEST_ENTRY(SortMapTest),
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+   TEST_ENTRY(CDETest),
+   TEST_ENTRY(DCBORTest),
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(ParseEmptyMapInMapTest),
     TEST_ENTRY(SubStringTest),
     TEST_ENTRY(BoolTest)
@@ -359,8 +377,5 @@ void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
    PrintSize("sizeof(QCBORDecodeNesting)",  (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORDecodeContext)",  (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
-   PrintSize("sizeof(QCBORTagListIn)",      (uint32_t)sizeof(QCBORTagListIn),     pfOutput, pOutCtx);
-   PrintSize("sizeof(QCBORTagListOut)",     (uint32_t)sizeof(QCBORTagListOut),    pfOutput, pOutCtx);
-   PrintSize("sizeof(TagSpecification)",    (uint32_t)sizeof(QCBOR_Private_TagSpec),pfOutput, pOutCtx);
    (*pfOutput)("", pOutCtx, 1);
 }

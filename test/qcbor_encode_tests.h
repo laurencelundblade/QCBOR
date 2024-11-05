@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2022, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -94,9 +94,9 @@ int32_t MapEncodeTest(void);
 
 
 /*
- Encodes a goodly number of floats and doubles and checks encoding is right
+ * Big number encoding tests.
  */
-int32_t FloatValuesTest1(void);
+int32_t BigNumEncodeTests(void);
 
 
 /*
@@ -190,6 +190,19 @@ int32_t QCBORHeadTest(void);
  */
 int32_t OpenCloseBytesTest(void);
 
+
+/* Test map sorting */
+int32_t SortMapTest(void);
+
+#if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+
+/* Test CBOR Deterministic Encoding */
+int32_t CDETest(void);
+
+/* Test "dCBOR" mode */
+int32_t DCBORTest(void);
+
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 int32_t SubStringTest(void);
 

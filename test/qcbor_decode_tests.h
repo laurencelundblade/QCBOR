@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2021, Laurence Lundblade.
+ Copyright (c) 2018-2024, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -179,13 +179,13 @@ int32_t SpiffyDateDecodeTest(void);
 /*
   Test decode of CBOR tagging like the CBOR magic number and many others.
  */
-int32_t OptTagParseTest(void);
+int32_t TagNumberDecodeTest(void);
 
 
 /*
  Parse some big numbers, positive and negative
  */
-int32_t BignumParseTest(void);
+int32_t BignumDecodeTest(void);
 
 
 /*
@@ -319,6 +319,12 @@ Test GitHub issue #134: decode an indefinite-length string with a zero-length fi
 int32_t CBORTestIssue134(void);
 
 
+/*
+ * Test the decode checking features for dCBOR, CDE and preferred.
+ */
+int32_t DecodeConformanceTests(void);
+
+int32_t PreciseNumbersDecodeTest(void);
 
 int32_t ErrorHandlingTests(void);
 

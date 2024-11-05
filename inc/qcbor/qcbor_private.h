@@ -92,9 +92,9 @@ extern "C" {
  *                                should return 'x'.
  *  FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) Can be used when either disabled
  *                                             preferred float or disabling
- *                                             hardware floating point results in
- *                                             error, and all other cases should
- *                                             return 'x'.
+ *                                             hardware floating point results
+ *                                             in error, and all other cases
+ *                                             should return 'x'.
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
    #define FLOAT_ERR_CODE_NO_FLOAT(x)                 QCBOR_ERR_ALL_FLOAT_DISABLED
@@ -165,6 +165,8 @@ extern "C" {
  * a uin32_t.
  *
  * This will cause trouble on a machine where size_t is less than 32-bits.
+ *
+ * TODO: make this public?
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
@@ -215,14 +217,29 @@ typedef struct __QCBORTrackNesting {
  * functions to form a public "object" that does the job of encdoing.
  *
  * Size approximation (varies with CPU/compiler):
- *   64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
+ *  64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
  *  32-bit machine: 15 + 1 + 132 = 148 bytes
  */
+typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
+
+
+/* These are in order of increasing strictness. Order is relied upon in
+ * implementation. */
+#define QCBOR_ENCODE_MODE_ANY       0
+#define QCBOR_ENCODE_MODE_PREFERRED 1
+#define QCBOR_ENCODE_MODE_CDE       2
+#define QCBOR_ENCODE_MODE_DCBOR     3
+
+
 struct _QCBOREncodeContext {
    /* PRIVATE DATA STRUCTURE */
    UsefulOutBuf      OutBuf;  /* Pointer to output buffer, its length and
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
+   uint8_t           uMode;   /* @ref QCBOR_ENCODE_MODE_PREFERRED or related */
+   uint8_t           uAllow;  /* @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD, ... */
+   void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
+                               * pointer explained in QCBOREncode_SerializationCDE() */
    QCBORTrackNesting nesting; /* Keep track of array and map nesting */
 };
 
@@ -329,6 +346,11 @@ typedef struct  {
 } QCBORInternalAllocator;
 
 
+/* Private data structure for mapped tag numbers. The 0th entry
+ * is the one first in the traversal and furthest from the tag content.*/
+typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM1];
+
+
 /*
  * PRIVATE DATA STRUCTURE
  *
@@ -366,12 +388,22 @@ struct _QCBORDecodeContext {
    uint8_t  uDecodeMode;
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
+   uint8_t  bAllowAllLabels; /* Used internally only, not an external feature yet */
 
    /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
-   uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
+   QCBORMappedTagNumbers auLastTags;
+
+   const struct QCBORTagDecoderEntry *pTagDecoderTable;
+   void       *pTagDecodersContext;
+
+   size_t      uTagNumberCheckOffset;
+   uint8_t     uTagNumberIndex;
+#define QCBOR_ALL_TAGS_PROCESSED UINT8_MAX
 };
+
+
 
 
 /* Used internally in the impementation here Must not conflict with
@@ -400,6 +432,8 @@ struct _QCBORDecodeContext {
 
 /* The number of elements in a C array of a particular type */
 #define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
+
+#define ABSOLUTE_VALUE(x) ((x) < 0 ? -(x) : (x))
 
 
 #ifdef __cplusplus

@@ -35,6 +35,10 @@
 #include "qcbor/qcbor_encode.h"
 #include "ieee754.h"
 
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#include <math.h> /* Only for NAN definition */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
 
 /**
  * @file qcbor_encode.c
@@ -183,7 +187,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * 4, 5             QCBOREncode_OpenMapOrArray(), QCBOREncode_CloseMapOrArray(),
  *                  QCBOREncode_OpenMapOrArrayIndefiniteLength(),
  *                  QCBOREncode_CloseMapOrArrayIndefiniteLength()
- * 6                QCBOREncode_AddTag()
+ * 6                QCBOREncode_AddTagNumber()
  * 7                QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
  *                  QCBOREncode_AddDoubleNoPreferred(),
  *                  QCBOREncode_AddFloatNoPreferred(), QCBOREncode_AddType7()
@@ -248,6 +252,11 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  */
 
 
+/* Forward declaration for reference in QCBOREncode_Init() */
+static void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
+
+
 /*
  * Public function for initialization. See qcbor/qcbor_encode.h
  */
@@ -257,6 +266,7 @@ QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
    memset(pMe, 0, sizeof(QCBOREncodeContext));
    UsefulOutBuf_Init(&(pMe->OutBuf), Storage);
    Nesting_Init(&(pMe->nesting));
+   pMe->pfnCloseMap = QCBOREncode_Private_CloseMapUnsorted;
 }
 
 
@@ -529,7 +539,7 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
  * @param pMe         Encoder context.
  * @param uMajorType  Major type to insert.
  * @param uArgument   The argument (an integer value or a length).
- * @param uMinLen     The minimum number of bytes for encoding the CBOR argument.
+ * @param uMinLen     Minimum number of bytes for encoding the CBOR argument.
  *
  * This formats the CBOR "head" and appends it to the output.
  *
@@ -581,9 +591,9 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
    if(nNum < 0) {
       /* In CBOR -1 encodes as 0x00 with major type negative int.
        * First add one as a signed integer because that will not
-       * overflow. Then change the sign as needed for encoding.  (The
+       * overflow. Then change the sign as needed for encoding (the
        * opposite order, changing the sign and subtracting, can cause
-       * an overflow when encoding INT64_MIN. */
+       * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
       uValue = (uint64_t)-nTmp;
       uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
@@ -641,10 +651,53 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
  * without a loss of precision. See QCBOREncode_AddDouble().
  */
 void
-QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum)
+QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
 {
-   const IEEE754_union uNum = IEEE754_DoubleToSmaller(dNum, true);
-   QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
+   IEEE754_union        FloatResult;
+   bool                 bNoNaNPayload;
+   struct IEEE754_ToInt IntResult;
+   uint64_t             uNegValue;
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+      IntResult = IEEE754_DoubleToInt(dNum);
+      switch(IntResult.type) {
+         case IEEE754_ToInt_IS_INT:
+            QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
+            return;
+         case IEEE754_ToInt_IS_UINT:
+            QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
+            return;
+         case IEEE754_ToInt_IS_65BIT_NEG:
+            {
+               if(IntResult.integer.un_signed == 0) {
+                  uNegValue = UINT64_MAX;
+               } else {
+                  uNegValue = IntResult.integer.un_signed-1;
+               }
+               QCBOREncode_AddNegativeUInt64(pMe, uNegValue);
+            }
+            return;
+         case IEEE754_ToInt_NaN:
+            dNum = NAN;
+            bNoNaNPayload = true;
+            break;
+         case IEEE754_ToInt_NO_CONVERSION:
+            bNoNaNPayload = true;
+      }
+   } else  {
+      bNoNaNPayload = false;
+   }
+
+   FloatResult = IEEE754_DoubleToSmaller(dNum, true, bNoNaNPayload);
+
+   QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
 }
 
 
@@ -658,12 +711,302 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNu
  * without a loss of precision. See QCBOREncode_AddFloat().
  */
 void
-QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum)
+QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 {
-   const IEEE754_union uNum = IEEE754_SingleToHalf(fNum);
-   QCBOREncode_Private_AddType7(pMe, (uint8_t)uNum.uSize, uNum.uValue);
+   IEEE754_union        FloatResult;
+   bool                 bNoNaNPayload;
+   struct IEEE754_ToInt IntResult;
+   uint64_t             uNegValue;
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(IEEE754_SingleHasNaNPayload(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+      IntResult = IEEE754_SingleToInt(fNum);
+      switch(IntResult.type) {
+         case IEEE754_ToInt_IS_INT:
+            QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
+            return;
+         case IEEE754_ToInt_IS_UINT:
+            QCBOREncode_AddUInt64(pMe, IntResult.integer.un_signed);
+            return;
+         case IEEE754_ToInt_IS_65BIT_NEG:
+            {
+               if(IntResult.integer.un_signed == 0) {
+                  uNegValue = UINT64_MAX;
+               } else {
+                  uNegValue = IntResult.integer.un_signed-1;
+               }
+               QCBOREncode_AddNegativeUInt64(pMe, uNegValue);
+            }
+            return;
+         case IEEE754_ToInt_NaN:
+            fNum = NAN;
+            bNoNaNPayload = true;
+            break;
+         case IEEE754_ToInt_NO_CONVERSION:
+            bNoNaNPayload = true;
+      }
+   } else  {
+      bNoNaNPayload = false;
+   }
+
+   FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
+
+   QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
 }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+
+
+/**
+ * @brief Convert a big number to unsigned integer.
+ *
+ * @param[in]  BigNumber  Big number to convert.
+ *
+ * @return Converted unsigned.
+ *
+ * The big number must be less than 8 bytes long.
+ **/
+static uint64_t
+QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
+{
+   uint64_t uInt;
+   size_t   uIndex;
+
+   uInt = 0;
+   for(uIndex = 0; uIndex < BigNumber.len; uIndex++) {
+      uInt = (uInt << 8) + UsefulBufC_NTH_BYTE(BigNumber, uIndex);
+   }
+
+   return uInt;
+}
+
+
+/**
+ * @brief Is there a carry when you subtract 1 from the BigNumber.
+ *
+ * @param[in]  BigNumber  Big number to check for carry.
+ *
+ * @return If there is a carry, \c true.
+ *
+ * If this returns @c true, then @c BigNumber - 1 is
+ * one byte shorter than @c BigNumber.
+ **/
+static bool
+QCBOREncode_Private_BigNumberCarry(const UsefulBufC BigNumber)
+{
+   bool       bCarry;
+   UsefulBufC SubBigNum;
+
+   // Improvement: rework without recursion?
+
+   if(BigNumber.len == 0) {
+      return true; /* Subtracting one from zero-length string gives a carry */
+   } else {
+      SubBigNum = UsefulBuf_Tail(BigNumber, 1);
+      bCarry = QCBOREncode_Private_BigNumberCarry(SubBigNum);
+      if(UsefulBufC_NTH_BYTE(BigNumber, 0) == 0x00 && bCarry) {
+         /* Subtracting one from 0 gives a carry */
+         return true;
+      } else {
+         return false;
+      }
+   }
+}
+
+
+/*
+ * @brief Output negative bignum bytes with subtraction of 1.
+ *
+ * @param[in] pMe              The decode context.
+ * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
+ *                             @ref QCBOR_ENCODE_AS_BORROWED.
+ * @param[in] BigNumber        The negative big number.
+ */
+static void
+QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
+                                          const uint8_t       uTagRequirement,
+                                          const UsefulBufC    BigNumber)
+{
+   size_t     uLen;
+   bool       bCarry;
+   bool       bCopiedSomething;
+   uint8_t    uByte;
+   UsefulBufC SubString;
+   UsefulBufC NextSubString;
+
+   QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, true);
+
+   /* This works on any length without the need of an additional buffer */
+
+   /* This subtracts one, possibly making the string shorter by one
+    * 0x01 -> 0x00
+    * 0x01 0x00 -> 0xff
+    * 0x00 0x01 0x00 -> 0x00 0xff
+    * 0x02 0x00 -> 0x01 0xff
+    * 0xff -> 0xfe
+    * 0xff 0x00 -> 0xfe 0xff
+    * 0x01 0x00 0x00 -> 0xff 0xff
+    *
+    * This outputs the big number a byte at a time to be able to operate on
+    * a big number of any length without memory allocation.
+    */
+
+   /* Compute the length up front because it goes in the encoded head */
+   bCarry = QCBOREncode_Private_BigNumberCarry(UsefulBuf_Tail(BigNumber, 1));
+   uLen = BigNumber.len;
+   if(bCarry && BigNumber.len > 1 && UsefulBufC_NTH_BYTE(BigNumber, 0) >= 1) {
+      uLen--;
+   }
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uLen, 0);
+
+   SubString = BigNumber;
+   bCopiedSomething = false;
+   while(SubString.len) {
+      uByte = UsefulBufC_NTH_BYTE(SubString, 0);
+      NextSubString = UsefulBuf_Tail(SubString, 1);
+      bCarry = QCBOREncode_Private_BigNumberCarry(NextSubString);
+      if(bCarry) {
+         uByte--;
+      }
+      /* This avoids all but the last leading zero. See
+       * QCBOREncode_Private_SkipLeadingZeros() */
+      if(bCopiedSomething || NextSubString.len == 0 || uByte != 0) {
+         UsefulOutBuf_AppendByte(&(pMe->OutBuf), uByte);
+         bCopiedSomething = true;
+      }
+      SubString = NextSubString;
+   }
+}
+
+
+/**
+ * @brief Convert a negative big number to unsigned int if possible.
+ *
+ * @param[in] BigNumber  The negative big number.
+ * @param[out] puInt     The converted negative big number.
+ *
+ * @return If conversion was possible, returns @c true.
+ *
+ * The parameters here are unsigned integers, but they always
+ * represent negative numbers.
+ *
+ * Conversion is possible if the big number is greater than -(2^64).
+ * Conversion include offset of 1 for encoding CBOR negative numbers.
+ */
+static bool
+QCBOREncode_Private_NegativeBigNumberToUInt(const UsefulBufC BigNumber, uint64_t *puInt)
+{
+   bool bIs2exp64;
+
+   static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+   bIs2exp64 = ! UsefulBuf_Compare(BigNumber, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
+
+   if(BigNumber.len > 8 && !bIs2exp64) {
+      return false;
+   }
+
+   /* Must convert to CBOR type 1, a negative integer */
+   if(bIs2exp64) {
+      /* 2^64 is a 9 byte big number. Since negative numbers are offset
+       * by one in CBOR, it can be encoded as a type 1 negative. The
+       * conversion below won't work because the uInt will overflow
+       * before the subtraction of 1.
+       */
+      *puInt = UINT64_MAX;
+   } else {
+      *puInt = QCBOREncode_Private_BigNumberToUInt(BigNumber);
+      (*puInt)--; /* CBOR's negative offset of 1 */
+   }
+   return true;
+}
+
+
+/**
+ * @brief Remove leading zeros.
+ *
+ * @param[in] BigNumber  The negative big number.
+ *
+ * @return Big number with no leading zeros.
+ *
+ * If the big number is all zeros, this returns a big number
+ * that is one zero rather than the empty string.
+ *
+ * 3.4.3 does not explicitly decoders MUST handle the empty string,
+ * but does say decoders MUST handle leading zeros. So Postel's Law
+ * is applied here and 0 is not encoded as an empty string.
+ */
+static UsefulBufC
+QCBOREncode_Private_SkipLeadingZeros(const UsefulBufC BigNumber)
+{
+   UsefulBufC NLZ;
+   NLZ = UsefulBuf_SkipLeading(BigNumber, 0x00);
+
+   /* An all-zero string reduces to one 0, not an empty string. */
+   if(NLZ.len == 0 && BigNumber.len > 0 && UsefulBufC_NTH_BYTE(BigNumber, 0) == 0x00) {
+      NLZ.len++;
+   }
+
+   return NLZ;
+}
+
+
+/*
+ * Public functions for adding a big number. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
+                          const uint8_t       uTagRequirement,
+                          const bool          bNegative,
+                          const UsefulBufC    BigNumber)
+{
+   uint64_t uInt;
+
+   const UsefulBufC BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
+
+   /* Preferred serialization requires reduction to type 0 and 1 integers */
+   if(bNegative) {
+      if(QCBOREncode_Private_NegativeBigNumberToUInt(BigNumberNLZ, &uInt)) {
+         /* Might be a 65-bit negative; use special add method for such */
+         QCBOREncode_AddNegativeUInt64(pMe, uInt);
+      } else {
+         QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
+      }
+
+   } else {
+      if(BigNumberNLZ.len <= sizeof(uint64_t)) {
+         QCBOREncode_AddUInt64(pMe, QCBOREncode_Private_BigNumberToUInt(BigNumberNLZ));
+      } else {
+         QCBOREncode_AddTBigNumberRaw(pMe, bNegative, uTagRequirement, BigNumberNLZ);
+      }
+   }
+}
+
+
+/*
+ * Public functions for adding a big number. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
+                                     const uint8_t       uTagRequirement,
+                                     const bool          bNegative,
+                                     const UsefulBufC    BigNumber)
+{
+   const UsefulBufC BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
+
+   if(bNegative) {
+      QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
+   } else {
+      QCBOREncode_AddTBigNumberRaw(pMe, false, uTagRequirement, BigNumberNLZ);
+   }
+}
 
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
@@ -671,11 +1014,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum)
  * @brief  Semi-private method to add bigfloats and decimal fractions.
  *
  * @param[in] pMe               The encoding context to add the value to.
- * @param[in] uTag               The type 6 tag indicating what this is to be.
- * @param[in] BigNumMantissa     Is @ref NULLUsefulBufC if mantissa is an
- *                               @c int64_t or the actual big number mantissa
- *                               if not.
- * @param[in] bBigNumIsNegative  This is @c true if the big number is negative.
+ * @param[in] uTagNumber               The type 6 tag indicating what this is to be.
  * @param[in] nMantissa          The @c int64_t mantissa if it is not a big number.
  * @param[in] nExponent          The exponent.
  *
@@ -698,12 +1037,11 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum)
  * is called instead of this.
  */
 void
-QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
-                                   const uint64_t      uTag,
-                                   const UsefulBufC    BigNumMantissa,
-                                   const bool          bBigNumIsNegative,
-                                   const int64_t       nMantissa,
-                                   const int64_t       nExponent)
+QCBOREncode_Private_AddTExpIntMantissa(QCBOREncodeContext *pMe,
+                                       const int           uTagRequirement,
+                                       const uint64_t      uTagNumber,
+                                       const int64_t       nExponent,
+                                       const int64_t       nMantissa)
 {
    /* This is for encoding either a big float or a decimal fraction,
     * both of which are an array of two items, an exponent and a
@@ -711,22 +1049,72 @@ QCBOREncode_Private_AddExpMantissa(QCBOREncodeContext *pMe,
     * is base-2 for big floats and base-10 for decimal fractions, but
     * that has no effect on the code here.
     */
-   if(uTag != CBOR_TAG_INVALID64) {
-      QCBOREncode_AddTag(pMe, uTag);
+   /* Separate from QCBOREncode_Private_AddTExpBigMantissa() because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTagNumber(pMe, uTagNumber);
    }
    QCBOREncode_OpenArray(pMe);
    QCBOREncode_AddInt64(pMe, nExponent);
-   if(!UsefulBuf_IsNULLC(BigNumMantissa)) {
-      if(bBigNumIsNegative) {
-         QCBOREncode_AddTNegativeBignum(pMe, QCBOR_ENCODE_AS_TAG, BigNumMantissa);
-      } else {
-         QCBOREncode_AddTPositiveBignum(pMe, QCBOR_ENCODE_AS_TAG, BigNumMantissa);
-      }
-   } else {
-      QCBOREncode_AddInt64(pMe, nMantissa);
-   }
+   QCBOREncode_AddInt64(pMe, nMantissa);
    QCBOREncode_CloseArray(pMe);
 }
+
+void
+QCBOREncode_Private_AddTExpBigMantissa(QCBOREncodeContext *pMe,
+                                       const int           uTagRequirement,
+                                       const uint64_t      uTagNumber,
+                                       const int64_t       nExponent,
+                                       const UsefulBufC    BigNumMantissa,
+                                       const bool          bBigNumIsNegative)
+{
+   /* This is for encoding either a big float or a decimal fraction,
+    * both of which are an array of two items, an exponent and a
+    * mantissa.  The difference between the two is that the exponent
+    * is base-2 for big floats and base-10 for decimal fractions, but
+    * that has no effect on the code here.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTagNumber);
+   }
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_AddTBigNumber(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_CloseArray(pMe);
+}
+
+
+void
+QCBOREncode_Private_AddTExpBigMantissaRaw(QCBOREncodeContext *pMe,
+                                          const int           uTagRequirement,
+                                          const uint64_t      uTagNumber,
+                                          const int64_t       nExponent,
+                                          const UsefulBufC    BigNumMantissa,
+                                          const bool          bBigNumIsNegative)
+{
+   /* This is for encoding either a big float or a decimal fraction,
+    * both of which are an array of two items, an exponent and a
+    * mantissa.  The difference between the two is that the exponent
+    * is base-2 for big floats and base-10 for decimal fractions, but
+    * that has no effect on the code here.
+    */
+   /* Separate from QCBOREncode_Private_AddTExpBigMantissa() because
+    * linking QCBOREncode_AddTBigNumber() adds a lot because it
+    * does preferred serialization of big numbers and the offset of 1
+    * for CBOR negative numbers.
+    */
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
+      QCBOREncode_AddTag(pMe, uTagNumber);
+   }
+   QCBOREncode_OpenArray(pMe);
+   QCBOREncode_AddInt64(pMe, nExponent);
+   QCBOREncode_AddTBigNumberRaw(pMe, QCBOR_ENCODE_AS_TAG, bBigNumIsNegative, BigNumMantissa);
+   QCBOREncode_CloseArray(pMe);
+}
+
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
@@ -788,6 +1176,12 @@ void
 QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
                                                    const uint8_t       uMajorType)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
 
@@ -895,12 +1289,10 @@ QCBOREncode_Private_CloseAggregate(QCBOREncodeContext *pMe,
 
 
 /**
- * @brief Semi-private method to close a map, array or bstr wrapped CBOR
+ * @brief Semi-private method to close a map, array or bstr wrapped CBOR.
  *
  * @param[in] pMe           The context to add to.
  * @param[in] uMajorType     The major CBOR type to close.
- *
- * Call QCBOREncode_CloseArray() or QCBOREncode_CloseMap() instead of this.
  */
 void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
@@ -908,6 +1300,341 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
 {
    QCBOREncode_Private_CloseAggregate(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
 }
+
+
+/**
+ * @brief Private method to close a map without sorting.
+ *
+ * @param[in] pMe     The encode context with map to close.
+ *
+ * See QCBOREncode_SerializationCDE() implemention for explantion for why
+ * this exists in this form.
+ */
+static void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_Private_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+}
+
+
+/**
+ * @brief Decode a CBOR item head.
+ *
+ * @param[in]   pUInBuf           UsefulInputBuf to read from.
+ * @param[out]  pnMajorType       Major type of decoded head.
+ * @param[out]  puArgument        Argument of decoded head.
+ * @param[out]  pnAdditionalInfo  Additional info from decoded head.
+ *
+ * @return SUCCESS if a head was decoded
+ *         HIT_END if there were not enough bytes to decode a head
+ *         UNSUPPORTED if the decoded item is not one that is supported
+ *
+ * This is copied from qcbor_decode.c rather than referenced.  This
+ * makes the core decoder 60 bytes smaller because it gets inlined.
+ * It would not get inlined if it was referenced. It is important to
+ * make the core decoder as small as possible. The copy here does make
+ * map sorting 200 bytes bigger, but map sorting is rarely used in
+ * environments that need small object code. It would also make
+ * qcbor_encode.c depend on qcbor_decode.c
+ *
+ * This is also super stable and tested. It implements the very
+ * well-defined part of CBOR that will never change.  So this won't
+ * change.
+ */
+static QCBORError
+QCBOREncodePriv_DecodeHead(UsefulInputBuf *pUInBuf,
+                           int            *pnMajorType,
+                           uint64_t       *puArgument,
+                           int            *pnAdditionalInfo)
+{
+   QCBORError uReturn;
+
+   /* Get the initial byte that every CBOR data item has and break it
+    * down. */
+   const int nInitialByte    = (int)UsefulInputBuf_GetByte(pUInBuf);
+   const int nTmpMajorType   = nInitialByte >> 5;
+   const int nAdditionalInfo = nInitialByte & 0x1f;
+
+   /* Where the argument accumulates */
+   uint64_t uArgument;
+
+   if(nAdditionalInfo >= LEN_IS_ONE_BYTE && nAdditionalInfo <= LEN_IS_EIGHT_BYTES) {
+      /* Need to get 1,2,4 or 8 additional argument bytes. Map
+       * LEN_IS_ONE_BYTE..LEN_IS_EIGHT_BYTES to actual length.
+       */
+      static const uint8_t aIterate[] = {1,2,4,8};
+
+      /* Loop getting all the bytes in the argument */
+      uArgument = 0;
+      for(int i = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE]; i; i--) {
+         /* This shift and add gives the endian conversion. */
+         uArgument = (uArgument << 8) + UsefulInputBuf_GetByte(pUInBuf);
+      }
+   } else if(nAdditionalInfo >= ADDINFO_RESERVED1 && nAdditionalInfo <= ADDINFO_RESERVED3) {
+      /* The reserved and thus-far unused additional info values */
+      uReturn = QCBOR_ERR_UNSUPPORTED;
+      goto Done;
+   } else {
+      /* Less than 24, additional info is argument or 31, an
+       * indefinite-length.  No more bytes to get.
+       */
+      uArgument = (uint64_t)nAdditionalInfo;
+   }
+
+   if(UsefulInputBuf_GetError(pUInBuf)) {
+      uReturn = QCBOR_ERR_HIT_END;
+      goto Done;
+   }
+
+   /* All successful if arrived here. */
+   uReturn           = QCBOR_SUCCESS;
+   *pnMajorType      = nTmpMajorType;
+   *puArgument       = uArgument;
+   *pnAdditionalInfo = nAdditionalInfo;
+
+Done:
+   return uReturn;
+}
+
+
+/**
+ * @brief Consume the next item from a UsefulInputBuf.
+ *
+ * @param[in] pInBuf  UsefulInputBuf from which to consume item.
+ *
+ * Recursive, but stack usage is light and encoding depth limit
+ */
+static QCBORError
+QCBOR_Private_ConsumeNext(UsefulInputBuf *pInBuf)
+{
+   int      nMajor;
+   uint64_t uArgument;
+   int      nAdditional;
+   uint16_t uItemCount;
+   uint16_t uMul;
+   uint16_t i;
+   QCBORError uCBORError;
+
+   uCBORError = QCBOREncodePriv_DecodeHead(pInBuf, &nMajor, &uArgument, &nAdditional);
+   if(uCBORError != QCBOR_SUCCESS) {
+      return uCBORError;
+   }
+
+   uMul = 1;
+
+   switch(nMajor) {
+      case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
+      case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
+         break;
+
+      case CBOR_MAJOR_TYPE_SIMPLE:
+         return uArgument == CBOR_SIMPLE_BREAK ? 1 : 0;
+         break;
+
+      case CBOR_MAJOR_TYPE_BYTE_STRING:
+      case CBOR_MAJOR_TYPE_TEXT_STRING:
+         if(nAdditional == LEN_IS_INDEFINITE) {
+            /* Segments of indefinite length */
+            while(QCBOR_Private_ConsumeNext(pInBuf) == 0);
+         }
+         (void)UsefulInputBuf_GetBytes(pInBuf, uArgument);
+         break;
+
+      case CBOR_MAJOR_TYPE_TAG:
+         QCBOR_Private_ConsumeNext(pInBuf);
+         break;
+
+      case CBOR_MAJOR_TYPE_MAP:
+         uMul = 2;
+         /* Fallthrough */
+      case CBOR_MAJOR_TYPE_ARRAY:
+         uItemCount = (uint16_t)uArgument * uMul;
+         if(nAdditional == LEN_IS_INDEFINITE) {
+            uItemCount = UINT16_MAX;
+         }
+         for(i = uItemCount; i > 0; i--) {
+            if(QCBOR_Private_ConsumeNext(pInBuf)) {
+               /* End of indefinite length */
+               break;
+            }
+         }
+         break;
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+
+/**
+ * @brief  Decoded next item to get its lengths.
+ *
+ * Decode the next item in map no matter what type it is. It works
+ * recursively when an item is a map or array It returns offset just
+ * past the item decoded or zero there are no more items in the output
+ * buffer.
+ *
+ * This doesn't distinguish between end of the input and an error
+ * because it is used to decode stuff we encoded into a buffer, not
+ * stuff that came in from outside. We still want a check for safety
+ * in case of bugs here, but it is OK to report end of input on error.
+ */
+struct ItemLens {
+   uint32_t  uLabelLen;
+   uint32_t  uItemLen;
+};
+
+static struct ItemLens
+QCBOREncode_Private_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
+{
+   UsefulInputBuf  InBuf;
+   UsefulBufC      EncodedMapBytes;
+   QCBORError      uCBORError;
+   struct ItemLens Result;
+
+   Result.uLabelLen = 0;
+   Result.uItemLen  = 0;
+
+   EncodedMapBytes = UsefulOutBuf_OutUBufOffset(&(pMe->OutBuf), uStart);
+   if(UsefulBuf_IsNULLC(EncodedMapBytes)) {
+      return Result;
+   }
+
+   UsefulInputBuf_Init(&InBuf, EncodedMapBytes);
+
+   /* This is always used on maps, so consume two, the label and the value */
+   uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
+   if(uCBORError) {
+      return Result;
+   }
+
+   /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
+   Result.uLabelLen = (uint32_t)UsefulInputBuf_Tell(&InBuf);
+
+   uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
+   if(uCBORError) {
+      Result.uLabelLen = 0;
+      return Result;
+   }
+
+   Result.uItemLen = (uint32_t)UsefulInputBuf_Tell(&InBuf);
+
+   /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
+   return Result;
+}
+
+
+/**
+ * @brief Sort items lexographically by encoded labels.
+ *
+ * @param[in] pMe     Encoding context.
+ * @param[in] uStart  Offset in outbuf of first item for sorting.
+ *
+ * This reaches into the UsefulOutBuf in the encoding context and
+ * sorts encoded CBOR items. The byte offset start of the items is at
+ * @c uStart and it goes to the end of valid bytes in the
+ * UsefulOutBuf.
+ */
+static void
+QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
+{
+   bool            bSwapped;
+   int             nComparison;
+   uint32_t        uStart1;
+   uint32_t        uStart2;
+   struct ItemLens Lens1;
+   struct ItemLens Lens2;
+
+
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return;
+   }
+
+   /* Bubble sort because the sizes of all the items are not the
+    * same. It works with adjacent pairs so the swap is not too
+    * difficult even though sizes are different.
+    *
+    * While bubble sort is n-squared, it seems OK here because n will
+    * usually be small and the comparison and swap functions aren't
+    * too CPU intensive.
+    *
+    * Another approach would be to have an array of offsets to the
+    * items. However this requires memory allocation and the swap
+    * operation for quick sort or such is complicated because the item
+    * sizes are not the same and overlap may occur in the bytes being
+    * swapped.
+    */
+   do { /* Loop until nothing was swapped */
+      Lens1 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart);
+      if(Lens1.uLabelLen == 0) {
+         /* It's an empty map. Nothing to do. */
+         break;
+      }
+      uStart1 = uStart;
+      uStart2 = uStart1 + Lens1.uItemLen;
+      bSwapped = false;
+
+      while(1) {
+         Lens2 = QCBOREncode_Private_DecodeNextInMap(pMe, uStart2);
+         if(Lens2.uLabelLen == 0) {
+            break;
+         }
+
+         nComparison = UsefulOutBuf_Compare(&(pMe->OutBuf),
+                                            uStart1, Lens1.uLabelLen,
+                                            uStart2, Lens2.uLabelLen);
+         if(nComparison < 0) {
+            UsefulOutBuf_Swap(&(pMe->OutBuf), uStart1, uStart2, uStart2 + Lens2.uItemLen);
+            uStart1 = uStart1 + Lens2.uItemLen; /* item 2 now in position of item 1 */
+            /* Lens1 is still valid as Lens1 for the next loop */
+            bSwapped = true;
+         } else if(nComparison > 0) {
+            uStart1 = uStart2;
+            Lens1   = Lens2;
+         } else /* nComparison == 0 */ {
+            pMe->uError = QCBOR_ERR_DUPLICATE_LABEL;
+            return;
+         }
+         uStart2 = uStart2 + Lens2.uItemLen;
+      }
+   } while(bSwapped);
+}
+
+
+/*
+ * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
+{
+   uint32_t uStart;
+
+   /* The Header for the map we are about to sort hasn't been
+    * inserted yet, so uStart is the position of the first item
+    * and the end out the UsefulOutBuf data is the end of the
+    * items we are about to sort.
+    */
+   uStart = Nesting_GetStartPos(&(pMe->nesting));
+   QCBOREncode_Private_SortMap(pMe, uStart);
+
+   QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
+}
+
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+/*
+ * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
+{
+   uint32_t uStart;
+
+   uStart = Nesting_GetStartPos(&(pMe->nesting));
+   QCBOREncode_Private_SortMap(pMe, uStart);
+
+   QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+}
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /*

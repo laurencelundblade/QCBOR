@@ -704,6 +704,31 @@ const char *UBUtilTests(void)
       return "Failed to find 4";
    }
 
+   UsefulBufC Substring;
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("xxyyzz"), 'x');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ("yyzz"))) {
+      return "SkipLeading didn't skip";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("xxyyzz"), 'y');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ("xxyyzz"))) {
+      return "SkipLeading skipped";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("qqq"), 'q');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ(""))) {
+      return "SkipLeading didn't return empty";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("x"), 'x');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ(""))) {
+      return "SkipLeading didn't return empty";
+   }
+
+   Substring = UsefulBuf_SkipLeading(UsefulBuf_FromSZ("xxxxxxxxxxxx"), 'x');
+   if(UsefulBuf_Compare(Substring, UsefulBuf_FromSZ(""))) {
+      return "SkipLeading didn't return empty";
+   }
 
    const uint8_t pB[] = {0x01, 0x02, 0x03};
    UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);
@@ -935,6 +960,31 @@ const char *  UIBTest_IntegerFormat(void)
       return "UIB SetBufferLength failed";
    }
 
+   UsefulBufC CompCheck = UsefulBuf_FROM_SZ_LITERAL("abcd");
+   UsefulInputBuf_Init(&UIB, CompCheck);
+
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 2, 2) >= 0) {
+      return "UB 1 compared greater than UB2";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 0, 2) != 0) {
+      return "UB1 and UB2 didn't compare equally";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 2, 2, 0, 2) <= 0) {
+      return "UB2 compared less than UB1";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 4, 1, 2, 2) <= 0) {
+      return "Off-the-end UB1 compared as less than UB2";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 5, 2, 2) <= 0) {
+      return "Off-the-end UB1 compared as less than UB2 (second)";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 5, 1) >= 0) {
+      return "Off-the-end UB2 compared as less than UB2";
+   }
+   if(UsefulInputBuf_Compare(&UIB, 0, 2, 2, 3) >= 0) {
+      return "Off-the-end UB2 compared as less than UB2 (second)";
+   }
+
    return NULL;
 }
 
@@ -1033,6 +1083,208 @@ const char *UBAdvanceTest(void)
       return "didn't detect bad UOB";
    }
 
+
+   return NULL;
+}
+
+
+const char * UOBExtraTests(void)
+{
+   #define COMPARE_TEST_SIZE 10
+   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE);
+   int                       nCompare;
+   UsefulBufC                Out;
+
+   /* Test UsefulOutBuf_Compare() */
+   UsefulOutBuf_AppendString(&UOB, "abcabdefab");
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 8, 2);
+   if(nCompare != 0) {
+      return "ab should compare equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 3);
+   if(nCompare != 'd' - 'c') {
+      return "abc should not equal abd";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 3, 2, 8, 2);
+   if(nCompare != 0) {
+       return "ab should compare equal";
+    }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 2, 4, 5, 4);
+   if(nCompare != 'd' - 'c') {
+      return "ca should not equal de";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 5, 1, 2, 1);
+   if(nCompare != 'c' - 'd') {
+      return "de should not equal ca";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 7, 2, 8, 2);
+   if(nCompare !=  'a' - 'f') {
+      return "fa should not equal ab";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 10, 0, 10);
+   if(nCompare != 0) {
+      return "comparison to self failed";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 9, 1, 9, 1);
+   if(nCompare != 0) {
+      return "b should compare equal to b";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 10, 1, 10, 1);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 1, 100, 1);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 100, 1, 0, 1);
+   if(nCompare != 0) {
+      return "Comparison off the end is equal";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 2);
+   if(nCompare > 0) {
+      return "Comparison of unequal lengths incorrect";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 2, 0, 3);
+   if(nCompare < 0) {
+      return "Comparison of unequal lengths incorrect 2";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 2, 3);
+   if(nCompare != 'c' - 'a') {
+      return "Inequal lengths, but inequal strings";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 1, 3, 4, 2);
+   if(nCompare != 'd' - 'c') {
+      return "Inequal lengths, but inequal strings";
+   }
+
+   /* Test UsefulOutBuf_Swap() */
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 4, 8);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("efghabcd"))) {
+      return "swap fail 1";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 1, 2);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bacdefgh"))) {
+      return "swap fail 2";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 1, 8);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcdefgha"))) {
+      return "swap fail 3";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 3, 4);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("dabcefgh"))) {
+      return "swap fail 4";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 9, 10, 11);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 5";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 4, 11);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 6";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 9, 0, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 7";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 0, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 8";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 8, 4, 0);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 9";
+   }
+
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abcdefgh");
+   UsefulOutBuf_Swap(&UOB, 0, 8, 4);
+   Out = UsefulOutBuf_OutUBuf(&UOB);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcdefgh"))) {
+      return "swap fail 10";
+   }
+
+
+   /* Test for UsefulOutBuf_GetOutput() */
+   UsefulOutBuf_Reset(&UOB);
+   UsefulOutBuf_AppendString(&UOB, "abc");
+   UsefulOutBuf_AppendString(&UOB, "xyz");
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 0);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("abcxyz"))) {
+      return "GetOutput fail 1";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 5);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("z"))) {
+      return "GetOutput fail 2";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 1);
+   if(UsefulBuf_Compare(Out, UsefulBuf_FROM_SZ_LITERAL("bcxyz"))) {
+      return "GetOutput fail 3";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 6);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 4";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB, 7);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 5";
+   }
 
    return NULL;
 }
