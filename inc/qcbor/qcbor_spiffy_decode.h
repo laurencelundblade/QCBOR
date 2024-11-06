@@ -1421,6 +1421,12 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * leaves it up to the caller to apply this computation for negative
  * big numbers.
  *
+ * RFC 8949 preferred serialization requires that big numbers
+ * that fit into integers be encoded as integers. This function
+ * will error if the input CBOR is a type 0 or 1 integers. A
+ * future version of QCBOR fixes this, but in the mean time
+ * the application must handle this manually.
+ *
  * See @ref Tag-Usage for discussion on tag requirements.
  *
  * Determination of the sign of the big number depends on the tag
@@ -1438,7 +1444,6 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * QCBOREncode_AddTPositiveBignum(), QCBOREncode_AddTNegativeBignum(),
  * @ref QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM.
  */
-// Improvement: Add function that converts integers and other to big nums
 void
 QCBORDecode_GetBignum(QCBORDecodeContext *pCtx,
                       uint8_t             uTagRequirement,
@@ -1558,7 +1563,7 @@ QCBORDecode_GetDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
  * For QCBOR before v1.5, this function had a bug where
  * by the negative mantissa sometimes had the offset of
  * one applied, making this function somewhat usless for
- * negative mantissas. Specifically if the to-be-decode CBOR
+ * negative mantissas. Specifically if the to-be-decoded CBOR
  * was a type 1 integer the offset was applied and when it
  * was a tag 3, the offset was not applied. It is possible
  * that a tag 3 could contain a value in the range of a type 1

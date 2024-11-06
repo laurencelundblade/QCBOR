@@ -369,6 +369,8 @@ extern "C" {
  * - The maximum tag nesting is @c QCBOR_MAX_TAGS_PER_ITEM (typically 4).
  * - Works only on 32- and 64-bit CPUs.
  * - QCBORDecode_EnterBstrWrapped() doesn't work on indefinite-length strings.
+ * - Numeric reduction of big numbers to integers for preferred
+ *   serialization is not performed.
  *
  * The public interface uses @c size_t for all lengths. Internally the
  * implementation uses 32-bit lengths by design to use less memory and
@@ -987,9 +989,9 @@ QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext *pCtx,
  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3). No
  * processing, such as removal of leading zeros, is perfomed.
  *
- * Sometimes big numbers are used to represent parts of cryptographic
- * keys, however, COSE which defines representations for keys does,
- * not use this particular type.
+ * RFC 8949 preferred serialization requires big numbers that
+ * will fit in integers be encoded as integers. That is NOT
+ * performed.
  */
 static void
 QCBOREncode_AddTPositiveBignum(QCBOREncodeContext *pCtx,
@@ -1026,6 +1028,10 @@ QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pCtx,
  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3). No
  * processing, such as removal of leading zeros or the required offset
  * of 1 for negative values, is perfomed.
+ *
+ * RFC 8949 preferred serialization requires big numbers that
+ * will fit in integers be encoded as integers. That is NOT
+ * performed.
  */
 static void
 QCBOREncode_AddTNegativeBignum(QCBOREncodeContext *pCtx,
@@ -1055,7 +1061,7 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
  * @param[in] nMantissa        The mantissa.
  * @param[in] nBase10Exponent  The exponent.
  *
- * The value is nMantissa * 10 ^ nBase10Exponent.
+ * The value is @c nMantissa * 10 ^ @c nBase10Exponent.
  *
  * A decimal fraction is good for exact representation of some values
  * that can't be represented exactly with standard C (IEEE 754)
@@ -1074,8 +1080,8 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pCtx,
  * support this range to reduce code size and interface complexity a
  * little).
  *
- * CBOR Preferred serialization of the integers is used, thus they
- * will be encoded in the smallest number of bytes possible.
+ * Preferred serialization is used when the mantissa or exponent are
+ * integers, thus they will be encoded in the smallest number of bytes.
  *
  * See also QCBOREncode_AddTDecimalFractionBigNum() for a decimal
  * fraction with arbitrarily large precision and
@@ -1121,6 +1127,10 @@ QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  * mantissa is a big number (See QCBOREncode_AddTPositiveBignum())
  * allowing for arbitrarily large precision.
  *
+ * RFC 8949 preferred serialization requires reduction of big numbers
+ * that can fit into integers be encoded as integers, not big numbers.
+ * This implementation does NOT do that.
+ *
  * See @ref expAndMantissa for decoded representation.
  */
 static void
@@ -1155,7 +1165,7 @@ QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
  * @param[in] nMantissa        The mantissa.
  * @param[in] nBase2Exponent   The exponent.
  *
- * The value is nMantissa * 2 ^ nBase2Exponent.
+ * The value is @c nMantissa * 2 ^ @c nBase2Exponent.
  *
  * "Bigfloats", as CBOR terms them, are similar to IEEE floating-point
  * numbers in having a mantissa and base-2 exponent, but they are not
@@ -1175,8 +1185,8 @@ QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
  * support this range to reduce code size and interface complexity a
  * little).
  *
- * CBOR preferred serialization of the integers is used, thus they will
- * be encoded in the smallest number of bytes possible.
+ * Preferred serialization is used when the mantissa or exponent are
+ * integers, thus they will be encoded in the smallest number of bytes.
  *
  * This can also be used to represent floating-point numbers in
  * environments that don't support IEEE 754.
@@ -1218,6 +1228,10 @@ QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pCtx,
  * This is the same as QCBOREncode_AddTBigFloat() except the mantissa
  * is a big number (See QCBOREncode_AddTPositiveBignum()) allowing for
  * arbitrary precision.
+ *
+ * RFC 8949 preferred serialization requires reduction of big numbers
+ * that can fit into integers be encoded as integers, not big numbers.
+ * This implementation does NOT do that.
  *
  * See @ref expAndMantissa for decoded representation.
  */
