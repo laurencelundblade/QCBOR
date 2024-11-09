@@ -4790,6 +4790,13 @@ static struct BignumDecodeTest BignumDecodeTests[] = {
       true
    },
    {
+      "-18446744073709551615 preferred",
+      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xfe", 9},
+      QCBOR_SUCCESS,
+      {"\xff\xff\xff\xff\xff\xff\xff\xff", 8},
+      true
+   },
+   {
       "-18446744073709551616 as big num",
       {"\xC3\x48\xff\xff\xff\xff\xff\xff\xff\xff", 10},
       QCBOR_SUCCESS,
@@ -8709,7 +8716,7 @@ static UsefulBufC EncodeBstrWrapTestData(UsefulBuf OutputBuffer)
    QCBOREncode_Init(&EC, OutputBuffer);
 
 #ifndef QCBOR_DISABLE_TAGS
-   QCBOREncode_AddTag(&EC, CBOR_TAG_CBOR);
+   QCBOREncode_AddTagNumber(&EC, CBOR_TAG_CBOR);
 #endif /* ! QCBOR_DISABLE_TAGS */
    QCBOREncode_BstrWrap(&EC);
      QCBOREncode_OpenMap(&EC);

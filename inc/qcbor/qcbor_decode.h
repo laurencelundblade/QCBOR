@@ -593,9 +593,11 @@ typedef struct _QCBORItem {
 
       /** See @ref QCBOR_TYPE_UKNOWN_SIMPLE */
       uint8_t     uSimple;
+
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       QCBORExpAndMantissa expAndMantissa;
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
+
       uint64_t    uTagNumber; /* Used internally during decoding */
 
       /* For use by user-defined tag content handlers */
