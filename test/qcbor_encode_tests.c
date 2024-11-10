@@ -722,7 +722,7 @@ int32_t AllAddMethodsTest(void)
    nReturn = 0;
 
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_Allow(&ECtx, QCBOR_ENCODE_ALLOW_ALL);
+   QCBOREncode_Config(&ECtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
 
    AddAll(&ECtx);
 
@@ -739,7 +739,7 @@ int32_t AllAddMethodsTest(void)
 
    /* Also test size calculation */
    QCBOREncode_Init(&ECtx, SizeCalculateUsefulBuf);
-   QCBOREncode_Allow(&ECtx, QCBOR_ENCODE_ALLOW_ALL);
+   QCBOREncode_Config(&ECtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
 
    AddAll(&ECtx);
 
@@ -3122,10 +3122,10 @@ EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
 
    switch(pTest->eSerialization) {
       case EAM_Pref:
-         QCBOREncode_SerializationPreferred(pEnc);
+         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED );
          break;
       case EAM_CDE:
-         QCBOREncode_SerializationCDE(pEnc);
+         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_CDE);
          break;
 
       default:
@@ -3969,7 +3969,8 @@ int32_t CDETest(void)
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
-   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_CDE);
+
 
    /* Items added to test sorting and preferred encoding of numbers and floats */
    QCBOREncode_OpenMap(&EC);
@@ -4008,7 +4009,7 @@ int32_t CDETest(void)
 #ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Next, make sure methods that encode non-CDE error out */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_SerializationCDE(&EC);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_CDE);
    QCBOREncode_OpenMapIndefiniteLength(&EC);
    QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
@@ -4027,8 +4028,8 @@ int32_t DCBORTest(void)
    QCBORError         uExpectedErr;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DCBOR);
 
-   QCBOREncode_SerializationdCBOR(&EC);
 
    /* Items added to test sorting and preferred encoding of numbers and floats */
    QCBOREncode_OpenMap(&EC);
@@ -4065,7 +4066,7 @@ int32_t DCBORTest(void)
 #ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Indefinite-length map */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DCBOR);
    QCBOREncode_OpenMapIndefiniteLength(&EC);
    QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
@@ -4074,7 +4075,7 @@ int32_t DCBORTest(void)
 
    /* Indefinite-length array */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DCBOR);
    QCBOREncode_OpenArrayIndefiniteLength(&EC);
    QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
@@ -4084,7 +4085,7 @@ int32_t DCBORTest(void)
 
    /* The "undef" special value */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_SerializationdCBOR(&EC);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DCBOR);
    QCBOREncode_AddUndef(&EC);
    QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {

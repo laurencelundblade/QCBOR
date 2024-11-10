@@ -404,6 +404,149 @@ extern "C" {
 #define QCBOR_ENCODE_AS_BORROWED 1
 
 
+
+#define QCBOR_ENCODE_MODE_DCBOR 9 // TODO: fix this
+
+/**
+ * This causes maps to be sorted per RFC 8949 section 4.2.1 when they are closed.
+ * QCBOREncode_CloseMap() becomes equivalent to
+ * QCBOREncode_CloseAndSortMap(). This
+ * causes map closing to run much slower, but this is probably only of consequence in very
+ * constrained environments with large maps.
+ *
+ * Note that map sorting causese about 30% more code from
+ * the QCBOR library to be linked. Any call to QCBOREncode_Config(), even if sorting
+ * is not selected, will cause the sorting code to be linked.
+ * See QCBOREncode_ConfigReduced() to avoid this.
+ */
+#define QCBOR_ENCODE_CONFIG_SORT                           0x01
+
+/** By default QCBOR will error out when trying to encode
+ * a double or float NaN that has a payload, because NaN
+ * payloads are not very interoperable. With thi set,
+ * NaN payload can be encoded.*/
+#define QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD              0x02
+
+/**
+ * This unifies the integer and float number space such
+ * that there is only one way to encode any particular
+ * value. For example, 0 is always encoded as a type 0
+ * positive integer, never as a float or double. This
+ * unification never loses precision. For example, 1.000001 would
+ * not be reduced to the integer 1.
+ *
+ * This specification for this reduction comes from
+ * dCBOR. It is part of a deterministic encoding that
+ * that covers integer and float numbers.  This reduction
+ * doesn't cover other number representations like
+ * big numbers and big floats.
+ */
+#define QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION                0x04
+
+/* With this set, attempts to encode indefinite length
+ * text and byte strings, arrays and maps  will error out. */
+#define QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS 0x08
+
+/*n.*/
+#define QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS        0x10
+
+/**
+ * This enforces a simple rule in dCBOR allows only the simple values true, false and null.
+ * With this set, any other simple value will error out.
+ */
+#define QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE              0x20
+
+/* Preferred serialization requires number reduction
+ * of big numbers to type 0 and 1 integers. With this set
+ * an error will be set when trying to encode non-preferred
+ * big numbers. */
+#define QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS     0x40 // TODO: implement and test this one
+
+
+/**
+ * Setting this mode will cause QCBOR to return an error if an attempt
+ * is made to use one of the methods that produce non-preferred
+ * serialization. It doesn't change anything else as QCBOR produces
+ * preferred serialization by default.
+ *
+ * The non-preferred methods are: QCBOREncode_AddFloatNoPreferred(),
+ * QCBOREncode_AddDoubleNoPreferred(),
+ * QCBOREncode_OpenArrayIndefiniteLength(),
+ * QCBOREncode_CloseArrayIndefiniteLength(),
+ * QCBOREncode_OpenMapIndefiniteLength(),
+ * QCBOREncode_CloseMapIndefiniteLength(), plus those derived from the
+ * above listed.
+ *
+ * This mode is just a user guard to prevent accidentally calling
+ * something that produces non-preferred serialization. It doesn't do
+ * anything but causes errors to occur on attempts to call the above
+ * listed functions. This does nothing if the library is compiled
+ * QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
+ *
+ * See @ref Serialization. It is usually not necessary to set this
+ * mode, but there is usually no disadvantage to setting it. Preferred
+ * serialization is defined in RFC 8949, section 4.1.
+ */
+#define QCBOR_ENCODE_CONFIG_PREFERRED \
+   (QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS | \
+    QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS | \
+    QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS)
+
+
+/**
+ * This causes QCBOR to produce CBOR Deterministic Encoding (CDE).
+ * With CDE, two distant unrelated CBOR encoders will produce exactly
+ * the same encoded CBOR for a given input.
+ *
+ * In addition to doing everything
+ * @ref QCBOR_ENCODE_CONFIG_PREFERRED does (including exclusion of
+ * indefinite lengths), this causes maps to be sorted. The map is
+ * sorted automatically when QCBOREncode_CloseMap() is called. See
+ * @ref QCBOR_ENCODE_CONFIG_SORT.
+ *
+ * See @ref Serialization. It is usually not necessary to set this
+ * mode as determinism is very rarely needed. However it will
+ * usually work with most protocols. CDE is defined in
+ * draft-ietf-cbor-cde and/or RFC 8949 section 4.2.
+ */
+#define QCBOR_ENCODE_CONFIG_CDE \
+   (QCBOR_ENCODE_CONFIG_PREFERRED | \
+    QCBOR_ENCODE_CONFIG_SORT)
+
+
+/**
+ * This is a superset of CDE. This function does everything
+ * QCBOREncode_SerializationCDE() does. Also it is a super set of
+ * preferred serialization and does everything
+ * QCBOREncode_SerializationPreferred() does.
+ *
+ * The main feature of dCBOR is that there is only one way to serialize a
+ * particular numeric value. This changes the behavior of functions
+ * that add floating-point numbers.  If the floating-point number is
+ * whole, it will be encoded as an integer, not a floating-point number.
+ * 0.000 will be encoded as 0x00. Precision is never lost in this
+ * conversion.
+ *
+ * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads if
+ * you pass a NaN to one of the floating-point encoding functions.
+ * This mode forces all NaNs to the half-precision queit NaN. Also see
+ * QCBOREncode_Allow().
+ *
+ * dCBOR disallows use of any simple type other than true, false and
+ * NULL. In particular it disallows use of "undef" produced by
+ * QCBOREncode_AddUndef().
+ *
+ * See @ref Serialization. Set this mode only if the protocol you are
+ * implementing requires dCBOR. This mode is usually not compatible
+ * with protocols that don't use dCBOR. dCBOR is defined in
+ * draft-mcnally-deterministic-cbor.
+ */
+#define QCBOR_ENCODE_CONFIG_DCBOR \
+   (QCBOR_ENCODE_CONFIG_CDE | \
+    QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION | \
+    QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE)
+
+
 /**
  * QCBOREncodeContext is the data type that holds context for all the
  * encoding functions. It is less than 200 bytes, so it can go on the
@@ -473,164 +616,47 @@ void
 QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
 
 
-/* TODO: allow mix-and-match serialization behaviors
- - Sort maps
- - Reduce floats to integers
- - Restrict non-preferred big nums
- - Restrict indefinite-length strings
- - Restrict indefinite-length maps and arrays
- - Restrict simple values
- - Dup detection
- - Restrict NaN payload
-
- Easy to do by changing uMode into a bit map.
-
- Same for decode conformance check.
- */
-
-
 /**
- * @brief Select preferred serialization mode.
+ * @brief Configure the encoder.
  *
  * @param[in] pCtx   The encoding context for mode set.
+ * @param[in] uConfig  Bit flags for configuration options.
  *
- * This resests to the default serialization behaviors, that
- * allows non-preferred serialization methods to be called,
- * doesn't sort maps, and doesn't reduce whole-number floats
- * to integer.
+ * QCBOR usually as needed without configuration.
+ *
+ * QCBOR encodes with preferred serialization by default
+ * but provides some explicit functions that don't. This
+ * can configure QCBOR to error if they are used. This can
+ * also be used to encode dCBOR.
+ *
+ * See @ref QCBOR_ENCODE_CONFIG_PREFERRED, @ref
+ * QCBOR_ENCODE_CONFIG_DCBOR, @ref QCBOR_ENCODE_CONFIG_SORT
+ * and such.
+ *
+ * Also see QCBOREncode_ConfigReduced() if you are concerned
+ * about the amount of linked.
  */
 static void
-QCBOREncode_SerializationAny(QCBOREncodeContext *pCtx);
+QCBOREncode_Config(QCBOREncodeContext *pCtx, uint16_t uConfig);
 
 
 /**
- * @brief Select preferred serialization mode.
+ * @brief Configure the encoder, reduced object code.
  *
  * @param[in] pCtx   The encoding context for mode set.
+ * @param[in] uConfig  Bit flags for configuration options.
  *
- * Setting this mode will cause QCBOR to return an error if an attempt
- * is made to use one of the methods that produce non-preferred
- * serialization. It doesn't change anything else as QCBOR produces
- * preferred serialization by default.
+ * This is the same as QCBOREncode_Config() except it can't
+ * configure anything to do with map sorting. That includes
+ * both @ref CDE and @ref dCBOR.
  *
- * The non-preferred methods are: QCBOREncode_AddFloatNoPreferred(),
- * QCBOREncode_AddDoubleNoPreferred(),
- * QCBOREncode_OpenArrayIndefiniteLength(),
- * QCBOREncode_CloseArrayIndefiniteLength(),
- * QCBOREncode_OpenMapIndefiniteLength(),
- * QCBOREncode_CloseMapIndefiniteLength(), plus those derived from the
- * above listed.
  *
- * This mode is just a user guard to prevent accidentally calling
- * something that produces non-preferred serialization. It doesn't do
- * anything but causes errors to occur on attempts to call the above
- * listed functions. This does nothing if the library is compiled
- * QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
- *
- * See @ref Serialization. It is usually not necessary to set this
- * mode, but there is usually no disadvantage to setting it.  Preferred
- * Serialization is defined in RFC 8949, section 4.1.
  */
 static void
-QCBOREncode_SerializationPreferred(QCBOREncodeContext *pCtx);
-
-
-/**
- * @brief Select CBOR deterministic encoding mode.
- *
- * @param[in] pCtx   The encoding context for mode set.
-
- * This causes QCBOR to produce CBOR Deterministic Encoding (CDE).
- * With CDE, two distant unrelated CBOR encoders will produce exactly
- * the same encoded CBOR for a given input.
- *
- * In addition to doing everything
- * QCBOREncode_SerializationPreferred() does (including exclusion of
- * indefinite lengths), this causes maps to be sorted. The map is
- * sorted automatically when QCBOREncode_CloseMap() is called.
- * QCBOREncode_CloseMap() becomes equivalent to
- * QCBOREncode_CloseAndSortMap().
- *
- * Note that linking this function causese about 30% more code from
- * the QCBOR library to be linked. Also, QCBOREncode_CloseMap() runs
- * slower, but this is probably only of consequence in very
- * constrained environments.
- *
- * See @ref Serialization. It is usually not necessary to set this
- * mode as determinism is very rarely needed. However it will
- * usually work with most protocols. CDE is defined in
- * draft-ietf-cbor-cde.
- */
-static void
-QCBOREncode_SerializationCDE(QCBOREncodeContext *pCtx);
-
-
-/**
- * @brief Select "dCBOR" encoding mode.
- *
- * @param[in] pCtx   The encoding context for mode set.
- *
- * This is a superset of CDE. This function does everything
- * QCBOREncode_SerializationCDE() does. Also it is a super set of
- * preferred serialization and does everything
- * QCBOREncode_SerializationPreferred() does.
- *
- * The main feature of dCBOR is that there is only one way to serialize a
- * particular numeric value. This changes the behavior of functions
- * that add floating-point numbers.  If the floating-point number is
- * whole, it will be encoded as an integer, not a floating-point number.
- * 0.000 will be encoded as 0x00. Precision is never lost in this
- * conversion.
- *
- * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads if
- * you pass a NaN to one of the floating-point encoding functions.
- * This mode forces all NaNs to the half-precision queit NaN. Also see
- * QCBOREncode_Allow().
- *
- * dCBOR disallows use of any simple type other than true, false and
- * NULL. In particular it disallows use of "undef" produced by
- * QCBOREncode_AddUndef().
- *
- * See @ref Serialization. Set this mode only if the protocol you are
- * implementing requires dCBOR. This mode is usually not compatible
- * with protocols that don't use dCBOR. dCBOR is defined in
- * draft-mcnally-deterministic-cbor.
- */
-static void
-QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pCtx);
+QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, uint16_t uConfig);
 
 
 
-
-/** Bit flag to be passed to QCBOREncode_Allow() to allow NaN payloads
- *  to be output by QCBOREncode_AddDouble(),
- *  QCBOREncode_AddDoubleNoPreferred(), QCBORENcode_AddFloat() and
- *  QCBOREncode_AddSingleleNoPreferred. */
-#define QCBOR_ENCODE_ALLOW_NAN_PAYLOAD 0x01
-
-/** Bit flag to be passed to QCBOREncode_Allow() output of less
- *  interoperable values. See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD */
-#define QCBOR_ENCODE_ALLOW_ALL         0xFF
-
-
-/**
- * @brief Allow encoding of less-interoperable values.
- *
- * @param[in] pCtx    The encoding context.
- * @param[in] uAllow  Bit flags indicating what to allow.
- *
- * There are a few things in the CBOR standard that are often not
- * supported and are thus not very interoperable.  By default QCBOR
- * will error if you attempt to output them. This disables that
- * error.
- *
- * See @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD and 
- * @ref QCBOR_ENCODE_ALLOW_65_BIG_NEG.
- *
- * This does nothing if the library is compiled
- * QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-static void
-QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
 
 
 /**
@@ -3238,49 +3264,33 @@ static void
 QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
 
 
+
+void
+QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
+
 static inline void
-QCBOREncode_SerializationCDE(QCBOREncodeContext *pMe)
+QCBOREncode_Config(QCBOREncodeContext *pMe, uint16_t uConfig)
 {
-   /* The use of a function pointer here is a little trick to reduce
-    * code linked for the common use cases that don't sort.  If this
-    * function is never linked, then QCBOREncode_CloseAndSortMap() is
-    * never linked and the amount of code pulled in is small. If the
-    * mode switch between sorting and not sorting were an if
-    * statement, then QCBOREncode_CloseAndSortMap() would always be
-    * linked even when not used. */
-   pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
-   pMe->uMode = QCBOR_ENCODE_MODE_CDE;
+   if(uConfig & QCBOR_ENCODE_CONFIG_SORT) {
+      pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
+   } else {
+      pMe->pfnCloseMap = QCBOREncode_Private_CloseMapUnsorted;
+   }
+   pMe->uConfigFlags = uConfig;
 }
 
 static inline void
-QCBOREncode_SerializationdCBOR(QCBOREncodeContext *pMe)
+QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, uint16_t uConfig)
 {
-   pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
-   pMe->uMode = QCBOR_ENCODE_MODE_DCBOR;
+   if(uConfig & QCBOR_ENCODE_CONFIG_SORT) {
+      pMe->uError = 99;
+   } else {
+      pMe->uConfigFlags = uConfig;
+   }
 }
 
-static inline void
-QCBOREncode_SerializationPreferred(QCBOREncodeContext *pMe)
-{
-   pMe->uMode = QCBOR_ENCODE_MODE_PREFERRED;
-}
 
-static inline void
-QCBOREncode_SerializationAny(QCBOREncodeContext *pMe)
-{
-   pMe->uMode = QCBOR_ENCODE_MODE_ANY;
-}
 
-static inline void
-QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
-{
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   pMe->uAllow = uAllow;
-#else
-   (void)uAllow;
-   (void)pMe;
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-}
 
 
 
@@ -3445,6 +3455,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
 static inline void
 QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 {
+   // TODO: this needs to be restricted by config
    QCBOREncode_Private_AddType7(pMe,
                                 sizeof(uint64_t),
                                 UsefulBufUtil_CopyDoubleToUint64(dNum));
@@ -4881,7 +4892,7 @@ static inline void
 QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uMode >= QCBOR_ENCODE_MODE_DCBOR) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE) {
       if(uNum < CBOR_SIMPLEV_FALSE || uNum > CBOR_SIMPLEV_NULL) {
          pMe->uError = QCBOR_ERR_NOT_PREFERRED;
          return;
