@@ -21,7 +21,7 @@
 /** @file ieee754.h
  *
  * This implements floating-point conversion between half, single and
- * double precision floating-point numbers, in particular convesion to
+ * double precision floating-point numbers, in particular conversion to
  * smaller representation (e.g., double to single) that does not lose
  * precision for CBOR preferred serialization.
  *
@@ -37,17 +37,15 @@
  * This is complete, supporting +/- infinity, +/- zero, subnormals and
  * NaN payloads. NaN payloads are converted to smaller by dropping the
  * right most bits if they are zero and shifting to the right. If the
- * rightmost bits are not zero the conversion is not performed. When
+ * rightmost bits are not zero, the conversion is not performed. When
  * converting from smaller to larger, the payload is shifted left and
  * zero-padded. This is what is specified by CBOR preferred
- * serialization and what modern HW conversion instructions do. CBOR
- * CDE handling for NaN is not clearly specified, but upcoming
- * documents may clarify this.
+ * serialization and what modern HW conversion instructions do.
  *
  * There is no special handling of silent and quiet NaNs. It probably
- * isn't necessary to transmit these special NaNs as there purpose is
- * more for propgating errors up through some calculation. In many
- * cases the handlng of the NaN payload will work for silent and quiet
+ * isn't necessary to transmit these special NaNs as their purpose is
+ * more for propagating errors up through some calculation. In many
+ * cases the handling of the NaN payload will work for silent and quiet
  * NaNs.
  *
  * A previous version of this was usable as a general library for
@@ -59,9 +57,9 @@
 /**
  * @brief Convert half-precision float to double-precision float.
  *
- * @param[in] uHalfPrecision   Half-prevision number to convert.
+ * @param[in] uHalfPrecision   Half-precision number to convert.
  *
- * @returns double-presion value.
+ * @returns double-precision value.
  *
  * This is a lossless conversion because every half-precision value
  * can be represented as a double. There is no error condition.
@@ -143,7 +141,7 @@ IEEE754_SingleToHalf(float f, int bNoNanPayloads);
 
 
 /**
- * @brief Convert a double-precision float to integer if whole number
+ * @brief Convert a double-precision float to an integer if whole number
  *
  * @param[in] d  The value to convert.
  *
@@ -151,21 +149,21 @@ IEEE754_SingleToHalf(float f, int bNoNanPayloads);
  *
  * If the value is a whole number that will fit either in a uint64_t
  * or an int64_t, it is converted. If it is a NaN, then there is no
- * conversion and and the fact that it is a NaN is indicated in the
+ * conversion and the fact that it is a NaN is indicated in the
  * returned structure.  If it can't be converted, then that is
  * indicated in the returned structure.
  *
- * This always returns postive numbers as a uint64_t even if they will
+ * This always returns positive numbers as a uint64_t even if they will
  * fit in an int64_t.
  *
- * This never fails becaue of precision, but may fail because of range.
+ * This never fails because of precision, but may fail because of range.
  */
 struct IEEE754_ToInt
 IEEE754_DoubleToInt(double d);
 
 
 /**
- * @brief Convert a single-precision float to integer if whole number
+ * @brief Convert a single-precision float to an integer if whole number
  *
  * @param[in] f  The value to convert.
  *
@@ -173,14 +171,14 @@ IEEE754_DoubleToInt(double d);
  *
  * If the value is a whole number that will fit either in a uint64_t
  * or an int64_t, it is converted. If it is a NaN, then there is no
- * conversion and and the fact that it is a NaN is indicated in the
+ * conversion and the fact that it is a NaN is indicated in the
  * returned structure.  If it can't be converted, then that is
  * indicated in the returned structure.
  *
- * This always returns postive numbers as a uint64_t even if they will
+ * This always returns positive numbers as a uint64_t even if they will
  * fit in an int64_t.
  *
- * This never fails becaue of precision, but may fail because of range.
+ * This never fails because of precision, but may fail because of range.
  */
 struct IEEE754_ToInt
 IEEE754_SingleToInt(float f);
@@ -190,7 +188,7 @@ IEEE754_SingleToInt(float f);
  * @brief Convert an unsigned integer to a double with no precision loss.
  *
  * @param[in] uInt  The value to convert.
- * @param[in] uIsNegative   0 if postive, 1 if negative.
+ * @param[in] uIsNegative   0 if positive, 1 if negative.
  *
  * @returns Either the converted number or 0.5 if no conversion.
  *
