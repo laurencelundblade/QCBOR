@@ -167,7 +167,7 @@ int32_t CoseSign1TBSTest(void);
  made up of an exponent and mantissa
  */
 int32_t ExponentAndMantissaEncodeTests(void);
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /*

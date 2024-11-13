@@ -415,7 +415,7 @@ const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[] = {
 
    {CBOR_TAG_BIGFLOAT,         QCBORDecode_ExpMantissaTagCB},
    {CBOR_TAG_DECIMAL_FRACTION, QCBORDecode_ExpMantissaTagCB},
-#endif
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
    {CBOR_TAG_DAYS_EPOCH,       QCBORDecode_DaysEpochTagCB},
    {CBOR_TAG_INVALID64,        NULL},
 };

@@ -445,8 +445,18 @@ and standard tag types.
 
 ### Disabling Features
 
-Here's the list of all features that can be disabled to save object
-code. The amount saved is an approximation.
+The following table is all the features that can be disabled and an
+approximate amount by which they reduce the total size of the library.
+Note that in many cases enabling dead stripping and not calling
+functions will reduce what is linked from the library by a lot.
+
+For example, not calling any function that operates on big floats or
+decimal fractions will save the 5000 bytes listed even without
+QCBOR_DISABLE_EXP_AND_MANTISSA. But also note that the configuration
+option still exists because some may wish to use the number conversion
+functions with their support for decimal fractions and big numbers
+disabled.
+
 
     | #define                                 | Saves |
     | ----------------------------------------| ------|
@@ -454,7 +464,7 @@ code. The amount saved is an approximation.
     | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |   400 |
     | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |   200 |
     | QCBOR_DISABLE_UNCOMMON_TAGS             |   100 |
-    | QCBOR_DISABLE_EXP_AND_MANTISSA          |   400 |
+    | QCBOR_DISABLE_EXP_AND_MANTISSA          |  5000 |
     | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
     | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
     | QCBOR_DISABLE_TAGS                      |   400 |

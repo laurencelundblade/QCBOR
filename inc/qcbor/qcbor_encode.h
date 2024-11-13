@@ -2670,7 +2670,7 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          BigNumber);
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /* Deprecated. Use QCBOREncode_AddTDecimalFraction() instead */
 static void
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
@@ -2798,7 +2798,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          Mantissa,
                                     bool                bIsNegative,
                                     int64_t             nBase2Exponent);
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /* ========================================================================= *
@@ -2899,7 +2899,7 @@ static void
 QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC BigNumber);
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
 /* Use QCBOREncode_AddTDecimalFraction() instead */
 static void
@@ -2986,7 +2986,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          Mantissa,
                                     bool                bIsNegative,
                                     int64_t             nBase2Exponent);
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 /* Use QCBOREncode_AddTURI() instead */
 static void

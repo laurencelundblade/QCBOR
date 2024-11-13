@@ -4202,7 +4202,7 @@ int32_t TagNumberDecodeTest(void)
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    uError = QCBORDecode_GetNext(&DCtx, &Item);
 
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#else /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_INVALID64 ||
@@ -4212,7 +4212,7 @@ int32_t TagNumberDecodeTest(void)
       QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ) {
       return -5;
    }
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
    /*
     More than 4 tags on an item 225(226(227(228(229([])))))
@@ -6789,7 +6789,7 @@ ExponentAndMantissaDecodeFailTests(void)
                                               struct DecodeFailTestInput));
 }
 
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 
@@ -7779,9 +7779,9 @@ struct NumberConversion {
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 #define EXP_AND_MANTISSA_ERROR(x) x
-#else
+#else /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 #define EXP_AND_MANTISSA_ERROR(x) QCBOR_ERR_UNEXPECTED_TYPE
-#endif
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 static const struct NumberConversion NumberConversions[] = {

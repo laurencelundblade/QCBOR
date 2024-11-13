@@ -173,7 +173,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
 #endif /* QCBOR_DISABLE_TAGS */
    TEST_ENTRY(ExponentAndMantissaEncodeTests),
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
    TEST_ENTRY(SortMapTest),
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    TEST_ENTRY(CDETest),
