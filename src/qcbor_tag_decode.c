@@ -408,11 +408,10 @@ const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[] = {
    {CBOR_TAG_B64,              QCBORDecode_StringsTagCB},
    {CBOR_TAG_REGEX,            QCBORDecode_StringsTagCB},
    {CBOR_TAG_BIN_UUID,         QCBORDecode_StringsTagCB},
-   {CBOR_TAG_CBOR_SEQUENCE,    QCBORDecode_StringsTagCB}, // TODO: does this belong here?
+   {CBOR_TAG_CBOR_SEQUENCE,    QCBORDecode_StringsTagCB},
    {CBOR_TAG_MIME,             QCBORDecode_MIMETagCB},
    {CBOR_TAG_BINARY_MIME,      QCBORDecode_MIMETagCB},
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
-
    {CBOR_TAG_BIGFLOAT,         QCBORDecode_ExpMantissaTagCB},
    {CBOR_TAG_DECIMAL_FRACTION, QCBORDecode_ExpMantissaTagCB},
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */

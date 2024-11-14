@@ -8986,12 +8986,10 @@ int32_t DecodeTaggedTypeTests(void)
       return 23;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    QCBORDecode_GetB64InMapN(&DC, 30, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 30;
    }
-#endif
    QCBORDecode_GetB64InMapN(&DC, 31, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 31;
@@ -9005,12 +9003,10 @@ int32_t DecodeTaggedTypeTests(void)
       return 33;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    QCBORDecode_GetB64URLInMapN(&DC, 40, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 40;
    }
-#endif
    QCBORDecode_GetB64URLInMapN(&DC, 41, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 41;
@@ -9024,12 +9020,10 @@ int32_t DecodeTaggedTypeTests(void)
       return 43;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    QCBORDecode_GetRegexInMapN(&DC, 50, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 50;
    }
-#endif
    QCBORDecode_GetRegexInMapN(&DC, 51, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 51;
@@ -9043,7 +9037,6 @@ int32_t DecodeTaggedTypeTests(void)
       return 53;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    // MIME
    bool bIsNot7Bit;
    QCBORDecode_GetMIMEMessageInMapN(&DC, 60, QCBOR_TAG_REQUIREMENT_TAG, &String, &bIsNot7Bit);
@@ -9080,7 +9073,6 @@ int32_t DecodeTaggedTypeTests(void)
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 70;
    }
-#endif /* #ifndef QCBOR_DISABLE_UNCOMMON_TAGS */
 
    QCBORDecode_GetBinaryUUIDInMapN(&DC, 71, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
