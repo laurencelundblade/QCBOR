@@ -6419,6 +6419,38 @@ static const struct EaMTest pEaMTests[] = {
       9223372036854775807,
       {(const uint8_t []){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 8},
       false
+   },
+   {
+      "13. Decimal fraction with large exponent and positive unsigned mantissa",
+      {(const uint8_t []){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                          0x1B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 20},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_U64,
+      9223372036854775807,
+      0,
+      0xffffffffffffffff,
+      {(const uint8_t []){0x00}, 0},
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetTDecimalFractionBigMantissa */
+      9223372036854775807,
+      {(const uint8_t []){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 8},
+      false,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetTBigFloatBigMantissa */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false,
    }
 };
 
@@ -6438,7 +6470,7 @@ int32_t ProcessEaMTests(void)
    for(uIndex = 0; uIndex < C_ARRAY_COUNT(pEaMTests, struct EaMTest); uIndex++) {
       const struct EaMTest *pT = &pEaMTests[uIndex];
 
-      if(uIndex + 1 == 4) {
+      if(uIndex + 1 == 13) {
          nExponent = 99; // just to set a break point
       }
 

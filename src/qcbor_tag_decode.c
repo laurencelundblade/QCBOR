@@ -182,7 +182,7 @@ QCBOR_Private_ExpMantissaDataType(const uint64_t   uTagToProcess,
          return uBase;
 
       case QCBOR_TYPE_UINT64:
-         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 - QCBOR_TYPE_DECIMAL_FRACTION); // TODO: test this
+         return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 - QCBOR_TYPE_DECIMAL_FRACTION);
 
       case QCBOR_TYPE_65BIT_NEG_INT:
          return uBase + (QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 - QCBOR_TYPE_DECIMAL_FRACTION);
@@ -268,7 +268,7 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
               MantissaItem.uDataType == QCBOR_TYPE_NEGBIGNUM) {
       /* Got a good big num mantissa */
       pDecodedItem->val.expAndMantissa.Mantissa.bigNum = MantissaItem.val.bigNum;
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
    } else if(MantissaItem.uDataType == QCBOR_TYPE_UINT64) {
       pDecodedItem->val.expAndMantissa.Mantissa.uInt = MantissaItem.val.uint64;
    } else if(MantissaItem.uDataType == QCBOR_TYPE_65BIT_NEG_INT) {
@@ -346,7 +346,7 @@ static const struct StringTagMapEntry QCBOR_Private_StringTagMap[] = {
    {CBOR_TAG_B64,           QCBOR_TYPE_BASE64},
    {CBOR_TAG_REGEX,         QCBOR_TYPE_REGEX},
    {CBOR_TAG_BIN_UUID,      QCBOR_TYPE_UUID                  | IS_BYTE_STRING_BIT},
-   {CBOR_TAG_CBOR_SEQUENCE, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE | IS_BYTE_STRING_BIT}, // TODO: does this belong here?
+   {CBOR_TAG_CBOR_SEQUENCE, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE | IS_BYTE_STRING_BIT},
    {CBOR_TAG_INVALID16,     QCBOR_TYPE_NONE}
 };
 
@@ -420,4 +420,3 @@ const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[] = {
 };
 
 #endif /* ! QCBOR_DISABLE_TAGS */
-
