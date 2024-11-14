@@ -748,7 +748,7 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t u
  * this range.  If you need 65-bit negative integers, you likely need
  * negative 66, 67 and 68-bit negative integers so it is likely better
  * to use CBOR big numbers where you can have any number of bits. See
- * QCBOREncode_AddTNegativeBignum() and @ref Serialization.
+ * QCBOREncode_AddTBigNumber() and @ref Serialization.
  */
 static void
 QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
@@ -1195,40 +1195,35 @@ QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext *pCtx,
 /**
  * @brief Add a big number to encoded output using preferred serialization.
  *
- * @param[in] pCtx             The encoding context.
+ * @param[in] pCtx             The encoding context to add to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] BigNumber        Pointer and length of the big number.
+ * @param[in] bNegative        If true, @c BigNumber is negative.
+ * @param[in] BigNumber        Pointer and length of the big number,
+ *                             most significant byte first (network
+ *                             byte order).
  *
- * @c BigNumber is in network byte order. The most significant byte is
- * first. There is no limit to the size of @c BigNumber.
- *
- * This encodes preferred serialization of big numbers as defined in
- * [RFC 8949 section 3.4.3]
+ * This encodes CBOR tag numbers 2 and 3, positive and negative big
+ * numbers, as defined in [RFC 8949 section 3.4.3]
  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
- * Positive values less than 2^64 are output as CBOR type 0 integers
- * rather than as big numbers. Negative values greater than -(2^64)
- * are output as CBOR type 1 integers. Otherwise the output is as a
- * CBOR tag 2 or tag 3 big number.
  *
- * This performs the offset of 1 for the encoding of all CBOR negative
- * numbers. To effect this some big number arithmetic is done and the
- * byte string output may be one byte shorter than the input. For
- * example, the negative big number 0x01 0x00 is encoded as 0xff.
+ * This performs the offset of one required when encoding negative
+ * numbers.
  *
- * Leading zeros are removed.
+ * Leading zeros are not encoded.
  *
- * See also QCBOREncode_AddTBigNumberNoPreferred().
+ * This uses preferred serialization described specifically for big
+ * numbers. Positive values between 0 and (2^64)-1 are encoded as
+ * common type 0 integers. Negative values between -(2^64) and -1 are
+ * encoded as common type 1 integers.
  *
- * This is fairly complex internally because of support for preferred
- * serialization and the offset of 1 for CBOR negative values. 
- *
- * QCBOREncode_AddTPositiveBignum() and related methods are still
- * available but are listed as deprecated in favor of this because
- * this does the full preferred serialization and offest of 1 for
- * negative numbers.  The methods like
- * QCBOREncode_AddTPositiveBignum() bring in less object code because
- * they are mostly pass-through.
+ * See @ref BigNumbers for a useful overview of CBOR big numbers and
+ * QCBOR's support for them. See
+ * QCBOREncode_AddTBigNumberNoPreferred() to encode without conversion
+ * to common integer types 0 and 1. See QCBOREncode_AddTBigNumberRaw()
+ * for encoding that is simple pass through as a byte string that
+ * links in much less object code. See QCBORDecode_GetTBigNumber() for
+ * the decoder counter part.
  */
 static void
 QCBOREncode_AddTBigNumber(QCBOREncodeContext *pCtx,
@@ -1254,24 +1249,24 @@ QCBOREncode_AddTBigNumberToMapN(QCBOREncodeContext *pCtx,
 /**
  * @brief Add a big number to encoded output without preferred serialization.
  *
- * @param[in] pCtx             The encoding context to add the UUID to.
+ * @param[in] pCtx             The encoding context to add to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] bNegative        If true @c BigNumber is negative.
- * @param[in] BigNumber        The big number.
+ * @param[in] bNegative        If true, @c BigNumber is negative.
+ * @param[in] BigNumber        Pointer and length of the big number,
+ *                             most significant byte first (network
+ *                             byte order).
  *
  * This is the same as QCBOREncode_AddTBigNumber(), without preferred
  * serialization. This always outputs tag 2 or 3, never type 0 or 1
  * integers.
  *
- * This removes leading zeros.
+ * Leading zeros are removed before encoding.
  *
- * See also QCBOREncode_AddTBigNumber().
- *
- * This performs the offset of 1 for encoded CBOR negative so the
- * internal implementation is still complicated compared to the simple
- * copy-through in methods like QCBOREncode_AddTPositiveBignum() from
- * QCBOR v1.
+ * See @ref BigNumbers for a useful overview of CBOR big numbers and
+ * QCBOR's support for them. See also QCBOREncode_AddTBigNumber().
+ * See QCBORDecode_GetTBigNumberNoPreferred(), the decode counter part
+ * for this.
  */
 static void
 QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pCtx,
@@ -1297,28 +1292,33 @@ QCBOREncode_AddTBigNumberNoPreferredToMapN(QCBOREncodeContext *pCtx,
 /**
  * @brief Add a big number to encoded output with no processing.
  *
- * @param[in] pCtx             The encoding context to add the UUID to.
+ * @param[in] pCtx             The encoding context to add to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] bNegative        If true @c BigNumber is negative.
- * @param[in] BigNumber        The big number.
+ * @param[in] BigNumber        Pointer and length of the big number,
+ *                             most significant byte first (network
+ *                             byte order).
  *
- * This does NOT offset negative numbers by 1 because it
- * does no processing. For this to encode correctly,
- * 1 must be subtract from BigNumber before this is called
- * if bNegative is true.
+ * All this does is output tag number 2 or 3 depending on @c bNegative
+ * and then output @c BigNumber as a byte string. If @c
+ * uTagRequirement is @ref QCBOR_ENCODE_AS_BORROWED, the tag number is
+ * not even output and this equivalent to QCBOREncode_AddBytes().
  *
- * See QCBOREncode_AddTBigNumber().
+ * No leading zeros are removed. No offset of one is performed for
+ * negative numbers. There is no conversion to type 0 and type 1
+ * integers.
  *
- * @c BigNum makes up an aribtrary precision integer in
- * network/big-endian byte order.  The first byte is the most
- * significant.
+ * This is mostly an inline implementation that links in no additional
+ * object from the QCBOR library.
  *
- * It is encoded as CBOR major type 2, a binary string, possibly with
- * tag @ref CBOR_TAG_NEG_BIGNUM. See [RFC 8949 section 3.4.3]
- * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3). No
- * processing, such as removal of leading zeros or the required offset
- * of 1 for negative values, is perfomed.
+ * This is most useful when a big number library has been linked, and
+ * it can be (trivially) used to perform the offset of one for
+ * negative numbers.
+ *
+ * See @ref BigNumbers for a useful overview of CBOR big numbers and
+ * QCBOR's support for them. See QCBORDecode_GetTBigNumberRaw(), the
+ * decode counter part for this. See also QCBOREncode_AddTBigNumber().
  */
 static void
 QCBOREncode_AddTBigNumberRaw(QCBOREncodeContext *pCtx,
