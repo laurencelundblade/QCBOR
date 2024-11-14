@@ -3332,7 +3332,7 @@ ExponentAndMantissaEncodeTests(void)
 }
 
 
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 int32_t QCBORHeadTest(void)

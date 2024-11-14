@@ -2368,7 +2368,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
                              UsefulBufC         *pValue,
                              bool               *pbIsNegative);
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /* Use QCBORDecode_GetTDecimalFraction() instead */
 static void
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pCtx,
@@ -2483,7 +2483,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                   UsefulBufC         *pMantissa,
                                   bool               *pbMantissaIsNegative,
                                   int64_t            *pnExponent);
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 
@@ -3443,7 +3443,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_GetTBigNumberRawInMapSZ(pMe, szLabel, uTagRequirement, pBigNumber, pbIsNegative);
 }
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 static inline void
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext *pMe,
                                uint8_t             uTagRequirement,
@@ -3591,7 +3591,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
                                                  pbMantissaIsNegative,
                                                  pnExponent);
 }
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 #ifdef __cplusplus
 }

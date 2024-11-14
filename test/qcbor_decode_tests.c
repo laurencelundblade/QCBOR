@@ -4202,7 +4202,7 @@ int32_t TagNumberDecodeTest(void)
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    uError = QCBORDecode_GetNext(&DCtx, &Item);
 
-#else /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#else /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_DECIMAL_FRACTION ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_INVALID64 ||
@@ -4212,7 +4212,7 @@ int32_t TagNumberDecodeTest(void)
       QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ) {
       return -5;
    }
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
    /*
     More than 4 tags on an item 225(226(227(228(229([])))))
@@ -6419,6 +6419,38 @@ static const struct EaMTest pEaMTests[] = {
       9223372036854775807,
       {(const uint8_t []){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 8},
       false
+   },
+   {
+      "13. Decimal fraction with large exponent and positive unsigned mantissa",
+      {(const uint8_t []){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                          0x1B, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 20},
+      QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+      true,
+
+      QCBOR_SUCCESS, /* for GetNext */
+      QCBOR_TYPE_DECIMAL_FRACTION_POS_U64,
+      9223372036854775807,
+      0,
+      0xffffffffffffffff,
+      {(const uint8_t []){0x00}, 0},
+
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW, /* GetDecimalFraction */
+      0,
+      0,
+
+      QCBOR_SUCCESS, /* for GetTDecimalFractionBigMantissa */
+      9223372036854775807,
+      {(const uint8_t []){0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, 8},
+      false,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetBigFloat */
+      0,
+      0,
+
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* for GetTBigFloatBigMantissa */
+      0,
+      {(const uint8_t []){0x00}, 1},
+      false,
    }
 };
 
@@ -6438,7 +6470,7 @@ int32_t ProcessEaMTests(void)
    for(uIndex = 0; uIndex < C_ARRAY_COUNT(pEaMTests, struct EaMTest); uIndex++) {
       const struct EaMTest *pT = &pEaMTests[uIndex];
 
-      if(uIndex + 1 == 4) {
+      if(uIndex + 1 == 13) {
          nExponent = 99; // just to set a break point
       }
 
@@ -6789,7 +6821,7 @@ ExponentAndMantissaDecodeFailTests(void)
                                               struct DecodeFailTestInput));
 }
 
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 
@@ -7779,9 +7811,9 @@ struct NumberConversion {
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 #define EXP_AND_MANTISSA_ERROR(x) x
-#else
+#else /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 #define EXP_AND_MANTISSA_ERROR(x) QCBOR_ERR_UNEXPECTED_TYPE
-#endif
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 static const struct NumberConversion NumberConversions[] = {
@@ -8986,12 +9018,10 @@ int32_t DecodeTaggedTypeTests(void)
       return 23;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    QCBORDecode_GetB64InMapN(&DC, 30, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 30;
    }
-#endif
    QCBORDecode_GetB64InMapN(&DC, 31, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 31;
@@ -9005,12 +9035,10 @@ int32_t DecodeTaggedTypeTests(void)
       return 33;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    QCBORDecode_GetB64URLInMapN(&DC, 40, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 40;
    }
-#endif
    QCBORDecode_GetB64URLInMapN(&DC, 41, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 41;
@@ -9024,12 +9052,10 @@ int32_t DecodeTaggedTypeTests(void)
       return 43;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    QCBORDecode_GetRegexInMapN(&DC, 50, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 50;
    }
-#endif
    QCBORDecode_GetRegexInMapN(&DC, 51, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 51;
@@ -9043,7 +9069,6 @@ int32_t DecodeTaggedTypeTests(void)
       return 53;
    }
 
-#ifndef QCBOR_DISABLE_UNCOMMON_TAGS
    // MIME
    bool bIsNot7Bit;
    QCBORDecode_GetMIMEMessageInMapN(&DC, 60, QCBOR_TAG_REQUIREMENT_TAG, &String, &bIsNot7Bit);
@@ -9080,7 +9105,6 @@ int32_t DecodeTaggedTypeTests(void)
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 70;
    }
-#endif /* #ifndef QCBOR_DISABLE_UNCOMMON_TAGS */
 
    QCBORDecode_GetBinaryUUIDInMapN(&DC, 71, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {

@@ -259,7 +259,7 @@ int32_t ExponentAndMantissaDecodeTests(void);
  Hostile input tests for decimal fractions and big floats.
  */
 int32_t ExponentAndMantissaDecodeFailTests(void);
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 int32_t EnterMapTest(void);

@@ -5637,7 +5637,7 @@ QCBOR_Private_ExponentitateUU(const uint64_t uMantissa,
    return (*pfExp)(uMantissa, nExponent, puResult);
 }
 
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 
@@ -6060,7 +6060,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
       default:
@@ -6459,7 +6459,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
       default:
          return QCBOR_ERR_UNEXPECTED_TYPE;
    }
