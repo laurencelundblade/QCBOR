@@ -276,19 +276,21 @@ typedef enum {
 #define QCBOR_TYPE_TEXT_STRING    7
 
 /** Type for a positive big number. Data is in @c val.bignum, a
- *  pointer and a length. See QCBORDecode_ProcessBigNumber(). */
+ *  pointer and a length. See QCBORDecode_StringsTagCB()
+ *  and @ref CBOR_TAG_POS_BIGNUM. */
 #define QCBOR_TYPE_POSBIGNUM      9
 
 /** Type for a negative big number. Data is in @c val.bignum, a
  *  pointer and a length. Type 1 integers in the range of [-2^64,
- *  -2^63 - 1] are returned in this type.  1 MUST be subtracted from
+ *  -2^63 - 1] are returned in this type.  One must be subtracted from
  *  what is returned to get the actual value. This is because of the
  *  way CBOR negative numbers are represented. QCBOR doesn't do this
  *  because it can't be done without storage allocation and QCBOR
  *  avoids storage allocation for the most part.  For example, if 1 is
  *  subtraced from a negative big number that is the two bytes 0xff
  *  0xff, the result would be 0x01 0x00 0x00, one byte longer than
- *  what was received. See QCBORDecode_ProcessBigNumber(). */
+ *  what was received. See QCBORDecode_StringsTagCB(). and
+ *  @ref  CBOR_TAG_NEG_BIGNUM. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date

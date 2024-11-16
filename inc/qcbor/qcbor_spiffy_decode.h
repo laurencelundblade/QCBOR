@@ -1511,7 +1511,7 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pCtx,
  * The type processing rules are as follows.
  *
  * This always succeeds on type 0 and 1 integers (@ref QCBOR_TYPE_INT64,
- * @ref QCBOR_TYPE_UINT64 and @ref QCBOR_TYPE_65_BIT_NEG) no matter what
+ * @ref QCBOR_TYPE_UINT64 and @ref QCBOR_TYPE_65BIT_NEG_INT) no matter what
  * @c uTagRequirement is. The rest of the rules pertain to what happens
  * if the CBOR is not type 0 or type 1.
  *
