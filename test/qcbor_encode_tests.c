@@ -3073,7 +3073,6 @@ struct EAMEncodeTest {
    UsefulBufC  BigNumMantissa;
    int64_t     nMantissa;
    bool        bSign;
-   bool        bv1Mode;
    enum {EAM_Any, EAM_Pref, EAM_CDE} eSerialization;
    // TODO: add tag requirement
 
@@ -3090,7 +3089,6 @@ struct EAMEncodeTest EET[] = {
       NULLUsefulBufC,
       3,
       false,
-      false,
       EAM_Pref,
 
       {"\xC5\x82\x20\x03", 4},
@@ -3103,7 +3101,6 @@ struct EAMEncodeTest EET[] = {
       -1,
       {"\x00\x03",2},
       0,
-      false,
       false,
       EAM_Pref,
 
@@ -3122,9 +3119,6 @@ static void
 EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
 {
    QCBOREncode_Init(pEnc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   if(pTest->bv1Mode) {
-      QCBOREncode_Setv1Compatibility(pEnc);
-   }
 
    switch(pTest->eSerialization) {
       case EAM_Pref:
@@ -3338,7 +3332,7 @@ ExponentAndMantissaEncodeTests(void)
 }
 
 
-#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 int32_t QCBORHeadTest(void)

@@ -2499,7 +2499,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
                                   UsefulBufC         *pMantissa,
                                   bool               *pbMantissaIsNegative,
                                   int64_t            *pnExponent);
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /* ========================================================================= *
@@ -3600,7 +3600,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pMe,
                                                  pbMantissaIsNegative,
                                                  pnExponent);
 }
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /* ========================================================================= *

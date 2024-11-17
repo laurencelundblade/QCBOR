@@ -15,6 +15,13 @@
 
 #include "qcbor/qcbor_decode.h"
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
+#endif
+
 /**
  * @file qcbor_tag_decode.h
  *
@@ -40,7 +47,7 @@
 
 
 /*
-
+ TODO: integrate this
  In v1, some spiffy decode functions ignored tag numbers and
  some didn't.  For example, GetInt64 ignored and GetString didn't.
  The "GetXxx" where Xxxx is a tag ignore conditionally based
@@ -311,6 +318,7 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
                       uint64_t            uTagNumber,
                       QCBORItem          *pDecodedItem);
 
+
 /**
  * @brief Decode decimal fractions and big floats.
  *
@@ -346,9 +354,11 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
 
 
 
-/* ------------------------------------------------------------------------
- * Inline implementations of public functions defined above.
- * ---- */
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
+
+
 #ifndef QCBOR_DISABLE_TAGS
 static inline void
 QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
@@ -360,5 +370,15 @@ QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
 }
 
 #endif /* ! QCBOR_DISABLE_TAGS */
+
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* qcbor_tag_decode_h */

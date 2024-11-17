@@ -633,13 +633,6 @@ static void
 QCBOREncode_Allow(QCBOREncodeContext *pCtx, uint8_t uAllow);
 
 
-/*
- * QCBOR_ENCODE_CONFIG_V1_COMPAT
- */
-static void
-QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pCtx);
-
-
 /**
  * @brief  Add a signed 64-bit integer to the encoded output.
  *
@@ -2754,6 +2747,7 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
 
 #ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 /* Deprecated. Use QCBOREncode_AddTDecimalFraction() instead */
+
 static void
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
                                int64_t             nMantissa,
@@ -2978,7 +2972,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          Mantissa,
                                     bool                bIsNegative,
                                     int64_t             nBase2Exponent);
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 /* Deprecated. Use QCBOREncode_AddTURI() instead. */
 static void
@@ -3279,12 +3273,6 @@ QCBOREncode_Allow(QCBOREncodeContext *pMe, const uint8_t uAllow)
    (void)uAllow;
    (void)pMe;
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
-}
-
-static inline void
-QCBOREncode_Setv1Compatibility(QCBOREncodeContext *pMe)
-{
-   pMe->uConfig = QCBOR_ENCODE_CONFIG_V1_COMPAT;
 }
 
 
