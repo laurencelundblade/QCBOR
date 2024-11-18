@@ -405,8 +405,6 @@ extern "C" {
 
 
 
-#define QCBOR_ENCODE_MODE_DCBOR 9 // TODO: fix this
-
 /**
  * This causes maps to be sorted per RFC 8949 section 4.2.1 when they are closed.
  * QCBOREncode_CloseMap() becomes equivalent to
@@ -423,15 +421,15 @@ extern "C" {
 
 /** By default QCBOR will error out when trying to encode
  * a double or float NaN that has a payload, because NaN
- * payloads are not very interoperable. With thi set,
- * NaN payload can be encoded.*/
+ * payloads are not very interoperable. With this set,
+ * NaN payloads can be encoded.*/
 #define QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD              0x02
 
 /**
- * This unifies the integer and float number space such
+ * This unifies the integer and floating-point number space such
  * that there is only one way to encode any particular
  * value. For example, 0 is always encoded as a type 0
- * positive integer, never as a float or double. This
+ * positive integer, never as a 0.0 as a float or double. This
  * unification never loses precision. For example, 1.000001 would
  * not be reduced to the integer 1.
  *

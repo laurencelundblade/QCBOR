@@ -980,8 +980,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *   configured to handle indefinite-length strings as other than
  *   that, this implementation does no dynamic memory allocation.
  *
- * | Error | Description |
- * | ---- | ---- |
+ * x
  * | __Not well-formed errors__  ||
  * | @ref QCBOR_ERR_HIT_END                 | Partial data item; need more input bytes to complete decoding |
  * | @ref QCBOR_ERR_UNSUPPORTED             | Input contains CBOR with reserved additional info values |
