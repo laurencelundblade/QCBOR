@@ -549,7 +549,7 @@ typedef enum {
    /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
     * allowed by mode. See QCBOREncode_SerializationPreferred(),
     * QCBOREncode_SerializationCDE(),
-    * QCBOREncode_SerializationdCBOR().
+    * QCBOREncode_SerializationdCBOR() and @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS.
     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 

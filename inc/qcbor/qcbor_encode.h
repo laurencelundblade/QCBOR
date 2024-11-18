@@ -406,7 +406,7 @@ extern "C" {
 
 
 /**
- * This causes maps to be sorted per RFC 8949 section 4.2.1 when they are closed.
+ * This causes maps to be sorted per RFC 8949 section 4.2.1 .
  * QCBOREncode_CloseMap() becomes equivalent to
  * QCBOREncode_CloseAndSortMap(). This
  * causes map closing to run much slower, but this is probably only of consequence in very
@@ -420,9 +420,11 @@ extern "C" {
 #define QCBOR_ENCODE_CONFIG_SORT                           0x01
 
 /** By default QCBOR will error out when trying to encode
- * a double or float NaN that has a payload, because NaN
+ * a double or float NaN that has a payload because NaN
  * payloads are not very interoperable. With this set,
- * NaN payloads can be encoded.*/
+ * NaN payloads can be encoded.
+ *
+ */
 #define QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD              0x02
 
 /**
@@ -443,10 +445,12 @@ extern "C" {
 
 /* With this set, attempts to encode indefinite length
  * text and byte strings, arrays and maps  will error out. */
-#define QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS 0x08
+#define QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS    0x08
 
-/*n.*/
-#define QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS        0x10
+/* This disallows non-preferred floating number encoding, QCBOREncode_AddFloatNoPreferred()
+and QCBOREncode_AddDoubleNoPreferred().  It is not possible to disable
+preferred serialization of type 0 and type 1 integers in QCBOR. */
+#define QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS  0x10
 
 /**
  * This enforces a simple rule in dCBOR allows only the simple values true, false and null.
@@ -457,8 +461,9 @@ extern "C" {
 /* Preferred serialization requires number reduction
  * of big numbers to type 0 and 1 integers. With this set
  * an error will be set when trying to encode non-preferred
- * big numbers. */
-#define QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS     0x40 // TODO: implement and test this one
+ * big numbers with QCBOREncode_AddTBigNumberNoPreferred()
+ or QCBOREncode_AddTBigNumberRaw(). */
+#define QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS     0x40 // TODO: test this one
 
 
 /**
@@ -513,6 +518,8 @@ extern "C" {
 
 
 /**
+ * See draft-mcnally-deterministic-cbor.
+ *
  * This is a superset of CDE. This function does everything
  * QCBOREncode_SerializationCDE() does. Also it is a super set of
  * preferred serialization and does everything
@@ -527,8 +534,9 @@ extern "C" {
  *
  * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads if
  * you pass a NaN to one of the floating-point encoding functions.
- * This mode forces all NaNs to the half-precision queit NaN. Also see
- * QCBOREncode_Allow().
+ * This mode forces all NaNs to the half-precision queit NaN.
+ *
+ * TODO: confirm and test NaN payload behavior dCBOR reduces all NaN payloads to half-precision quiet NaN
  *
  * dCBOR disallows use of any simple type other than true, false and
  * NULL. In particular it disallows use of "undef" produced by
@@ -3444,30 +3452,33 @@ QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 
 static inline void
-QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
+QCBOREncode_Private_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
 {
-   // TODO: this needs to be restricted by config
    QCBOREncode_Private_AddType7(pMe,
                                 sizeof(uint64_t),
                                 UsefulBufUtil_CopyDoubleToUint64(dNum));
 }
 
 static inline void
-QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
+QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 {
-   QCBOREncode_Private_AddType7(pMe,
-                                sizeof(uint32_t),
-                                UsefulBufUtil_CopyFloatToUint32(fNum));
-}
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
+   QCBOREncode_Private_AddDoubleRaw(pMe, dNum);
+}
 
 static inline void
 QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   QCBOREncode_AddDoubleNoPreferred(pMe, dNum);
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   QCBOREncode_Private_AddDoubleRaw(pMe, dNum);
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
@@ -3497,12 +3508,33 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
+QCBOREncode_Private_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
+{
+   QCBOREncode_Private_AddType7(pMe,
+                                sizeof(uint32_t),
+                                UsefulBufUtil_CopyFloatToUint32(fNum));
+}
+
+static inline void
+QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_Private_AddFloatRaw(pMe, fNum);
+}
+
+static inline void
 QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
-#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-   QCBOREncode_AddFloatNoPreferred(pMe, fNum);
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   QCBOREncode_Private_AddFloatRaw(pMe, fNum);
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
 
@@ -3868,6 +3900,13 @@ QCBOREncode_AddTBigNumberRaw(QCBOREncodeContext *pMe,
                              bool                bNegative,
                              const UsefulBufC    BigNumber)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, bNegative);
    QCBOREncode_AddBytes(pMe, BigNumber);
 }

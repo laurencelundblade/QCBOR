@@ -414,7 +414,7 @@ FloatValuesTests(void)
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
-      if(uTestIndex == 21) {
+      if(uTestIndex == 2) {
          uDecoded = 1;
       }
 

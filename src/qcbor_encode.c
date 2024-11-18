@@ -960,6 +960,13 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
    uint8_t    uMajorType;
    UsefulBufC BigNumberNLZ;
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(!bPreferred && pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
    static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};

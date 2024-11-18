@@ -3302,7 +3302,6 @@ ExponentAndMantissaEncodeTests(void)
       } else {
          EAMTestSetup(pTest, &EC);
 
-         //QCBOREncode_AddDecimalFractionBigNum(&EC, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
          QCBOREncode_AddTDecimalFractionBigMantissa(&EC, QCBOR_ENCODE_AS_TAG, pTest->BigNumMantissa, pTest->bSign, pTest->nExponent);
          uErr = QCBOREncode_Finish(&EC, &EncodedExponentAndMantissa);
          if(uErr) {
