@@ -33,7 +33,6 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//TODO: get rid of  QCBOR_DISABLE_EXP_AND_MANTISSA and uncommon tags
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,9 +122,11 @@ extern "C" {
 #define CBOR_TAG_DATE_STRING    0
 /** See QCBOREncode_AddTDateEpoch(). */
 #define CBOR_TAG_DATE_EPOCH     1
-/** See QCBOREncode_AddTBigNumber(). */
+/** A postive big number. See QCBOREncode_AddTBigNumber(),
+ * QCBORDecode_GetTBigNumber() and QCBORDecode_StringsTagCB(). */
 #define CBOR_TAG_POS_BIGNUM     2
-/** See QCBOREncode_AddTBigNumber(). */
+/** A negative big number. See QCBOREncode_AddTBigNumber(),
+ * QCBORDecode_GetTBigNumber() and QCBORDecode_StringsTagCB(). */
 #define CBOR_TAG_NEG_BIGNUM     3
 /** CBOR tag for a two-element array representing a fraction with a
  *  mantissa and base-10 scaling factor. See

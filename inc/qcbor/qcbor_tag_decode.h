@@ -15,6 +15,13 @@
 
 #include "qcbor/qcbor_decode.h"
 
+#ifdef __cplusplus
+extern "C" {
+#if 0
+} // Keep editor indention formatting happy
+#endif
+#endif
+
 /**
  * @file qcbor_tag_decode.h
  *
@@ -40,7 +47,7 @@
 
 
 /*
-
+ TODO: integrate this
  In v1, some spiffy decode functions ignored tag numbers and
  some didn't.  For example, GetInt64 ignored and GetString didn't.
  The "GetXxx" where Xxxx is a tag ignore conditionally based
@@ -206,6 +213,8 @@ extern const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[];
  *
  * This converts all the date formats into one format of an unsigned
  * integer plus a floating-point fraction.
+ *
+ * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
  */
 QCBORError
 QCBORDecode_DateEpochTagCB(QCBORDecodeContext *pDecodeCtx,
@@ -235,6 +244,8 @@ QCBORDecode_DateEpochTagCB(QCBORDecodeContext *pDecodeCtx,
  *
  * This is much simpler than the other epoch date format because
  * floating-porint is not allowed. This is mostly a simple type check.
+ *
+ * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
  */
 QCBORError
 QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
@@ -271,10 +282,10 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
  *    @ref CBOR_TAG_BIN_UUID,
  *    @ref CBOR_TAG_CBOR_SEQUENCE
  *
- * This maps the CBOR tag to the QCBOR type and checks the content
- * type.  Nothing more. It may not be the most important
- * functionality, but it part of implementing as much of RFC 8949 as
- * possible.
+ * This maps the CBOR tag to the QCBOR type and checks the tag content
+ * type.  Nothing more.
+ *
+ * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
  */
 QCBORError
 QCBORDecode_StringsTagCB(QCBORDecodeContext *pDecodeCtx,
@@ -298,12 +309,15 @@ QCBORDecode_StringsTagCB(QCBORDecodeContext *pDecodeCtx,
  * This works for :
  *     @ref CBOR_TAG_BINARY_MIME,
  *     @ref CBOR_TAG_MIME
+ *
+ * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
  */
 QCBORError
 QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
                       void               *pTagDecodersContext,
                       uint64_t            uTagNumber,
                       QCBORItem          *pDecodedItem);
+
 
 /**
  * @brief Decode decimal fractions and big floats.
@@ -328,6 +342,8 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
  * This works for:
  *     @ref CBOR_TAG_DECIMAL_FRACTION,
  *     @ref CBOR_TAG_BIGFLOAT
+ *
+ * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
  */
 QCBORError
 QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
@@ -338,9 +354,11 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
 
 
 
-/* ------------------------------------------------------------------------
- * Inline implementations of public functions defined above.
- * ---- */
+/* ========================================================================= *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ * ========================================================================= */
+
+
 #ifndef QCBOR_DISABLE_TAGS
 static inline void
 QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
@@ -352,5 +370,15 @@ QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
 }
 
 #endif /* ! QCBOR_DISABLE_TAGS */
+
+
+/* ======================================================================== *
+ *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
+ * ======================================================================== */
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* qcbor_tag_decode_h */

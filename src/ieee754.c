@@ -18,7 +18,7 @@
 
 
 /*
- * This has long lines and is easier to read because of
+ * This code has long lines and is easier to read because of
  * them. Some coding guidelines prefer 80 column lines (can they not
  * afford big displays?).
  *
@@ -161,7 +161,6 @@ CopyDoubleToUint64(double d)
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
-
 static inline double
 CopyUint64ToDouble(uint64_t u64)
 {
@@ -184,18 +183,17 @@ CopyUint32ToSingle(uint32_t u32)
 /**
  * @brief Assemble sign, significand and exponent into double precision float.
  *
- * @param[in] uDoubleSign              0 if positive, 1 if negative
- * @pararm[in] uDoubleSignificand      Bits of the significand
- * @param[in] nDoubleUnBiasedExponent  Exponent
+ * @param[in] nIsNegative              0 if positive, 1 if negative.
+ * @pararm[in] uDoubleSignificand      Bits of the significand.
+ * @param[in] nDoubleUnBiasedExponent  Exponent.
  *
  * This returns the bits for a single-precision float, a binary64
  * as specified in IEEE754.
  */
-// TODO: make the sign and exponent type int?
 static double
-IEEE754_AssembleDouble(uint64_t uDoubleSign,
+IEEE754_AssembleDouble(int      nIsNegative,
                        uint64_t uDoubleSignificand,
-                       int64_t  nDoubleUnBiasedExponent)
+                       int      nDoubleUnBiasedExponent)
 {
    uint64_t uDoubleBiasedExponent;
 
@@ -203,7 +201,7 @@ IEEE754_AssembleDouble(uint64_t uDoubleSign,
 
    return CopyUint64ToDouble(uDoubleSignificand |
                              (uDoubleBiasedExponent << DOUBLE_EXPONENT_SHIFT) |
-                             (uDoubleSign << DOUBLE_SIGN_SHIFT));
+                             ((uint64_t)nIsNegative << DOUBLE_SIGN_SHIFT));
 }
 
 
@@ -212,7 +210,7 @@ double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
    uint64_t uDoubleSignificand;
-   int64_t  nDoubleUnBiasedExponent;
+   int      nDoubleUnBiasedExponent;
    double   dResult;
 
    /* Pull out the three parts of the half-precision float.  Do all
@@ -222,8 +220,8 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
     */
    const uint64_t uHalfSignificand      = uHalfPrecision & HALF_SIGNIFICAND_MASK;
    const uint64_t uHalfBiasedExponent   = (uHalfPrecision & HALF_EXPONENT_MASK) >> HALF_EXPONENT_SHIFT;
-   const int64_t  nHalfUnBiasedExponent = (int64_t)uHalfBiasedExponent - HALF_EXPONENT_BIAS;
-   const uint64_t uHalfSign             = (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
+   const int      nHalfUnBiasedExponent = (int)uHalfBiasedExponent - HALF_EXPONENT_BIAS;
+   const int      nIsNegative                 = (uHalfPrecision & HALF_SIGN_MASK) >> HALF_SIGN_SHIFT;
 
    if(nHalfUnBiasedExponent == HALF_EXPONENT_ZERO) {
       /* 0 or subnormal */
@@ -248,12 +246,12 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
           /* Must shift into place for a double significand */
           uDoubleSignificand <<= DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS;
 
-          dResult = IEEE754_AssembleDouble(uHalfSign,
+          dResult = IEEE754_AssembleDouble(nIsNegative,
                                            uDoubleSignificand,
                                            nDoubleUnBiasedExponent);
       } else {
          /* --- ZERO --- */
-         dResult = IEEE754_AssembleDouble(uHalfSign,
+         dResult = IEEE754_AssembleDouble(nIsNegative,
                                           0,
                                           DOUBLE_EXPONENT_ZERO);
       }
@@ -266,19 +264,19 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
           * number significand.
           */
          uDoubleSignificand = uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-         dResult = IEEE754_AssembleDouble(uHalfSign,
+         dResult = IEEE754_AssembleDouble(nIsNegative,
                                           uDoubleSignificand,
                                           DOUBLE_EXPONENT_INF_OR_NAN);
       } else {
          /* --- INFINITY --- */
-         dResult = IEEE754_AssembleDouble(uHalfSign,
+         dResult = IEEE754_AssembleDouble(nIsNegative,
                                           0,
                                           DOUBLE_EXPONENT_INF_OR_NAN);
       }
    } else {
       /* --- NORMAL NUMBER --- */
       uDoubleSignificand = uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-      dResult = IEEE754_AssembleDouble(uHalfSign,
+      dResult = IEEE754_AssembleDouble(nIsNegative,
                                        uDoubleSignificand,
                                        nHalfUnBiasedExponent);
    }
@@ -290,7 +288,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 /**
  * @brief Assemble sign, significand and exponent into single precision float.
  *
- * @param[in] uHalfSign              0 if positive, 1 if negative
+ * @param[in] nIsNegative              0 if positive, 1 if negative
  * @pararm[in] uHalfSignificand      Bits of the significand
  * @param[in] nHalfUnBiasedExponent  Exponent
  *
@@ -299,9 +297,9 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
  * uint32_t or a float for convenience of usage.
  */
 static uint32_t
-IEEE754_AssembleHalf(uint32_t uHalfSign,
+IEEE754_AssembleHalf(int      nIsNegative,
                      uint32_t uHalfSignificand,
-                     int32_t nHalfUnBiasedExponent)
+                     int      nHalfUnBiasedExponent)
 {
    uint32_t uHalfUnbiasedExponent;
 
@@ -309,7 +307,7 @@ IEEE754_AssembleHalf(uint32_t uHalfSign,
 
    return uHalfSignificand |
           (uHalfUnbiasedExponent << HALF_EXPONENT_SHIFT) |
-          (uHalfSign << HALF_SIGN_SHIFT);
+          ((uint32_t)nIsNegative << HALF_SIGN_SHIFT);
 }
 
 
@@ -319,8 +317,8 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
 {
    IEEE754_union result;
    uint32_t      uDroppedBits;
-   int32_t       nExponentDifference;
-   int32_t       nShiftAmount;
+   int           nExponentDifference;
+   int           nShiftAmount;
    uint32_t      uHalfSignificand;
 
    /* Pull the three parts out of the double-precision float Most work
@@ -329,15 +327,15 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
     */
    const uint32_t uSingle                 = CopyFloatToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
-   const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
+   const int      nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
-   const uint32_t uSingleSign             = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+   const int      nIsNegative             = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
 
    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
       if(uSingleSignificand == 0) {
          /* --- IS ZERO --- */
          result.uSize  = IEEE754_UNION_IS_HALF;
-         result.uValue = IEEE754_AssembleHalf(uSingleSign,
+         result.uValue = IEEE754_AssembleHalf(nIsNegative,
                                               0,
                                               HALF_EXPONENT_ZERO);
       } else {
@@ -355,12 +353,12 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
       if(uSingleSignificand == 0) {
          /* ---- IS INFINITY ---- */
          result.uSize  = IEEE754_UNION_IS_HALF;
-         result.uValue = IEEE754_AssembleHalf(uSingleSign, 0, HALF_EXPONENT_INF_OR_NAN);
+         result.uValue = IEEE754_AssembleHalf(nIsNegative, 0, HALF_EXPONENT_INF_OR_NAN);
       } else {
          if(bNoNaNPayload) {
             /* --- REQUIRE CANNONICAL NAN --- */
             result.uSize  = IEEE754_UNION_IS_HALF;
-            result.uValue = IEEE754_AssembleHalf(uSingleSign,
+            result.uValue = IEEE754_AssembleHalf(nIsNegative,
                                                  HALF_QUIET_NAN_BIT,
                                                  HALF_EXPONENT_INF_OR_NAN);
          } else {
@@ -378,7 +376,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
                /* --- IS CONVERTABLE NAN --- */
                uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
                result.uSize  = IEEE754_UNION_IS_HALF;
-               result.uValue = IEEE754_AssembleHalf(uSingleSign,
+               result.uValue = IEEE754_AssembleHalf(nIsNegative,
                                                     uHalfSignificand,
                                                     HALF_EXPONENT_INF_OR_NAN);
 
@@ -402,7 +400,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
 
          /* --- CONVERT TO HALF NORMAL --- */
          result.uSize  = IEEE754_UNION_IS_HALF;
-         result.uValue = IEEE754_AssembleHalf(uSingleSign,
+         result.uValue = IEEE754_AssembleHalf(nIsNegative,
                                               uHalfSignificand,
                                               nSingleUnbiasedExponent);
       } else {
@@ -449,7 +447,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
             uHalfSignificand << nShiftAmount == uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) {
             /* --- CONVERTABLE TO HALF SUBNORMAL --- */
             result.uSize  = IEEE754_UNION_IS_HALF;
-            result.uValue = IEEE754_AssembleHalf(uSingleSign,
+            result.uValue = IEEE754_AssembleHalf(nIsNegative,
                                                  uHalfSignificand,
                                                  HALF_EXPONENT_ZERO);
          } else {
@@ -467,18 +465,18 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
 /**
  * @brief Assemble sign, significand and exponent into single precision float.
  *
- * @param[in] uSingleSign              0 if positive, 1 if negative
- * @pararm[in] uSingleSignificand      Bits of the significand
- * @param[in] nSingleUnBiasedExponent  Exponent
+ * @param[in] nIsNegative              0 if positive, 1 if negative.
+ * @pararm[in] uSingleSignificand      Bits of the significand.
+ * @param[in] nSingleUnBiasedExponent  Exponent.
  *
  * This returns the bits for a single-precision float, a binary32 as
  * specified in IEEE754. It is returned as a uint64_t rather than a
  * uint32_t or a float for convenience of usage.
  */
 static uint64_t
-IEEE754_AssembleSingle(uint64_t uSingleSign,
+IEEE754_AssembleSingle(int      nIsNegative,
                        uint64_t uSingleSignificand,
-                       int64_t  nSingleUnBiasedExponent)
+                       int      nSingleUnBiasedExponent)
 {
    uint64_t uSingleBiasedExponent;
 
@@ -486,7 +484,7 @@ IEEE754_AssembleSingle(uint64_t uSingleSign,
 
    return uSingleSignificand |
           (uSingleBiasedExponent << SINGLE_EXPONENT_SHIFT) |
-          (uSingleSign << SINGLE_SIGN_SHIFT);
+          ((uint64_t)nIsNegative << SINGLE_SIGN_SHIFT);
 }
 
 
@@ -506,8 +504,8 @@ static IEEE754_union
 IEEE754_DoubleToSingle(const double d)
 {
    IEEE754_union Result;
-   int64_t       nExponentDifference;
-   int64_t       nShiftAmount;
+   int           nExponentDifference;
+   int           nShiftAmount;
    uint64_t      uSingleSignificand;
    uint64_t      uDroppedBits;
 
@@ -518,15 +516,15 @@ IEEE754_DoubleToSingle(const double d)
     */
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
-   const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
-   const uint64_t uDoubleSign             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
+   const int      nDoubleUnbiasedExponent = (int)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
+   const int      nIsNegative             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
     if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
         if(uDoubleSignificand == 0) {
             /* --- IS ZERO --- */
             Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+            Result.uValue = IEEE754_AssembleSingle(nIsNegative,
                                                    0,
                                                    SINGLE_EXPONENT_ZERO);
         } else {
@@ -545,7 +543,7 @@ IEEE754_DoubleToSingle(const double d)
          if(uDoubleSignificand == 0) {
              /* ---- IS INFINITY ---- */
              Result.uSize  = IEEE754_UNION_IS_SINGLE;
-             Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+             Result.uValue = IEEE754_AssembleSingle(nIsNegative,
                                                     0,
                                                     SINGLE_EXPONENT_INF_OR_NAN);
          } else {
@@ -563,7 +561,7 @@ IEEE754_DoubleToSingle(const double d)
                 /* --- IS CONVERTABLE NAN --- */
                 uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
                 Result.uSize  = IEEE754_UNION_IS_SINGLE;
-                Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+                Result.uValue = IEEE754_AssembleSingle(nIsNegative,
                                                        uSingleSignificand,
                                                        SINGLE_EXPONENT_INF_OR_NAN);
             } else {
@@ -585,7 +583,7 @@ IEEE754_DoubleToSingle(const double d)
             /* --- IS CONVERTABLE TO SINGLE --- */
             uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
             Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+            Result.uValue = IEEE754_AssembleSingle(nIsNegative,
                                                    uSingleSignificand,
                                                    nDoubleUnbiasedExponent);
         } else {
@@ -609,7 +607,7 @@ IEEE754_DoubleToSingle(const double d)
                uSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
                /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
                Result.uSize  = IEEE754_UNION_IS_SINGLE;
-               Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+               Result.uValue = IEEE754_AssembleSingle(nIsNegative,
                                                       uSingleSignificand,
                                                       SINGLE_EXPONENT_ZERO);
             } else {
@@ -646,7 +644,15 @@ IEEE754_DoubleToSmaller(const double d,
 
 
 
-/* This returns 64 minus the number of zero bits on the right. It is
+
+/**
+ * @brief Count the bits of preceision in a significand.
+ *
+ * @param[in] uSignificand   The significand as uint64_t.
+ *
+ * @return The number of bits set.
+
+ * This returns 64 minus the number of zero bits on the right. It is
  * is the amount of precision in the 64-bit significand passed in.
  * When used for 52 and 23-bit significands, subtract 12 and 41
  * to get their precision.
@@ -655,23 +661,23 @@ IEEE754_DoubleToSmaller(const double d,
  * significand of a double. When used for precision for a non-normalized
  * number like a uint64_t, further computation is required.
  *
- * If the significand is 0, then 0 is returned as the precision.*/
+ * If the significand is 0, then 0 is returned as the precision.
+ */
 static int
-IEEE754_Private_CountPrecisionBits(uint64_t uSignigicand)
+IEEE754_Private_CountPrecisionBits(uint64_t uSignificand)
 {
    int      nNonZeroBitsCount;
    uint64_t uMask;
 
    for(nNonZeroBitsCount = 64; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
       uMask = 0x01UL << (64 - nNonZeroBitsCount);
-      if(uMask & uSignigicand) {
+      if(uMask & uSignificand) {
          break;
       }
    }
 
    return nNonZeroBitsCount;
 }
-
 
 
 /* Public function; see ieee754.h */
@@ -689,7 +695,7 @@ IEEE754_DoubleToInt(const double d)
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
-   const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
+   const int      nDoubleUnbiasedExponent = (int)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
    const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
 
@@ -770,7 +776,7 @@ IEEE754_DoubleToInt(const double d)
 struct IEEE754_ToInt
 IEEE754_SingleToInt(const float f)
 {
-   int32_t              nPrecisionBits;
+   int                  nPrecisionBits;
    struct IEEE754_ToInt Result;
    uint64_t             uInteger;
 
@@ -781,7 +787,7 @@ IEEE754_SingleToInt(const float f)
    const uint32_t uSingle                 = CopyFloatToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
-   const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
+   const int      nSingleUnbiasedExponent = (int)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleleSignificand    = uSingle & SINGLE_SIGNIFICAND_MASK;
    const uint64_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
 
@@ -858,10 +864,9 @@ IEEE754_SingleToInt(const float f)
 }
 
 
-
 /* Public function; see ieee754.h */
 double
-IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
+IEEE754_UintToDouble(const uint64_t uInt, const int nIsNegative)
 {
    int      nDoubleUnbiasedExponent;
    uint64_t uDoubleSignificand;
@@ -900,12 +905,13 @@ IEEE754_UintToDouble(const uint64_t uInt, const int uIsNegative)
       }
    }
 
-   return IEEE754_AssembleDouble((uint64_t)uIsNegative,
+   return IEEE754_AssembleDouble(nIsNegative,
                                  uDoubleSignificand,
                                  nDoubleUnbiasedExponent);
 }
 
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
 
 
 
@@ -947,4 +953,3 @@ IEEE754_SingleHasNaNPayload(const float f)
       return 0;
    }
 }
-

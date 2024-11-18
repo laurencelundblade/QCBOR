@@ -276,19 +276,21 @@ typedef enum {
 #define QCBOR_TYPE_TEXT_STRING    7
 
 /** Type for a positive big number. Data is in @c val.bignum, a
- *  pointer and a length. See QCBORDecode_ProcessBigNumber(). */
+ *  pointer and a length. See QCBORDecode_StringsTagCB()
+ *  and @ref CBOR_TAG_POS_BIGNUM. */
 #define QCBOR_TYPE_POSBIGNUM      9
 
 /** Type for a negative big number. Data is in @c val.bignum, a
  *  pointer and a length. Type 1 integers in the range of [-2^64,
- *  -2^63 - 1] are returned in this type.  1 MUST be subtracted from
+ *  -2^63 - 1] are returned in this type.  One must be subtracted from
  *  what is returned to get the actual value. This is because of the
  *  way CBOR negative numbers are represented. QCBOR doesn't do this
  *  because it can't be done without storage allocation and QCBOR
  *  avoids storage allocation for the most part.  For example, if 1 is
  *  subtraced from a negative big number that is the two bytes 0xff
  *  0xff, the result would be 0x01 0x00 0x00, one byte longer than
- *  what was received. See QCBORDecode_ProcessBigNumber(). */
+ *  what was received. See QCBORDecode_StringsTagCB(). and
+ *  @ref  CBOR_TAG_NEG_BIGNUM. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
 /** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
@@ -593,9 +595,11 @@ typedef struct _QCBORItem {
 
       /** See @ref QCBOR_TYPE_UKNOWN_SIMPLE */
       uint8_t     uSimple;
+
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       QCBORExpAndMantissa expAndMantissa;
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
+
       uint64_t    uTagNumber; /* Used internally during decoding */
 
       /* For use by user-defined tag content handlers */
@@ -1481,63 +1485,50 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
 /**
  * @brief Decode a preferred serialization big number.
  *
- * @param[in] Item    The number to process.
- * @param[in] BigNumberBuf  The buffer to output to.
- * @param[out] pBigNumber   The resulting big number.
+ * @param[in] Item              The number to process.
+ * @param[in] BigNumberBuf      The buffer to output to.
+ * @param[out] pBigNumber       The resulting big number.
  * @param[in,out] pbIsNegative  The sign of the resulting big number.
  *
- * This exists to process an item that is expected to be a big number
- * encoded with preferred serialization.  This processing is not part
- * of the main decoding because of the number of CBOR types it
- * involves, because it needs a buffer to output to, and to keep code
- * size of the core decoding small.
+ * This exists to process a @ref QCBORItem that is expected to be a
+ * big number encoded with preferred serialization. This will turn the
+ * types listed in the table below into a big number. In particular it
+ * will apply the offset of one needed to get the actual value for
+ * @ref QCBOR_TYPE_NEGBIGNUM.  Leading zeros are removed. The value 0
+ * is always returned as a one-byte big number with the value 0x00.
  *
- * This can also be used to do the subtraction of 1 for negative big
- * numbers even if preferred serialization of big numbers is not in
- * use.
+ *| Type |
+ * | ---- |
+ * | @ref QCBOR_TYPE_INT64 |
+ * | @ref QCBOR_TYPE_UINT64 |
+ * | @ref QCBOR_TYPE_65BIT_NEG_INT |
+ * | @ref QCBOR_TYPE_POSBIGNUM |
+ * | @ref QCBOR_TYPE_NEGBIGNUM |
+ * | @ref QCBOR_TYPE_BYTE_STRING |
+ * | ---- |
  *
- * This works on all CBOR type 0 and 1 integers and all tag 2 and 3
- * big numbers.  In terms of QCBOR types, this works on
- * \ref QCBOR_TYPE_INT64, \ref QCBOR_TYPE_UINT64,
- * \ref QCBOR_TYPE_65BIT_NEG, \ref QCBOR_TYPE_POSBIGNUM and
- * \ref QCBOR_TYPE_NEGBIGNUM. This also works on
- * \ref QCBOR_TYPE_BYTES in which case pIsNegative
- * becomes an in parameter indicating the sign.
+ * For the type @ref QCBOR_TYPE_BYTES, @c pIsNegative becomes an in
+ * parameter indicating the sign.
  *
- * This always returns the result as a big number. The integer types 0
- * and 1 are converted. Leading zeros are removed. The value 0 is
- * always returned as a one-byte big number with the value 0x00.
+ * If @c BigNumberBuf is too small, @c pBigNum.ptr will be @c NULL and
+ * @c pBigNum.len reports the required length. Note that the size of
+ * the output buffer, @c *pBigNumberBuf, should be 1 byte larger than
+ * the size of the @c Item.val.bignum when the input @c Item is @ref
+ * QCBOR_TYPE_NEGBIGNUM because the application of the offset of one
+ * for negative numbers may have an arithmetic carry. A way to size
+ * the output buffer is MIN(9, Item.val.bignum.len + 1). 9 comes from
+ * the length of they type @ref QCBOR_TYPE_65BIT_NEG plus the
+ * possibility of an arithmetic carry.
  *
- * If \c BigNumberBuf is too small, \c pBigNum.ptr will be \c NULL and \c
- * pBigNum.len reports the required length. The size of \c BigNumberBuf
- * might have to be one larger than the size of the tag 2 or 3 being
- * decode because of two cases. In CBOR the value of a tag 3 big
- * number is -n - 1. The subtraction of one might have a carry.  For
- * example, an encoded tag 3 that is 0xff, is returned here as 0x01
- * 0x00.  The other case is a empty tag 2 which is returned as a
- * one-byte big number with the value 0x00.  (This is the only place
- * in all of RFC 8949 except for indefinite length strings where the
- * encoded buffer off the wire can't be returned directly, the only
- * place some storage allocation is required.)
+ * The object code for this is surprisingly large at about 1KB.  This
+ * is to apply the offset of one for the negative values and to
+ * operate all the data types used by big number specific preferred
+ * serialization.
  *
- * This is the decode-side implementation of preferred serialization
- * of big numbers described in section 3.4.3 of RFC 8949. It
- * implements the decode-side unification of big numbers and regular
- * integers.
- *
- * This can also be used if you happen to want type 0 and type 1
- * integers converted to big numbers.
- *
- * See also QCBORDecode_ProcessBigNumberNoPreferred().
- *
- * If QCBOR is being used in an environment with a full big number
- * library, it may be better (less object code) to use the big number
- * library than this, particularly to subtract one for tag 3.
- *
- * Finally, the object code for this function is suprisingly large,
- * almost 1KB. This is due to the number of CBOR data types, and the
- * big number math required to subtract one and the buffer sizing
- * issue it brings.
+ * See @ref BigNumbers for a useful overview of CBOR big numbers and
+ * QCBOR's support for them. See also
+ * QCBORDecode_ProcessBigNumberNoPreferred(),
+ * QCBORDecode_GetTBigNumber() and QCBOREncode_AddTBigNumber().
  */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
@@ -1555,9 +1546,8 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
  * @param[out] pbIsNegative  The sign of the resulting big number.
  *
  * This is the same as QCBORDecode_ProcessBigNumber(), but doesn't
- * allow type 0 and 1 integers. It only works on tag 2 and 3 big numbers.
- * The main work this does is handle the offset of 1 for negative big
- * number decoding.
+ * allow @ref QCBOR_TYPE_INT64, @ref QCBOR_TYPE_UINT64 and @ref
+ * QCBOR_TYPE_65BIT_NEG_INT.
  */
 QCBORError
 QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
