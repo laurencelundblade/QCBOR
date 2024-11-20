@@ -261,7 +261,7 @@ struct _QCBOREncodeContext {
  * 32-bit machine size is 200 bytes
  */
 typedef struct __QCBORDecodeNesting  {
-  /* PRIVATE DATA STRUCTURE */
+   /* PRIVATE DATA STRUCTURE */
    struct nesting_decode_level {
       /*
        * This keeps tracking info for each nesting level. There are two
@@ -351,6 +351,7 @@ typedef struct  {
 typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM1];
 
 
+
 /*
  * PRIVATE DATA STRUCTURE
  *
@@ -385,7 +386,7 @@ struct _QCBORDecodeContext {
 #define QCBOR_MAP_OFFSET_CACHE_INVALID UINT32_MAX
    uint32_t uMapEndOffsetCache;
 
-   uint8_t  uDecodeMode;
+   uint32_t uDecodeMode;
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
    uint8_t  bAllowAllLabels; /* Used internally only, not an external feature yet */

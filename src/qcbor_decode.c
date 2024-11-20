@@ -647,14 +647,14 @@ StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 void
 QCBORDecode_Init(QCBORDecodeContext *pMe,
                  UsefulBufC          EncodedCBOR,
-                 QCBORDecodeMode     nDecodeMode)
+                 QCBORDecodeMode     uConfigFlags)
 {
    memset(pMe, 0, sizeof(QCBORDecodeContext));
    UsefulInputBuf_Init(&(pMe->InBuf), EncodedCBOR);
    /* Don't bother with error check on decode mode. If a bad value is
     * passed it will just act as if the default normal mode of 0 was set.
     */
-   pMe->uDecodeMode = (uint8_t)nDecodeMode;
+   pMe->uDecodeMode = (uint32_t)uConfigFlags;
    DecodeNesting_Init(&(pMe->nesting));
 
    /* Inialize me->auMappedTags to CBOR_TAG_INVALID16. See
@@ -766,7 +766,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
  * @brief Decode the CBOR head, the type and argument.
  *
  * @param[in] pUInBuf            The input buffer to read from.
- * @param[in] bRequirePreferred  Require preferred serialization for argument.
+ * @param[in] uConfigFlags   Decode mode flags.
  * @param[out] pnMajorType       The decoded major type.
  * @param[out] puArgument        The decoded argument.
  * @param[out] pnAdditionalInfo  The decoded Lower 5 bits of initial byte.
@@ -786,9 +786,9 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
  * analyzers happier.
  */
 static QCBORError
-QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
+QCBOR_Private_DecodeHead(UsefulInputBuf  *pUInBuf,
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-                         bool            bRequirePreferred,
+                         QCBORDecodeMode  uConfigFlags,
 #endif
                          int            *pnMajorType,
                          uint64_t       *puArgument,
@@ -817,7 +817,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
       /* If requested, check that argument is in preferred form */
-      if(bRequirePreferred) {
+      if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
          uint64_t uMinArgument;
 
          if(nAdditionalInfo == LEN_IS_ONE_BYTE) {
@@ -845,7 +845,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf *pUInBuf,
       goto Done;
    } else {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-      if(bRequirePreferred && nAdditionalInfo == LEN_IS_INDEFINITE) {
+      if(uConfigFlags & QCBOR_DECODE_NO_INDEF_LENGTH && nAdditionalInfo == LEN_IS_INDEFINITE) {
          uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
          goto Done;
       }
@@ -1047,7 +1047,7 @@ Done:
 /**
  * @brief Decode array or map.
  *
- * @param[in] uDecodeMode3Bit            Decoder mode.
+ * @param[in] uConfigFlags            Decoder mode.
  * @param[in] nMajorType       Whether it is a byte or text string.
  * @param[in] uItemCount       The length of the string.
  * @param[in] nAdditionalInfo  Whether it is an indefinite-length.
@@ -1066,11 +1066,11 @@ Done:
  * QCBOR_DISABLE_NON_INTEGER_LABELS.
  */
 static QCBORError
-QCBOR_Private_DecodeArrayOrMap(const uint8_t  uDecodeMode3Bit,
-                               const int      nMajorType,
-                               uint64_t       uItemCount,
-                               const int      nAdditionalInfo,
-                               QCBORItem     *pDecodedItem)
+QCBOR_Private_DecodeArrayOrMap(const QCBORDecodeMode  uConfigFlags,
+                               const int              nMajorType,
+                               uint64_t               uItemCount,
+                               const int              nAdditionalInfo,
+                               QCBORItem             *pDecodedItem)
 {
    QCBORError uReturn;
 
@@ -1084,7 +1084,7 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uDecodeMode3Bit,
    #endif
    pDecodedItem->uDataType = (uint8_t)nMajorType;
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   if(uDecodeMode3Bit == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
+   if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) && nMajorType == QCBOR_TYPE_MAP) {
       pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
    }
 #else
@@ -1107,7 +1107,7 @@ QCBOR_Private_DecodeArrayOrMap(const uint8_t  uDecodeMode3Bit,
 
       } else {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-         if(uDecodeMode3Bit == QCBOR_DECODE_MODE_MAP_AS_ARRAY && nMajorType == QCBOR_TYPE_MAP) {
+         if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) && nMajorType == QCBOR_TYPE_MAP) {
             /* ------ Map as array ------ */
             uItemCount *= 2;
          }
@@ -1162,7 +1162,7 @@ QCBOR_Private_DecodeTagNumber(const uint64_t uTagNumber,
 #if !defined(QCBOR_DISABLE_DECODE_CONFORMANCE) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 
 static QCBORError
-QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode3Bit)
+QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    struct IEEE754_ToInt ToInt;
 
@@ -1176,7 +1176,7 @@ QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode3Bi
     * The only thing allowed here is a double/half-precision that
     * can't be converted to anything but a double.
     */
-   if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_DCBOR) {
+   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       ToInt = IEEE754_DoubleToInt(d);
       if(ToInt.type != QCBOR_TYPE_DOUBLE) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
@@ -1188,12 +1188,12 @@ QCBORDecode_Private_HalfConformance(const double d, const uint8_t uDecodeMode3Bi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode3Bit)
+QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uconfigFlags)
 {
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
-   if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_DCBOR) {
+   if(uconfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       /* See if it could have been encoded as an integer */
       ToInt = IEEE754_SingleToInt(f);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
@@ -1207,7 +1207,7 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode3B
    }
 
    /* See if it could have been encoded shorter */
-   if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_PREFERRED) {
+   if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
       ToSmaller = IEEE754_SingleToHalf(f, true);
       if(ToSmaller.uSize != sizeof(float)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
@@ -1219,12 +1219,12 @@ QCBORDecode_Private_SingleConformance(const float f, const uint8_t uDecodeMode3B
 
 
 static QCBORError
-QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode3Bit)
+QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFlags)
 {
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
-   if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_DCBOR) {
+   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       /* See if it could have been encoded as an integer */
       ToInt = IEEE754_DoubleToInt(d);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
@@ -1237,7 +1237,7 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode3Bit)
    }
 
    /* See if it could have been encoded shorter */
-   if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_PREFERRED) {
+   if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
       ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
       if(ToSmaller.uSize != sizeof(double)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
@@ -1249,10 +1249,10 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode3Bit)
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const float f, uint8_t uDecodeMode3Bit)
+QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uConfigFlags)
 {
    (void)f;
-   if(uDecodeMode3Bit>= QCBOR_DECODE_MODE_PREFERRED) {
+   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -1260,10 +1260,10 @@ QCBORDecode_Private_SingleConformance(const float f, uint8_t uDecodeMode3Bit)
 }
 
 static QCBORError
-QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode3Bit)
+QCBORDecode_Private_DoubleConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uDecodeMode3Bit>= QCBOR_DECODE_MODE_PREFERRED) {
+   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -1276,10 +1276,10 @@ QCBORDecode_Private_DoubleConformance(const double d, uint8_t uDecodeMode3Bit)
  * Decode a float
  */
 static QCBORError
-QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode3Bit,
-                          const int      nAdditionalInfo,
-                          const uint64_t uArgument,
-                          QCBORItem     *pDecodedItem)
+QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
+                          const int             nAdditionalInfo,
+                          const uint64_t        uArgument,
+                          QCBORItem            *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
    float      single;
@@ -1296,7 +1296,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode3Bit,
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 
-         uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uDecodeMode3Bit);
+         uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
@@ -1314,7 +1314,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode3Bit,
           * 32 bits. It was widened to 64 bits to be passed in here.
           */
          single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-         uReturn = QCBORDecode_Private_SingleConformance(single, uDecodeMode3Bit);
+         uReturn = QCBORDecode_Private_SingleConformance(single, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
@@ -1342,7 +1342,7 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode3Bit,
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 
-         uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uDecodeMode3Bit);
+         uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
@@ -1400,10 +1400,10 @@ QCBOR_Private_DecodeFloat(const uint8_t  uDecodeMode3Bit,
  *                                           type in input.
  */
 static QCBORError
-QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode3Bit,
-                          const int      nAdditionalInfo,
-                          const uint64_t uArgument,
-                          QCBORItem     *pDecodedItem)
+QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
+                          const int              nAdditionalInfo,
+                          const uint64_t         uArgument,
+                          QCBORItem             *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
 
@@ -1423,7 +1423,7 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode3Bit,
       case SINGLE_PREC_FLOAT: /* 26 */
       case DOUBLE_PREC_FLOAT: /* 27 */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         uReturn = QCBOR_Private_DecodeFloat(uDecodeMode3Bit, nAdditionalInfo, uArgument, pDecodedItem);
+         uReturn = QCBOR_Private_DecodeFloat(uConfigFlags, nAdditionalInfo, uArgument, pDecodedItem);
 #else
          uReturn = QCBOR_ERR_ALL_FLOAT_DISABLED;
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
@@ -1435,7 +1435,7 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode3Bit,
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         if(uDecodeMode3Bit >= QCBOR_ENCODE_MODE_DCBOR &&
+         if((uConfigFlags & QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES) &&
             nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
             uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
             goto Done;
@@ -1455,7 +1455,7 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode3Bit,
 
       default: /* 0-19 */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         if(uDecodeMode3Bit >= QCBOR_ENCODE_MODE_DCBOR &&
+         if((uConfigFlags & QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES) &&
             (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
             uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
             goto Done;
@@ -1513,10 +1513,11 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
                                    QCBORItem           *pDecodedItem)
 {
    QCBORError uReturn;
-   int       nMajorType = 0;
-   uint64_t  uArgument = 0;
-   int       nAdditionalInfo = 0;
-   uint8_t   uDecodeMode3Bit = pMe->uDecodeMode & QCBOR_DECODE_MODE_MASK;
+   int        nMajorType = 0;
+   uint64_t   uArgument = 0;
+   int        nAdditionalInfo = 0;
+
+   const QCBORDecodeMode uDecodeMode = pMe->uDecodeMode;
 
    memset(pDecodedItem, 0, sizeof(QCBORItem));
 
@@ -1526,7 +1527,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf),
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
                                       // TODO: make this prettier; will optimizer take out stuff without ifdef?
-                                      uDecodeMode3Bit >= QCBOR_DECODE_MODE_PREFERRED,
+                                      uDecodeMode,
 #endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
                                       &nMajorType,
                                       &uArgument,
@@ -1553,7 +1554,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
 
       case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
       case CBOR_MAJOR_TYPE_MAP:   /* Major type 5 */
-         return QCBOR_Private_DecodeArrayOrMap(uDecodeMode3Bit, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         return QCBOR_Private_DecodeArrayOrMap(uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_TAG: /* Major type 6, tag numbers */
@@ -1562,7 +1563,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
 
       case CBOR_MAJOR_TYPE_SIMPLE:
          /* Major type 7: float, double, true, false, null... */
-         return QCBOR_Private_DecodeType7(uDecodeMode3Bit, nAdditionalInfo, uArgument, pDecodedItem);
+         return QCBOR_Private_DecodeType7(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
          break;
 
       default:
@@ -2034,7 +2035,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    /* TODO: QCBOR_DECODE_MODE_MAP_STRINGS_ONLY might have been a bad idea. Maybe
     * get rid of it in QCBOR 2.0
     */
-   if((pMe->uDecodeMode & QCBOR_DECODE_MODE_MASK) == QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
+   if(pMe->uDecodeMode & QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
       LabelItem.uDataType != QCBOR_TYPE_TEXT_STRING) {
       uErr = QCBOR_ERR_MAP_LABEL_TYPE;
       goto Done;
@@ -2663,7 +2664,7 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(uErr == QCBOR_SUCCESS &&
-      (pMe->uDecodeMode & QCBOR_DECODE_MODE_MASK) >= QCBOR_ENCODE_MODE_CDE &&
+      pMe->uDecodeMode & QCBOR_DECODE_ONLY_SORTED_MAPS &&
       pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
       /* Traverse map checking sort order and for duplicates */
       uErr = QCBORDecode_Private_CheckMap(pMe, pDecodedItem);

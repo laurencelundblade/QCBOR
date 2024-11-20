@@ -190,10 +190,31 @@ extern "C" {
 typedef enum {
    /** See QCBORDecode_Init() */
    QCBOR_DECODE_MODE_NORMAL = 0,
+
    /** See QCBORDecode_Init() */
-   QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 1,
+   QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 0x01,
+
    /** See QCBORDecode_Init() */
-   QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2,
+   QCBOR_DECODE_MODE_MAP_AS_ARRAY = 0x02,
+
+   /** Makes QCBOR v2 compatible with v1. The error @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.
+    * This can be or'd with the above modes. */
+   QCBOR_DECODE_UNPROCESSED_TAG_NUMBERS = 0x04,
+
+   /** Error out on indefinite length strings, arrays and maps */
+   QCBOR_DECODE_NO_INDEF_LENGTH = 0x08,
+
+   /** Error out if integers or floats are  encoded as preferred. */
+   QCBOR_DECODE_ONLY_PREFERRED_NUMBERS = 0x10,
+
+   QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS = 0x20,
+
+   QCBOR_DECODE_ONLY_SORTED_MAPS = 0x40,
+
+   QCBOR_DECODE_ONLY_REDUCED_FLOATS = 0x80,
+
+   QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES = 0x100,
+
    /**
     * This checks that the input is encoded with preferred
     * serialization. The checking is performed as each item is
@@ -205,7 +226,9 @@ typedef enum {
     * lengths and tags, must be in shortest form, and floating-point
     * numbers must be reduced to shortest form all the way to
     * half-precision. */
-   QCBOR_DECODE_MODE_PREFERRED = 3,
+   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_NO_INDEF_LENGTH |
+                                 QCBOR_DECODE_ONLY_PREFERRED_NUMBERS |
+                                 QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS,
 
    /** This checks that maps in the input are sorted by label as
     * described in RFC 8949 section 4.2.1.  This also performs
@@ -215,20 +238,17 @@ typedef enum {
     *
     * This also performs all the checks that
     * QCBOR_DECODE_MODE_PREFERRED does. */
-   QCBOR_DECODE_MODE_CDE = 4,
-   
+   QCBOR_DECODE_MODE_CDE = QCBOR_DECODE_MODE_PREFERRED |
+                           QCBOR_DECODE_ONLY_SORTED_MAPS,
+
    /** This requires integer-float unification. It performs all the checks that
     * QCBOR_DECODE_MODE_CDE does. */
-   QCBOR_DECODE_MODE_DCBOR = 5,
+   QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_CDE |
+                             QCBOR_DECODE_ONLY_REDUCED_FLOATS |
+                             QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES,
 
-   /** Makes QCBOR v2 compatible with v1. The error @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.
-    * This can be or'd with the above modes. */
-   QCBOR_DECODE_UNPROCESSED_TAG_NUMBERS = 8,
-
-   /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
 
-#define QCBOR_DECODE_MODE_MASK 0x07
 
 
 /**
