@@ -432,6 +432,25 @@ typedef enum {
     *  occurred in the decode input. */
    QCBOR_ERR_TAGS_DISABLED = 51,
 
+   // TODO: maybe reduce number of conformance codes to not use up unrecoverable errors
+   
+   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not encoded in shortest form, or indefinite lengths are used.*/
+   QCBOR_ERR_PREFERRED_CONFORMANCE = 52,
+
+   /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
+    * CDE issues are reported as QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_CDE_CONFORMANCE = 53,
+
+   /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
+    * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_DCBOR_CONFORMANCE = 54,
+
+   /** A map is unsorted and should be for CDE or dCBOR. */
+   QCBOR_ERR_UNSORTED = 55,
+
+   /** Conformance checking requested, preferred serialization disabled, float in the input. */
+   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 56,
+
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59
 
    /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encountered for a
@@ -530,7 +549,7 @@ typedef enum {
    /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
     * allowed by mode. See QCBOREncode_SerializationPreferred(),
     * QCBOREncode_SerializationCDE(),
-    * QCBOREncode_SerializationdCBOR().
+    * QCBOREncode_SerializationdCBOR() and @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS.
     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
@@ -543,23 +562,6 @@ typedef enum {
     * indefinite-length strings because they exist in the memory pool for
     * a @ref QCBORStringAllocate. */
    QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 81,
-
-   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not encoded in shortest form, or indefinite lengths are used.*/
-   QCBOR_ERR_PREFERRED_CONFORMANCE = 82,
-
-   /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
-    * CDE issues are reported as QCBOR_ERR_PREFERRED_CONFORMANCE. */
-   QCBOR_ERR_CDE_CONFORMANCE = 83,
-
-   /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
-    * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
-   QCBOR_ERR_DCBOR_CONFORMANCE = 84,
-
-   /** A map is unsorted and should be for CDE or dCBOR. */
-   QCBOR_ERR_UNSORTED = 85,
-
-   /** Conformance checking requested, preferred serialization disabled, float in the input. */
-   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 86,
 
    /* Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,

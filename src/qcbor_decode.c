@@ -1435,7 +1435,7 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode3Bit,
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         if(uDecodeMode3Bit >= QCBOR_ENCODE_MODE_DCBOR &&
+         if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_DCBOR &&
             nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
             uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
             goto Done;
@@ -1455,7 +1455,7 @@ QCBOR_Private_DecodeType7(const uint8_t  uDecodeMode3Bit,
 
       default: /* 0-19 */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         if(uDecodeMode3Bit >= QCBOR_ENCODE_MODE_DCBOR &&
+         if(uDecodeMode3Bit >= QCBOR_DECODE_MODE_DCBOR &&
             (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
             uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
             goto Done;
@@ -2663,7 +2663,7 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(uErr == QCBOR_SUCCESS &&
-      (pMe->uDecodeMode & QCBOR_DECODE_MODE_MASK) >= QCBOR_ENCODE_MODE_CDE &&
+      (pMe->uDecodeMode & QCBOR_DECODE_MODE_MASK) >= QCBOR_DECODE_MODE_CDE &&
       pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
       /* Traverse map checking sort order and for duplicates */
       uErr = QCBORDecode_Private_CheckMap(pMe, pDecodedItem);
