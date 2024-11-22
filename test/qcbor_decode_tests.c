@@ -10612,12 +10612,17 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xa1\x81\x1c\x01", 4},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
-
+   { "map with map label ",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa1\xa1\x00\x01\x02", 5},
+      QCBOR_ERR_MAP_LABEL_TYPE
+   },
    { "map with map label with non-preferred part",
       QCBOR_DECODE_MODE_CDE,
       {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
-      QCBOR_ERR_MAP_LABEL_TYPE
-   }};
+      QCBOR_ERR_PREFERRED_CONFORMANCE
+   }
+};
 
 
 static UsefulBufC CorrectlySorted[] = {

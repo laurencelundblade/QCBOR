@@ -223,12 +223,7 @@ typedef struct __QCBORTrackNesting {
 typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
 
 
-/* These are in order of increasing strictness. Order is relied upon in
- * implementation. */
-#define QCBOR_ENCODE_MODE_ANY       0
-#define QCBOR_ENCODE_MODE_PREFERRED 1
-#define QCBOR_ENCODE_MODE_CDE       2
-#define QCBOR_ENCODE_MODE_DCBOR     3
+
 
 
 struct _QCBOREncodeContext {
@@ -236,10 +231,10 @@ struct _QCBOREncodeContext {
    UsefulOutBuf      OutBuf;  /* Pointer to output buffer, its length and
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
-   uint8_t           uMode;   /* @ref QCBOR_ENCODE_MODE_PREFERRED or related */
-   uint8_t           uAllow;  /* @ref QCBOR_ENCODE_ALLOW_NAN_PAYLOAD, ... */
+   uint16_t          uConfigFlags;   /*  */
+
    void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
-                               * pointer explained in QCBOREncode_SerializationCDE() */
+                               * pointer explained in TODO: */
    QCBORTrackNesting nesting; /* Keep track of array and map nesting */
 };
 
@@ -435,6 +430,7 @@ struct _QCBORDecodeContext {
 #define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
 
 #define ABSOLUTE_VALUE(x) ((x) < 0 ? -(x) : (x))
+
 
 
 #ifdef __cplusplus

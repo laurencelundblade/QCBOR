@@ -253,7 +253,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 
 
 /* Forward declaration for reference in QCBOREncode_Init() */
-static void
+void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
 
 
@@ -554,6 +554,14 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
    /* A stack buffer large enough for a CBOR head */
    UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS &&
+      uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
                                                     uMajorType,
                                                     uMinLen,
@@ -659,13 +667,13 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
    uint64_t             uNegValue;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
       IntResult = IEEE754_DoubleToInt(dNum);
       switch(IntResult.type) {
          case IEEE754_ToInt_IS_INT:
@@ -719,13 +727,13 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
    uint64_t             uNegValue;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_SingleHasNaNPayload(fNum) && !(pMe->uAllow & QCBOR_ENCODE_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleHasNaNPayload(fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   if(pMe->uMode == QCBOR_ENCODE_MODE_DCBOR) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
       IntResult = IEEE754_SingleToInt(fNum);
       switch(IntResult.type) {
          case IEEE754_ToInt_IS_INT:
@@ -952,6 +960,13 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
    uint8_t    uMajorType;
    UsefulBufC BigNumberNLZ;
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(!bPreferred && pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS) {
+      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
    static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -1153,14 +1168,11 @@ void
 QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
                                                    const uint8_t       uMajorType)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uMode >= QCBOR_ENCODE_MODE_PREFERRED) {
-      pMe->uError = QCBOR_ERR_NOT_PREFERRED;
-      return;
-   }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
+   if(pMe->uError) {
+      return;
+   }
 
    /* Call the definite-length opener just to do the bookkeeping for
     * nesting.  It will record the position of the opening item in the
@@ -1287,7 +1299,7 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
  * See QCBOREncode_SerializationCDE() implemention for explantion for why
  * this exists in this form.
  */
-static void
+void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
