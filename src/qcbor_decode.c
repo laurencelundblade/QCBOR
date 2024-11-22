@@ -1088,7 +1088,7 @@ QCBOR_Private_DecodeArrayOrMap(const QCBORDecodeMode  uConfigFlags,
       pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
    }
 #else
-   (void)uDecodeMode3Bit;
+   (void)uConfigFlags;
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    uReturn = QCBOR_SUCCESS;
@@ -1252,7 +1252,7 @@ static QCBORError
 QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uConfigFlags)
 {
    (void)f;
-   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
+   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -1263,7 +1263,7 @@ static QCBORError
 QCBORDecode_Private_DoubleConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
+   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
