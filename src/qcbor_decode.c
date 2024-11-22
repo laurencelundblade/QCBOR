@@ -671,7 +671,7 @@ QCBORDecode_Init(QCBORDecodeContext *pMe,
 void
 QCBORDecode_CompatibilityV1(QCBORDecodeContext *pMe)
 {
-   pMe->uDecodeMode |= QCBOR_DECODE_UNPROCESSED_TAG_NUMBERS;
+   pMe->uDecodeMode |= QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
 #endif /* ! QCBOR_DISABLE_TAGS */
@@ -2673,7 +2673,7 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
 
 #ifndef QCBOR_DISABLE_TAGS
    if(uErr == QCBOR_SUCCESS &&
-      !(pMe->uDecodeMode & QCBOR_DECODE_UNPROCESSED_TAG_NUMBERS) &&
+      !(pMe->uDecodeMode & QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS) &&
       pDecodedItem->auTagNumbers[0] != CBOR_TAG_INVALID16) {
       /*  Not QCBOR v1; there are tag numbers -- check they were consumed */
       if(uOffset != pMe->uTagNumberCheckOffset || pMe->uTagNumberIndex != 255) {
