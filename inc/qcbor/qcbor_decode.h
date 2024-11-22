@@ -92,6 +92,30 @@ extern "C" {
  * but the @ref SpiffyDecode APIs that allow searching maps by label
  * are often more convenient.
  *
+ * @anchor v2-Tag-Decoding
+ *
+ * RFC 7049 called tags "optional". This was a mistake. They specify
+ * critical type information that can't be ignored by decoders.
+ *
+ * QCBOR v1 always returns the tag numbers on an item
+ * in QCBORItem and leaves it up to the caller to check.
+ * Probably most callers don't know this and never added
+ * the check. There decode implementations are tolerant
+ * of random tag numbers and they shouldn't be.
+ *
+ * QCBOR v2 requires tags numbers to be processed by
+ * QCBORDecode_GetNextTagNumber(). If they are not
+ * an error will be returned.
+ *
+ * This new behavior saves the caller from having to do this check
+ * (that they probably didn't know they neeeded).  It is much more
+ * correct behavior.
+ *
+ * This behavior is not backwards compatible with v1. The v1 behavior
+ * can be restored with @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
+ * However, the v2 behavior is more correct, so this configuration
+ * should not be used.
+ *
  * @anchor Decode-Errors-Overview
  * # Decode Errors Overview
  *
@@ -169,6 +193,7 @@ extern "C" {
  * @anchor Disabilng-Tag-Decoding
  * # Disabilng Tag Decoding
  *
+ * TODO: update this
  * If QCBOR_DISABLE_TAGS is defined, all code for decoding tags will
  * be omitted reducing the core decoder, QCBORDecode_VGetNext(), by
  * about 400 bytes. If a tag number is encountered in the decoder
@@ -184,16 +209,64 @@ extern "C" {
  * will be set.
  */
 
+
 /**
- * The decode mode options.
+ *  These are the decode configuration flags that can be or'd together
+ *  and passed to QCBORDecode_Init().
  */
 typedef enum {
-   /** See QCBORDecode_Init() */
+   /** Normal decoding with no flags set. */
    QCBOR_DECODE_MODE_NORMAL = 0,
-   /** See QCBORDecode_Init() */
-   QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 1,
-   /** See QCBORDecode_Init() */
-   QCBOR_DECODE_MODE_MAP_AS_ARRAY = 2,
+
+   /** Required map labels to be strings. If not @ref  QCBOR_ERR_MAP_LABEL_TYPE
+    * occurs. */
+   QCBOR_DECODE_MODE_MAP_STRINGS_ONLY = 0x01,
+
+   /** Causes maps to be treated as special arrays so all types of map
+    * labels can be decoded..  They will be returned with special
+    * @c uDataType @ref QCBOR_TYPE_MAP_AS_ARRAY and @c uCount, the
+    * number of items, will be double what it would be for a normal
+    * map because the labels are also counted. This mode is useful for
+    * decoding CBOR that has labels that are not integers or
+    * strings. Each map entry is decoded with two Get() calls, one for
+    * the label and one for the value. QCBORItem.label is never filled
+    * in. */
+   QCBOR_DECODE_MODE_MAP_AS_ARRAY = 0x02,
+
+   /** Makes QCBOR v2 tag decoding compatible with QCBOR v1. The error
+    *  @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.  See
+    *  @ref v2-Tag-Decoding and QCBORDecode_CompatibilityV1().
+    */
+   QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS = 0x04,
+
+   /** Error out on indefinite length strings, arrays and maps. */
+   QCBOR_DECODE_NO_INDEF_LENGTH = 0x08,
+
+   /** Error out if integers or floats are encoded as
+    *  non-preferred. */
+   QCBOR_DECODE_ONLY_PREFERRED_NUMBERS = 0x10,
+
+   /** If big numbers that will fit into normal integers are
+    *  encountered error XXX will occur. This is to comply with big
+    *  number preferred serialization. */
+   QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS = 0x20,
+
+   /** If maps are not sorted, error @ref QCBOR_ERR_UNSORTED
+    *  occurs. This is makes map decoding take more CPU time, but that
+    *  is probably only of consequence with big maps on small CPUs. */
+   QCBOR_DECODE_ONLY_SORTED_MAPS = 0x40,
+
+   /** If whole number floats are present (they are not encoded as
+    * integers), error @ref QCBOR_ERR_DCBOR_CONFORMANCE occurs. This
+    * is as required for dCBOR.
+    */
+   QCBOR_DECODE_ONLY_REDUCED_FLOATS = 0x80,
+
+   /** dCBOR allows only the simple types true, false and NULL
+    * This enforces that.
+    */
+   QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES = 0x100,
+
    /**
     * This checks that the input is encoded with preferred
     * serialization. The checking is performed as each item is
@@ -205,7 +278,9 @@ typedef enum {
     * lengths and tags, must be in shortest form, and floating-point
     * numbers must be reduced to shortest form all the way to
     * half-precision. */
-   QCBOR_DECODE_MODE_PREFERRED = 3,
+   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_NO_INDEF_LENGTH |
+                                 QCBOR_DECODE_ONLY_PREFERRED_NUMBERS |
+                                 QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS,
 
    /** This checks that maps in the input are sorted by label as
     * described in RFC 8949 section 4.2.1.  This also performs
@@ -214,21 +289,18 @@ typedef enum {
     * for large inputs on slow CPUs.
     *
     * This also performs all the checks that
-    * QCBOR_DECODE_MODE_PREFERRED does. */
-   QCBOR_DECODE_MODE_CDE = 4,
-   
+    * @ref QCBOR_DECODE_MODE_PREFERRED does. */
+   QCBOR_DECODE_MODE_CDE = QCBOR_DECODE_MODE_PREFERRED |
+                           QCBOR_DECODE_ONLY_SORTED_MAPS,
+
    /** This requires integer-float unification. It performs all the checks that
-    * QCBOR_DECODE_MODE_CDE does. */
-   QCBOR_DECODE_MODE_DCBOR = 5,
+    * @ref QCBOR_DECODE_MODE_CDE does. */
+   QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_CDE |
+                             QCBOR_DECODE_ONLY_REDUCED_FLOATS |
+                             QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES,
 
-   /** Makes QCBOR v2 compatible with v1. The error @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.
-    * This can be or'd with the above modes. */
-   QCBOR_DECODE_UNPROCESSED_TAG_NUMBERS = 8,
-
-   /* This is stored in uint8_t in places; never add values > 255 */
 } QCBORDecodeMode;
 
-#define QCBOR_DECODE_MODE_MASK 0x07
 
 
 /**
@@ -730,43 +802,21 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
 /**
  * Initialize the CBOR decoder context.
  *
- * @param[in] pCtx         The context to initialize.
- * @param[in] EncodedCBOR  The buffer with CBOR encoded bytes to be decoded.
- * @param[in] nMode        See below and @ref QCBORDecodeMode.
+ * @param[in] pCtx          The context to initialize.
+ * @param[in] EncodedCBOR   The buffer with CBOR encoded bytes to be decoded.
+ * @param[in] uConfigFlags  See @ref QCBORDecodeMode.
  *
- * Initialize context for a pre-order traversal of the encoded CBOR
- * tree.
+ * Initialize the decoder context with the encoded CBOR to be decoded.
  *
- * Most CBOR decoding can be completed by calling this function to
- * start and QCBORDecode_GetNext() in a loop.
+ * For typical use, @c uConfigFlags is zero (@ref QCBOR_DECODE_MODE_NORMAL).
+ * See configuration flags that can be or'd defined in @ref QCBORDecodeMode.
  *
  * If indefinite-length strings are to be decoded, then
  * QCBORDecode_SetMemPool() or QCBORDecode_SetUpAllocator() must be
- * called to set up a string allocator.
- *
- * Three decoding modes are supported.  In normal mode, @ref
- * QCBOR_DECODE_MODE_NORMAL, maps are decoded and strings and integers
- * are accepted as map labels. If a label is other than these, the
- * error @ref QCBOR_ERR_MAP_LABEL_TYPE is returned by
- * QCBORDecode_GetNext().
- *
- * TODO: get rid of QCBOR_DECODE_MODE_MAP_STRINGS_ONLY in v2?
- * In strings-only mode, @ref QCBOR_DECODE_MODE_MAP_STRINGS_ONLY, only
- * text strings are accepted for map labels.  This lines up with CBOR
- * that converts to JSON. The error @ref QCBOR_ERR_MAP_LABEL_TYPE is
- * returned by QCBORDecode_GetNext() if anything but a text string
- * label is encountered.
- *
- * In @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY maps are treated as special
- * arrays.  They will be returned with special @c uDataType @ref
- * QCBOR_TYPE_MAP_AS_ARRAY and @c uCount, the number of items, will be
- * double what it would be for a normal map because the labels are
- * also counted. This mode is useful for decoding CBOR that has labels
- * that are not integers or text strings, but the caller must manage
- * much of the map decoding.
+ * additionally called to set up a string allocator.
  */
 void
-QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode nMode);
+QCBORDecode_Init(QCBORDecodeContext *pCtx, UsefulBufC EncodedCBOR, QCBORDecodeMode uConfigFlags);
 
 
 /**
@@ -1695,25 +1745,28 @@ QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
  * ========================================================================= */
 
 /**
- * TODO: Initialize the CBOR decoder context with QCBOR v1 compatibility (deprecated).
+ * @brief Configure CBOR decoder context for QCBOR v1 compatibility (deprecated).
  *
- * @param[in] pCtx         The context to initialize.
+ * @param[in] pCtx  The context to configure.
  *
- * This is listed as deprecated even though it is new in QCBOR v2 because
- * it recommended that v1 mode not be used because the tag number processing
- * is too loose.
+ * This performs two actions to make QCBOR v2 decoding compatible with v1.
  *
- * This links in a fair bit of object code for all the tag handlers that were
- * always present in v1. If you don't care about them, use pass XXX to init().
+ * First, it sets @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS
+ * which causes no error to be returned when un processed tag numbers
+ * are encountered.
  *
- * This is the same as QCBORDecode_Init() except it changes the
- * tag number decoding behavior in two ways:
- *
- * First, it sets @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS which
- * causes no error to be returned when un processed tag numbers are encountered.
- *
- * Second, it installs all the same tag handlers that v1 had hardwwired.
+ * Second, it installs all the same tag content handlers that v1 had hardwwired.
  *    QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
+ *
+ * This is listed as deprecated even though it is new in QCBOR v2
+ * because it recommended that v1 mode not be used because the tag
+ * number processing is too loose.
+ *
+ * This links in a fair bit of object code for all the tag content
+ * handlers that were always present in v1. To get the v1 behavior
+ * without the object code for the tag content handlers, pass
+ * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
+ * QCBORDecode_Init().
  */
 void
 QCBORDecode_CompatibilityV1(QCBORDecodeContext *pCtx);
