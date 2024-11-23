@@ -1278,7 +1278,6 @@ QCBORError
 QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pCtx, uint64_t *puTagNumber);
 
 
-
 /**
  * @brief Returns the tag numbers for a decoded item.
  *
@@ -1344,8 +1343,8 @@ QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pIt
 uint64_t
 QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
 
-
 #endif /* ! QCBOR_DISABLE_TAGS */
+
 
 /**
  * @brief Check that a decode completed successfully.
@@ -1530,209 +1529,6 @@ QCBORDecode_IsUnrecoverableError(QCBORError uErr);
  */
 static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
-
-
-/**
- * @brief Decode a preferred serialization big number.
- *
- * @param[in] Item              The number to process.
- * @param[in] BigNumberBuf      The buffer to output to.
- * @param[out] pBigNumber       The resulting big number.
- * @param[in,out] pbIsNegative  The sign of the resulting big number.
- *
- * This exists to process a @ref QCBORItem that is expected to be a
- * big number encoded with preferred serialization. This will turn the
- * types listed in the table below into a big number. In particular it
- * will apply the offset of one needed to get the actual value for
- * @ref QCBOR_TYPE_NEGBIGNUM.  Leading zeros are removed. The value 0
- * is always returned as a one-byte big number with the value 0x00.
- *
- *| Type |
- * | ---- |
- * | @ref QCBOR_TYPE_INT64 |
- * | @ref QCBOR_TYPE_UINT64 |
- * | @ref QCBOR_TYPE_65BIT_NEG_INT |
- * | @ref QCBOR_TYPE_POSBIGNUM |
- * | @ref QCBOR_TYPE_NEGBIGNUM |
- * | @ref QCBOR_TYPE_BYTE_STRING |
- * | ---- |
- *
- * For the type @ref QCBOR_TYPE_BYTES, @c pIsNegative becomes an in
- * parameter indicating the sign.
- *
- * If @c BigNumberBuf is too small, @c pBigNum.ptr will be @c NULL and
- * @c pBigNum.len reports the required length. Note that the size of
- * the output buffer, @c *pBigNumberBuf, should be 1 byte larger than
- * the size of the @c Item.val.bignum when the input @c Item is @ref
- * QCBOR_TYPE_NEGBIGNUM because the application of the offset of one
- * for negative numbers may have an arithmetic carry. A way to size
- * the output buffer is MIN(9, Item.val.bignum.len + 1). 9 comes from
- * the length of they type @ref QCBOR_TYPE_65BIT_NEG plus the
- * possibility of an arithmetic carry.
- *
- * The object code for this is surprisingly large at about 1KB.  This
- * is to apply the offset of one for the negative values and to
- * operate all the data types used by big number specific preferred
- * serialization.
- *
- * See @ref BigNumbers for a useful overview of CBOR big numbers and
- * QCBOR's support for them. See also
- * QCBORDecode_ProcessBigNumberNoPreferred(),
- * QCBORDecode_GetTBigNumber() and QCBOREncode_AddTBigNumber().
- */
-QCBORError
-QCBORDecode_ProcessBigNumber(const QCBORItem Item,
-                             UsefulBuf       BigNumberBuf,
-                             UsefulBufC     *pBigNumber,
-                             bool           *pbIsNegative);
-
-
-/**
- * @brief Decode a big number.
- *
- * @param[in] Item    The number to process.
- * @param[in] BigNumberBuf  The buffer to output to.
- * @param[out] pBigNumber   The resulting big number.
- * @param[out] pbIsNegative  The sign of the resulting big number.
- *
- * This is the same as QCBORDecode_ProcessBigNumber(), but doesn't
- * allow @ref QCBOR_TYPE_INT64, @ref QCBOR_TYPE_UINT64 and @ref
- * QCBOR_TYPE_65BIT_NEG_INT.
- */
-QCBORError
-QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
-                                        UsefulBuf       BigNumberBuf,
-                                        UsefulBufC     *pBigNumber,
-                                        bool           *pbIsNegative);
-
-
-
-/**
- * @brief Convert int64_t to smaller integers safely.
- *
- * @param [in]  src   An @c int64_t.
- * @param [out] dest  A smaller sized integer to convert to.
- *
- * @return 0 on success -1 if not
- *
- * When decoding an integer, the CBOR decoder will return the value as
- * an int64_t unless the integer is in the range of @c INT64_MAX and
- * @c UINT64_MAX. That is, unless the value is so large that it can only be
- * represented as a @c uint64_t, it will be an @c int64_t.
- *
- * CBOR itself doesn't size the individual integers it carries at
- * all. The only limits it puts on the major integer types is that they
- * are 8 bytes or less in length. Then encoders like this one use the
- * smallest number of 1, 2, 4 or 8 bytes to represent the integer based
- * on its value. There is thus no notion that one data item in CBOR is
- * a 1-byte integer and another is a 4-byte integer.
- *
- * The interface to this CBOR encoder only uses 64-bit integers. Some
- * CBOR protocols or implementations of CBOR protocols may not want to
- * work with something smaller than a 64-bit integer.  Perhaps an array
- * of 1,000 integers needs to be sent and none has a value larger than
- * 50,000 and are represented as @c uint16_t.
- *
- * The sending / encoding side is easy. Integers are temporarily widened
- * to 64-bits as a parameter passing through QCBOREncode_AddInt64() and
- * encoded in the smallest way possible for their value, possibly in
- * less than an @c uint16_t.
- *
- * On the decoding side the integers will be returned at @c int64_t even if
- * they are small and were represented by only 1 or 2 bytes in the
- * encoded CBOR. The functions here will convert integers to a small
- * representation with an overflow check.
- *
- * (The decoder could have support 8 different integer types and
- * represented the integer with the smallest type automatically, but
- * this would have made the decoder more complex and code calling the
- * decoder more complex in most use cases.  In most use cases on 64-bit
- * machines it is no burden to carry around even small integers as
- * 64-bit values).
- */
-static inline int
-QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
-{
-   if(src > INT32_MAX || src < INT32_MIN) {
-      return -1;
-   } else {
-      *dest = (int32_t) src;
-   }
-   return 0;
-}
-
-static inline int
-QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
-{
-   if(src > INT16_MAX || src < INT16_MIN) {
-      return -1;
-   } else {
-      *dest = (int16_t) src;
-   }
-   return 0;
-}
-
-static inline int
-QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
-{
-   if(src > INT8_MAX || src < INT8_MIN) {
-      return -1;
-   } else {
-      *dest = (int8_t) src;
-   }
-   return 0;
-}
-
-static inline int
-QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
-{
-   if(src > UINT32_MAX || src < 0) {
-      return -1;
-   } else {
-      *dest = (uint32_t) src;
-   }
-   return 0;
-}
-
-/**
- * https://github.com/laurencelundblade/QCBOR/pull/243
- * For backwards compatibility
- */
-#define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
-
-static inline int
-QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
-{
-   if(src > UINT16_MAX || src < 0) {
-      return -1;
-   } else {
-      *dest = (uint16_t) src;
-   }
-   return 0;
-}
-
-static inline int
-QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
-{
-   if(src > UINT8_MAX || src < 0) {
-      return -1;
-   } else {
-      *dest = (uint8_t) src;
-   }
-   return 0;
-}
-
-static inline int
-QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
-{
-   if(src < 0) {
-      return -1;
-   } else {
-      *dest = (uint64_t) src;
-   }
-   return 0;
-}
-
 
 
 

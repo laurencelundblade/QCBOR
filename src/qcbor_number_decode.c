@@ -16,6 +16,7 @@
 
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
+#include "qcbor/qcbor_number_decode.h"
 #include "qcbor/qcbor_tag_decode.h"
 #include "decode_private.h"
 #include "ieee754.h" /* Does not use math.h */
