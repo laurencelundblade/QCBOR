@@ -1612,6 +1612,7 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
 
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 
 /**
  * @brief Convert many number types to a double.
@@ -1792,7 +1793,6 @@ QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe,
                                                              pdValue);
 }
 
-
 /*
  * Public function, see header qcbor/qcbor_decode.h file
  */
@@ -1824,6 +1824,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                                              pdValue);
 }
 
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
