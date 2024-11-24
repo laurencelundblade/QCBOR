@@ -41,6 +41,7 @@ target_sources(qcbor
         src/ieee754.c
         src/qcbor_decode.c
         src/qcbor_tag_decode.c
+        src/qcbor_number_decode.c
         src/qcbor_encode.c
         src/qcbor_err_to_str.c
         src/UsefulBuf.c

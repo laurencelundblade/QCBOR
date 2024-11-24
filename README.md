@@ -348,7 +348,7 @@ This eliminates support of:
 
 This saves about 1KB of object code, though much of this can be saved
 by not calling any functions to encode doubles or floats or
-QCBORDecode_GetNumberConvertPrecisely
+QCBORDecode_GetNumberConvertPrecisely()
 
 With this defined, single and double-precision floating-point numbers
 can still be encoded and decoded. Some conversion of floating-point to
@@ -360,7 +360,7 @@ dates are still supported.
 
 This eliminates floating point support completely (along with related function
 headers). This is useful if the compiler options deny the usage of floating
-point operations completely, and the usage soft floating point ABI is not
+point operations completely, and the usage of a soft floating point ABI is not
 possible.
 
 #### Compiler options
