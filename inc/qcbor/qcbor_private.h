@@ -168,6 +168,11 @@ extern "C" {
  */
 #define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
+/* The largest number of external references at the start of an array or map.
+ * The limit comes from uExternalStart in QCBORTrackNesting being uint8_t.
+ */
+#define QCBOR_MAX_EXTERNAL_POSITION  (UINT8_MAX)
+
 
 /* The number of tags that are 16-bit or larger that can be handled
  * in a decode.
@@ -191,9 +196,14 @@ extern "C" {
  * struct down so it can be on the stack without any concern.  It
  * would be about double if size_t was used instead.
  *
+ * uExternalStart stores the position of the first external reference in the
+ * encoding that is after the start of the array. If this was a pointer into the
+ * linked list, lookup would be faster, but the structure size would increase
+ * significantly.
+ *
  * Size approximation (varies with CPU/compiler):
- *    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 8 = 136 bytes
- *   32-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 4 = 132 bytes
+ *    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1) + 8 = 136 bytes
+ *   32-bit machine: (15 + 1) * (4 + 2 + 1 + 1) + 4 = 132 bytes
  */
 typedef struct __QCBORTrackNesting {
   /* PRIVATE DATA STRUCTURE */
@@ -203,6 +213,7 @@ typedef struct __QCBORTrackNesting {
       uint16_t  uCount;   /* Number of items in the arrary or map; counts items
                            * in a map, not pairs of items */
       uint8_t   uMajorType; /* Indicates if item is a map or an array */
+      uint8_t   uExternalStart; /* Indicates the position of the first external after the array start */
    } pArrays[QCBOR_MAX_ARRAY_NESTING+1], /* stored state for nesting levels */
    *pCurrentNesting; /* the current nesting level */
 } QCBORTrackNesting;

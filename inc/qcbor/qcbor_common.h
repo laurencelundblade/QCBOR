@@ -303,6 +303,9 @@ typedef enum {
    /** This API cannot be used when external bytes are added to the encoding. */
    QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL = 11,
 
+   /** Too many externals were used before a nesting. */
+   QCBOR_ERR_TOO_MANY_EXTERNAL = 11,
+
 #define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 20
 
    /** During decoding, the CBOR is not well-formed because a simple

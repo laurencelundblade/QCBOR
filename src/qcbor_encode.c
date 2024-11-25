@@ -86,7 +86,8 @@ Nesting_Init(QCBORTrackNesting *pNesting)
 static uint8_t
 Nesting_Increase(QCBORTrackNesting *pNesting,
                  const uint8_t      uMajorType,
-                 const uint32_t     uPos)
+                 const uint32_t     uPos,
+                 const uint8_t      uExternalPos)
 {
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
@@ -95,6 +96,7 @@ Nesting_Increase(QCBORTrackNesting *pNesting,
       pNesting->pCurrentNesting->uCount     = 0;
       pNesting->pCurrentNesting->uStart     = uPos;
       pNesting->pCurrentNesting->uMajorType = uMajorType;
+      pNesting->pCurrentNesting->uExternalStart = uExternalPos;
       return QCBOR_SUCCESS;
    }
 }
@@ -152,6 +154,12 @@ static uint32_t
 Nesting_GetStartPos(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting->uStart;
+}
+
+static uint8_t
+Nesting_GetExternalPos(QCBORTrackNesting *pNesting)
+{
+   return pNesting->pCurrentNesting->uExternalStart;
 }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
@@ -618,6 +626,54 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
+static QCBORError GetNextExternalPosition(QCBOREncodeContext *pMe, uint8_t* pPos) {
+   size_t uPos = 0;
+   QCBORExternalBuffer *pNextExternalBuffer = pMe->pNextExternalBuffer;
+
+   while(pNextExternalBuffer != NULL) {
+      ++uPos;
+      pNextExternalBuffer = pNextExternalBuffer->pNextExternalBuffer;
+   }
+
+   if (uPos > UINT8_MAX) {
+      return QCBOR_ERR_TOO_MANY_EXTERNAL;
+   }
+
+   *pPos = (uint8_t) uPos;
+
+   return QCBOR_SUCCESS;
+}
+
+static QCBORExternalBuffer *GetExternalAtPosition(QCBOREncodeContext *pMe, uint8_t pPos) {
+   QCBORExternalBuffer *pNextExternalBuffer = pMe->pNextExternalBuffer;
+
+   while(pPos > 0) {
+      if (pNextExternalBuffer == NULL) {
+         /* This is an internal error */
+         break;
+      }
+      --pPos;
+      pNextExternalBuffer = pNextExternalBuffer->pNextExternalBuffer;
+   }
+
+   return pNextExternalBuffer;
+}
+
+static void
+QCBOREncode_Private_InsertInExternalList(QCBOREncodeContext  *pMe,
+                                         QCBORExternalBuffer *pExternalBuffer)
+{
+   /* Insert the QCBORExternalBuffer in the linked list. */
+   /* First get to the tail of the external's list. */
+   QCBORExternalBuffer **ppTail = &(pMe->pNextExternalBuffer);
+   while (*ppTail != NULL) {
+      ppTail = &((*ppTail)->pNextExternalBuffer);
+   }
+   /* Then insert it after the last, and save the insertion point in it. */
+   *ppTail = pExternalBuffer;
+   pExternalBuffer->uEncodedOffset = pMe->OutBuf.data_len;
+}
+
 /**
  * @brief Semi-private method to add an external buffer full of bytes to
  * encoded output.
@@ -634,15 +690,7 @@ QCBOREncode_Private_AddExternalBuffer(QCBOREncodeContext  *pMe,
                                       QCBORExternalBuffer *pExternalBuffer)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, pExternalBuffer->Bytes.len, 0);
-   /* Insert the QCBORExternalBuffer in the linked list. */
-   /* First get to the tail of the external's list. */
-   QCBORExternalBuffer **ppTail = &(pMe->pNextExternalBuffer);
-   while (*ppTail != NULL) {
-      ppTail = &((*ppTail)->pNextExternalBuffer);
-   }
-   /* Then insert it after the last, and save the insertion point in it. */
-   *ppTail = pExternalBuffer;
-   pExternalBuffer->uEncodedOffset = pMe->OutBuf.data_len;
+   QCBOREncode_Private_InsertInExternalList(pMe, pExternalBuffer);
 }
 
 
@@ -653,6 +701,16 @@ void
 QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 {
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Encoded);
+   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+}
+
+/*
+ * Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_AddExternalEncoded(QCBOREncodeContext *pMe, QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_Private_InsertInExternalList(pMe, pExternalBuffer);
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
 
@@ -796,7 +854,14 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
       /* Increase nesting level because this is a map or array.  Cast
        * from size_t to uin32_t is safe because of check above.
        */
-      pMe->uError = Nesting_Increase(&(pMe->nesting), uMajorType, (uint32_t)uEndPosition);
+      uint8_t uExternalPos;
+      QCBORError ret;
+      ret = GetNextExternalPosition(pMe, &uExternalPos);
+      if (ret != QCBOR_SUCCESS) {
+         pMe->uError = QCBOR_ERR_TOO_MANY_EXTERNAL;
+      } else{
+         pMe->uError = Nesting_Increase(&(pMe->nesting), uMajorType, (uint32_t)uEndPosition, uExternalPos);
+      }
    }
 }
 
@@ -913,24 +978,18 @@ QCBOREncode_Private_CloseAggregate(QCBOREncodeContext *pMe,
     * UsefulOutBuf_InsertUsefulBuf() will do nothing so there is no
     * security hole introduced.
     */
-   size_t uNestingStartPos = Nesting_GetStartPos(&(pMe->nesting));
    UsefulOutBuf_InsertUsefulBuf(&(pMe->OutBuf),
                                 EncodedHead,
-                                uNestingStartPos);
+                                Nesting_GetStartPos(&(pMe->nesting)));
 
    /* If there are external buffers in the range that needs to be moved due to
     * the insertion, move those as well.
     */
-   QCBORExternalBuffer *pExternalBuffer = pMe->pNextExternalBuffer;
+   QCBORExternalBuffer *pExternalBuffer =
+      GetExternalAtPosition(pMe, Nesting_GetExternalPos(&(pMe->nesting)));
+
    while(pExternalBuffer != NULL) {
-      /* When there is a reference to external bytes, it is always preceded in
-       * the encoding buffer with a CBOR_MAJOR_TYPE_BYTE_STRING CBOR head. So if
-       * uEncodedOffset == uNestingStartPos we can be sure that the external
-       * buffer was added before the nesting start, so we don't need to move it.
-       */
-      if (pExternalBuffer->uEncodedOffset > uNestingStartPos) {
-         pExternalBuffer->uEncodedOffset += EncodedHead.len;
-      }
+      pExternalBuffer->uEncodedOffset += EncodedHead.len;
       pExternalBuffer = pExternalBuffer->pNextExternalBuffer;
    }
 
@@ -1293,6 +1352,10 @@ Done:
 UsefulBufC
 QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart)
 {
+   if(pMe->pNextExternalBuffer != NULL) {
+      return NULLUsefulBufC;
+   }
+
    if(pMe->uError) {
       return NULLUsefulBufC;
    }
