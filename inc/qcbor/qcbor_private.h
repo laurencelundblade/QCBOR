@@ -231,7 +231,7 @@ struct _QCBOREncodeContext {
    UsefulOutBuf      OutBuf;  /* Pointer to output buffer, its length and
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
-   uint16_t          uConfigFlags;   /*  */
+   int               uConfigFlags;   /*  enum QCBOREncodeConfig */
 
    void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
                                * pointer explained in TODO: */
