@@ -412,7 +412,7 @@ enum QCBOREncodeConfig {
     * QCBOREncode_CloseMap() becomes equivalent to
     * QCBOREncode_CloseAndSortMap(). This causes map closing to run
     * much slower, but this is probably only of consequence in very
-    * constrained environments with large maps.
+    * constrained environments sorting large maps.
     *
     * Note that map sorting causese about 30% more code from the QCBOR
     * library to be linked. Any call to QCBOREncode_Config(), even if
@@ -440,6 +440,8 @@ enum QCBOREncodeConfig {
     * part of a deterministic encoding that that covers integer and
     * float numbers.  This reduction doesn't cover other number
     * representations like big numbers and big floats.
+    *
+    * See @ref QCBOR_ENCODE_CONFIG_DCBOR.
     */
    QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION = 0x04,
 
@@ -456,7 +458,7 @@ enum QCBOREncodeConfig {
    /**
     * This enforces a simple rule in dCBOR allows only the simple
     * values true, false and null.  With this set, any other simple
-    * value will error out.
+    * value will error out. See @ref QCBOR_ENCODE_CONFIG_DCBOR.
     */
    QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE = 0x20,
 
@@ -630,7 +632,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * @brief Configure the encoder.
  *
  * @param[in] pCtx   The encoding context for mode set.
- * @param[in] uConfig  Bit flags for configuration options.
+ * @param[in] uConfig  See @ref QCBOREncodeConfig.
  *
  * QCBOR usually as needed without configuration.
  *
