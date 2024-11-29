@@ -1,5 +1,5 @@
 /* ==========================================================================
- * qcbor_tag_decode.c -- Tag content decoders
+ * decode_private.c -- semi-private & inline functions for qcbor_decode.c
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2024, Laurence Lundblade.
@@ -16,38 +16,20 @@
 #define decode_private_h
 
 #include "qcbor/qcbor_decode.h"
-#include "qcbor/qcbor_spiffy_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h" /* For QCBORItemCallback */
 
 /* These are decode functions used by the spiffy decode and number decode
  * implementation. They are internal linkage and nothing to do with
  * the public decode interface.
  */
 
+/* Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
                                       QCBORItem          *pDecodedItem);
 
 
-void
-QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
-                                        QCBORItem               *pItem,
-                                        const uint8_t            uTagRequirement,
-                                        const uint8_t            uQCBORTypes[],
-                                        const uint64_t           uTagNumbers[],
-                                        QCBORTagContentCallBack *pfCB,
-                                        size_t                   uOffset);
-
-
-void
-QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
-                                   QCBORItem               *pItem,
-                                   const uint8_t            uTagRequirement,
-                                   const uint8_t            uQCBORTypes[],
-                                   const uint64_t           uTagNumber,
-                                   QCBORTagContentCallBack *pfCB,
-                                   size_t                   uOffset);
-
-
+/* Semi-private function. See qcbor_decode.c */
 void
 QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
                                           const char         *szLabel,
@@ -55,7 +37,7 @@ QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
                                           QCBORItem          *pItem,
                                           size_t             *puOffset);
 
-
+/* Semi-private function. See qcbor_decode.c */
 void
 QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
                                          const int64_t       nLabel,
@@ -64,32 +46,30 @@ QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
                                          size_t             *puOffset);
 
 
-static inline void
-QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
-{
-#ifndef QCBOR_DISABLE_TAGS
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   *uOffset = QCBORDecode_Tell(pMe);
-#else
-   *uOffset = SIZE_MAX;
-
-#endif /* ! QCBOR_DISABLE_TAGS */
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, Item);
-}
-
-
+/* Semi-private function. See qcbor_decode.c */
 uint64_t
 QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
                                    const uint16_t            uMappedTagNumber);
 
-
+/* Semi-private function. See qcbor_decode.c */
 QCBORError
-DecodeNesting_DescendIntoBstrWrapped(QCBORDecodeNesting *pNesting,
-                                     uint32_t            uEndOffset,
-                                     uint32_t            uStartOffset);
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
+                                const QCBORItem    *pItemToConsume,
+                                bool               *pbBreak,
+                                uint8_t            *puNextNestLevel);
+
+/* Semi-private function. See qcbor_decode.c */
+QCBORError
+QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
+                                  QCBORError          uErr,
+                                  const size_t        uOffset,
+                                  QCBORItem          *pDecodedItem);
+
+/* Semi-private function. See qcbor_decode.c */
+QCBORError
+QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe,
+                                      bool                bMarkEnd,
+                                      bool               *pbBreak);
 
 
 typedef struct {
@@ -102,6 +82,7 @@ typedef struct {
    uint16_t uItemCount;
 } MapSearchInfo;
 
+/* Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
                               QCBORItem          *pItemArray,
@@ -109,66 +90,61 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
                               MapSearchCallBack  *pCallBack);
 
 
+/* Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
                                      const uint32_t      uEndOffset);
 
 
 static inline void
-DecodeNesting_ReverseDecrement(QCBORDecodeNesting *pNesting)
+QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
-   /* Only call on a definite-length array / map */
-   pNesting->pCurrent->u.ma.uCountCursor++;
+#ifndef QCBOR_DISABLE_TAGS
+   memcpy(pMe->auLastTags, pItem->auTagNumbers, sizeof(pItem->auTagNumbers));
+#else /* ! QCBOR_DISABLE_TAGS */
+   (void)pMe;
+   (void)pItem;
+#endif /* ! QCBOR_DISABLE_TAGS */
 }
 
 
-static inline bool
-DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
+
+static inline void
+QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
 {
-   if(pNesting->pCurrent->uLevelType == QCBOR_TYPE_BYTE_STRING) {
-      /* Not a map or array */
-      return false;
+#ifndef QCBOR_DISABLE_TAGS
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
    }
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   if(pNesting->pCurrent->u.ma.uCountTotal == QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
-      /* Is indefinite */
-      return false;
-   }
+   *uOffset = QCBORDecode_Tell(pMe);
+#else /* ! QCBOR_DISABLE_TAGS */
+   *uOffset = SIZE_MAX;
 
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-
-   /* All checks passed; is a definte length map or array */
-   return true;
+#endif /* ! QCBOR_DISABLE_TAGS */
+   pMe->uLastError = (uint8_t)QCBORDecode_Private_GetNextTagContent(pMe, Item);
 }
 
 
-static inline bool
-DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
-{
-   if(pNesting->pCurrentBounded == NULL) {
-      return false;
-   }
-
-   uint8_t uItemDataType = pNesting->pCurrentBounded->uLevelType;
-#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   if(uItemDataType == QCBOR_TYPE_MAP_AS_ARRAY) {
-      uItemDataType = QCBOR_TYPE_ARRAY;
-   }
-#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-
-   if(uItemDataType != uType) {
-      return false;
-   }
-
-   return true;
-}
 
 
-static inline uint32_t
-DecodeNesting_GetPreviousBoundedEnd(const QCBORDecodeNesting *pMe)
-{
-   return pMe->pCurrentBounded->u.bs.uSavedEndOffset;
-}
+/* Semi-private function. See qcbor_tag_decode.c */
+void
+QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
+                                        QCBORItem               *pItem,
+                                        const uint8_t            uTagRequirement,
+                                        const uint8_t            uQCBORTypes[],
+                                        const uint64_t           uTagNumbers[],
+                                        QCBORTagContentCallBack *pfCB,
+                                        size_t                   uOffset);
 
+/* Semi-private function. See qcbor_tag_decode.c */
+void
+QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
+                                   QCBORItem               *pItem,
+                                   const uint8_t            uTagRequirement,
+                                   const uint8_t            uQCBORTypes[],
+                                   const uint64_t           uTagNumber,
+                                   QCBORTagContentCallBack *pfCB,
+                                   size_t                   uOffset);
 #endif /* decode_private_h */

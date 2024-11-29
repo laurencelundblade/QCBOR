@@ -1,5 +1,5 @@
 /* ==========================================================================
- * number_decode.c -- Number decoding beyond the basic ints and floats
+ * qcbor_number_decode.c -- Number decoding beyond the basic ints and floats
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2024, Laurence Lundblade.
@@ -10,7 +10,7 @@
  *
  * See BSD-3-Clause license in README.md
  *
- *  Created on 11/14/24 from qcbor_decode.c
+ * Created on 11/14/24 from qcbor_decode.c
  * ========================================================================== */
 
 

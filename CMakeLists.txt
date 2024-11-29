@@ -40,6 +40,7 @@ target_sources(qcbor
     PRIVATE
         src/ieee754.c
         src/qcbor_decode.c
+        src/qcbor_spiffy_decode.c
         src/qcbor_tag_decode.c
         src/qcbor_number_decode.c
         src/qcbor_encode.c

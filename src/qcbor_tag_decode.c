@@ -12,6 +12,7 @@
 
 #include "qcbor/qcbor_tag_decode.h"
 #include "decode_private.h"
+#include "decode_nesting.h"
 
 #include <math.h> /* For isnan() */
 
@@ -148,7 +149,7 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pMe, const char *szLabel
    pMe->uTagNumberCheckOffset = uOffset;
 
    return uReturn;
-#else
+#else /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    (void)pMe;
    (void)szLabel;
    (void)puTagNumber;
@@ -280,7 +281,7 @@ QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
 
    return QCBOR_SUCCESS;
 }
-#endif
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
 static QCBORError
