@@ -123,6 +123,19 @@ maps and arrays without the caller having to do anything. This
 includes mixed definite and indefinte maps and arrays. (Some work
 remains to support map searching with indefinite length strings.)
 
+## v2
+
+** Tag decoding
+
+** Map Sorting
+
+** Serialization Modes
+
+** Files Rearrangement
+
+** Bignumber ?? 
+
+
 ## Comparison to TinyCBOR
 
 TinyCBOR is a popular widely used implementation. Like QCBOR,

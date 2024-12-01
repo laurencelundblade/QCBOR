@@ -1401,7 +1401,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
  * ========================================================================= */
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext *pCtx,
                                      uint32_t            uConvertTypes,
@@ -1409,7 +1409,7 @@ QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext *pCtx,
                                      QCBORItem          *pItem);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext *pCtx,
                                            int64_t             nLabel,
@@ -1418,7 +1418,7 @@ QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext *pCtx,
                                            QCBORItem          *pItem);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                             const char         *szLabel,
@@ -1426,14 +1426,14 @@ QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                             uint64_t           *puValue,
                                             QCBORItem          *pItem);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext *pCtx,
                                     uint32_t            uConvertTypes,
                                     int64_t            *pnValue,
                                     QCBORItem          *pItem);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext *pCtx,
                                           int64_t             nLabel,
@@ -1441,7 +1441,7 @@ QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext *pCtx,
                                           int64_t            *pnValue,
                                           QCBORItem          *pItem);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
                                            const char         *szLabel,
@@ -1451,14 +1451,14 @@ QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext *pCtx,
                                      uint32_t            uConvertTypes,
                                      double             *pValue,
                                      QCBORItem          *pItem);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
                                            int64_t             nLabel,
@@ -1466,7 +1466,7 @@ QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
                                            double             *pdValue,
                                            QCBORItem          *pItem);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
                                             const char         *szLabel,
@@ -1476,7 +1476,7 @@ QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/* Semi-private funcion used by public inline functions. See qcbor_tag_decode.c */
 void
 QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
                                     uint8_t              uTagRequirement,
@@ -1484,6 +1484,8 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
                                     uint64_t             uTagNumber,
                                     UsefulBufC          *pBstr);
 
+
+/* Semi-private funcion used by public inline functions. See qcbor_tag_decode.c */
 void
 QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
                                           const int64_t        nLabel,
@@ -1493,11 +1495,7 @@ QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
                                           UsefulBufC          *pString);
 
 
-
-
-
-
-
+/* Semi-private funcion used by public inline functions. See qcbor_tag_decode.c */
 void
 QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
                                            const char          *szLabel,
@@ -1650,7 +1648,7 @@ QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pMe,
                              double             *pdValue)
 {
    QCBORItem Item;
-    QCBORDecode_Private_GetDoubleConvert(pMe, uConvertTypes, pdValue, &Item);
+   QCBORDecode_Private_GetDoubleConvert(pMe, uConvertTypes, pdValue, &Item);
 }
 
 static inline void
@@ -1684,7 +1682,7 @@ QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe,
 static inline void
 QCBORDecode_GetDouble(QCBORDecodeContext *pMe, double *pValue)
 {
-    QCBORDecode_GetDoubleConvert(pMe, QCBOR_CONVERT_TYPE_FLOAT, pValue);
+   QCBORDecode_GetDoubleConvert(pMe, QCBOR_CONVERT_TYPE_FLOAT, pValue);
 }
 
 static inline void
@@ -1805,7 +1803,13 @@ QCBORDecode_GetDecimalFractionBigInMapN(QCBORDecodeContext *pMe,
                                         bool               *pbMantissaIsNegative,
                                         int64_t            *pnExponent)
 {
-   QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(pMe, nLabel, uTagRequirement, MantissaBuffer, pMantissa, pbMantissaIsNegative, pnExponent);
+   QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(pMe,
+                                                       nLabel,
+                                                       uTagRequirement,
+                                                       MantissaBuffer,
+                                                       pMantissa,
+                                                       pbMantissaIsNegative,
+                                                       pnExponent);
 }
 
 static inline void /* Deprecated */
