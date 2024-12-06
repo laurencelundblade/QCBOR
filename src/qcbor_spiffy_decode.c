@@ -1,5 +1,3 @@
-
-
 /* ==========================================================================
  * qcbor_spiffy_decode.c -- "Spiffy" QCBOR decoding
  *
@@ -12,16 +10,14 @@
  *
  * See BSD-3-Clause license in README.md
  *
- * Created on 11/28/24 from qcbor_decode.c
+ * Forked from qcbor_decode.c on 11/28/24
  * ========================================================================== */
 
-
-#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_main_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 // TODO: see about removing these two includes
 #include "qcbor/qcbor_tag_decode.h"
 #include "ieee754.h" /* Does not use math.h */
-#include "decode_private.h"
 #include "decode_nesting.h"
 
 
@@ -143,9 +139,7 @@ QCBORDecode_Private_RewindMapOrArray(QCBORDecodeContext *pMe)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_Rewind(QCBORDecodeContext *pMe)
 {
@@ -394,9 +388,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_SeekToLabelN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
@@ -496,9 +488,7 @@ Done:
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
                           const int64_t       nLabel,
@@ -547,9 +537,7 @@ QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
                            const char         *szLabel,
@@ -666,18 +654,14 @@ QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pMe,
 
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemList)
 {
    pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, pItemList, NULL, NULL);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
                                       QCBORItem          *pItemList,
@@ -764,9 +748,7 @@ QCBORDecode_Private_SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
@@ -781,9 +763,7 @@ QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
@@ -801,9 +781,7 @@ QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
@@ -816,9 +794,7 @@ QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
    QCBORDecode_Private_SearchAndEnter(pMe, OneItemSeach);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
@@ -1060,9 +1036,7 @@ QCBORDecode_Private_ProcessBool(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 {
@@ -1072,9 +1046,7 @@ QCBORDecode_GetBool(QCBORDecodeContext *pMe, bool *pValue)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe,
                           const int64_t       nLabel,
@@ -1086,9 +1058,7 @@ QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pMe,
                            const char         *szLabel,
@@ -1150,9 +1120,7 @@ QCBORDecode_Private_ProcessSimple(QCBORDecodeContext *pMe,
    }
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetSimple(QCBORDecodeContext *pMe, uint8_t *puSimple)
 {
@@ -1161,9 +1129,7 @@ QCBORDecode_GetSimple(QCBORDecodeContext *pMe, uint8_t *puSimple)
    QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimple);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pMe,
                             int64_t             nLabel,
@@ -1174,9 +1140,7 @@ QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pMe,
    QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimpleValue);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
 void
 QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
                              const char         *szLabel,
@@ -1186,10 +1150,6 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pMe,
    QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
    QCBORDecode_Private_ProcessSimple(pMe, &Item, puSimpleValue);
 }
-
-
-
-
 
 
 // Improvement: add methods for wrapped CBOR, a simple alternate

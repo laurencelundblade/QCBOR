@@ -1,44 +1,44 @@
-/*==============================================================================
- Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2024, Laurence Lundblade.
- Copyright (c) 2021, Arm Limited.
- All rights reserved.
+/* ===========================================================================
+ * qcbor_main_decode.h -- The main CBOR decoder.
+ *
+ * Copyright (c) 2016-2018, The Linux Foundation.
+ * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2021, Arm Limited.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of The Linux Foundation nor the names of its
+ *       contributors, nor the name "Laurence Lundblade" may be used to
+ *       endorse or promote products derived from this software without
+ *       specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ========================================================================= */
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above
-      copyright notice, this list of conditions and the following
-      disclaimer in the documentation and/or other materials provided
-      with the distribution.
-    * Neither the name of The Linux Foundation nor the names of its
-      contributors, nor the name "Laurence Lundblade" may be used to
-      endorse or promote products derived from this software without
-      specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
-ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- =============================================================================*/
-
-
-#include "qcbor/qcbor_decode.h"
-#include "qcbor/qcbor_spiffy_decode.h"
-#include "qcbor/qcbor_tag_decode.h"
+#include "qcbor/qcbor_main_decode.h"
 #include "ieee754.h" /* Does not use math.h */
-#include "decode_private.h"
 #include "decode_nesting.h"
 
+// TODO: Reduce the circular dependency here
+#include "qcbor/qcbor_tag_decode.h"
 
 
 #if (defined(__GNUC__) && !defined(__clang__))
@@ -185,12 +185,11 @@ StringAllocator_Destruct(const QCBORInternalAllocator *pMe)
 /*===========================================================================
  QCBORDecode -- The main implementation of CBOR decoding
 
- See qcbor/qcbor_decode.h for definition of the object
+ See qcbor/qcbor_main_decode.h for definition of the object
  used here: QCBORDecodeContext
   ===========================================================================*/
-/*
- * Public function, see header file
- */
+
+/* Public function; see qcbor_main_decode.h */
 void
 QCBORDecode_Init(QCBORDecodeContext *pMe,
                  UsefulBufC          EncodedCBOR,
@@ -206,22 +205,10 @@ QCBORDecode_Init(QCBORDecodeContext *pMe,
 
    /* Inialize me->auMappedTags to CBOR_TAG_INVALID16. See
     * GetNext_TaggedItem() and MapTagNumber(). */
+    // TODO: rename auMappedTagNumbers
    memset(pMe->auMappedTags, 0xff, sizeof(pMe->auMappedTags));
 
    pMe->uTagNumberCheckOffset = SIZE_MAX;
-}
-
-
-/*
- * Public function, see header file
- */
-void
-QCBORDecode_CompatibilityV1(QCBORDecodeContext *pMe)
-{
-   pMe->uDecodeMode |= QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
-#ifndef QCBOR_DISABLE_TAGS
-   QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
-#endif /* ! QCBOR_DISABLE_TAGS */
 }
 
 
@@ -229,9 +216,7 @@ QCBORDecode_CompatibilityV1(QCBORDecodeContext *pMe)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
-/*
- * Public function, see header file
- */
+/* Public function; see qcbor_main_decode.h */
 void
 QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
                            QCBORStringAllocate pfAllocateFunction,
@@ -2238,9 +2223,8 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+
+/* Public function; see qcbor_main_decode.h */
 QCBORError
 QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2254,9 +2238,7 @@ QCBORDecode_GetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 QCBORError
 QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2272,9 +2254,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 void
 QCBORDecode_VPeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2288,9 +2268,7 @@ QCBORDecode_VPeekNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 void
 QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2305,9 +2283,7 @@ QCBORDecode_VGetNext(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 QCBORError
 QCBORDecode_PartialFinish(QCBORDecodeContext *pMe, size_t *puConsumed)
 {
@@ -2337,9 +2313,7 @@ Done:
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 QCBORError
 QCBORDecode_Finish(QCBORDecodeContext *pMe)
 {
@@ -2354,9 +2328,7 @@ QCBORDecode_Finish(QCBORDecodeContext *pMe)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 void
 QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
@@ -2369,9 +2341,7 @@ QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 QCBORError
 QCBORDecode_EndCheck(QCBORDecodeContext *pMe)
 {
@@ -2645,9 +2615,7 @@ Done:
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function; see qcbor_main_decode.h */
 QCBORError
 QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
                        UsefulBuf           Pool,
@@ -2686,6 +2654,19 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+
+
+
+
+/* Public function; see qcbor_main_decode.h */
+void
+QCBORDecode_CompatibilityV1(QCBORDecodeContext *pMe)
+{
+   pMe->uDecodeMode |= QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
+#ifndef QCBOR_DISABLE_TAGS
+   QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
+#endif /* ! QCBOR_DISABLE_TAGS */
+}
 
 
 // Improvement: add methods for wrapped CBOR, a simple alternate

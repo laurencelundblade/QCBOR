@@ -1,4 +1,6 @@
 /* ==========================================================================
+ * qcbor_private -- Non-public data structures for encding and decoding.
+ *
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
@@ -30,7 +32,6 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
-
 
 #ifndef qcbor_private_h
 #define qcbor_private_h
@@ -384,7 +385,7 @@ struct _QCBORDecodeContext {
    uint32_t uDecodeMode;
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
-   uint8_t  bAllowAllLabels; /* Used internally only, not an external feature yet */
+   uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
 
    /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];

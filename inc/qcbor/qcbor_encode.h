@@ -31,7 +31,6 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
-
 #ifndef qcbor_encode_h
 #define qcbor_encode_h
 

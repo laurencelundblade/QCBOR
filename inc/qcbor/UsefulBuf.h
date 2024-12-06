@@ -1471,7 +1471,7 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  *
  * @return  0 for equality, positive if uStart1 is lexographically larger,
  *          negative if uStart2 is lexographically larger.
- * 
+ *
  * This looks into bytes that have been output at the offsets @c start1
  * and @c start2. It compares bytes at those two starting points until
  * they are not equal or @c uLen1 or @c uLen2 is reached. If the
@@ -1894,7 +1894,7 @@ static UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *pUInBuf)
  * @param[in] uLen2     Length of second range of bytes.
  *
  * This returns the same as UsefulBuf_Compare().
- * 
+ *
  * If the offset or the length plus offset or a range extends outside
  * the input buffer, that range of bytes will be considered greater
  * than the other string. If both are outside this is considered a

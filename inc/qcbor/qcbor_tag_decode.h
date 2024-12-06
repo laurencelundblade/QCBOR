@@ -13,7 +13,8 @@
 #ifndef qcbor_tag_decode_h
 #define qcbor_tag_decode_h
 
-#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_main_decode.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -848,7 +849,7 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pCtx,
  * decoder will get @ref QCBOR_TYPE_POSBIGNUM instead of a tag number and
  * a byte string.
  */
-typedef QCBORError (QCBORTagContentCallBack)(QCBORDecodeContext *pCtx, 
+typedef QCBORError (QCBORTagContentCallBack)(QCBORDecodeContext *pCtx,
                                              void               *pTagDecodersContext,
                                              uint64_t            uTagNumber,
                                              QCBORItem          *pItem);
@@ -1114,7 +1115,7 @@ QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
 /* Semi-private used by public inline functions. See qcbor_tag_decode.c */
@@ -1143,7 +1144,25 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
                                            uint64_t             uTagNumber,
                                            UsefulBufC          *pString);
 
+/* Semi-private function. See qcbor_tag_decode.c */
+void
+QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
+                                        QCBORItem               *pItem,
+                                        const uint8_t            uTagRequirement,
+                                        const uint8_t            uQCBORTypes[],
+                                        const uint64_t           uTagNumbers[],
+                                        QCBORTagContentCallBack *pfCB,
+                                        size_t                   uOffset);
 
+/* Semi-private function. See qcbor_tag_decode.c */
+void
+QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
+                                   QCBORItem               *pItem,
+                                   const uint8_t            uTagRequirement,
+                                   const uint8_t            uQCBORTypes[],
+                                   const uint64_t           uTagNumber,
+                                   QCBORTagContentCallBack *pfCB,
+                                   size_t                   uOffset);
 
 
 #ifndef QCBOR_DISABLE_TAGS
