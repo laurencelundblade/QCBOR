@@ -10,11 +10,12 @@
  *
  * Forked from qcbor_decode.h on 7/23/2020
  * ========================================================================== */
+
 #ifndef qcbor_spiffy_decode_h
 #define qcbor_spiffy_decode_h
 
-
-#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
+#include "qcbor/qcbor_number_decode.h" /* For v1 compatibility, not dependency */
 
 
 #ifdef __cplusplus
@@ -801,13 +802,39 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pCtx,
                                   QCBORItem          *pItem,
                                   UsefulBufC         *pEncodedCBOR);
 
-
 /* Semi-private funcion used by public inline functions. See qcbor_decode.c */
 void
 QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pCtx,
                                            QCBORItem          *pTarget,
                                            QCBORItem          *pItem,
                                            UsefulBufC         *pEncodedCBOR);
+
+
+/* Semi-private data structure */
+typedef struct {
+   void               *pCBContext;
+   QCBORItemCallback   pfCallback;
+} MapSearchCallBack;
+
+/* Semi-private data structure */
+typedef struct {
+   size_t   uStartOffset;
+   uint16_t uItemCount;
+} MapSearchInfo;
+
+/* Semi-private function. See qcbor_spiffy_decode.c */
+QCBORError
+QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
+                              QCBORItem          *pItemArray,
+                              MapSearchInfo      *pInfo,
+                              MapSearchCallBack  *pCallBack);
+
+
+/* Semi-private function. See qcbor_spiffy_decode.c */
+QCBORError
+QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
+                                     const uint32_t      uEndOffset);
+
 
 
 

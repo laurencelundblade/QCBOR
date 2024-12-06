@@ -7,11 +7,11 @@
  *
  * See BSD-3-Clause license in README.md
  *
- * Created on 9/5/24 from qcbode_decode.c
+ * Forked from qcbode_decode.c on 9/5/24
  * ========================================================================== */
 
 #include "qcbor/qcbor_tag_decode.h"
-#include "decode_private.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "decode_nesting.h"
 
 #include <math.h> /* For isnan() */
@@ -65,9 +65,8 @@ QCBORDecode_VGetNextTagNumber(QCBORDecodeContext *pMe, uint64_t *puTagNumber)
    pMe->uLastError = (uint8_t)QCBORDecode_GetNextTagNumber(pMe, puTagNumber);
 }
 
-/*
- * Public function, see header qcbor/qcbor_tag_decode.h file
- */
+
+/* Public function, see qcbor_tag_decode.h */
 QCBORError
 QCBORDecode_GetNextTagNumberInMapN(QCBORDecodeContext *pMe, const int64_t nLabel, uint64_t *puTagNumber)
 {

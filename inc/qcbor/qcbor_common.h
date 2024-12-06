@@ -1,4 +1,6 @@
 /* ==========================================================================
+ * qcbor_common -- Common definitions for encding and decoding.
+ *
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2024, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
@@ -30,6 +32,7 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
+
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
@@ -433,8 +436,9 @@ typedef enum {
    QCBOR_ERR_TAGS_DISABLED = 51,
 
    // TODO: maybe reduce number of conformance codes to not use up unrecoverable errors
-   
-   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not encoded in shortest form, or indefinite lengths are used.*/
+
+   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not
+    * encoded in shortest form, or indefinite lengths are used. */
    QCBOR_ERR_PREFERRED_CONFORMANCE = 52,
 
    /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
@@ -569,7 +573,7 @@ typedef enum {
    /** An unconsumed tag number was encountered. */
    QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89, // TODO: rid of this in favor of below?
 
-   /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber(). 
+   /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber().
     * See @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 

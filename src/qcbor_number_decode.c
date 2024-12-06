@@ -10,15 +10,13 @@
  *
  * See BSD-3-Clause license in README.md
  *
- * Created on 11/14/24 from qcbor_decode.c
+ * Forked from qcbor_decode.c on 11/14/24.
  * ========================================================================== */
 
 
-#include "qcbor/qcbor_decode.h"
-#include "qcbor/qcbor_spiffy_decode.h"
 #include "qcbor/qcbor_number_decode.h"
+#include "qcbor/qcbor_spiffy_decode.h"
 #include "qcbor/qcbor_tag_decode.h"
-#include "decode_private.h"
 #include "ieee754.h" /* Does not use math.h */
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
@@ -615,9 +613,7 @@ QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe,
 
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-/*
- * Public function, see header qcbor/qcbor_spiffy_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
                                       QCBORItem          *pNumber)
@@ -1307,9 +1303,8 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem *pItem,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe,
                                const uint32_t      uConvertTypes,
@@ -1335,9 +1330,7 @@ QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
                                      const int64_t       nLabel,
@@ -1368,9 +1361,7 @@ QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                       const char         *szLabel,
@@ -1518,9 +1509,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem *pItem,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe,
                                 const uint32_t      uConvertTypes,
@@ -1546,9 +1535,7 @@ QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
                                       const int64_t       nLabel,
@@ -1579,9 +1566,7 @@ QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                        const char         *szLabel,
@@ -1732,9 +1717,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe,
                                 const uint32_t      uConvertTypes,
@@ -1761,9 +1744,7 @@ QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pMe,
 }
 
 
-/*
- *  Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe,
                                       const int64_t       nLabel,
@@ -1793,9 +1774,7 @@ QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pMe,
                                                              pdValue);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
                                        const char         *szLabel,
@@ -1898,9 +1877,7 @@ QCBORDecode_Private_CountNonZeroBytes(uint64_t uNum)
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 QCBORError
 QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
                                         const UsefulBuf BigNumberBuf,
@@ -1964,9 +1941,7 @@ QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
                              UsefulBuf       BigNumberBuf,
@@ -2141,9 +2116,7 @@ QCBORDecode_Private_BigNumberMain(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumber(QCBORDecodeContext *pMe,
                           const uint8_t       uTagRequirement,
@@ -2158,9 +2131,7 @@ QCBORDecode_GetTBigNumber(QCBORDecodeContext *pMe,
    QCBORDecode_Private_BigNumberMain(pMe, uTagRequirement, &Item, uOffset, BigNumberBuf, pBigNumber, pbIsNegative);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberInMapN(QCBORDecodeContext *pMe,
                                 const int64_t       nLabel,
@@ -2182,9 +2153,7 @@ QCBORDecode_GetTBigNumberInMapN(QCBORDecodeContext *pMe,
                                      pbIsNegative);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext *pMe,
                                  const char         *szLabel,
@@ -2207,9 +2176,7 @@ QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext *pMe,
                                      const uint8_t       uTagRequirement,
@@ -2224,9 +2191,7 @@ QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext *pMe,
    QCBORDecode_Private_BigNumberNoPreferredMain(pMe, uTagRequirement, &Item, uOffset, BigNumberBuf, pBigNumber, pbIsNegative);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext *pMe,
                                            const int64_t       nLabel,
@@ -2243,9 +2208,7 @@ QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext *pMe,
 
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pMe,
                                             const char         *szLabel,
@@ -2263,9 +2226,7 @@ QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pMe,
 
 
 
-/*
- * Public function, see header qcbor/qcbor_spiffy_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext *pMe,
                              const uint8_t       uTagRequirement,
@@ -2284,9 +2245,7 @@ QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext *pMe,
                                         uOffset);
 }
 
-/*
- * Public function, see header qcbor/qcbor_spiffy_decode.h
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberRawInMapN(QCBORDecodeContext *pMe,
                                    const int64_t       nLabel,
@@ -2306,9 +2265,8 @@ QCBORDecode_GetTBigNumberRawInMapN(QCBORDecodeContext *pMe,
                                         uOffset);
 }
 
-/*
- * Public function, see header qcbor/qcbor_spiffy_decode.h
- */
+
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigNumberRawInMapSZ(QCBORDecodeContext *pMe,
                                     const char         *szLabel,
@@ -2672,9 +2630,7 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext  *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFraction(QCBORDecodeContext *pMe,
                                 const uint8_t       uTagRequirement,
@@ -2695,9 +2651,7 @@ QCBORDecode_GetTDecimalFraction(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext *pMe,
                                       const int64_t       nLabel,
@@ -2720,9 +2674,7 @@ QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
                                        const char         *szLabel,
@@ -2744,9 +2696,7 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pMe,
                                            const uint8_t       uTagRequirement,
@@ -2771,9 +2721,7 @@ QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
                                                  const int64_t       nLabel,
@@ -2799,9 +2747,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
                                                   const char         *szLabel,
@@ -2826,9 +2772,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
                                           pnExponent);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
                                               const uint8_t       uTagRequirement,
@@ -2853,9 +2797,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pMe,
                                                     const int64_t       nLabel,
@@ -2881,9 +2823,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
                                                      const char         *szLabel,
@@ -2909,9 +2849,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloat(QCBORDecodeContext *pMe,
                          const uint8_t       uTagRequirement,
@@ -2932,9 +2870,7 @@ QCBORDecode_GetTBigFloat(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pMe,
                                const int64_t       nLabel,
@@ -2956,9 +2892,7 @@ QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext *pMe,
                                 const char         *szLabel,
@@ -2980,9 +2914,7 @@ QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext *pMe,
                                     const uint8_t       uTagRequirement,
@@ -3008,9 +2940,7 @@ QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext *pMe,
 
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
                                           const int64_t       nLabel,
@@ -3036,9 +2966,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext *pMe,
                                            const char         *szLabel,
@@ -3064,9 +2992,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
                                        const uint8_t       uTagRequirement,
@@ -3090,9 +3016,7 @@ QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
                                              pnExponent);
 }
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
                                              const int64_t       nLabel,
@@ -3118,9 +3042,7 @@ QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
 }
 
 
-/*
- * Public function, see header qcbor/qcbor_decode.h file
- */
+/* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
                                               const char         *szLabel,
