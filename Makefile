@@ -58,6 +58,7 @@ PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h \
                  inc/qcbor/qcbor_private.h \
                  inc/qcbor/qcbor_common.h \
                  inc/qcbor/qcbor_encode.h \
+                 inc/qcbor/qcbor_decode.h \
                  inc/qcbor/qcbor_main_decode.h \
                  inc/qcbor/qcbor_spiffy_decode.h \
                  inc/qcbor/qcbor_tag_decode.h \
@@ -76,12 +77,30 @@ src/qcbor_main_decode.o: inc/qcbor/UsefulBuf.h \
                          inc/qcbor/qcbor_common.h \
                          inc/qcbor/qcbor_main_decode.h \
                          inc/qcbor/qcbor_spiffy_decode.h \
+                         inc/qcbor/qcbor_tag_decode.h \
                          src/decode_nesting.h \
                          src/ieee754.h
 
-src/tag_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_tag_decode.h
-src/number_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_tag_decode.h src/ieee754.h src/decode_private.h
-src/iee754.o: src/ieee754.h
+src/qcbor_tag_decode.o: inc/qcbor/UsefulBuf.h \
+                        inc/qcbor/qcbor_private.h \
+                        inc/qcbor/qcbor_common.h \
+                        inc/qcbor/qcbor_main_decode.h \
+                        inc/qcbor/qcbor_spiffy_decode.h \
+                        src/decode_nesting.h \
+                        inc/qcbor/qcbor_tag_decode.h
+
+src/qcbor_number_decode.o: inc/qcbor/UsefulBuf.h \
+                           inc/qcbor/qcbor_private.h \
+                           inc/qcbor/qcbor_common.h \
+                           inc/qcbor/qcbor_main_decode.h \
+                           inc/qcbor/qcbor_tag_decode.h \
+                           inc/qcbor/qcbor_spiffy_decode.h \
+                           inc/qcbor/qcbor_number_decode.h \
+                           src/ieee754.h
+
+src/iee754.o:	src/ieee754.h \
+                inc/qcbor/qcbor_common.h
+
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
 example.o:	$(PUBLIC_INTERFACE)

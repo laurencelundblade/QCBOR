@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.15)
 project(qcbor
     DESCRIPTION "QCBOR"
     LANGUAGES C
-    VERSION 1.1.0
+    VERSION 2.0.0
 )
 
 set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
@@ -82,6 +82,8 @@ set(HEADERS
     inc/qcbor/qcbor_private.h
     inc/qcbor/qcbor_encode.h
     inc/qcbor/qcbor_decode.h
+    inc/qcbor/qcbor_number_decode.h
+    inc/qcbor/qcbor_main_decode.h
     inc/qcbor/qcbor_tag_decode.h
     inc/qcbor/qcbor_spiffy_decode.h
     inc/qcbor/UsefulBuf.h
