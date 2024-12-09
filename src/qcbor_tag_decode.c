@@ -284,19 +284,20 @@ QCBORDecode_Private_Check1TagNumber(const QCBORDecodeContext *pMe,
 
 
 static QCBORError
-QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
-                                  const QCBORItem    *pItem,
-                                  const size_t        uOffset,
-                                  const uint8_t      *uQCBORTypes,
-                                  const uint64_t     *uTagNumbers,
-                                  const uint8_t       uTagRequirement,
-                                  bool               *bTypeMatched)
+QCBORDecode_Private_CheckTagNType(QCBORDecodeContext          *pMe,
+                                  const QCBORItem             *pItem,
+                                  const size_t                 uOffset,
+                                  const uint8_t               *uQCBORTypes,
+                                  const uint64_t              *uTagNumbers,
+                                  const enum QCBORDecodeTagReq uTagRequirement,
+                                  bool                        *bTypeMatched)
 {
    const uint64_t *pQType;
    const uint64_t *pTNum;
    const uint8_t  *pTypeNum;
 
-   const int nTagReq = uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS;
+   const enum QCBORDecodeTagReq nTagReq = (enum QCBORDecodeTagReq)((int)uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS);
+
 
    *bTypeMatched = false;
    for(pTypeNum = uQCBORTypes; *pTypeNum != QCBOR_TYPE_NONE; pTypeNum++) {
@@ -366,7 +367,7 @@ QCBORDecode_Private_CheckTagNType(QCBORDecodeContext *pMe,
 void
 QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
                                         QCBORItem               *pItem,
-                                        const uint8_t            uTagRequirement,
+                                        enum QCBORDecodeTagReq   uTagRequirement,
                                         const uint8_t            uQCBORTypes[],
                                         const uint64_t           uTagNumbers[],
                                         QCBORTagContentCallBack *pfCB,
@@ -408,7 +409,7 @@ Done:
 void
 QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
                                    QCBORItem               *pItem,
-                                   const uint8_t            uTagRequirement,
+                                   enum QCBORDecodeTagReq   uTagRequirement,
                                    const uint8_t            uQCBORTypes[],
                                    const uint64_t           uTagNumber,
                                    QCBORTagContentCallBack *pfCB,
@@ -432,7 +433,7 @@ QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
 static void
 QCBORDecode_Private_ProcessTagOne(QCBORDecodeContext      *pMe,
                                   QCBORItem               *pItem,
-                                  const uint8_t            uTagRequirement,
+                                  enum QCBORDecodeTagReq uTagRequirement,
                                   const uint8_t            uQCBORType,
                                   const uint64_t           uTagNumber,
                                   QCBORTagContentCallBack *pfCB,
@@ -454,11 +455,11 @@ QCBORDecode_Private_ProcessTagOne(QCBORDecodeContext      *pMe,
 
 
 void
-QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
-                                    const uint8_t        uTagRequirement,
-                                    const uint8_t        uQCBOR_Type,
-                                    const uint64_t       uTagNumber,
-                                    UsefulBufC          *pStr)
+QCBORDecode_Private_GetTaggedString(QCBORDecodeContext    *pMe,
+                                    enum QCBORDecodeTagReq uTagRequirement,
+                                    const uint8_t          uQCBOR_Type,
+                                    const uint64_t         uTagNumber,
+                                    UsefulBufC            *pStr)
 {
    QCBORItem  Item;
    size_t uOffset;
@@ -496,12 +497,12 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext  *pMe,
  * specification. If not, an error is set in the decode context.
  */
 void
-QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
-                                          const int64_t        nLabel,
-                                          const uint8_t        uTagRequirement,
-                                          const uint8_t        uQCBOR_Type,
-                                          const uint64_t       uTagNumber,
-                                          UsefulBufC          *pString)
+QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext          *pMe,
+                                          const int64_t                nLabel,
+                                          const enum QCBORDecodeTagReq uTagRequirement,
+                                          const uint8_t                uQCBOR_Type,
+                                          const uint64_t               uTagNumber,
+                                          UsefulBufC                  *pString)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -541,12 +542,12 @@ QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext  *pMe,
  * specification. If not, an error is set in the decode context.
   */
 void
-QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
-                                           const char          *szLabel,
-                                           uint8_t              uTagRequirement,
-                                           uint8_t              uQCBOR_Type,
-                                           uint64_t             uTagNumber,
-                                           UsefulBufC          *pString)
+QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext          *pMe,
+                                           const char                  *szLabel,
+                                           const enum QCBORDecodeTagReq uTagRequirement,
+                                           uint8_t                      uQCBOR_Type,
+                                           uint64_t                     uTagNumber,
+                                           UsefulBufC                  *pString)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -588,11 +589,11 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext  *pMe,
  * See QCBORDecode_EnterBstrWrapped() for details on uTagRequirement.
  */
 static QCBORError
-QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
-                                     const QCBORItem    *pItem,
-                                     const uint8_t       uTagRequirement,
-                                     const size_t        uOffset,
-                                     UsefulBufC         *pBstr)
+QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
+                                     const QCBORItem             *pItem,
+                                     const enum QCBORDecodeTagReq uTagRequirement,
+                                     const size_t                 uOffset,
+                                     UsefulBufC                  *pBstr)
 {
    bool       bTypeMatched;
    QCBORError uError;
@@ -683,9 +684,9 @@ Done:
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
-                             const uint8_t       uTagRequirement,
-                             UsefulBufC         *pBstr)
+QCBORDecode_EnterBstrWrapped(QCBORDecodeContext          *pMe,
+                             const enum QCBORDecodeTagReq uTagRequirement,
+                             UsefulBufC                  *pBstr)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -701,10 +702,10 @@ QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
-                                     const int64_t       nLabel,
-                                     const uint8_t       uTagRequirement,
-                                     UsefulBufC         *pBstr)
+QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext          *pMe,
+                                     const int64_t                nLabel,
+                                     const enum QCBORDecodeTagReq uTagRequirement,
+                                     UsefulBufC                  *pBstr)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -724,10 +725,10 @@ QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
-                                      const char         *szLabel,
-                                      const uint8_t       uTagRequirement,
-                                      UsefulBufC         *pBstr)
+QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext          *pMe,
+                                      const char                  *szLabel,
+                                      const enum QCBORDecodeTagReq uTagRequirement,
+                                      UsefulBufC                  *pBstr)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -778,9 +779,9 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
-                         uint8_t             uTagRequirement,
-                         int64_t            *pnTime)
+QCBORDecode_GetEpochDate(QCBORDecodeContext          *pMe,
+                         const enum QCBORDecodeTagReq uTagRequirement,
+                         int64_t                     *pnTime)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -799,10 +800,10 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
-                               int64_t             nLabel,
-                               uint8_t             uTagRequirement,
-                               int64_t            *pnTime)
+QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext          *pMe,
+                               int64_t                      nLabel,
+                               const enum QCBORDecodeTagReq uTagRequirement,
+                               int64_t                     *pnTime)
 {
    QCBORItem Item;
    size_t uOffset;
@@ -825,10 +826,10 @@ QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
-                                const char         *szLabel,
-                                uint8_t             uTagRequirement,
-                                int64_t            *pnTime)
+QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext          *pMe,
+                                const char                  *szLabel,
+                                const enum QCBORDecodeTagReq uTagRequirement,
+                                int64_t                     *pnTime)
 {
    QCBORItem Item;
    size_t uOffset;
@@ -851,9 +852,9 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
-                         uint8_t             uTagRequirement,
-                         int64_t            *pnDays)
+QCBORDecode_GetEpochDays(QCBORDecodeContext          *pMe,
+                         const enum QCBORDecodeTagReq uTagRequirement,
+                         int64_t                     *pnDays)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -872,10 +873,10 @@ QCBORDecode_GetEpochDays(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pMe,
-                               int64_t             nLabel,
-                               uint8_t             uTagRequirement,
-                               int64_t            *pnDays)
+QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext          *pMe,
+                               int64_t                      nLabel,
+                               const enum QCBORDecodeTagReq uTagRequirement,
+                               int64_t                     *pnDays)
 {
    QCBORItem Item;
    size_t uOffset;
@@ -898,10 +899,10 @@ QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pMe,
-                                const char         *szLabel,
-                                uint8_t             uTagRequirement,
-                                int64_t            *pnDays)
+QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext          *pMe,
+                                const char                  *szLabel,
+                                const enum QCBORDecodeTagReq uTagRequirement,
+                                int64_t                     *pnDays)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -925,12 +926,12 @@ QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext *pMe,
 
 
 static void
-QCBORDecode_Private_GetMIME(QCBORDecodeContext *pMe,
-                            const uint8_t       uTagRequirement,
-                            QCBORItem          *pItem,
-                            UsefulBufC         *pValue,
-                            bool               *pbIsTag257,
-                            size_t              uOffset)
+QCBORDecode_Private_GetMIME(QCBORDecodeContext          *pMe,
+                            const enum QCBORDecodeTagReq uTagRequirement,
+                            QCBORItem                   *pItem,
+                            UsefulBufC                  *pValue,
+                            bool                        *pbIsTag257,
+                            size_t                       uOffset)
 {
    QCBORError uErr;
 
@@ -964,10 +965,10 @@ QCBORDecode_Private_GetMIME(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
-                           const uint8_t       uTagRequirement,
-                           UsefulBufC         *pMessage,
-                           bool               *pbIsTag257)
+QCBORDecode_GetMIMEMessage(QCBORDecodeContext          *pMe,
+                           const enum QCBORDecodeTagReq uTagRequirement,
+                           UsefulBufC                  *pMessage,
+                           bool                        *pbIsTag257)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -983,11 +984,11 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
-                                 const int64_t       nLabel,
-                                 const uint8_t       uTagRequirement,
-                                 UsefulBufC         *pMessage,
-                                 bool               *pbIsTag257)
+QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext          *pMe,
+                                 const int64_t                nLabel,
+                                 const enum QCBORDecodeTagReq uTagRequirement,
+                                 UsefulBufC                  *pMessage,
+                                 bool                        *pbIsTag257)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -998,20 +999,20 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext *pMe,
                                             &Item,
                                             &uOffset);
    QCBORDecode_Private_GetMIME(pMe,
-                                uTagRequirement,
-                               &Item,
-                                pMessage,
-                                pbIsTag257,
-                                uOffset);
+                               uTagRequirement,
+                              &Item,
+                               pMessage,
+                               pbIsTag257,
+                               uOffset);
 }
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
-                                  const char         *szLabel,
-                                  const uint8_t       uTagRequirement,
-                                  UsefulBufC         *pMessage,
-                                  bool               *pbIsTag257)
+QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext          *pMe,
+                                  const char                  *szLabel,
+                                  const enum QCBORDecodeTagReq uTagRequirement,
+                                  UsefulBufC                  *pMessage,
+                                  bool                        *pbIsTag257)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -1022,11 +1023,11 @@ QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext *pMe,
                                              &Item,
                                              &uOffset);
    QCBORDecode_Private_GetMIME(pMe,
-                                uTagRequirement,
-                               &Item,
-                                pMessage,
-                                pbIsTag257,
-                                uOffset);
+                               uTagRequirement,
+                              &Item,
+                               pMessage,
+                               pbIsTag257,
+                               uOffset);
 }
 
 

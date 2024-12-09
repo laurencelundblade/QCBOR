@@ -2041,12 +2041,12 @@ static const uint8_t QCBORDecode_Private_BigNumberTypes[] = {
  * numbers.
  */
 static void
-QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext *pMe,
-                                     const uint8_t       uTagRequirement,
-                                     QCBORItem          *pItem,
-                                     UsefulBufC         *pBignumber,
-                                     bool               *pbIsNegative,
-                                     size_t              uOffset)
+QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext          *pMe,
+                                     const enum QCBORDecodeTagReq uTagRequirement,
+                                     QCBORItem                   *pItem,
+                                     UsefulBufC                  *pBignumber,
+                                     bool                        *pbIsNegative,
+                                     size_t                       uOffset)
 {
    QCBORDecode_Private_ProcessTagItemMulti(pMe,
                                            pItem,
@@ -2069,13 +2069,13 @@ QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext *pMe,
 
 
 static void
-QCBORDecode_Private_BigNumberNoPreferredMain(QCBORDecodeContext *pMe,
-                                             const uint8_t       uTagRequirement,
-                                             QCBORItem          *pItem,
-                                             const size_t        uOffset,
-                                             UsefulBuf           BigNumberBuf,
-                                             UsefulBufC         *pBigNumber,
-                                             bool               *pbIsNegative)
+QCBORDecode_Private_BigNumberNoPreferredMain(QCBORDecodeContext          *pMe,
+                                             const enum QCBORDecodeTagReq uTagRequirement,
+                                             QCBORItem                   *pItem,
+                                             const size_t                uOffset,
+                                             UsefulBuf                   BigNumberBuf,
+                                             UsefulBufC                 *pBigNumber,
+                                             bool                       *pbIsNegative)
 {
    QCBORDecode_Private_ProcessTagItemMulti(pMe,
                                            pItem,
@@ -2093,13 +2093,13 @@ QCBORDecode_Private_BigNumberNoPreferredMain(QCBORDecodeContext *pMe,
 
 
 static void
-QCBORDecode_Private_BigNumberMain(QCBORDecodeContext *pMe,
-                                  const uint8_t       uTagRequirement,
-                                  QCBORItem          *pItem,
-                                  const size_t        uOffset,
-                                  UsefulBuf           BigNumberBuf,
-                                  UsefulBufC         *pBigNumber,
-                                  bool               *pbIsNegative)
+QCBORDecode_Private_BigNumberMain(QCBORDecodeContext          *pMe,
+                                  const enum QCBORDecodeTagReq uTagRequirement,
+                                  QCBORItem                   *pItem,
+                                  const size_t                uOffset,
+                                  UsefulBuf                   BigNumberBuf,
+                                  UsefulBufC                 *pBigNumber,
+                                  bool                       *pbIsNegative)
 {
    QCBORDecode_Private_ProcessTagItemMulti(pMe,
                                            pItem,
@@ -2118,11 +2118,11 @@ QCBORDecode_Private_BigNumberMain(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumber(QCBORDecodeContext *pMe,
-                          const uint8_t       uTagRequirement,
-                          UsefulBuf           BigNumberBuf,
-                          UsefulBufC         *pBigNumber,
-                          bool               *pbIsNegative)
+QCBORDecode_GetTBigNumber(QCBORDecodeContext          *pMe,
+                          const enum QCBORDecodeTagReq uTagRequirement,
+                          UsefulBuf                    BigNumberBuf,
+                          UsefulBufC                  *pBigNumber,
+                          bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2133,12 +2133,12 @@ QCBORDecode_GetTBigNumber(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberInMapN(QCBORDecodeContext *pMe,
-                                const int64_t       nLabel,
-                                const uint8_t       uTagRequirement,
-                                UsefulBuf           BigNumberBuf,
-                                UsefulBufC         *pBigNumber,
-                                bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberInMapN(QCBORDecodeContext          *pMe,
+                                const int64_t                nLabel,
+                                const enum QCBORDecodeTagReq uTagRequirement,
+                                UsefulBuf                    BigNumberBuf,
+                                UsefulBufC                  *pBigNumber,
+                                bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2155,12 +2155,12 @@ QCBORDecode_GetTBigNumberInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext *pMe,
-                                 const char         *szLabel,
-                                 const uint8_t       uTagRequirement,
-                                 UsefulBuf           BigNumberBuf,
-                                 UsefulBufC         *pBigNumber,
-                                 bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext          *pMe,
+                                 const char                  *szLabel,
+                                 const enum QCBORDecodeTagReq uTagRequirement,
+                                 UsefulBuf                    BigNumberBuf,
+                                 UsefulBufC                  *pBigNumber,
+                                 bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2178,11 +2178,11 @@ QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext *pMe,
-                                     const uint8_t       uTagRequirement,
-                                     UsefulBuf           BigNumberBuf,
-                                     UsefulBufC         *pBigNumber,
-                                     bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext          *pMe,
+                                     const enum QCBORDecodeTagReq uTagRequirement,
+                                     UsefulBuf                    BigNumberBuf,
+                                     UsefulBufC                  *pBigNumber,
+                                     bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2193,12 +2193,12 @@ QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext *pMe,
-                                           const int64_t       nLabel,
-                                           const uint8_t       uTagRequirement,
-                                           UsefulBuf           BigNumberBuf,
-                                           UsefulBufC         *pBigNumber,
-                                           bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext          *pMe,
+                                           const int64_t                nLabel,
+                                           const enum QCBORDecodeTagReq uTagRequirement,
+                                           UsefulBuf                    BigNumberBuf,
+                                           UsefulBufC                  *pBigNumber,
+                                           bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2210,12 +2210,12 @@ QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pMe,
-                                            const char         *szLabel,
-                                            const uint8_t       uTagRequirement,
-                                            UsefulBuf           BigNumberBuf,
-                                            UsefulBufC         *pBigNumber,
-                                            bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext          *pMe,
+                                            const char                  *szLabel,
+                                            const enum QCBORDecodeTagReq uTagRequirement,
+                                            UsefulBuf                    BigNumberBuf,
+                                            UsefulBufC                  *pBigNumber,
+                                            bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2228,10 +2228,10 @@ QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext *pMe,
-                             const uint8_t       uTagRequirement,
-                             UsefulBufC         *pBignumber,
-                             bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext          *pMe,
+                             const enum QCBORDecodeTagReq uTagRequirement,
+                             UsefulBufC                  *pBignumber,
+                             bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2247,11 +2247,11 @@ QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberRawInMapN(QCBORDecodeContext *pMe,
-                                   const int64_t       nLabel,
-                                   const uint8_t       uTagRequirement,
-                                   UsefulBufC         *pBigNumber,
-                                   bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberRawInMapN(QCBORDecodeContext          *pMe,
+                                   const int64_t                nLabel,
+                                   const enum QCBORDecodeTagReq uTagRequirement,
+                                   UsefulBufC                  *pBigNumber,
+                                   bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2268,11 +2268,11 @@ QCBORDecode_GetTBigNumberRawInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigNumberRawInMapSZ(QCBORDecodeContext *pMe,
-                                    const char         *szLabel,
-                                    const uint8_t       uTagRequirement,
-                                    UsefulBufC         *pBigNumber,
-                                    bool               *pbIsNegative)
+QCBORDecode_GetTBigNumberRawInMapSZ(QCBORDecodeContext          *pMe,
+                                    const char                  *szLabel,
+                                    const enum QCBORDecodeTagReq uTagRequirement,
+                                    UsefulBufC                  *pBigNumber,
+                                    bool                        *pbIsNegative)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2367,13 +2367,13 @@ static const uint8_t QCBORDecode_Private_BigFloatTypes[] = {
  * same in QCBOR v1 and v2.
  */
 static void
-QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext  *pMe,
-                                       const uint8_t        uTagRequirement,
-                                       const uint64_t       uTagNumber,
-                                       const size_t         uOffset,
-                                       QCBORItem           *pItem,
-                                       int64_t             *pnMantissa,
-                                       int64_t             *pnExponent)
+QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
+                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       const uint64_t               uTagNumber,
+                                       const size_t                 uOffset,
+                                       QCBORItem                   *pItem,
+                                       int64_t                     *pnMantissa,
+                                       int64_t                     *pnExponent)
 {
    QCBORError     uErr;
    const uint8_t *qTypes;
@@ -2440,7 +2440,7 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext  *pMe,
 
 static void
 QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
-                                          const uint8_t        uTagRequirement,
+                                          const enum QCBORDecodeTagReq uTagRequirement,
                                           const uint64_t       uTagNumber,
                                           const size_t         uOffset,
                                           QCBORItem           *pItem,
@@ -2547,15 +2547,15 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
  * caller doesn't need to. This links more object code than QCBORDecode_Private_ProcessExpMantissaBig().
  */
 static void
-QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext  *pMe,
-                                       const uint8_t        uTagRequirement,
-                                       const uint64_t       uTagNumber,
-                                       const size_t         uOffset,
-                                       QCBORItem           *pItem,
-                                       const UsefulBuf      BufferForMantissa,
-                                       UsefulBufC          *pMantissa,
-                                       bool                *pbIsNegative,
-                                       int64_t             *pnExponent)
+QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
+                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       const uint64_t               uTagNumber,
+                                       const size_t                 uOffset,
+                                       QCBORItem                   *pItem,
+                                       const UsefulBuf              BufferForMantissa,
+                                       UsefulBufC                  *pMantissa,
+                                       bool                        *pbIsNegative,
+                                       int64_t                     *pnExponent)
 {
    QCBORError     uErr;
    QCBORItem      TempMantissa;
@@ -2632,10 +2632,10 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext  *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTDecimalFraction(QCBORDecodeContext *pMe,
-                                const uint8_t       uTagRequirement,
-                                int64_t             *pnMantissa,
-                                int64_t             *pnExponent)
+QCBORDecode_GetTDecimalFraction(QCBORDecodeContext          *pMe,
+                                const enum QCBORDecodeTagReq uTagRequirement,
+                                int64_t                     *pnMantissa,
+                                int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2653,11 +2653,11 @@ QCBORDecode_GetTDecimalFraction(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext *pMe,
-                                      const int64_t       nLabel,
-                                      const uint8_t       uTagRequirement,
-                                      int64_t             *pnMantissa,
-                                      int64_t             *pnExponent)
+QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext          *pMe,
+                                      const int64_t                nLabel,
+                                      const enum QCBORDecodeTagReq uTagRequirement,
+                                      int64_t                     *pnMantissa,
+                                      int64_t                     *pnExponent)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -2676,11 +2676,11 @@ QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
-                                       const char         *szLabel,
-                                       const uint8_t       uTagRequirement,
-                                       int64_t             *pnMantissa,
-                                       int64_t             *pnExponent)
+QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext          *pMe,
+                                       const char                  *szLabel,
+                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       int64_t                     *pnMantissa,
+                                       int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2698,12 +2698,12 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pMe,
-                                           const uint8_t       uTagRequirement,
-                                           const UsefulBuf     MantissaBuffer,
-                                           UsefulBufC         *pMantissa,
-                                           bool               *pbMantissaIsNegative,
-                                           int64_t            *pnExponent)
+QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext          *pMe,
+                                           const enum QCBORDecodeTagReq uTagRequirement,
+                                           const UsefulBuf              MantissaBuffer,
+                                           UsefulBufC                  *pMantissa,
+                                           bool                        *pbMantissaIsNegative,
+                                           int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2725,7 +2725,7 @@ QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
                                                  const int64_t       nLabel,
-                                                 const uint8_t       uTagRequirement,
+                                                 const enum QCBORDecodeTagReq uTagRequirement,
                                                  const UsefulBuf     BufferForMantissa,
                                                  UsefulBufC         *pMantissa,
                                                  bool               *pbIsNegative,
@@ -2751,7 +2751,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
                                                   const char         *szLabel,
-                                                  const uint8_t       uTagRequirement,
+                                                  const enum QCBORDecodeTagReq uTagRequirement,
                                                   const UsefulBuf     BufferForMantissa,
                                                   UsefulBufC         *pMantissa,
                                                   bool               *pbIsNegative,
@@ -2775,7 +2775,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
-                                              const uint8_t       uTagRequirement,
+                                              const enum QCBORDecodeTagReq uTagRequirement,
                                               const UsefulBuf     MantissaBuffer,
                                               UsefulBufC         *pMantissa,
                                               bool               *pbMantissaIsNegative,
@@ -2799,13 +2799,13 @@ QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pMe,
-                                                    const int64_t       nLabel,
-                                                    const uint8_t       uTagRequirement,
-                                                    const UsefulBuf     BufferForMantissa,
-                                                    UsefulBufC         *pMantissa,
-                                                    bool               *pbIsNegative,
-                                                    int64_t            *pnExponent)
+QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext          *pMe,
+                                                    const int64_t                nLabel,
+                                                    const enum QCBORDecodeTagReq uTagRequirement,
+                                                    const UsefulBuf              BufferForMantissa,
+                                                    UsefulBufC                  *pMantissa,
+                                                    bool                        *pbIsNegative,
+                                                    int64_t                     *pnExponent)
 {
    QCBORItem Item;
    size_t    uOffset;
@@ -2827,7 +2827,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
                                                      const char         *szLabel,
-                                                     const uint8_t       uTagRequirement,
+                                                     const enum QCBORDecodeTagReq uTagRequirement,
                                                      const UsefulBuf     BufferForMantissa,
                                                      UsefulBufC         *pMantissa,
                                                      bool               *pbIsNegative,
@@ -2851,10 +2851,10 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigFloat(QCBORDecodeContext *pMe,
-                         const uint8_t       uTagRequirement,
-                         int64_t             *pnMantissa,
-                         int64_t             *pnExponent)
+QCBORDecode_GetTBigFloat(QCBORDecodeContext          *pMe,
+                         const enum QCBORDecodeTagReq uTagRequirement,
+                         int64_t                     *pnMantissa,
+                         int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2872,11 +2872,11 @@ QCBORDecode_GetTBigFloat(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pMe,
-                               const int64_t       nLabel,
-                               const uint8_t       uTagRequirement,
-                               int64_t            *pnMantissa,
-                               int64_t            *pnExponent)
+QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext          *pMe,
+                               const int64_t                nLabel,
+                               const enum QCBORDecodeTagReq uTagRequirement,
+                               int64_t                     *pnMantissa,
+                               int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2894,11 +2894,11 @@ QCBORDecode_GetTBigFloatInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext *pMe,
-                                const char         *szLabel,
-                                const uint8_t       uTagRequirement,
-                                int64_t            *pnMantissa,
-                                int64_t            *pnExponent)
+QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext          *pMe,
+                                const char                  *szLabel,
+                                const enum QCBORDecodeTagReq uTagRequirement,
+                                int64_t                     *pnMantissa,
+                                int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2916,8 +2916,8 @@ QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext *pMe,
-                                    const uint8_t       uTagRequirement,
+QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext          *pMe,
+                                    const enum QCBORDecodeTagReq uTagRequirement,
                                     const UsefulBuf     MantissaBuffer,
                                     UsefulBufC         *pMantissa,
                                     bool               *pbMantissaIsNegative,
@@ -2944,7 +2944,7 @@ QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
                                           const int64_t       nLabel,
-                                          const uint8_t       uTagRequirement,
+                                          const enum QCBORDecodeTagReq uTagRequirement,
                                           const UsefulBuf     BufferForMantissa,
                                           UsefulBufC         *pMantissa,
                                           bool               *pbIsNegative,
@@ -2968,13 +2968,13 @@ QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext *pMe,
-                                           const char         *szLabel,
-                                           const uint8_t       uTagRequirement,
-                                           const UsefulBuf     BufferForMantissa,
-                                           UsefulBufC         *pMantissa,
-                                           bool               *pbIsNegative,
-                                           int64_t            *pnExponent)
+QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext          *pMe,
+                                           const char                  *szLabel,
+                                           const enum QCBORDecodeTagReq uTagRequirement,
+                                           const UsefulBuf              BufferForMantissa,
+                                           UsefulBufC                  *pMantissa,
+                                           bool                        *pbIsNegative,
+                                           int64_t                     *pnExponent)
 {
    QCBORItem  Item;
    size_t     uOffset;
@@ -2995,7 +2995,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext *pMe,
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
-                                       const uint8_t       uTagRequirement,
+                                       const enum QCBORDecodeTagReq uTagRequirement,
                                        const UsefulBuf     MantissaBuffer,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
@@ -3020,7 +3020,7 @@ QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
                                              const int64_t       nLabel,
-                                             const uint8_t       uTagRequirement,
+                                             const enum QCBORDecodeTagReq uTagRequirement,
                                              const UsefulBuf     BufferForMantissa,
                                              UsefulBufC         *pMantissa,
                                              bool               *pbIsNegative,
@@ -3044,13 +3044,13 @@ QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
 
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
-QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
-                                              const char         *szLabel,
-                                              const uint8_t       uTagRequirement,
-                                              const UsefulBuf     BufferForMantissa,
-                                              UsefulBufC         *pMantissa,
-                                              bool               *pbIsNegative,
-                                              int64_t            *pnExponent)
+QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext          *pMe,
+                                              const char                  *szLabel,
+                                              const enum QCBORDecodeTagReq uTagRequirement,
+                                              const UsefulBuf              BufferForMantissa,
+                                              UsefulBufC                  *pMantissa,
+                                              bool                        *pbIsNegative,
+                                              int64_t                     *pnExponent)
 {
    QCBORItem Item;
    size_t    uOffset;
