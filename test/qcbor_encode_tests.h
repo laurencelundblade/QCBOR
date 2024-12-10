@@ -1,6 +1,7 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
  Copyright (c) 2018-2024, Laurence Lundblade.
+ Copyright (c) 2024, Arm Limited. All rights reserved.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -206,5 +207,6 @@ int32_t DCBORTest(void);
 
 int32_t SubStringTest(void);
 
+int32_t ExternalBufferTest(void);
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
