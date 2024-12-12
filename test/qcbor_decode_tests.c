@@ -33,7 +33,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcbor_decode_tests.h"
 #include "qcbor/qcbor_encode.h"
-#include "qcbor/qcbor_decode.h"
+#include "qcbor/qcbor_main_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "qcbor/qcbor_number_decode.h"
 #include "qcbor/qcbor_tag_decode.h"

@@ -31,21 +31,32 @@ extern "C" {
  * @file qcbor_number_decode.h
  */
 
-/** Conversion will proceed if the CBOR item to be decoded is an
- *  integer or either type 0 (unsigned) or type 1 (negative). */
-#define QCBOR_CONVERT_TYPE_XINT64           0x01
-/** Conversion will proceed if the CBOR item to be decoded is either
- *  double, single or half-precision floating-point (major type 7). */
-#define QCBOR_CONVERT_TYPE_FLOAT            0x02
-/** Conversion will proceed if the CBOR item to be decoded is a big
- *  number, positive or negative (tag 2 or tag 3). */
-#define QCBOR_CONVERT_TYPE_BIG_NUM          0x04
-/** Conversion will proceed if the CBOR item to be decoded is a
- *  decimal fraction (tag 4). */
-#define QCBOR_CONVERT_TYPE_DECIMAL_FRACTION 0x08
-/** Conversion will proceed if the CBOR item to be decoded is a big
- *  float (tag 5). */
-#define QCBOR_CONVERT_TYPE_BIGFLOAT         0x10
+
+/** Bit flags to indicate what types of number conversions should be
+    performed. */
+enum QCBORDecodeNumberConvert {
+
+    /** Conversion will proceed if the CBOR item to be decoded is an
+     *  integer or either type 0 (unsigned) or type 1 (negative). */
+    QCBOR_CONVERT_TYPE_XINT64 = 0x01,
+
+    /** Conversion will proceed if the CBOR item to be decoded is
+     *  either double, single or half-precision floating-point (major
+     *  type 7). */
+    QCBOR_CONVERT_TYPE_FLOAT = 0x02,
+
+    /** Conversion will proceed if the CBOR item to be decoded is a
+     *  big number, positive or negative (tag 2 or tag 3). */
+    QCBOR_CONVERT_TYPE_BIG_NUM = 0x04,
+
+    /** Conversion will proceed if the CBOR item to be decoded is a
+     *  decimal fraction (tag 4). */
+    QCBOR_CONVERT_TYPE_DECIMAL_FRACTION = 0x08,
+
+    /** Conversion will proceed if the CBOR item to be decoded is a
+     *  big float (tag 5). */
+    QCBOR_CONVERT_TYPE_BIGFLOAT = 0x10
+};
 
 
 
@@ -90,7 +101,7 @@ QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
  * @brief Decode next item into a signed 64-bit integer with basic conversions.
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  The integer conversion options.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] pnValue       The returned 64-bit signed integer.
  *
  * @c uConvertTypes controls what conversions this will perform and
@@ -124,21 +135,21 @@ QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
  * object code to your executable.
  */
 static void
-QCBORDecode_GetInt64Convert(QCBORDecodeContext *pCtx,
-                            uint32_t            uConvertTypes,
-                            int64_t            *pnValue);
+QCBORDecode_GetInt64Convert(QCBORDecodeContext           *pCtx,
+                            enum QCBORDecodeNumberConvert  uConvertTypes,
+                            int64_t                      *pnValue);
 
 static void
-QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext *pCtx,
-                                  int64_t             nLabel,
-                                  uint32_t            uConvertTypes,
-                                  int64_t            *pnValue);
+QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
+                                  int64_t                       nLabel,
+                                  enum QCBORDecodeNumberConvert  uConvertTypes,
+                                  int64_t                       *pnValue);
 
 static void
-QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                   const char         *szLabel,
-                                   uint32_t            uConvertTypes,
-                                   int64_t            *pnValue);
+QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
+                                   const char                   *szLabel,
+                                   enum QCBORDecodeNumberConvert  uConvertTypes,
+                                   int64_t                      *pnValue);
 
 
 
@@ -147,7 +158,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * @brief Decode next item into a signed 64-bit integer with conversions.
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  The integer conversion options.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] pnValue       The returned 64-bit signed integer.
  *
  * This is the same as QCBORDecode_GetInt64Convert() but additionally
@@ -181,21 +192,21 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * number types this decodes are tags).
  */
 void
-QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext *pCtx,
-                               uint32_t            uConvertTypes,
-                               int64_t            *pnValue);
+QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext            *pCtx,
+                               enum QCBORDecodeNumberConvert  uConvertTypes,
+                               int64_t                       *pnValue);
 
 void
-QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext *pCtx,
-                                     int64_t             nLabel,
-                                     uint32_t            uConvertTypes,
-                                     int64_t            *pnValue);
+QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext            *pCtx,
+                                     int64_t                        nLabel,
+                                     enum QCBORDecodeNumberConvert  uConvertTypes,
+                                     int64_t                       *pnValue);
 
 void
-QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
-                                      const char         *szLabel,
-                                      uint32_t            uConvertTypes,
-                                      int64_t            *pnValue);
+QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
+                                      const char                    *szLabel,
+                                      enum QCBORDecodeNumberConvert  uConvertTypes,
+                                      int64_t                       *pnValue);
 
 
 /**
@@ -234,7 +245,7 @@ QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx,
  *        conversions.
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  The integer conversion options.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] puValue       The returned 64-bit unsigned integer.
  *
  * This is the same as QCBORDecode_GetInt64Convert(), but returns an
@@ -255,28 +266,28 @@ QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx,
  * QCBORDecode_GetUInt64ConvertAll().
  */
 static void
-QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pCtx,
-                             uint32_t            uConvertTypes,
-                             uint64_t           *puValue);
+QCBORDecode_GetUInt64Convert(QCBORDecodeContext            *pCtx,
+                             enum QCBORDecodeNumberConvert  uConvertTypes,
+                             uint64_t                      *puValue);
 
 static void
-QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext *pCtx,
-                                   int64_t             nLabel,
-                                   uint32_t            uConvertTypes,
-                                   uint64_t           *puValue);
+QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext            *pCtx,
+                                   int64_t                        nLabel,
+                                   enum QCBORDecodeNumberConvert  uConvertTypes,
+                                   uint64_t                      *puValue);
 
 static void
-QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                    const char         *szLabel,
-                                    uint32_t            uConvertTypes,
-                                    uint64_t           *puValue);
+QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext            *pCtx,
+                                    const char                    *szLabel,
+                                    enum QCBORDecodeNumberConvert  uConvertTypes,
+                                    uint64_t                      *puValue);
 
 
 /**
  * @brief Decode next item into an unsigned 64-bit integer with conversions
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  The integer conversion options.
+ * @param[in] uConvertTypes  TSee @ref QCBORDecodeNumberConvert.
  * @param[out] puValue       The returned 64-bit unsigned integer.
  *
  * This is the same as QCBORDecode_GetInt64ConvertAll(), but returns
@@ -286,21 +297,21 @@ QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
  * See also QCBORDecode_GetUInt64() and QCBORDecode_GetUInt64Convert().
  */
 void
-QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext *pCtx,
-                                uint32_t            uConvertTypes,
-                                uint64_t           *puValue);
+QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext            *pCtx,
+                                enum QCBORDecodeNumberConvert  uConvertTypes,
+                                uint64_t                      *puValue);
 
 void
-QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext *pCtx,
-                                      int64_t             nLabel,
-                                      uint32_t            uConvertTypes,
-                                      uint64_t           *puValue);
+QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext            *pCtx,
+                                      int64_t                        nLabel,
+                                      enum QCBORDecodeNumberConvert  uConvertTypes,
+                                      uint64_t                      *puValue);
 
 void
-QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext *pCtx,
-                                       const char         *szLabel,
-                                       uint32_t            uConvertTypes,
-                                       uint64_t           *puValue);
+QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
+                                       const char                    *szLabel,
+                                       enum QCBORDecodeNumberConvert  uConvertTypes,
+                                       uint64_t                      *puValue);
 
 
 
@@ -346,7 +357,7 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  * @brief Decode next item into a double floating-point with basic conversion.
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  The integer conversion options.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] pdValue       The returned floating-point value.
  *
  * This will decode CBOR integer and floating-point numbers, returning
@@ -375,28 +386,28 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  * See also QCBORDecode_GetDouble() and QCBORDecode_GetDoubleConvertAll().
  */
 static void
-QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pCtx,
-                             uint32_t            uConvertTypes,
-                             double             *pdValue);
+QCBORDecode_GetDoubleConvert(QCBORDecodeContext           *pCtx,
+                             enum QCBORDecodeNumberConvert uConvertTypes,
+                             double                       *pdValue);
 
 static void
-QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
-                                   int64_t             nLabel,
-                                   uint32_t            uConvertTypes,
-                                   double             *pdValue);
+QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext           *pCtx,
+                                   int64_t                       nLabel,
+                                   enum QCBORDecodeNumberConvert uConvertTypes,
+                                   double                        *pdValue);
 
 static void
-QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                    const char         *szLabel,
-                                    uint32_t            uConvertTypes,
-                                    double             *pdValue);
+QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext          *pCtx,
+                                    const char                   *szLabel,
+                                    enum QCBORDecodeNumberConvert uConvertTypes,
+                                    double                       *pdValue);
 
 
 /**
  * @brief Decode next item as a double floating-point value with conversion.
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  The integer conversion options.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] pdValue       The returned floating-point value.
  *
  * This is the same as QCBORDecode_GetDoubleConvert() but supports
@@ -416,21 +427,21 @@ QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
  * See also QCBORDecode_GetDoubleConvert() and QCBORDecode_GetDoubleConvert().
  */
 void
-QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext *pCtx,
-                                uint32_t            uConvertTypes,
-                                double             *pdValue);
+QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext                 *pCtx,
+                                const enum QCBORDecodeNumberConvert uConvertTypes,
+                                double                             *pdValue);
 
 void
-QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext *pCtx,
-                                      int64_t             nLabel,
-                                      uint32_t            uConvertTypes,
-                                      double             *pdValue);
+QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext                 *pCtx,
+                                      int64_t                             nLabel,
+                                      const enum QCBORDecodeNumberConvert uConvertTypes,
+                                      double                             *pdValue);
 
 void
-QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pCtx,
-                                       const char         *szLabel,
-                                       uint32_t            uConvertTypes,
-                                       double             *pdValue);
+QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
+                                       const char                         *szLabel,
+                                       const enum QCBORDecodeNumberConvert uConvertTypes,
+                                       double                             *pdValue);
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 /**
@@ -1410,92 +1421,92 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext *pCtx,
-                                     uint32_t            uConvertTypes,
-                                     uint64_t           *puValue,
-                                     QCBORItem          *pItem);
+QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext           *pCtx,
+                                     enum QCBORDecodeNumberConvert uConvertTypes,
+                                     uint64_t                     *puValue,
+                                     QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext *pCtx,
-                                           int64_t             nLabel,
-                                           uint32_t            uConvertTypes,
-                                           uint64_t           *puValue,
-                                           QCBORItem          *pItem);
+QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
+                                           int64_t                       nLabel,
+                                           enum QCBORDecodeNumberConvert uConvertTypes,
+                                           uint64_t                     *puValue,
+                                           QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                            const char         *szLabel,
-                                            uint32_t            uConvertTypes,
-                                            uint64_t           *puValue,
-                                            QCBORItem          *pItem);
+QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
+                                            const char                   *szLabel,
+                                            enum QCBORDecodeNumberConvert uConvertTypes,
+                                            uint64_t                     *puValue,
+                                            QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext *pCtx,
-                                    uint32_t            uConvertTypes,
-                                    int64_t            *pnValue,
-                                    QCBORItem          *pItem);
+QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext           *pCtx,
+                                    enum QCBORDecodeNumberConvert uConvertTypes,
+                                    int64_t                      *pnValue,
+                                    QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext *pCtx,
-                                          int64_t             nLabel,
-                                          uint32_t            uConvertTypes,
-                                          int64_t            *pnValue,
-                                          QCBORItem          *pItem);
+QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
+                                          int64_t                       nLabel,
+                                          enum QCBORDecodeNumberConvert uConvertTypes,
+                                          int64_t                      *pnValue,
+                                          QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                           const char         *szLabel,
-                                           uint32_t            uConvertTypes,
-                                           int64_t            *pnValue,
-                                           QCBORItem          *pItem);
+QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
+                                           const char                   *szLabel,
+                                           enum QCBORDecodeNumberConvert uConvertTypes,
+                                           int64_t                      *pnValue,
+                                           QCBORItem                    *pItem);
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext *pCtx,
-                                     uint32_t            uConvertTypes,
-                                     double             *pValue,
-                                     QCBORItem          *pItem);
+QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext           *pCtx,
+                                     enum QCBORDecodeNumberConvert uConvertTypes,
+                                     double                       *pValue,
+                                     QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext *pCtx,
-                                           int64_t             nLabel,
-                                           uint32_t            uConvertTypes,
-                                           double             *pdValue,
-                                           QCBORItem          *pItem);
+QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext           *pCtx,
+                                           int64_t                       nLabel,
+                                           enum QCBORDecodeNumberConvert uConvertTypes,
+                                           double                       *pdValue,
+                                           QCBORItem                    *pItem);
 
 /* Semi-private. See qcbor_number_decode.c */
 void
-QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext *pCtx,
-                                            const char         *szLabel,
-                                            uint32_t            uConvertTypes,
-                                            double             *pdValue,
-                                            QCBORItem          *pItem);
+QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext           *pCtx,
+                                            const char                   *szLabel,
+                                            enum QCBORDecodeNumberConvert uConvertTypes,
+                                            double                       *pdValue,
+                                            QCBORItem                    *pItem);
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 
 static inline void
-QCBORDecode_GetUInt64Convert(QCBORDecodeContext *pMe,
-                             const uint32_t     uConvertTypes,
-                             uint64_t           *puValue)
+QCBORDecode_GetUInt64Convert(QCBORDecodeContext                  *pMe,
+                             const enum QCBORDecodeNumberConvert  uConvertTypes,
+                             uint64_t                            *puValue)
 {
     QCBORItem Item;
     QCBORDecode_Private_GetUInt64Convert(pMe, uConvertTypes, puValue, &Item);
 }
 
 static inline void
-QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext *pMe,
-                                   const int64_t       nLabel,
-                                   const uint32_t      uConvertTypes,
-                                   uint64_t           *puValue)
+QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext                  *pMe,
+                                   const int64_t                        nLabel,
+                                   const enum QCBORDecodeNumberConvert  uConvertTypes,
+                                   uint64_t                            *puValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetUInt64ConvertInMapN(pMe,
@@ -1506,10 +1517,10 @@ QCBORDecode_GetUInt64ConvertInMapN(QCBORDecodeContext *pMe,
 }
 
 static inline void
-QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
-                                    const char         *szLabel,
-                                    const uint32_t     uConvertTypes,
-                                    uint64_t           *puValue)
+QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext                 *pMe,
+                                    const char                         *szLabel,
+                                    const enum QCBORDecodeNumberConvert uConvertTypes,
+                                    uint64_t                           *puValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetUInt64ConvertInMapSZ(pMe,
@@ -1550,19 +1561,19 @@ QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pMe,
 
 
 static inline void
-QCBORDecode_GetInt64Convert(QCBORDecodeContext *pMe,
-                            const uint32_t      uConvertTypes,
-                            int64_t            *pnValue)
+QCBORDecode_GetInt64Convert(QCBORDecodeContext                *pMe,
+                            const enum QCBORDecodeNumberConvert uConvertTypes,
+                            int64_t                           *pnValue)
 {
     QCBORItem Item;
     QCBORDecode_Private_GetInt64Convert(pMe, uConvertTypes, pnValue, &Item);
 }
 
 static inline void
-QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext *pMe,
-                                  const int64_t       nLabel,
-                                  const uint32_t      uConvertTypes,
-                                  int64_t            *pnValue)
+QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext                *pMe,
+                                  const int64_t                      nLabel,
+                                  const enum QCBORDecodeNumberConvert uConvertTypes,
+                                  int64_t                           *pnValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetInt64ConvertInMapN(pMe,
@@ -1573,10 +1584,10 @@ QCBORDecode_GetInt64ConvertInMapN(QCBORDecodeContext *pMe,
 }
 
 static inline void
-QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext *pMe,
-                                   const char         *szLabel,
-                                   const uint32_t     uConvertTypes,
-                                   int64_t            *pnValue)
+QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext                *pMe,
+                                   const char                        *szLabel,
+                                   const enum QCBORDecodeNumberConvert uConvertTypes,
+                                   int64_t                            *pnValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetInt64ConvertInMapSZ(pMe,
@@ -1618,19 +1629,19 @@ QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pMe,
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 static inline void
-QCBORDecode_GetDoubleConvert(QCBORDecodeContext *pMe,
-                             const uint32_t      uConvertTypes,
-                             double             *pdValue)
+QCBORDecode_GetDoubleConvert(QCBORDecodeContext                 *pMe,
+                             const enum QCBORDecodeNumberConvert uConvertTypes,
+                             double                             *pdValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetDoubleConvert(pMe, uConvertTypes, pdValue, &Item);
 }
 
 static inline void
-QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pMe,
-                                   const int64_t       nLabel,
-                                   uint32_t            uConvertTypes,
-                                   double             *pdValue)
+QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext                 *pMe,
+                                   const int64_t                       nLabel,
+                                   const enum QCBORDecodeNumberConvert uConvertTypes,
+                                   double                             *pdValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetDoubleConvertInMapN(pMe,
@@ -1641,10 +1652,10 @@ QCBORDecode_GetDoubleConvertInMapN(QCBORDecodeContext *pMe,
 }
 
 static inline void
-QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext *pMe,
-                                    const char         *szLabel,
-                                    const uint32_t      uConvertTypes,
-                                    double             *pdValue)
+QCBORDecode_GetDoubleConvertInMapSZ(QCBORDecodeContext                 *pMe,
+                                    const char                         *szLabel,
+                                    const enum QCBORDecodeNumberConvert uConvertTypes,
+                                    double                             *pdValue)
 {
    QCBORItem Item;
    QCBORDecode_Private_GetDoubleConvertInMapSZ(pMe,
