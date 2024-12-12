@@ -383,7 +383,7 @@ QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext                 *pMe,
  *
  * @param[in] pMe            The decode context.
  * @param[in] nLabel         Label to find in map.
- * @param[in] uConvertTypes  BSee @ref QCBORDecodeNumberConvert.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] puValue       Result of the conversion.
  * @param[in,out] pItem      Temporary space to store Item, returned item.
  *

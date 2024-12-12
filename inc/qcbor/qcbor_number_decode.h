@@ -287,7 +287,7 @@ QCBORDecode_GetUInt64ConvertInMapSZ(QCBORDecodeContext            *pCtx,
  * @brief Decode next item into an unsigned 64-bit integer with conversions
  *
  * @param[in] pCtx           The decode context.
- * @param[in] uConvertTypes  TSee @ref QCBORDecodeNumberConvert.
+ * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
  * @param[out] puValue       The returned 64-bit unsigned integer.
  *
  * This is the same as QCBORDecode_GetInt64ConvertAll(), but returns
