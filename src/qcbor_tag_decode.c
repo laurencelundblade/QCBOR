@@ -292,8 +292,6 @@ QCBORDecode_Private_CheckTagNType(QCBORDecodeContext          *pMe,
                                   const enum QCBORDecodeTagReq uTagRequirement,
                                   bool                        *bTypeMatched)
 {
-   const uint64_t *pQType;
-   const uint64_t *pTNum;
    const uint8_t  *pTypeNum;
 
    const enum QCBORDecodeTagReq nTagReq = (enum QCBORDecodeTagReq)((int)uTagRequirement & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS);
@@ -308,8 +306,11 @@ QCBORDecode_Private_CheckTagNType(QCBORDecodeContext          *pMe,
    }
 
 #ifndef QCBOR_DISABLE_TAGS
-   bool        bTagNumberMatched;
-   QCBORError  uErr;
+   bool            bTagNumberMatched;
+   QCBORError      uErr;
+   const uint64_t *pQType;
+   const uint64_t *pTNum;
+
    const uint64_t uInnerTag = QCBORDecode_GetNthTagNumber(pMe, pItem, 0);
 
    bTagNumberMatched = false;
