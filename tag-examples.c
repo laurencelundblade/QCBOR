@@ -141,6 +141,8 @@ GetIPAddr(QCBORDecodeContext *pDecodeCtx,
                 goto Done;
         }
     }
+#else
+    (void)bMustBeTag;
 #endif /* ! QCBOR_DISABLE_TAGS */
 
 

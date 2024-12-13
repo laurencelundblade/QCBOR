@@ -1,29 +1,78 @@
-This is the QCBOR 2.0 branch. It is under development and not ready for use.
-
-The plan for QCBOR 2 is a few larger features:
-  - Map sorting
-  - Full canonical encoding support (CDE)
-  - Improved support for tag handling
-  - Perhaps other features like OID support
-  - Perhaps dCBOR support
-  - Improved test and verification
-  - Improved documentation
-  - Better presence in GitHub
-
-The improved tag handling is one of the largest work items and may change
-backwards compatibility.
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
+
+## QCBOR 2.0 Alpha
+
+This is a QCBOR 2.0 alpha release. It is suitable for test and prototyping,
+but not commerical use. The planned 2.0 changes are in, but they are
+not fully tested or documented. The interface is also subject to change.
+
+QCBOR 2.0 is compatible with 1.0 with one exception that can be overriden
+with a call to QCBORDecode_Compatibilityv1().
+
+Please file issues found with this release in GitHub.
+
+### Major Changes
+
+* Unexpected tag numbers are not silently ignored unless in v1 compatibility
+mode. This is more correct decoding behavior.
+
+* New API to explicitly decode tag numbers to make tag numbers easier to 
+work with.
+
+* Plug-in API scheme for custom tag content processors.
+
+* Sort maps and check for duplicate labels when encoding.
+
+* Encode modes for dCBOR, CDE and Preferred Serialization.
+
+* Decode modes that check for conformance with dCBOR, CDE and Preferred Serialization.
+
+* Full support for preferred serialization of big numbers, decimal fractions and big numbers.
+
+* Full support for 65-bit negative integers.
+
+* The decoding interface is split into four files (sources files are too).
+
+### Compatibility with QCBOR v1
+
+QCBOR v1 does not error out when a tag number occurs where it is not
+expected. QCBOR v2 does. Tag numbers really do change the type of an
+item, so it is more correct to error out.
+
+For many protocols, the v2 behavior produces a more correct implementation,
+so it is often better to not return to QCBOR v1 behavior.
+
+Another difference is that the tag content decoders for big numbers,
+big floats, URIs and such are not enabled by default. These are 
+what notices the things like the big number and big float tags,
+decodes them and turns them into QCBOR types for big numbers and floats.
+
+QCBORDecode_Compatibilityv1() disables the error out on unprocessed
+tag numbers and installs the same tag content decoders that v1 had.
+
+The tag number decoders can be installed with the retention of 
+erroring out on unprocessed tag numbers by calling
+QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
+
+QCBOR v2 requires tag numbers to be consumed in one of three ways.
+It may be consumed explicitly with QCBORDecode_GetNextTagNumber(). 
+It may be consumed by a tag content process or like QCBORDecode_DateEpochTagCB()
+installed with QCBORDecode_InstallTagDecoders(). It may be
+consumed with a spiffy decode function like QCBORDecode_GetTBigNumber().
+
 
 **QCBOR** is a powerful, commercial-quality CBOR encoder-decoder that
 implements these RFCs:
 
 * [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Nearly everything
-except sorting of encoded maps)
+except full (complex) duplicate detection))
 * [RFC7049](https://tools.ietf.org/html/rfc7049) The previous CBOR standard.
 Replaced by RFC 8949.
 * [RFC8742](https://tools.ietf.org/html/rfc8742) CBOR Sequences
 * [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
+* [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
+* [dCBOR](https://www.ietf.org/archive/id/draft-mcnally-deterministic-cbor-11.html) "dCBOR, deterministic encoding"
 
 ## QCBOR Characteristics
 
@@ -80,60 +129,6 @@ Replaced by RFC 8949.
 **Comprehensive test suite** – Easy to verify on a new platform or OS
   with the test suite. The test suite dependencies are minimal and the
   same as the library's.
-
-## Spiffy Decode
-
-These are functions to decode particular data types. They are an
-alternative to and built on top of QCBORDecode_GetNext(). They do type
-checking and in some cases sophisticated type conversion.
-
-Spiffy decode supports easier map and array decoding. A map can be
-descended into with QCBORDecode_EnterMap(). When a map has been
-entered, members can be retrieved by label.  Detection of duplicate
-map labels, an error, is automatically performed.
-
-An internal error state is maintained. This simplifies the decode
-implementation as an error check is only needed at the end of the
-decode, rather than on every function.
-
-An outcome is that decoding implementations are simple and involve
-many fewer lines of code. They also tend to parallel the encoding
-implementations as seen in the following example.
-
-     /* Encode */
-     QCBOREncode_Init(&EncodeCtx, Buffer);
-     QCBOREncode_OpenMap(&EncodeCtx);
-     QCBOREncode_AddTextToMapSZ(&EncodeCtx, "Manufacturer", pE->Manufacturer);
-     QCBOREncode_AddInt64ToMapSZ(&EncodeCtx, "Displacement", pE->uDisplacement);
-     QCBOREncode_AddInt64ToMapSZ(&EncodeCtx, "Horsepower", pE->uHorsePower);
-     QCBOREncode_CloseMap(&EncodeCtx);
-     uErr = QCBOREncode_Finish(&EncodeCtx, &EncodedEngine);
-
-     /* Decode */
-     QCBORDecode_Init(&DecodeCtx, EncodedEngine, QCBOR_DECODE_MODE_NORMAL);
-     QCBORDecode_EnterMap(&DecodeCtx);
-     QCBORDecode_GetTextStringInMapSZ(&DecodeCtx, "Manufacturer", &(pE->Manufacturer));
-     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Displacement", &(pE->uDisplacement));
-     QCBORDecode_GetInt64InMapSZ(&DecodeCtx, "Horsepower", &(pE->uHorsePower));
-     QCBORDecode_ExitMap(&DecodeCtx);
-     uErr = QCBORDecode_Finish(&DecodeCtx);
-
-The spiffy decode functions will handle definite and indefinite length
-maps and arrays without the caller having to do anything. This
-includes mixed definite and indefinte maps and arrays. (Some work
-remains to support map searching with indefinite length strings.)
-
-## v2
-
-** Tag decoding
-
-** Map Sorting
-
-** Serialization Modes
-
-** Files Rearrangement
-
-** Bignumber ?? 
 
 
 ## Comparison to TinyCBOR
@@ -196,14 +191,15 @@ QCBOR.
 
 ## Code Status
 
-The official current release is version 1.4.1 Changes over the last few
-years have been only minor bug fixes, minor feature additions and
-documentation improvements. QCBOR 1.x is highly stable.
+This is the 2.0 alpha release. It has large changes and feature
+additions. It's not ready for commericial use yet. The main short
+coming the need for more testing of the newer features. It will
+go through alpha, then to beta and then to an official 2.0
+commerical release sometimes in 2025.
 
-Work on some larger feature additions is ongoing in "dev" branch.
-This includes more explicit support for preferred serialization and
-CDE (CBOR Deterministic Encoding).  It will eventually be release as
-QCBOR 2.x.
+The official QCBOR commercial quality release (as of this writing) is QCBOR 1.5. It
+is very stable. Only small fixes and features additions have been
+made to it over the last years.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
@@ -211,47 +207,28 @@ permissive Linux license, September 2018 (thanks Qualcomm!).
 
 ## Building
 
-There is a simple makefile for the UNIX style command line binary that
-compiles everything to run the tests. CMake is also available, please read
+The library is built solely from the src and inc directores. The inc directory
+contains the public interface. The test app and such are in other
+directories.
+
+There is a basic makefile that will build the library and command 
+line test app. CMake is also available, please read
 the "Building with CMake" section for more information.
 
-These eleven files, the contents of the src and inc directories, make
-up the entire implementation.
+QCBOR will compile and fully function without any build configuration
+or set up. It is 100% portable.
 
-* inc
-   * UsefulBuf.h
-   * qcbor_private.h
-   * qcbor_common.h
-   * qcbor_encode.h
-   * qcbor_decode.h
-   * qcbor_spiffy_decode.h
-* src
-   * UsefulBuf.c
-   * qcbor_encode.c
-   * qcbor_decode.c
-   * ieee754.h
-   * ieee754.c
-
-For most use cases you should just be able to add them to your
-project. Hopefully the easy portability of this implementation makes
-this work straight away, whatever your development environment is.
+There are a number of C preprocessor #defines that can be set. 
+Their primary purpose is to reduce library object code sizes
+by disabling features.  A couple slightly improve performance. 
+See the comment sections on "Configuration" in inc/UsefulBuf.h and
+the pre processor defines that start with QCBOR_DISABLE_XXX.
 
 The test directory includes the tests that are nearly as portable as
 the main implementation.  If your development environment doesn't
 support UNIX style command line and make, you should be able to make a
 simple project and add the test files to it.  Then just call
 RunTests() to invoke them all.
-
-While this code will run fine without configuration, there are several
-C pre processor macros that can be #defined in order to:
-
- * use a more efficient implementation
- * to reduce code size
- * to improve performance (a little)
- * remove features to reduce code size
-
-See the comment sections on "Configuration" in inc/UsefulBuf.h and
-the pre processor defines that start with QCBOR_DISABLE_XXX.
 
 ### Building with CMake
 
@@ -413,9 +390,9 @@ and standard tag types.
 
     |               | smallest | largest |
     |---------------|----------|---------|
-    | encode only   |      850 |    2200 |
-    | decode only   |     1550 |   13300 |
-    | combined      |     2500 |   15500 |
+    | encode only   |          |         |
+    | decode only   |          |         |
+    | combined      |          |         |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -458,30 +435,33 @@ and standard tag types.
 
 ### Disabling Features
 
-The following table is all the features that can be disabled and an
-approximate amount by which they reduce the total size of the library.
-Note that in many cases enabling dead stripping and not calling
-functions will reduce what is linked from the library by a lot.
+The main control over the amount of QCBOR code that gets linked
+is through which QCBOR functions are used. Linking against a
+library or dead stripping will eliminate all code not explicitly
+called.
 
-For example, not calling any function that operates on big floats or
-decimal fractions will save the 5000 bytes listed even without
-QCBOR_DISABLE_EXP_AND_MANTISSA. But also note that the configuration
-option still exists because some may wish to use the number conversion
-functions with their support for decimal fractions and big numbers
-disabled.
+In addition to using fewer QCBOR functions, the following #defines
+can be set to further reduce code size. For example,
+QCBOR_DISABLE_ENCODE_USAGE_GUARDS will reduce the size
+of many common encoding functions by performing less error
+checking (but not compromising any code safety).
+
+The amounts saved listed below are approximate. They depends on
+the CPU, the compiler, configuration, which functions are
+use and so on.
 
 
     | #define                                 | Saves |
     | ----------------------------------------| ------|
-    | QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |   150 |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |   400 |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |   200 |
-    | QCBOR_DISABLE_EXP_AND_MANTISSA          |  5000 |
-    | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
-    | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
-    | QCBOR_DISABLE_TAGS                      |   400 |
-    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   140 |
-    | USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
+    | QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |       |
+    | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |       |
+    | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |       |
+    | QCBOR_DISABLE_EXP_AND_MANTISSA          |       |
+    | QCBOR_DISABLE_PREFERRED_FLOAT           |       |
+    | QCBOR_DISABLE_FLOAT_HW_USE              |       |
+    | QCBOR_DISABLE_TAGS                      |       |
+    | QCBOR_DISABLE_NON_INTEGER_LABELS        |       |
+    | USEFULBUF_DISABLE_ALL_FLOAT             |       |
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
 disable any encoding features, just some error checking.  Disable it
