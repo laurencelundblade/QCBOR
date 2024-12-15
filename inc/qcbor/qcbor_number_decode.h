@@ -86,11 +86,13 @@ static void
 QCBORDecode_GetInt64(QCBORDecodeContext *pCtx,
                      int64_t            *pnValue);
 
+/** See QCBORDecode_GetInt64(). */
 static void
 QCBORDecode_GetInt64InMapN(QCBORDecodeContext *pCtx,
                            int64_t             nLabel,
                            int64_t            *pnValue);
 
+/** See QCBORDecode_GetInt64(). */
 static void
 QCBORDecode_GetInt64InMapSZ(QCBORDecodeContext *pCtx,
                             const char         *szLabel,
@@ -1419,14 +1421,14 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
  * ========================================================================= */
 
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetUInt64Convert(QCBORDecodeContext           *pCtx,
                                      enum QCBORDecodeNumberConvert uConvertTypes,
                                      uint64_t                     *puValue,
                                      QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
                                            int64_t                       nLabel,
@@ -1434,7 +1436,7 @@ QCBORDecode_Private_GetUInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
                                            uint64_t                     *puValue,
                                            QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
                                             const char                   *szLabel,
@@ -1442,14 +1444,14 @@ QCBORDecode_Private_GetUInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
                                             uint64_t                     *puValue,
                                             QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetInt64Convert(QCBORDecodeContext           *pCtx,
                                     enum QCBORDecodeNumberConvert uConvertTypes,
                                     int64_t                      *pnValue,
                                     QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
                                           int64_t                       nLabel,
@@ -1457,7 +1459,7 @@ QCBORDecode_Private_GetInt64ConvertInMapN(QCBORDecodeContext           *pCtx,
                                           int64_t                      *pnValue,
                                           QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
                                            const char                   *szLabel,
@@ -1467,14 +1469,14 @@ QCBORDecode_Private_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetDoubleConvert(QCBORDecodeContext           *pCtx,
                                      enum QCBORDecodeNumberConvert uConvertTypes,
                                      double                       *pValue,
                                      QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext           *pCtx,
                                            int64_t                       nLabel,
@@ -1482,7 +1484,7 @@ QCBORDecode_Private_GetDoubleConvertInMapN(QCBORDecodeContext           *pCtx,
                                            double                       *pdValue,
                                            QCBORItem                    *pItem);
 
-/* Semi-private. See qcbor_number_decode.c */
+/** @private  Semi-private. See qcbor_number_decode.c */
 void
 QCBORDecode_Private_GetDoubleConvertInMapSZ(QCBORDecodeContext           *pCtx,
                                             const char                   *szLabel,

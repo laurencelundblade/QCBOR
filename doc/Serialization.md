@@ -1,4 +1,3 @@
-@file Serialization.md
 
 @anchor Serialization
 

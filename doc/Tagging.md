@@ -1,4 +1,3 @@
-@file Tagging.md
 
 @anchor CBORTags
 

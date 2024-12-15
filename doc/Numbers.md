@@ -1,6 +1,4 @@
 
-@file Numbers.md
-
 @anchor BigNumbers
 
 # Big Numbers
