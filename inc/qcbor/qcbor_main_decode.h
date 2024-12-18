@@ -1414,7 +1414,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * ========================================================================= */
 
 /**
- * @brief Configure CBOR decoder context for QCBOR v1 compatibility (deprecated).
+ * @deprecated The v2 tag number behavior is more correct.
+ * @brief [Deprecated] Configure CBOR decoder context for QCBOR v1 compatibility.
  *
  * @param[in] pCtx  The context to configure.
  *
@@ -1432,7 +1433,7 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * number processing is too loose. See @ref v2-Tag-Decoding.
  *
  * This links in a fair bit of object code for all the tag content
- * handlers that were always present in v1. To get the v1 behavior
+ * handlers that were always present in v1. To get the v1 tag number behavior
  * without the object code for the tag content handlers, pass
  * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
  * QCBORDecode_Init().

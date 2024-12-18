@@ -3156,54 +3156,54 @@ QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
                                         const uint8_t       uMajorType,
                                         const uint64_t      uArgument,
                                         const uint8_t       uMinLen);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pCtx,
                               uint8_t             uMajorType,
                               UsefulBufC          Bytes);
 
 
-/* Semi-private function for adding a double with preferred encoding. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum);
 
 
-/* Semi-private function for adding a float with preferred encoding. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pCtx,
                                    uint8_t             uMajorType);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
                                                    uint8_t             uMajorType);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pCtx,
                                     uint8_t             uMajorType);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
                                                     uint8_t             uMajorType);
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
                                       const uint8_t       uTagRequirement,
@@ -3211,7 +3211,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
                                       const bool          bNegative,
                                       const UsefulBufC    BigNumber);
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddTExpIntMantissa(QCBOREncodeContext *pMe,
                                        const int           uTagRequirement,
@@ -3220,7 +3220,7 @@ QCBOREncode_Private_AddTExpIntMantissa(QCBOREncodeContext *pMe,
                                        const int64_t       nMantissa);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddTExpBigMantissa(QCBOREncodeContext *pMe,
                                        const int           uTagRequirement,
@@ -3230,7 +3230,7 @@ QCBOREncode_Private_AddTExpBigMantissa(QCBOREncodeContext *pMe,
                                        const bool          bBigNumIsNegative);
 
 
-/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_AddTExpBigMantissaRaw(QCBOREncodeContext *pMe,
                                           const int           uTagRequirement,
@@ -3240,6 +3240,8 @@ QCBOREncode_Private_AddTExpBigMantissaRaw(QCBOREncodeContext *pMe,
                                           const bool          bBigNumIsNegative);
 
 /**
+ * @private
+ *
  * @brief  Semi-private method to add simple items and floating-point.
  *
  * @param[in] pMe        The encoding context.
@@ -3263,14 +3265,10 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
 }
 
 
-/* Forward declaration */
-static void
-QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString);
-
-
-
+/** @private  Semi-private function. See qcbor_encode.c */
 void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
+
 
 static inline void
 QCBOREncode_Config(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfig)
@@ -3294,9 +3292,6 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfi
       pMe->uConfigFlags = (int)uConfig;
    }
 }
-
-
-
 
 
 
@@ -3458,6 +3453,7 @@ QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 
+/** @private */
 static inline void
 QCBOREncode_Private_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
 {
@@ -3514,6 +3510,7 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pMe,
 }
 
 
+/** @private */
 static inline void
 QCBOREncode_Private_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
 {
@@ -3884,11 +3881,12 @@ QCBOREncode_AddTBigNumberNoPreferredToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddTBigNumberNoPreferred(pMe, uTagRequirement, bNegative, BigNumber);
 }
 
-/*
+/**
+ * @private
  * @brief Add the tag number for a big number (private).
  *
  * @param[in] pMe  The decode context.
- * @param[in] uTagRequirement
+ * @param[in] uTagRequirement TODO: fill in
  * @param[in] bNegative  If true, big number is negative.
  */
 static inline void

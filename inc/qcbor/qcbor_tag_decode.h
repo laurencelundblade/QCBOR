@@ -237,7 +237,7 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  *
  * @returns The nth tag number or @ref CBOR_TAG_INVALID64.
  *
- * Typically, this is only used with @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS.
+ * Typically, this is only used with @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
  * Normally, tag numbers are processed QCBORDecode_VGetNextTagNumber() or
  * QCBORTagContentCallBack.
  *
@@ -876,7 +876,9 @@ typedef QCBORError (QCBORTagContentCallBack)(QCBORDecodeContext *pCtx,
  * @c uTagNumber. Then @c pfContentDecoder is called.
  */
 struct QCBORTagDecoderEntry {
+   /** Tag number to match. */
    uint64_t                  uTagNumber;
+   /** Callback function to fire when the tag number is matched. */
    QCBORTagContentCallBack  *pfContentDecoder;
 };
 
@@ -1086,7 +1088,8 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
 #ifndef QCBOR_DISABLE_TAGS
 
 /**
- * @brief Returns the tag numbers for an item. (deprecated).
+ * @brief [Deprecated] Returns the tag numbers for an item..
+ * @deprecated Use QCBORDecode_GetNthTagNumber() instead.
  *
  * @param[in] pCtx    The decoder context.
  * @param[in] uIndex The index of the tag to get.
@@ -1102,7 +1105,8 @@ QCBORDecode_GetNthTag(QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint32_t
 
 
 /**
- * @brief Returns the tag numbers for last-decoded item (deprecated).
+ * @brief [Deprecated] Returns the tag numbers for last-decoded item.
+ * @deprecated Use QCBORDecode_GetNthTagNumber() instead.
  *
  * @param[in] pCtx    The decoder context.
  * @param[in] uIndex The index of the tag to get.
