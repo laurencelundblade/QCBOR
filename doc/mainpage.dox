@@ -1,0 +1,15 @@
+/*! @mainpage QCBOR Documentation
+
+@par Table of Contents
+
+API Reference
+- Encoding functions: @ref inc/qcbor/qcbor_encode.h "qcbor_encode.h"
+- Main/Basic decode functions: @ref inc/qcbor/qcbor_main_decode.h "qcbor_main_decode.h"
+- Spiffy decode functions: @ref inc/qcbor/qcbor_spiffy_decode.h "qcbor_spiffy_decode.h"
+- Tag decode functions: @ref inc/qcbor/qcbor_tag_decode.h "qcbor_tag_decode.h"
+- Number decode functions: @ref inc/qcbor/qcbor_number_decode.h "qcbor_number_decode.h"
+
+Subject Matter
+- @ref SpiffyDecode
+
+*/

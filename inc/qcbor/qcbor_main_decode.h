@@ -463,7 +463,8 @@ typedef enum {
  * and warning. */
 #define QCBOR_TYPE_65BIT_NEG_INT 28
 
-#define QCBOR_TYPE_BREAK         31 /* Used internally; never returned */
+/** @private  Used internally; never returned  */
+#define QCBOR_TYPE_BREAK         31
 
 /** For @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY decode mode, a map that is
  *  being traversed as an array. See QCBORDecode_Init() */
@@ -516,7 +517,8 @@ typedef enum {
 /* 79, 80, 82, 83 is used above for decimal fraction and big float */
 
 
-#define QCBOR_TYPE_TAG_NUMBER 127 /* Used internally; never returned */
+/** @private  Used internally; never returned  */
+#define QCBOR_TYPE_TAG_NUMBER 127
 
 /** Start of user-defined data types. The range is mainly for user-defined tag content
  * decoders. See QCBORTagContentCallBack */
@@ -1412,7 +1414,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * ========================================================================= */
 
 /**
- * @brief Configure CBOR decoder context for QCBOR v1 compatibility (deprecated).
+ * @deprecated The v2 tag number behavior is more correct.
+ * @brief [Deprecated] Configure CBOR decoder context for QCBOR v1 compatibility.
  *
  * @param[in] pCtx  The context to configure.
  *
@@ -1430,7 +1433,7 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * number processing is too loose. See @ref v2-Tag-Decoding.
  *
  * This links in a fair bit of object code for all the tag content
- * handlers that were always present in v1. To get the v1 behavior
+ * handlers that were always present in v1. To get the v1 tag number behavior
  * without the object code for the tag content handlers, pass
  * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
  * QCBORDecode_Init().
@@ -1447,15 +1450,15 @@ QCBORDecode_CompatibilityV1(QCBORDecodeContext *pCtx);
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                         *
  * ========================================================================= */
 
-/* Semi-private function. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
                                       QCBORItem          *pDecodedItem);
 
-/* Semi-private function. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */
 void
 QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
                                           const char         *szLabel,
@@ -1463,7 +1466,7 @@ QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
                                           QCBORItem          *pItem,
                                           size_t             *puOffset);
 
-/* Semi-private function. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */ // TODO: this a next are spiffy
 void
 QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
                                          const int64_t       nLabel,
@@ -1472,26 +1475,26 @@ QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
                                          size_t             *puOffset);
 
 
-/* Semi-private function. See qcbor_main_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */
 uint64_t
 QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
                                    const uint16_t            uMappedTagNumber);
 
-/* Semi-private function. See qcbor_main_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
                                 const QCBORItem    *pItemToConsume,
                                 bool               *pbBreak,
                                 uint8_t            *puNextNestLevel);
 
-/* Semi-private function. See qcbor_main_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
                                   QCBORError          uErr,
                                   const size_t        uOffset,
                                   QCBORItem          *pDecodedItem);
 
-/* Semi-private function. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_decode.c */
 QCBORError
 QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe,
                                       bool                bMarkEnd,
@@ -1559,6 +1562,7 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 }
 
 
+/** @private */
 static inline void
 QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
@@ -1570,7 +1574,7 @@ QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pIt
 #endif /* ! QCBOR_DISABLE_TAGS */
 }
 
-
+/** @private */
 static inline void
 QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
 {
