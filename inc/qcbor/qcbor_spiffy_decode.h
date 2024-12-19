@@ -831,8 +831,7 @@ typedef struct {
    QCBORItemCallback   pfCallback;
 } MapSearchCallBack;
 
-/// @private
-/* Semi-private data structure */
+/** @private  Semi-private data structure.  */
 typedef struct {
    size_t   uStartOffset;
    uint16_t uItemCount;
