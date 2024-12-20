@@ -133,11 +133,13 @@ static void
 QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
                           UsefulBufC         *pBytes);
 
+/** See  QCBORDecode_GetByteString(). */
 static void
 QCBORDecode_GetByteStringInMapN(QCBORDecodeContext *pCtx,
                                 int64_t             nLabel,
                                 UsefulBufC         *pBytes);
 
+/** See  QCBORDecode_GetByteString(). */
 static void
 QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
                                  const char         *szLabel,
@@ -163,11 +165,13 @@ static void
 QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
                           UsefulBufC         *pText);
 
+/** See  QCBORDecode_GetTextString(). */
 static void
 QCBORDecode_GetTextStringInMapN(QCBORDecodeContext *pCtx,
                                 int64_t             nLabel,
                                 UsefulBufC         *pText);
 
+/** See  QCBORDecode_GetTextString(). */
 static void
 QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
                                  const char         *szLabel,
@@ -233,9 +237,11 @@ QCBORDecode_GetTextStringInMapSZ(QCBORDecodeContext *pCtx,
 static void
 QCBORDecode_EnterArray(QCBORDecodeContext *pCtx, QCBORItem *pItem);
 
+/** See QCBORDecode_EnterArray(). */
 void
 QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
 
+/** See QCBORDecode_EnterArray(). */
 void
 QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabel);
 
@@ -259,7 +265,6 @@ QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char *szLabel);
  */
 static void
 QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
-
 
 
 /**
@@ -309,17 +314,20 @@ QCBORDecode_GetArray(QCBORDecodeContext *pCtx,
                      QCBORItem          *pItem,
                      UsefulBufC         *pEncodedCBOR);
 
+/** See QCBORDecode_GetArray(). */
 static void
 QCBORDecode_GetArrayFromMapN(QCBORDecodeContext *pCtx,
                              int64_t             nLabel,
                              QCBORItem          *pItem,
                              UsefulBufC         *pEncodedCBOR);
 
+/** See QCBORDecode_GetArray(). */
 static void
 QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
                               const char         *szLabel,
                               QCBORItem          *pItem,
                               UsefulBufC         *pEncodedCBOR);
+
 
 
 /**
@@ -379,9 +387,11 @@ QCBORDecode_GetArrayFromMapSZ(QCBORDecodeContext *pCtx,
 static void
 QCBORDecode_EnterMap(QCBORDecodeContext *pCtx, QCBORItem *pItem);
 
+/** See QCBORDecode_EnterMap(). */
 void
 QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
+/** See QCBORDecode_EnterMap(). */
 void
 QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
 
@@ -455,12 +465,14 @@ QCBORDecode_GetMap(QCBORDecodeContext *pCtx,
                    QCBORItem          *pItem,
                    UsefulBufC         *pEncodedCBOR);
 
+/** See QCBORDecode_GetMap(). */
 static void
 QCBORDecode_GetMapFromMapN(QCBORDecodeContext *pCtx,
                            int64_t             nLabel,
                            QCBORItem          *pItem,
                            UsefulBufC         *pEncodedCBOR);
 
+/** See QCBORDecode_GetMap(). */
 static void
 QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pCtx,
                             const char         *szLabel,
@@ -546,6 +558,7 @@ QCBORDecode_GetItemInMapN(QCBORDecodeContext *pCtx,
                           uint8_t             uQcborType,
                           QCBORItem          *pItem);
 
+/** See QCBORDecode_GetItemInMapN(). */
 void
 QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
                            const char         *szLabel,
@@ -690,11 +703,13 @@ QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pCtx,
 void
 QCBORDecode_GetBool(QCBORDecodeContext *pCtx, bool *pbBool);
 
+/** See QCBORDecode_GetBool(). */
 void
 QCBORDecode_GetBoolInMapN(QCBORDecodeContext *pCtx,
                           int64_t             nLabel,
                           bool               *pbBool);
 
+/** See QCBORDecode_GetBool(). */
 void
 QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
                            const char         *szLabel,
@@ -714,13 +729,13 @@ QCBORDecode_GetBoolInMapSZ(QCBORDecodeContext *pCtx,
 static void
 QCBORDecode_GetNull(QCBORDecodeContext *pCtx);
 
+/** See QCBORDecode_GetNull(). */
 static void
-QCBORDecode_GetNullInMapN(QCBORDecodeContext *pCtx,
-                          int64_t             nLabel);
+QCBORDecode_GetNullInMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
+/** See QCBORDecode_GetNull(). */
 static void
-QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx,
-                           const char         *szLabel);
+QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
 
 
 /**
@@ -737,13 +752,13 @@ QCBORDecode_GetNullInMapSZ(QCBORDecodeContext *pCtx,
 static void
 QCBORDecode_GetUndefined(QCBORDecodeContext *pCtx);
 
+/** See QCBORDecode_GetUndefined(). */
 static void
-QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx,
-                               int64_t             nLabel);
+QCBORDecode_GetUndefinedInMapN(QCBORDecodeContext *pCtx, int64_t nLabel);
 
+/** See QCBORDecode_GetUndefined(). */
 static void
-QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
-                                const char         *szLabel);
+QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel);
 
 
 /**
@@ -764,11 +779,13 @@ QCBORDecode_GetUndefinedInMapSZ(QCBORDecodeContext *pCtx,
 void
 QCBORDecode_GetSimple(QCBORDecodeContext *pCtx, uint8_t *puSimpleValue);
 
+/** See QCBORDecode_GetSimple(). */
 void
 QCBORDecode_GetSimpleInMapN(QCBORDecodeContext *pCtx,
                             int64_t             nLabel,
                             uint8_t            *puSimpleValue);
 
+/** See QCBORDecode_GetSimple(). */
 void
 QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
                              const char         *szLabel,
@@ -783,54 +800,51 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
-
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
 QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pCtx,
                                            uint8_t             uType,
                                            QCBORItem          *pItem);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
 QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pCtx,
                                           uint8_t             uType);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_main_decode.c */
 void
 QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pCtx,
                                   uint8_t             uType,
                                   QCBORItem          *pItem,
                                   UsefulBufC         *pEncodedCBOR);
 
-/* Semi-private funcion used by public inline functions. See qcbor_decode.c */
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
 QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pCtx,
                                            QCBORItem          *pTarget,
                                            QCBORItem          *pItem,
                                            UsefulBufC         *pEncodedCBOR);
 
-
-/* Semi-private data structure */
+/** @private  Semi-private data structure.  */
 typedef struct {
    void               *pCBContext;
    QCBORItemCallback   pfCallback;
 } MapSearchCallBack;
 
-/* Semi-private data structure */
+/** @private  Semi-private data structure.  */
 typedef struct {
    size_t   uStartOffset;
    uint16_t uItemCount;
 } MapSearchInfo;
 
-/* Semi-private function. See qcbor_spiffy_decode.c */
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
 QCBORError
 QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
                               QCBORItem          *pItemArray,
                               MapSearchInfo      *pInfo,
                               MapSearchCallBack  *pCallBack);
 
-
-/* Semi-private function. See qcbor_spiffy_decode.c */
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
 QCBORError
 QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
                                      const uint32_t      uEndOffset);
