@@ -1,6 +1,6 @@
 # Makefile -- UNIX-style make for qcbor as a lib and command line test
 #
-# Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -24,7 +24,15 @@ LIBS=-lm
 CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC
 
 
-QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_main_decode.o src/qcbor_spiffy_decode.o src/qcbor_number_decode.o src/qcbor_tag_decode.o src/ieee754.o src/qcbor_err_to_str.o
+QCBOR_OBJ=src/UsefulBuf.o \
+          src/qcbor_main_encode.o \
+          src/qcbor_number_encode.o \
+          src/qcbor_main_decode.o \
+          src/qcbor_spiffy_decode.o \
+          src/qcbor_number_decode.o \
+          src/qcbor_tag_decode.o \
+          src/ieee754.o \
+          src/qcbor_err_to_str.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
     test/qcbor_decode_tests.o test/run_tests.o \
