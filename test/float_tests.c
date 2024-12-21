@@ -13,7 +13,8 @@
 
 
 #include "float_tests.h"
-#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_main_encode.h"
+#include "qcbor/qcbor_number_encode.h"
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "qcbor/qcbor_number_decode.h"
