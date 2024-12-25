@@ -131,18 +131,6 @@ extern "C" {
 #define QCBOR_HEAD_BUFFER_SIZE  (sizeof(uint64_t) + 2)
 
 
-/**
- * Output the full CBOR tag. See @ref CBORTags, @ref Tag-Usage and
- * @ref Tags-Overview.
- */
-#define QCBOR_ENCODE_AS_TAG      0
-
-/**
- * Output only the 'borrowed' content format for the relevant tag.
- * See @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
- */
-#define QCBOR_ENCODE_AS_BORROWED 1
-
 
 
 
