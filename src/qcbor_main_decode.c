@@ -1105,7 +1105,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
 
       case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
       case CBOR_MAJOR_TYPE_MAP:   /* Major type 5 */
-         return QCBOR_Private_DecodeArrayOrMap(uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         return QCBOR_Private_DecodeArrayOrMap(pMe->uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_TAG: /* Major type 6, tag numbers */
