@@ -1567,7 +1567,7 @@ static inline void
 QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   memcpy(pMe->auLastTags, pItem->auTagNumbers, sizeof(pItem->auTagNumbers));
+   memcpy(pMe->auLastTagNumbers, pItem->auTagNumbers, sizeof(pItem->auTagNumbers));
 #else /* ! QCBOR_DISABLE_TAGS */
    (void)pMe;
    (void)pItem;
