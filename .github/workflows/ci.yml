@@ -53,7 +53,7 @@ jobs:
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_DECODE_CONFORMANCE
+          dis-xxx: '-DQCBOR_DISABLE_DECODE_CONFORMANCE'
 
     name: ${{ matrix.config.dis-xxx }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
 
