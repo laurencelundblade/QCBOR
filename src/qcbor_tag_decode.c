@@ -185,7 +185,7 @@ QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pMe, uint8_t uIndex)
       return CBOR_TAG_INVALID64;
    }
 
-   return QCBORDecode_Private_UnMapTagNumber(pMe, pMe->auLastTags[uIndex]);
+   return QCBORDecode_Private_UnMapTagNumber(pMe, pMe->auLastTagNumbers[uIndex]);
 }
 
 
@@ -238,7 +238,7 @@ QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pMe, uint32_t uIndex)
    }
 
    return QCBORDecode_Private_GetNthTagNumberReverse(pMe,
-                                                     pMe->auLastTags,
+                                                     pMe->auLastTagNumbers,
                                                      uIndex);
 }
 
