@@ -1,31 +1,47 @@
 
 @anchor CBORTags
 
-#  Types and Tagging in CBOR
+#  QCBOR-oriented Introduction to Tags
 
 ## New Types
 
-CBOR provides a means for defining new data types beyond the primitive
-types like integers and strings. These new types can be the simple
-association of some further semantics with a primitive type or they
-can be large complex aggregations.
+CBOR allows for the definition of new data types beyond basic
+primitives like integers and strings. These new types can either be
+simple extensions of a primitive type with additional semantics or
+more complex structures involving large aggregations.
 
-The explicit means for identifying these new types as called tagging.
-It uses a simple unsigned integer known as the tag number to indicate
-that the following CBOR is of that type. Officially speaking, a "tag"
-is made up of exactly a tag number and tag content.  The tag content
-is exactly a single data item, but note that a single data item can be
-a map or an array which contains further nested maps and arrays and
-thus arbitrarily complex.
+The mechanism for identifying these new types is called tagging.
+Tagging uses a simple unsigned integer to indicate that the following
+CBOR item is a different type.
 
-The tag numbers can be up to UINT64_MAX, so there are a lot of them.
-Some defined in standards and registered in the IANA CBOR Tag
-Registry. A very large range is available for proprietary tags.
+It's important to note that CBOR uses the word "tag" in an unusual
+way. In CBOR, a "tag" refers to the combination of the tag number and
+the tag content.  By the normal dictionary definition, a "tag" would
+be just a tag number, not an aggregation of tag number and tag content
+By analogy, if you attach a small label to an elephant's ear, the
+"tag" in CBOR terms would be the combination of the label (tag number)
+and the elephant (tag content).
 
+QCBOR always uses the terms "tag number" to refer to the integer that
+identifies the type, "tag content" to refer to the target of the
+indicating integer and "tag" as the full combination of both.
+
+The tag content is always a single data item. However, this item can
+itself be a complex structure, such as a map or an array, which may
+contain nested maps and arrays, allowing for arbitrarily complex tag
+content.
+
+Tag numbers can range up to UINT64_MAX, providing a large number of
+possible tags. Some are defined by standards and registered in the
+IANA CBOR Tag Registry, while a substantial range is available for
+proprietary use.
+
+
+@anchor AreTagsOptional
 ## Are Tags "Optional"?
 
 The description of tags in
-[RFC 7049] (https://tools.ietf.org/html/rfc7049) and in some other
+[RFC 7049](https://tools.ietf.org/html/rfc7049) and in some other
 places can lead one to think they are optional prefixes that can be
 ignored at times. This is not true.
 
@@ -39,7 +55,7 @@ semantics or definition of the tag content without it actually being a
 *tag*. One can think of this as *borrowing* the tag content or implied
 type information.
 
-For example, [RFC 8392] (https://tools.ietf.org/html/rfc8392) which
+For example, [RFC 8392](https://tools.ietf.org/html/rfc8392) which
 defines a CBOR Web Token, a CWT, says that the NumericDate field is
 represented as a CBOR numeric date described as tag 1 in the CBOR
 standard, but with the tag number 1 omitted from the encoding. A
@@ -81,23 +97,37 @@ accept", current wisdom is somewhat the opposite.
 
 ## Types and Tags in QCBOR
 
-QCBOR explicitly supports all the tags defined in
-[RFC 7049] (https://tools.ietf.org/html/rfc7049). It has specific APIs
-and data structures for encoding and decoding them.
+TODO: bring in AddTagNumber() and GetTagNumber()
 
-These APIs and structures can support either the full and proper tag
-form or the borrowed content form that is not a tag.
+QCBOR explicitly supports all the tags standardized in
+[RFC 8949](https://tools.ietf.org/html/rfc8949) for dates, big numbers and
+such. It has specific APIs and data structures for encoding and
+decoding them.
 
-The original QCBOR APIs for encoding tags did not allow for encoding
-the borrowed content format. They only support the proper tag
-format. With spiffy decode, a second set of APIs was added that takes
-and argument to indicate whether the proper tag should be output or
-just the borrowed content format should be output. The first set are
-the "AddXxxx" functions and the second the "AddTXxxx" functions.
+The encode APIs are in @ref inc/qcbor/qcbor_encode_tag.h "qcbor_encode_tag.h".
+Their names start with
+"QCBOREncode_AddT". Decoding can be done by installing the provided
+callbacks, @ref QCBORDecode_TagDecoderTablev1, in which case they get
+decoded by QCBORDecode_VGetNext() and appear in a @ref
+QCBORItem. Alternative spiffy decode style functions from
+@ref inc/qcbor/qcbor_decode_tag.h "qcbor_decode_tag.h" can be called.
+
+These APIs and structures support both the full tag form and the
+borrowed content form that is not a tag. An argument of type @ref xxx
+and @ref QCBORDecodeTagReq is provided respectively to the tag encode
+and decode functions to distinguish between full tags and borrowed
+content.
+
+Early versions of QCBOR did not support encoding borrowed content. The
+old APIs for dates, big numbers and such are listed as deprecated, but
+will continue to be supported. The encode side has functions like
+QCBOREncode_AddDateEpoch() rather than
+QCBOREncode_AddTDateEpoch(). The tag decode APIs always supported
+borrowed content.
 
 When decoding with QCBORDecode_GetNext(), the non-spiffy decode API,
 the proper tag form is automatically recognized by the tag number and
-decoded into QCBORItem. This decoding API however cannot recognize
+decoded into @ref QCBORItem. This decoding API however cannot recognize
 borrowed content format. The caller must tell QCBOR when borrowed
 content format is expected.
 
@@ -144,6 +174,7 @@ functions the tags encapsulating the last-decoded item are saved in
 the decode context and have to be fetched with
 QCBORDecode_GetNthTagOfLast().
 
+
 ## Tags for Encapsulated CBOR
 
 Tag 24 and 63 deserve special mention. The content of these tags is a
@@ -154,7 +185,7 @@ nested complex structures, but the if you do the one data item must be
 either a map or an array or a tag that defined to be complex and
 nested. With tag 63, the content can be a sequence of integers not
 held together in a map or array. Tag 63 is defined in
-[RFC 8742] (https://tools.ietf.org/html/rfc8742).
+[RFC 8742](https://tools.ietf.org/html/rfc8742).
 
 The point of encapsulating CBOR this way is often so it can be
 cryptographically signed. It works well with off-the-shelf encoders
@@ -190,6 +221,7 @@ encoded CBOR. It never could have been defined as tag 24. When the
 payload is known to contain CBOR, like the case of a CWT, then QCBOR's
 QCBORDecode_EnterBstrWrapped() can be used to decode it.
 
+
 ## Tags that Can be Ignored
 
 There are a few specially defined tags that can actually be
@@ -216,98 +248,22 @@ data type that a protocol decoder must understand.
 ## Standard Tags and the Tags Registry
 
 Tags used in CBOR protocols should at least be registered in the
-[IANA CBOR Tags Registry] (https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml).
-A small number of tags (0-23), are full IETF standards. Further, tags
-24-255 require published documentation, but are not full IETF
-standards. Beyond tag 255, the tags are first come first served.
+[IANA CBOR Tags Registry](https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml).
+A small number of tags (0-23), must be full IETF standards. Tags
+24-255 require published documentation. Beyond tag 255, the tags are
+first come first served.  Any tag can be an IETF standard if the
+authors chooses to take it through the process.
 
 There is no range for private use, so any tag used in a CBOR protocol
 should be registered. The range of tag values is very large to
 accommodate this.
 
-As described above, It is common to use data types from the registry
-in a CBOR protocol without the explicit tag, so in a way the registry
-is a registry of data types.
-
-
-
-## Tag Decoding
-
-QCBOR offers two ways to decoding tags.
-
-The first is by registering a call back that can transform the tag into
-a QCBORItem itendified by a new QCBOR Type. It is limited in that
-the decoded data must fit into the 24 bytes of a QCBORItem values. It is
-good for new data types.
-
-The second is by getting tag numbers in the course of decoding. This 
-is more suitable for tags numbers that indicate message types, those
-that alter the decode flow.
-
-QCBOR v2 (when not in v1 compatibility) requires all tags be consumed.
-If they are not consumed by one of the above methods, xxxx error occurs.
-They are never optional (as they were described in RFC 7049) just is
-it is not optional to ignore whether an item is a string rather than
-an integer.
-
-In v2
-
-TODO: make clean this up
-
-When asking for specific tag decode, for example GetDateEpoch()
-
-Tag required
- - No tag gives error xxxx
- - The epoch date tag by itself succeeds
- - The epoch date tag with wrong content gives error yyy
- - The epoch date tag with additional
- - The additional have been consumed -- suceeds
- - The aditional tags have not been consumed -- gives error aaa
- - Another tag gives --- error zzz
- 
- Tag not required
- - No tags, correct tag content -- success
- - No tags, incorrect tag content type error yyy
- - Another tag, not consumed ---  error aaa
- - Another tag consumed -- success
- - Another tag consumed and made into another type --- error xxxx
- 
- Tag optional
- - No tags, correct content -- success
- - No tags, incorrect content -- error yyy
- - Expected tag -- success
- - Another tag, consumed -- success
- - Another tag, not consumed tag content correct -- error, probably aaa
- - Another tag, consumed and made into another type -- error xxx
- - Expected tag + another tag, not consumed -- error aaa
- 
- 
- Now fan out for ALLOW_EXTRA --- yuckkkkk
- 
- Ignore ALLOW_EXTRA in v2?
- 
- Fan out for v1
- 
- 
- 
- 
- 0(140) good date tag
- 50000(140) 
-    interpret as a date with some other tag on it -- must be consumed, so unconsumed tag error
-    intepret this as not a date -- wrong type error
-    subjective depending on whether tag content decoder is installed
- 1(140) same as above
- 
- Tag optional
-
-
-
-
+As described above, it is common to use data types from the registry
+in a CBOR protocol without the explicit tag, to borrow the content, so
+in a way the IANA registry is a registry of data types.
 
 
 ## See Also
 
 See @ref Tags-Overview and @ref Tag-Usage.
-
-
 

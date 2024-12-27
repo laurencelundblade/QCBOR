@@ -40,6 +40,7 @@
 
 #include "qcbor/qcbor_common.h"
 #include "qcbor/qcbor_private.h"
+#include "qcbor/qcbor_main_encode.h"
 #include <stdbool.h>
 
 
@@ -54,44 +55,59 @@ extern "C" {
 /**
  * @file qcbor_tag_encode.h
  *
- * @anchor Tags-Overview
+ * @anchor TagEncoding
+ * ## Tag Encoding
  *
- * ## Tags Overview
+ * If you are unfamiliar with CBOR tags and related terminology,
+ * reviewing the @ref CBORTags documentation.
  *
- * Any CBOR data item can be made into a tag to add semantics, define a
- * new data type or such. Some tags are fully standardized and some are
- * just registered. Others are not registered and used in a proprietary
- * way.
+ * QCBOR provides multiple ways to encode tags, some for standard tags
+ * that QCBOR supports directly and another that works for any tag.
  *
- * Encoding and decoding of many of the registered tags is fully
- * implemented by QCBOR. It is also possible to encode and decode tags
- * that are not directly supported.  For many use cases the built-in tag
- * support should be adequate.
+ * ### Encoding Standardized Tags
  *
- * For example, the registered epoch date tag is supported in encoding
- * by QCBOREncode_AddTDateEpoch() and in decoding by @ref
- * QCBOR_TYPE_DATE_EPOCH and the @c epochDate member of @ref
- * QCBORItem. This is typical of the built-in tag support. There is an
- * API to encode data for it and a @c QCBOR_TYPE_XXX when it is decoded.
+ * For many standardized tags, QCBOR offers dedicated methods. For
+ * instance, the standard tag for an epoch date can be encoded using
+ * QCBOREncode_AddTDateEpoch(). These methods are easily identifiable
+ * by their names, which always begin with "QCBOREncode_AddT".
  *
- * Tags are registered in the [IANA CBOR Tags Registry]
- * (https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml). There
- * are roughly three options to create a new tag. First, a public
- * specification can be created and the new tag registered with IANA.
- * This is the most formal. Second, the new tag can be registered with
- * IANA with just a short description rather than a full specification.
- * These tags must be greater than 256. Third, a tag can be used without
- * any IANA registration, though the registry should be checked to see
- * that the new value doesn't collide with one that is registered. The
- * value of these tags must be 256 or larger.
+ * ### General Tag Encoding
  *
- * See also @ref CBORTags and @ref Tag-Usage
+ * To encode a any tag, you can use QCBOREncode_AddTagNumber()
+ * followed by other QCBOR encode methods to encode  the tag content.
  *
- * The encoding side of tags not built-in is handled by
- * QCBOREncode_AddTagNumber() and is relatively simple. Tag decoding is more
- * complex and mainly handled by QCBORDecode_GetNext(). Decoding of the
- * structure of tagged data not built-in (if there is any) has to be
- * implemented by the caller.
+ * - Minimal Example: For a simple tag, you might only call
+ *   QCBOREncode_AddTagNumber() followed by QCBOREncode_AddInt64().
+ *
+ * - Complex Example: For more complex structures,
+ *   QCBOREncode_AddTagNumber() might precede a call to
+ *   QCBOREncode_OpenMap() and the encoding of all the items in the
+ *   map. Or, QCBOREncode_AddTagNumber() might precede a call to a library
+ *   function that creates a complex message like a COSE_Encrypt.
+ *
+ * Tags can nest, so there might be sequential calls to
+ * QCBOREncode_AddTagNumber(). While deep nesting is rare andthere is no
+ * limit for encoding, QCBOR decoding is limited to a
+ * depth of @ref QCBOR_MAX_TAGS_PER_ITEM.
+ *
+ * ### Borrowing Tag Content
+ *
+ * As described in @ref AreTagsOptional, it is often the case that tag
+ * content for a particular tag is encoded without the tag number.
+ * This is "borrowing" tag content. It is similar to implicit types in
+ * ASN.1 where the type is inferred by context.
+ *
+ * For the standard tags supported by QCBOR, their methods include an
+ * argument to control this behavior:
+ *
+ * - @ref QCBOR_ENCODE_AS_TAG : Includes the tag number.
+ * - @ref QCBOR_ENCODE_AS_BORROWED : Omits the tag number.
+ *
+ * For tags other than the standard ones supported by QCBOR methods,
+ * the names of which starts with "QCBOREncode_AddT", all that is
+ * needed to encode borrowed tag content is to not call
+ * QCBOREncode_AddTagNumber(). This of course assumes the protocol can
+ * be unambiguously decoded without the tag number.
  */
 
 
@@ -113,27 +129,27 @@ extern "C" {
  * @brief Add a tag number.
  *
  * @param[in] pCtx  The encoding context to add the tag to.
- * @param[in] uTag  The tag to add
+ * @param[in] uTagNumber  The tag number to add.
  *
- * This outputs a CBOR major type 6 item that tags the next data item
- * that is output usually to indicate it is some new data type.
+ * This outputs a CBOR major type 6 item, a tag number that indicates
+ * the next item is a different type.  See @ref Tags-Overview.
  *
  * For many of the common standard tags, a function to encode data
  * using it is provided and this is not needed. For example,
  * QCBOREncode_AddTDateEpoch() already exists to output integers
- * representing dates with the right tag.
+ * representing epochs dates.
  *
- * The tag is applied to the next data item added to the encoded
- * output. That data item that is to be tagged can be of any major
- * CBOR type. Any number of tags can be added to a data item by
- * calling this multiple times before the data item is added.
+ * The tag number is applied to the next data item added to the
+ * encoded output. That data item that is to be tagged can be of any
+ * major CBOR type. Any number of tag numbers can be added to a data
+ * item by calling this multiple times before the data item is added.
  *
- * See @ref Tags-Overview for discussion of creating new non-standard
- * tags. See QCBORDecode_GetNext() for discussion of decoding custom
- * tags.
+ * See also @ref TagDecoding.
  */
 static void
-QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTag);
+QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTagNumber);
+
+
 
 
 /**
@@ -199,7 +215,7 @@ QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx,
  *  @param[in] nDays            Number of days before or after 1970-01-0.
  *
  * This date format is described in
- * [RFC 8943] (https://www.rfc-editor.org/rfc/rfc8943.html).
+ * [RFC 8943](https://www.rfc-editor.org/rfc/rfc8943.html).
  *
  * The preferred integer serialization rules apply here so the date
  * will be encoded in a minimal number of bytes. Until about the year
@@ -236,8 +252,8 @@ QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] Bytes            Pointer and length of the binary UUID.
  *
- * A binary UUID as defined in [RFC 4122]
- * (https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
+ * A binary UUID as defined in 
+ * [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
  * output.
  *
  * It is output as CBOR major type 2, a binary string, with tag @ref
@@ -271,8 +287,8 @@ QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] URI              Pointer and length of the URI.
  *
- * The format of URI must be per [RFC 3986]
- * (https://www.rfc-editor.org/rfc/rfc3986.html).
+ * The format of URI must be per 
+ * [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986.html).
  *
  * It is output as CBOR major type 3, a text string, with tag @ref
  * CBOR_TAG_URI indicating the text string is a URI.
@@ -310,8 +326,8 @@ QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] B64Text          Pointer and length of the base-64 encoded text.
  *
- * The text content is Base64 encoded data per [RFC 4648]
- * (https://www.rfc-editor.org/rfc/rfc4648.html).
+ * The text content is Base64 encoded data per 
+ * [RFC 4648](https://www.rfc-editor.org/rfc/rfc4648.html).
  *
  * It is output as CBOR major type 3, a text string, with tag @ref
  * CBOR_TAG_B64 indicating the text string is Base64 encoded.
@@ -345,7 +361,7 @@ QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext *pCtx,
  * @param[in] B64Text          Pointer and length of the base64url encoded text.
  *
  * The text content is base64URL encoded text as per
- * [RFC 4648] (https://www.rfc-editor.org/rfc/rfc4648.html).
+ * [RFC 4648](https://www.rfc-editor.org/rfc/rfc4648.html).
  *
  * It is output as CBOR major type 3, a text string, with tag
  * @ref CBOR_TAG_B64URL indicating the text string is a Base64url
@@ -413,8 +429,8 @@ QCBOREncode_AddTRegexToMapN(QCBOREncodeContext *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] MIMEData         Pointer and length of the MIME data.
  *
- * The text content is in MIME format per [RFC 2045]
- * (https://www.rfc-editor.org/rfc/rfc2045.html) including the headers.
+ * The text content is in MIME format per 
+ * [RFC 2045](https://www.rfc-editor.org/rfc/rfc2045.html) including the headers.
  *
  * It is output as CBOR major type 2, a binary string, with tag
  * @ref CBOR_TAG_BINARY_MIME indicating the string is MIME data.  This
@@ -462,10 +478,9 @@ QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext *pCtx,
  * @param[in] szDate           Null-terminated string with date to add.
  *
  * The string szDate should be in the form of
- * [RFC 3339] (https://www.rfc-editor.org/rfc/rfc3339.html) as defined
- * by section 3.3 in [RFC 4287] (https://www.rfc-editor.org/rfc/rfc4287.html).
- * This is as described in section 3.4.1 in [RFC 8949]
- * (https://www.rfc-editor.org/rfc/rfc8949.html#section3.1.4).
+ * [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339.html) as defined
+ * by section 3.3 in [RFC 4287](https://www.rfc-editor.org/rfc/rfc4287.html).
+ * This is as described in section 3.4.1 in [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html#section3.1.4).
  *
  * Note that this function doesn't validate the format of the date
  * string at all. If you add an incorrect format date string, the
@@ -505,10 +520,10 @@ QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext *pCtx,
  * @param[in] szDate           Null-terminated string with date to add.
  *
  * This date format is described in
- * [RFC 8943] (https://www.rfc-editor.org/rfc/rfc8943.html), but that mainly
+ * [RFC 8943](https://www.rfc-editor.org/rfc/rfc8943.html), but that mainly
  * references RFC 3339.  The string szDate must be in the forrm
  * specified the ABNF for a full-date in
- * [RFC 3339] (https://www.rfc-editor.org/rfc/rfc3339.html). Examples of this
+ * [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339.html). Examples of this
  * are "1985-04-12" and "1937-01-01".  The time and the time zone are
  * never included.
  *
@@ -576,7 +591,7 @@ QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Useful
 
 /** @deprecated Use QCBOREncode_AddTagNumber() instead. */
 static void
-QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTag);
+QCBOREncode_AddTag(QCBOREncodeContext *pCtx, uint64_t uTagNumber);
 
 /** @deprecated Use QCBOREncode_AddTURI() instead. */
 static void
@@ -675,21 +690,22 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION    
+ *    Note that the entire qcbor_tag_encode implementation is line.
  * ========================================================================= */
 
 
 static inline void
-QCBOREncode_AddTagNumber(QCBOREncodeContext *pMe, const uint64_t uTag)
+QCBOREncode_AddTagNumber(QCBOREncodeContext *pMe, const uint64_t uTagNumber)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTag, 0);
+   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTagNumber, 0);
 }
 
 
 static inline void
-QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTag)
+QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTagNumber)
 {
-   QCBOREncode_AddTagNumber(pMe, uTag);
+   QCBOREncode_AddTagNumber(pMe, uTagNumber);
 }
 
 

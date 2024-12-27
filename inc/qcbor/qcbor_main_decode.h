@@ -109,7 +109,7 @@ extern "C" {
  * an error will be returned.
  *
  * This new behavior saves the caller from having to do this check
- * (that they probably didn't know they neeeded).  It is much more
+ * (that they probably didn't know they neeeded).  It is more
  * correct behavior.
  *
  * This behavior is not backwards compatible with v1. The v1 behavior
@@ -190,24 +190,6 @@ extern "C" {
  * item being sought, in which case the unrecoverable error will be
  * returned. Unrecoverable errors are those indicated by
  * QCBORDecode_IsUnrecoverableError().
- *
- * @anchor Disabilng-Tag-Decoding
- * # Disabilng Tag Decoding
- *
- * TODO: update this
- * If QCBOR_DISABLE_TAGS is defined, all code for decoding tags will
- * be omitted reducing the core decoder, QCBORDecode_VGetNext(), by
- * about 400 bytes. If a tag number is encountered in the decoder
- * input the unrecoverable error @ref QCBOR_ERR_TAGS_DISABLED will be
- * returned.  No input with tags can be decoded.
- *
- * Decode functions like QCBORDecode_GetEpochDate() and
- * QCBORDecode_GetDecimalFraction() that can decode the tag content
- * even if the tag number is absent are still available.  Typically
- * they won't be linked in because of dead stripping. The
- * @c uTagRequirement parameter has no effect, but if it is
- * @ref QCBOR_TAG_REQUIREMENT_TAG, @ref QCBOR_ERR_TAGS_DISABLED
- * will be set.
  */
 
 
@@ -366,7 +348,7 @@ typedef enum {
  *  @ref  CBOR_TAG_NEG_BIGNUM. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
-/** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
+/** Type for [RFC 3339](https://tools.ietf.org/html/rfc3339) date
  *  string, possibly with time zone. Data is in @c val.string . Note this
  *  was previously in @c val.dateString, however this is the same as
  *  val.string being the same type in same union. val.dateString will
@@ -1180,7 +1162,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * at the next item to be decoded as expected.
  *
  * There are some special rules for the traversal cursor when fetching
- * map items by label. See the description of @SpiffyDecode.
+ * map items by label. See the description of @ref SpiffyDecode.
  *
  * When traversal is bounded because an array or map has been entered
  * (e.g., QCBORDecode_EnterMap()) and all items in the array or map
@@ -1242,8 +1224,9 @@ QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
  * use. Because of this, It can't be called multiple times like
  * QCBORDecode_PartialFinish().
  *
- * Some CBOR protocols use a CBOR sequence defined in [RFC 8742]
- * (https://tools.ietf.org/html/rfc8742). A CBOR sequence typically
+ * Some CBOR protocols use a CBOR sequence defined in 
+ * [RFC 8742](https://tools.ietf.org/html/rfc8742).
+ * A CBOR sequence typically
  * doesn't start out with a map or an array. The end of the CBOR is
  * determined in some other way, perhaps by external framing, or by
  * the occurrence of some particular CBOR data item or such. The

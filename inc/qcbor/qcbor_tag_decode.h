@@ -26,106 +26,135 @@ extern "C" {
 /**
  * @file qcbor_tag_decode.h
  *
- * This file defines the interface for tag decoders that turn tags
- * into custom QCBORItems with custom user-defined CBOR_TYPEs using
- * callbacks.
+ * @anchor TagDecoding
+ * ## Tag Decoding
  *
- * This also gives function prototypes for callbacks that are supplied
- * for standard CBOR data types like dates and big numbers.
+  * See @ref CBORTags first if you are unfamiliar with the notion of
+ * tags in CBOR.
  *
- * This is one of two main facilities for handling tags in CBOR. The
- * other is QCBORDecode_GetNextTagNumber().
+ * QCBOR v2 offers several ways to decode tags.
  *
- * This file is new in QCBOR v2.
+ * One is by registering a call back that can transform the tag into a
+ * @ref QCBORItem identified by a new QCBOR type, perhaps in the range
+ * starting with @ref QCBOR_TYPE_START_USER_DEFINED. It is limited in
+ * that the decoded data must fit into the 24 bytes of a QCBORItem
+ * value. It is good for simple new data types. See
+ * QCBORTagContentCallBack()
  *
- * @anchor Tag-Decoding
+ * Another is by getting (consuming) tag numbers in the course of
+ * decoding. This is more suitable for tags numbers that indicate
+ * message types, those that alter the decode flow. See
+ * QCBORDecode_VGetNextTagNumber().
  *
- * ## Tags Decoding
+ * QCBOR offers specific functions to decode the standard tags such as
+ * epoch dates and big numbers. One form of these is call backs that
+ * can be installed such as QCBORDecode_DateEpochTagCB(). Another is
+ * spiffy decode style QCBORDecode_GetXxx() functions like
+ * QCBORDecode_GetDateString()
  *
- * TODO: lots to write here
+ * QCBOR v2 (when not in v1 compatibility) requires all tags be
+ * consumed.  If they are not consumed by one of the above methods,
+ * @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER error occurs.  They are never
+ * optional (as they were described in RFC 7049) just is it is not
+ * optional to ignore whether an item is a string rather than an
+ * integer.
  *
- *  * @anchor Tag-Usage
- * ## Tag Usage
+ * ### QCBOR v2 tag decoding compared to v1
  *
- * Data types beyond the basic CBOR types of numbers, strings, maps and
- * arrays are called tags. The main registry of these new types is in
- * the IANA CBOR tags registry. These new types may be simple such a
- * number that is to be interpreted as a date, or of moderate complexity
- * such as defining a decimal fraction that is an array containing a
- * mantissa and exponent, or complex such as format for signing and
- * encryption.
+ * Thorough CBOR decoding requires that tag numbers not be
+ * ignored. Tag numbers fundamentally change the type of an item.
+ * QCBOR v1 does not support this well. It neatly put all the tag
+ * numbers on an item in the @ref QCBORItem, but left it up to the
+ * caller to check that every QCBORItem had no tag numbers on it. It
+ * is likely that protocol implementors rarely performed this check.
+ * For the most part this is tolerable, but it really isn't proper and
+ * thorough decoding.
  *
- * When a tag occurs in a protocol it is encoded as an integer tag
- * number plus the content of the tag.
+ * Also, spiffy decode methods like QCBORDecode_GetInt64() saved
+ * associated tag numbers so they could be fetched with
+ * QCBORDecode_GetNthTagNumberOfLast(), but did nothing more.
  *
- * The content format of a tag may also be "borrowed". For example, a
- * protocol definition may say that a particular data item is an epoch
- * date just like tag 1, but not actually tag 1. In practice the
- * difference is the presence or absence of the integer tag number in
- * the encoded CBOR.
+ * QCBOR v2 behaves different. It errors out if all tag numbers are
+ * not consumed.
  *
- * The decoding functions for these new types takes a tag requirement
- * parameter to say whether the item is a tag, is just borrowing the
- * content format and is not a tag, or whether either is OK.
+ * Most applications that worked correclty with v1 will work with
+ * v2. Decoding will become appropriately more thorough.
  *
- * If the parameter indicates the item must be a tag (@ref
- * QCBOR_TAG_REQUIREMENT_TAG), then @ref QCBOR_ERR_UNEXPECTED_TYPE is
- * set if it is not one of the expected tag types. To decode correctly
- * the contents of the tag must also be of the correct type. For
- * example, to decode an epoch date tag the content must be an integer
- * or floating-point value.
+ * If an application relied on the v1 behavior, it can be restored
+ * with the configuration @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
+
+ * Before QCBOR v1.5, the GetString decode functions would error
+ * out if preceeded by a tag number. This was unlike all the other
+ * Get() functions that queitly decoded the tag numbers and
+ * included them in the QCBORItem. The getString functions
+ * were modified by v1.5 so they were more liberal like
+ * the other Get functions.  This is only of note between
+ * QCBOR v1.5 and what came before it, not fo QCBOR v2.
+ * QCBOR v2 in compatibility mode behaves like QCBOR v1.5.
  *
- * If the parameter indicates it should not be a tag
- * (@ref  QCBOR_TAG_REQUIREMENT_NOT_A_TAG), then
- *  @ref QCBOR_ERR_UNEXPECTED_TYPE set if it is a tag or the type of the
- * encoded CBOR is not what is expected.  In the example of an epoch
- * date, the data type must be an integer or floating-point value. This
- * is the case where the content format of a tag is borrowed.
+ * @anchor Disabilng-Tag-Decoding
+ * ## Disabling Tag Decoding
  *
- * The parameter can also indicate that either a tag or no tag is
- * allowed ( @ref QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG ).  A good protocol
- * design should however be clear and choose one or the other and not
- * need this option. This is a way to implement "be liberal in what you
- * accept", however these days that is less in favor. See
- * https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html.
+ * If @ref QCBOR_DISABLE_TAGS is defined, all code for decoding tags
+ * will be omitted reducing the core decoder, QCBORDecode_VGetNext(),
+ * by about 500 bytes. If a tag number is encountered in the decoder
+ * input the unrecoverable error @ref QCBOR_ERR_TAGS_DISABLED will be
+ * returned.  No input with tags can be decoded.
  *
- * Map searching works with indefinite length strings. A string
- * allocator must be set up the same as for any handling of indefinite
- * length strings.  However, It currently over-allocates memory from the
- * string pool and thus requires a much larger string pool than it
- * should. The over-allocation happens every time a map is searched by
- * label.  (This may be corrected in the future).
- *
- *
- * TODO: this text isn't right
- * In v1, some spiffy decode functions ignored tag numbers and
- * some didn't.  For example, GetInt64 ignored and GetString didn't.
- * The "GetXxx" where Xxxx is a tag ignore conditionally based
- * on an argument.
- * (Would be good to verify this with tests)
- *
- * Do we fix the behavior of GetString in v1?  Relax so it
- * allows tag numbers like the rest? Probably.
- *
- * In v2, the whole mechanism is with GetTagNumbers. They are
- * never ignored and they must always be consumed.
- *
- * With v2 in v1 mode, the functions that were ignoring
- * tags must go back to ignoring them.
- *
- * How does TagRequirement work in v2?
- *
- * GetInt64 and GetString require all tag numbs to be processed
- * to work.
+ * Decode functions like QCBORDecode_GetEpochDate() and
+ * QCBORDecode_GetDecimalFraction() are still available, but only work
+ * on "borrowed" tag content.  When they are called with tags
+ * disabled, the @c uTagRequirement parameter should be
+ * @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG.
  */
 
+
+/*
+This describes the fan out of use cases for spiffy style tag decoding
+ in detail.
+
+TODO:  make sure this full fan out is tested
+TODO: perhaps incorporate some of this into documentation
+
+When asking for specific tag decode, for example GetDateEpoch()
+
+Tag required
+ - No tag gives error xxxx
+ - The epoch date tag by itself succeeds
+ - The epoch date tag with wrong content gives error yyy
+ - The epoch date tag with additional
+ - The additional have been consumed -- suceeds
+ - The aditional tags have not been consumed -- gives error aaa
+ - Another tag gives --- error zzz
+
+ Tag not required
+ - No tags, correct tag content -- success
+ - No tags, incorrect tag content type error yyy
+ - Another tag, not consumed ---  error aaa
+ - Another tag consumed -- success
+ - Another tag consumed and made into another type --- error xxxx
+
+ Tag optional
+ - No tags, correct content -- success
+ - No tags, incorrect content -- error yyy
+ - Expected tag -- success
+ - Another tag, consumed -- success
+ - Another tag, not consumed tag content correct -- error, probably aaa
+ - Another tag, consumed and made into another type -- error xxx
+ - Expected tag + another tag, not consumed -- error aaa
+
+
+ Now fan out for ALLOW_EXTRA --- yuckkkkk
+
+ Ignore ALLOW_EXTRA in v2?
+
+ Fan out for v1
+*/
+
+
 /**
- * When decoding a particular tag like an epoch date, the tag number
- * identifying it may be required to be present, or to be absent depending
- * on the protocol design. It may also be optional. This enum tells the decoder
- * what is required to decode a particular tagged type.
- *
- * See @ref Tag-Usage.
+ * This enum indicates how decode functions for specific tag types
+ * behave in relation to the tag numbers.
  */
 enum QCBORDecodeTagReq {
 
@@ -138,13 +167,14 @@ enum QCBORDecodeTagReq {
    /** The data item must be of the type expected for content data type
     *  being fetched. It is an error if it is not. For example, when
     *  calling QCBORDecode_GetEpochDate() and it must not be an @ref
-    *  CBOR_TAG_DATE_EPOCH tag.  */
+    *  CBOR_TAG_DATE_EPOCH tag.  See @ref AreTagsOptional.*/
    QCBOR_TAG_REQUIREMENT_NOT_A_TAG = 1,
 
    /** Either of the above two are allowed. This allows implementation of
     *  being liberal in what you receive, but it is better if CBOR-based
     *  protocols pick one and stick to and not required the reciever to
-    *  take either. */
+    *  take either. See
+    * https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html. */
    QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG = 2,
 
    /** Add this into the above value if other tags not processed by QCBOR
@@ -404,6 +434,7 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pCtx);
  * See also @ref CBOR_TAG_DATE_STRING, QCBOREncode_AddDateString() and
  * @ref QCBOR_TYPE_DATE_STRING.
  */
+// TODO: should this be GetTDateString like AddTDateString???
 static void
 QCBORDecode_GetDateString(QCBORDecodeContext    *pCtx,
                           enum QCBORDecodeTagReq uTagRequirement,
@@ -811,7 +842,7 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * returned in normal decoding with QCBORDecode_VGetNext() and
  * related.
  *
- * The other facility is QCBORDecode_GetNextTagNumber(). Note als that
+ * The other facility is QCBORDecode_GetNextTagNumber(). Note that
  * tag processing is substantially changed in QCBOR v2.
  *
  * A CBOR tag consists of a tag number and tag content. The tag
@@ -1093,6 +1124,7 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
  *
  * @param[in] pCtx    The decoder context.
  * @param[in] uIndex The index of the tag to get.
+ * @param[in] pItem The item from which to get the tag number.
  *
  * This is the same as QCBORDecode_GetNthTagNumber() but the order is
  * opposite when there are multiple tags. @c uIndex 0 is the tag
