@@ -109,7 +109,7 @@ extern "C" {
  * an error will be returned.
  *
  * This new behavior saves the caller from having to do this check
- * (that they probably didn't know they neeeded).  It is much more
+ * (that they probably didn't know they neeeded).  It is more
  * correct behavior.
  *
  * This behavior is not backwards compatible with v1. The v1 behavior
@@ -190,24 +190,6 @@ extern "C" {
  * item being sought, in which case the unrecoverable error will be
  * returned. Unrecoverable errors are those indicated by
  * QCBORDecode_IsUnrecoverableError().
- *
- * @anchor Disabilng-Tag-Decoding
- * # Disabilng Tag Decoding
- *
- * TODO: update this
- * If QCBOR_DISABLE_TAGS is defined, all code for decoding tags will
- * be omitted reducing the core decoder, QCBORDecode_VGetNext(), by
- * about 400 bytes. If a tag number is encountered in the decoder
- * input the unrecoverable error @ref QCBOR_ERR_TAGS_DISABLED will be
- * returned.  No input with tags can be decoded.
- *
- * Decode functions like QCBORDecode_GetEpochDate() and
- * QCBORDecode_GetDecimalFraction() that can decode the tag content
- * even if the tag number is absent are still available.  Typically
- * they won't be linked in because of dead stripping. The
- * @c uTagRequirement parameter has no effect, but if it is
- * @ref QCBOR_TAG_REQUIREMENT_TAG, @ref QCBOR_ERR_TAGS_DISABLED
- * will be set.
  */
 
 
@@ -366,7 +348,7 @@ typedef enum {
  *  @ref  CBOR_TAG_NEG_BIGNUM. */
 #define QCBOR_TYPE_NEGBIGNUM     10
 
-/** Type for [RFC 3339] (https://tools.ietf.org/html/rfc3339) date
+/** Type for [RFC 3339](https://tools.ietf.org/html/rfc3339) date
  *  string, possibly with time zone. Data is in @c val.string . Note this
  *  was previously in @c val.dateString, however this is the same as
  *  val.string being the same type in same union. val.dateString will
@@ -699,7 +681,7 @@ typedef struct _QCBORItem {
    /**
     * PRIVATE MEMBER
     * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
-    * Also see @ref Tags-Overview.
+    * Also see @ref CBORTags
     *
     * In QCBOR v1 this was named uTags and was in the reverse order.
     * It wasn't explicitly described as private, but was implicitly private.
@@ -927,8 +909,8 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * - @c uDataType which indicates which member of the @c val union the
  *   data is in. This decoder figures out the type based on the CBOR
- *   major type, the CBOR "additionalInfo", the CBOR optional tags and
- *   the value of the integer.
+ *   major type, the CBOR "additionalInfo", and sometimes by
+ *   preceding tag numbers.
  *
  * - The value of the item, which might be an integer, a pointer and a
  *   length, the count of items in an array, a floating-point number or
@@ -939,7 +921,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * - The label for an item in a map, which may be a text or byte string
  *   or an integer.
  *
- * - The unprocessed tag numbers for which the item is the tag content.
+ * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,  unprocessed tag numbers.
  *
  * See @ref QCBORItem for all the details about what is returned.
  *
@@ -1004,8 +986,6 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * @c QCBORItem.val.uCount contains the number of items in the
  * array. For indefinite-length arrays, @c QCBORItem.val.uCount
  * is @c UINT16_MAX.
- *
- * See extensive discussion in @ref Tag-Decoding.
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
@@ -1180,7 +1160,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * at the next item to be decoded as expected.
  *
  * There are some special rules for the traversal cursor when fetching
- * map items by label. See the description of @SpiffyDecode.
+ * map items by label. See the description of @ref SpiffyDecode.
  *
  * When traversal is bounded because an array or map has been entered
  * (e.g., QCBORDecode_EnterMap()) and all items in the array or map
@@ -1242,8 +1222,9 @@ QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
  * use. Because of this, It can't be called multiple times like
  * QCBORDecode_PartialFinish().
  *
- * Some CBOR protocols use a CBOR sequence defined in [RFC 8742]
- * (https://tools.ietf.org/html/rfc8742). A CBOR sequence typically
+ * Some CBOR protocols use a CBOR sequence defined in 
+ * [RFC 8742](https://tools.ietf.org/html/rfc8742).
+ * A CBOR sequence typically
  * doesn't start out with a map or an array. The end of the CBOR is
  * determined in some other way, perhaps by external framing, or by
  * the occurrence of some particular CBOR data item or such. The
@@ -1567,7 +1548,7 @@ static inline void
 QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   memcpy(pMe->auLastTags, pItem->auTagNumbers, sizeof(pItem->auTagNumbers));
+   memcpy(pMe->auLastTagNumbers, pItem->auTagNumbers, sizeof(pItem->auTagNumbers));
 #else /* ! QCBOR_DISABLE_TAGS */
    (void)pMe;
    (void)pItem;

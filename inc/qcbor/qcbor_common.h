@@ -47,8 +47,8 @@ extern "C" {
 /**
  * @file qcbor_common.h
  *
- * Constant values for types, error codes and such that are common to
- * encoding and decoding.
+ * qcbor_common.h contains error codes and constant values that are
+ * common between encoding and decoding.
  */
 
 
@@ -458,11 +458,8 @@ typedef enum {
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59
 
    /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encountered for a
-    *  CBOR ITEM.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
-    *  implementation.  During decoding, too many tags in the
-    *  caller-configured tag list, or not enough space in
-    *  @ref  QCBORTagListOut. This error makes no further decoding
-    *  possible.  */
+    *  CBOR Item.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
+    *  implementation. x  */
    QCBOR_ERR_TOO_MANY_TAGS = 60,
 
    /** When decoding for a specific type, the type was not expected.  */
@@ -567,14 +564,14 @@ typedef enum {
     * a @ref QCBORStringAllocate. */
    QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 81,
 
-   /* Can't output a negative zero big num */
+   /** Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
    /** An unconsumed tag number was encountered. */
    QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89, // TODO: rid of this in favor of below?
 
    /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber().
-    * See @ref QCBOR_DECODE_CONFIG_UNPROCESSED_TAG_NUMBERS. */
+    * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 
    /** A range of error codes that can be made use of by the

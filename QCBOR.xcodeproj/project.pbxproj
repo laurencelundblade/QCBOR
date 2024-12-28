@@ -165,7 +165,7 @@
 		E7180F272CF917D200513186 /* decode_nesting.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decode_nesting.h; path = src/decode_nesting.h; sourceTree = "<group>"; };
 		E7180F282CFCE9B000513186 /* qcbor_main_decode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor_main_decode.h; path = inc/qcbor/qcbor_main_decode.h; sourceTree = "<group>"; };
 		E7180F292CFCE9F800513186 /* qcbor_decode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor_decode.h; path = inc/qcbor/qcbor_decode.h; sourceTree = "<group>"; };
-		E7180F2A2CFCEBE100513186 /* qcbor_main_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_main_decode.c; path = src/qcbor_main_decode.c; sourceTree = "<group>"; };
+		E7180F2A2CFCEBE100513186 /* qcbor_main_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_main_decode.c; path = src/qcbor_main_decode.c; sourceTree = "<group>"; tabWidth = 3; };
 		E73B57572161CA680080D658 /* ieee754.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = ieee754.h; path = src/ieee754.h; sourceTree = "<group>"; tabWidth = 3; };
 		E73B57582161CA690080D658 /* ieee754.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = ieee754.c; path = src/ieee754.c; sourceTree = "<group>"; tabWidth = 3; };
 		E73B575A2161CA7C0080D658 /* float_tests.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = float_tests.c; path = test/float_tests.c; sourceTree = "<group>"; tabWidth = 3; };
@@ -197,6 +197,10 @@
 		E7B699092D128AC800D8F78F /* qcbor_number_encode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qcbor_number_encode.c; path = src/qcbor_number_encode.c; sourceTree = "<group>"; };
 		E7B6990D2D13E56F00D8F78F /* qcbor_number_encode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qcbor_number_encode.h; path = inc/qcbor/qcbor_number_encode.h; sourceTree = "<group>"; };
 		E7B6990E2D13EF4700D8F78F /* qcbor_encode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor_encode.h; path = inc/qcbor/qcbor_encode.h; sourceTree = "<group>"; };
+		E7B699102D17327F00D8F78F /* TimeTag1FAQ.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = TimeTag1FAQ.md; path = doc/TimeTag1FAQ.md; sourceTree = "<group>"; };
+		E7B699112D17328B00D8F78F /* mainpage.dox */ = {isa = PBXFileReference; lastKnownFileType = text; name = mainpage.dox; path = doc/mainpage.dox; sourceTree = "<group>"; };
+		E7B699122D1732BD00D8F78F /* Building.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = Building.md; path = doc/Building.md; sourceTree = "<group>"; };
+		E7B699132D17421D00D8F78F /* Overview.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = Overview.md; path = doc/Overview.md; sourceTree = "<group>"; };
 		E7C6D9952CB7D4010034425D /* tag-examples.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "tag-examples.h"; sourceTree = "<group>"; };
 		E7C6D9962CB7D4010034425D /* tag-examples.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "tag-examples.c"; sourceTree = "<group>"; };
 		E7C960B72800A09E00FB537C /* ub-example.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ub-example.h"; sourceTree = "<group>"; };
@@ -270,14 +274,11 @@
 		E776E073214ADF7F00E67947 = {
 			isa = PBXGroup;
 			children = (
-				E776E161214EE19C00E67947 /* README.md */,
-				E743D132251014E60017899F /* Tagging.md */,
-				E7E305E02CE14447000E9348 /* Numbers.md */,
-				E7A7B60E2B76FB62009102C2 /* Serialization.md */,
 				E776E096214AE0C700E67947 /* cmd_line_main.c */,
 				E776E092214AE07C00E67947 /* inc */,
 				E776E08B214AE06600E67947 /* src */,
 				E776E095214AE0B600E67947 /* test */,
+				E7B6990F2D17321B00D8F78F /* doc */,
 				E743D0E024AC51470017899F /* example */,
 				E776E07D214ADF7F00E67947 /* Products */,
 			);
@@ -352,6 +353,21 @@
 				0F8BADA722EF40FC008B6513 /* not_well_formed_cbor.h */,
 			);
 			name = test;
+			sourceTree = "<group>";
+		};
+		E7B6990F2D17321B00D8F78F /* doc */ = {
+			isa = PBXGroup;
+			children = (
+				E7B699132D17421D00D8F78F /* Overview.md */,
+				E7B699122D1732BD00D8F78F /* Building.md */,
+				E7B699112D17328B00D8F78F /* mainpage.dox */,
+				E7B699102D17327F00D8F78F /* TimeTag1FAQ.md */,
+				E776E161214EE19C00E67947 /* README.md */,
+				E743D132251014E60017899F /* Tagging.md */,
+				E7E305E02CE14447000E9348 /* Numbers.md */,
+				E7A7B60E2B76FB62009102C2 /* Serialization.md */,
+			);
+			name = doc;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
