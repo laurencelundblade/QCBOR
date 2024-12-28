@@ -109,6 +109,13 @@ extern "C" {
  * quantified). One way ease this is to use
  * QCBORDecode_GetItemsInMap() which allows decoding of a list of
  * items expected in an map in one traveral.
+ *
+ * * Map searching works with indefinite length strings. A string
+ * allocator must be set up the same as for any handling of indefinite
+ * length strings.  However, It currently over-allocates memory from the
+ * string pool and thus requires a much larger string pool than it
+ * should. The over-allocation happens every time a map is searched by
+ * label.  (This may be corrected in the future).
  */
 
 
@@ -594,7 +601,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * every pItemList.auTagNumbers is empty or has tag numbers that are
  * expected. While tag numbers were once described as "optional",
  * they really do have critical information that should not be ignored.
- * See @ref Tag-Decoding
+ * See @ref TagDecoding
  *
  * This function works well with tag content decoders as described in
  * QCBORDecode_InstallTagDecoders().
