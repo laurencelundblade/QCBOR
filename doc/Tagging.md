@@ -117,7 +117,7 @@ for dates, big numbers and such. For encoding their names start with
 (TODO: fix this).  These APIs can handle
 
 These APIs and structures support both the full tag form and the
-borrowed content form that is not a tag. An argument of type @ref xxx
+borrowed content form that is not a tag. An argument of type @ref QCBOREncodeTagReq
 and @ref QCBORDecodeTagReq is provided respectively to the tag encode
 and decode functions to distinguish between full tags and borrowed
 content.

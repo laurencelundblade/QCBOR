@@ -388,9 +388,9 @@ struct _QCBORDecodeContext {
    uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
 
    /* See MapTagNumber() for description of how tags are mapped. */
-   uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
+   uint64_t auMappedTagNumbers[QCBOR_NUM_MAPPED_TAGS];
 
-   QCBORMappedTagNumbers auLastTags;
+   QCBORMappedTagNumbers auLastTagNumbers;
 
    const struct QCBORTagDecoderEntry *pTagDecoderTable;
    void       *pTagDecodersContext;

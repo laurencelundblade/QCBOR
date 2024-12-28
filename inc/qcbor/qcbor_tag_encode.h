@@ -86,41 +86,46 @@ extern "C" {
  *   function that creates a complex message like a COSE_Encrypt.
  *
  * Tags can nest, so there might be sequential calls to
- * QCBOREncode_AddTagNumber(). While deep nesting is rare andthere is no
+ * QCBOREncode_AddTagNumber(). While deep nesting is rare and there is no
  * limit for encoding, QCBOR decoding is limited to a
  * depth of @ref QCBOR_MAX_TAGS_PER_ITEM.
  *
  * ### Borrowing Tag Content
  *
- * As described in @ref AreTagsOptional, it is often the case that tag
- * content for a particular tag is encoded without the tag number.
- * This is "borrowing" tag content. It is similar to implicit types in
- * ASN.1 where the type is inferred by context.
+ * As explained in @ref AreTagsOptional, tag content for a specific
+ * tag is often encoded without including the tag number.  This
+ * practice, known as "borrowing" tag content, is comparable to
+ * implicit tagging in ASN.1, where the type is inferred from the
+ * context.
  *
- * For the standard tags supported by QCBOR, their methods include an
- * argument to control this behavior:
+ * All QCBOR APIs for encoding specific tags, such as
+ * QCBOREncode_AddTDaysEpoch(), include an argument of type
+ * @ref QCBOREncodeTagReq. This argument determines whether the tag
+ * number should be included or omitted.
  *
- * - @ref QCBOR_ENCODE_AS_TAG : Includes the tag number.
- * - @ref QCBOR_ENCODE_AS_BORROWED : Omits the tag number.
+ * For tags for which QCBOR provides no API, outputting borrowed
+ * content amounts to just omitting the tag number.
  *
- * For tags other than the standard ones supported by QCBOR methods,
- * the names of which starts with "QCBOREncode_AddT", all that is
- * needed to encode borrowed tag content is to not call
- * QCBOREncode_AddTagNumber(). This of course assumes the protocol can
- * be unambiguously decoded without the tag number.
+ * For tags without dedicated QCBOR APIs, encoding borrowed content is
+ * straightforward: simply omit the tag number.
  */
 
 
-/**
- * Output the full CBOR tag. See @ref CBORTags.
- */
-#define QCBOR_ENCODE_AS_TAG      0
+/** Enum used by specific tag-encoding functions, those whose names
+ * start with "QCBOREncode_AddT", to indicates whether a tag should be
+ * encoded as a full tag or as borrowed content. */
+enum QCBOREncodeTagReq {
+    /**
+     * Output the full tag including the tag number. See @ref AreTagsOptional.
+     */
+     QCBOR_ENCODE_AS_TAG =  0,
 
-/**
- * Output only the 'borrowed' content format for the relevant tag.
- * See @ref CBORTags..
- */
-#define QCBOR_ENCODE_AS_BORROWED 1
+    /**
+     * Output only the borrowed content for the tag. No tag number is
+     * output.  See @ref AreTagsOptional.
+     */
+    QCBOR_ENCODE_AS_BORROWED = 1
+};
 
 
 
@@ -186,23 +191,23 @@ QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTagNumber);
  * See also QCBOREncode_AddTDaysEpoch().
  */
 static void
-QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pCtx,
-                          uint8_t             uTagRequirement,
-                          int64_t             nDate);
+QCBOREncode_AddTDateEpoch(QCBOREncodeContext    *pCtx,
+                          enum QCBOREncodeTagReq uTagRequirement,
+                          int64_t                nDate);
 
 /** See QCBOREncode_AddTDateEpoch(). */
 static void
-QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pCtx,
-                                 const char         *szLabel,
-                                 uint8_t             uTagRequirement,
-                                 int64_t             nDate);
+QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext    *pCtx,
+                                 const char            *szLabel,
+                                 enum QCBOREncodeTagReq uTagRequirement,
+                                 int64_t                nDate);
 
 /** See QCBOREncode_AddTDateEpoch(). */
 static void
-QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx,
-                                int64_t             nLabel,
-                                uint8_t             uTagRequirement,
-                                int64_t             nDate);
+QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext    *pCtx,
+                                int64_t                nLabel,
+                                enum QCBOREncodeTagReq uTagRequirement,
+                                int64_t                nDate);
 
 
 /**
@@ -224,23 +229,23 @@ QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pCtx,
  * See also QCBOREncode_AddTDateEpoch().
  */
 static void
-QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pCtx,
-                          uint8_t             uTagRequirement,
-                          int64_t             nDays);
+QCBOREncode_AddTDaysEpoch(QCBOREncodeContext    *pCtx,
+                          enum QCBOREncodeTagReq uTagRequirement,
+                          int64_t                nDays);
 
 /** See QCBOREncode_AddTDaysEpoch(). */
 static void
-QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pCtx,
-                                 const char         *szLabel,
-                                 uint8_t             uTagRequirement,
-                                 int64_t             nDays);
+QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext    *pCtx,
+                                 const char            *szLabel,
+                                 enum QCBOREncodeTagReq uTagRequirement,
+                                 int64_t                nDays);
 
 /** See QCBOREncode_AddTDaysEpoch(). */
 static void
-QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pCtx,
-                                int64_t             nLabel,
-                                uint8_t             uTagRequirement,
-                                int64_t             nDays);
+QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext    *pCtx,
+                                int64_t                nLabel,
+                                enum QCBOREncodeTagReq uTagRequirement,
+                                int64_t                nDays);
 
 
 /**
@@ -249,7 +254,7 @@ QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx             The encoding context to add the UUID to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] Bytes            Pointer and length of the binary UUID.
+ * @param[in] UUID            Pointer and length of the binary UUID.
  *
  * A binary UUID as defined in 
  * [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
@@ -259,23 +264,23 @@ QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pCtx,
  * CBOR_TAG_BIN_UUID indicating the binary string is a UUID.
  */
 static void
-QCBOREncode_AddTBinaryUUID(QCBOREncodeContext *pCtx,
-                           uint8_t             uTagRequirement,
-                           UsefulBufC          Bytes);
+QCBOREncode_AddTBinaryUUID(QCBOREncodeContext    *pCtx,
+                           enum QCBOREncodeTagReq uTagRequirement,
+                           UsefulBufC             UUID);
 
 /** See QCBOREncode_AddTBinaryUUID(). */
 static void
-QCBOREncode_AddTBinaryUUIDToMapSZ(QCBOREncodeContext *pCtx,
-                                  const char         *szLabel,
-                                  uint8_t             uTagRequirement,
-                                  UsefulBufC          Bytes);
+QCBOREncode_AddTBinaryUUIDToMapSZ(QCBOREncodeContext    *pCtx,
+                                  const char            *szLabel,
+                                  enum QCBOREncodeTagReq uTagRequirement,
+                                  UsefulBufC             UUID);
 
 /** See QCBOREncode_AddTBinaryUUID(). */
 static void
-QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext *pCtx,
-                                 int64_t             nLabel,
-                                 uint8_t             uTagRequirement,
-                                 UsefulBufC          Bytes);
+QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext    *pCtx,
+                                 int64_t                nLabel,
+                                 enum QCBOREncodeTagReq uTagRequirement,
+                                 UsefulBufC             UUID);
 
 
 /**
@@ -298,23 +303,23 @@ QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext *pCtx,
  *      QCBOREncode_AddTURI(pCtx, QCBOR_ENCODE_AS_TAG, UsefulBuf_FromSZ(szURI));
  */
 static void
-QCBOREncode_AddTURI(QCBOREncodeContext *pCtx,
-                    uint8_t             uTagRequirement,
-                    UsefulBufC          URI);
+QCBOREncode_AddTURI(QCBOREncodeContext    *pCtx,
+                    enum QCBOREncodeTagReq uTagRequirement,
+                    UsefulBufC             URI);
 
 /** See QCBOREncode_AddTURI(). */
 static void
-QCBOREncode_AddTURIToMapSZ(QCBOREncodeContext *pCtx,
-                           const char         *szLabel,
-                           uint8_t             uTagRequirement,
-                           UsefulBufC          URI);
+QCBOREncode_AddTURIToMapSZ(QCBOREncodeContext    *pCtx,
+                           const char            *szLabel,
+                           enum QCBOREncodeTagReq uTagRequirement,
+                           UsefulBufC             URI);
 
 /** See QCBOREncode_AddTURI(). */
 static void
-QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pCtx,
-                          int64_t             nLabel,
-                          uint8_t             uTagRequirement,
-                          UsefulBufC          URI);
+QCBOREncode_AddTURIToMapN(QCBOREncodeContext    *pCtx,
+                          int64_t                nLabel,
+                          enum QCBOREncodeTagReq uTagRequirement,
+                          UsefulBufC             URI);
 
 
 /**
@@ -332,23 +337,23 @@ QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pCtx,
  * CBOR_TAG_B64 indicating the text string is Base64 encoded.
  */
 static void
-QCBOREncode_AddTB64Text(QCBOREncodeContext *pCtx,
-                        uint8_t             uTagRequirement,
-                        UsefulBufC          B64Text);
+QCBOREncode_AddTB64Text(QCBOREncodeContext    *pCtx,
+                        enum QCBOREncodeTagReq uTagRequirement,
+                        UsefulBufC             B64Text);
 
 /** See QCBOREncode_AddTB64Text(). */
 static void
-QCBOREncode_AddTB64TextToMapSZ(QCBOREncodeContext *pCtx,
-                               const char         *szLabel,
-                               uint8_t             uTagRequirement,
-                               UsefulBufC          B64Text);
+QCBOREncode_AddTB64TextToMapSZ(QCBOREncodeContext    *pCtx,
+                               const char            *szLabel,
+                               enum QCBOREncodeTagReq uTagRequirement,
+                               UsefulBufC             B64Text);
 
 /** See QCBOREncode_AddTB64Text(). */
 static void
-QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext *pCtx,
-                              int64_t nLabel,
-                              uint8_t uTagRequirement,
-                              UsefulBufC B64Text);
+QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext    *pCtx,
+                              int64_t                nLabel,
+                              enum QCBOREncodeTagReq uTagRequirement,
+                              UsefulBufC             B64Text);
 
 
 /**
@@ -367,23 +372,23 @@ QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext *pCtx,
  * encoded.
  */
 static void
-QCBOREncode_AddTB64URLText(QCBOREncodeContext *pCtx,
-                           uint8_t             uTagRequirement,
-                           UsefulBufC          B64Text);
+QCBOREncode_AddTB64URLText(QCBOREncodeContext    *pCtx,
+                           enum QCBOREncodeTagReq uTagRequirement,
+                           UsefulBufC             B64Text);
 
 /** See QCBOREncode_AddTB64URLText(). */
 static void
-QCBOREncode_AddTB64URLTextToMapSZ(QCBOREncodeContext *pCtx,
-                                  const char         *szLabel,
-                                  uint8_t             uTagRequirement,
-                                  UsefulBufC          B64Text);
+QCBOREncode_AddTB64URLTextToMapSZ(QCBOREncodeContext    *pCtx,
+                                  const char            *szLabel,
+                                  enum QCBOREncodeTagReq uTagRequirement,
+                                  UsefulBufC             B64Text);
 
 /** See QCBOREncode_AddTB64URLText(). */
 static void
-QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext *pCtx,
-                                 int64_t             nLabel,
-                                 uint8_t             uTagRequirement,
-                                 UsefulBufC          B64Text);
+QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext    *pCtx,
+                                 int64_t                nLabel,
+                                 enum QCBOREncodeTagReq uTagRequirement,
+                                 UsefulBufC             B64Text);
 
 
 /**
@@ -401,23 +406,23 @@ QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext *pCtx,
  * CBOR_TAG_REGEX indicating the text string is a regular expression.
  */
 static void
-QCBOREncode_AddTRegex(QCBOREncodeContext *pCtx,
-                      uint8_t            uTagRequirement,
-                      UsefulBufC         Regex);
+QCBOREncode_AddTRegex(QCBOREncodeContext    *pCtx,
+                      enum QCBOREncodeTagReq uTagRequirement,
+                      UsefulBufC             Regex);
 
 /** See QCBOREncode_AddTRegex(). */
 static void
-QCBOREncode_AddTRegexToMapSZ(QCBOREncodeContext *pCtx,
-                             const char         *szLabel,
-                             uint8_t             uTagRequirement,
-                             UsefulBufC          Regex);
+QCBOREncode_AddTRegexToMapSZ(QCBOREncodeContext    *pCtx,
+                             const char            *szLabel,
+                             enum QCBOREncodeTagReq uTagRequirement,
+                             UsefulBufC             Regex);
 
 /** See QCBOREncode_AddTRegex(). */
 static void
-QCBOREncode_AddTRegexToMapN(QCBOREncodeContext *pCtx,
-                            int64_t             nLabel,
-                            uint8_t             uTagRequirement,
-                            UsefulBufC          Regex);
+QCBOREncode_AddTRegexToMapN(QCBOREncodeContext    *pCtx,
+                            int64_t                nLabel,
+                            enum QCBOREncodeTagReq uTagRequirement,
+                            UsefulBufC             Regex);
 
 
 /**
@@ -449,23 +454,23 @@ QCBOREncode_AddTRegexToMapN(QCBOREncodeContext *pCtx,
  * for a discussion of line endings in CBOR.
  */
 static void
-QCBOREncode_AddTMIMEData(QCBOREncodeContext *pCtx,
-                         uint8_t             uTagRequirement,
-                         UsefulBufC          MIMEData);
+QCBOREncode_AddTMIMEData(QCBOREncodeContext    *pCtx,
+                         enum QCBOREncodeTagReq uTagRequirement,
+                         UsefulBufC             MIMEData);
 
 /** See QCBOREncode_AddTMIMEData(). */
 static void
-QCBOREncode_AddTMIMEDataToMapSZ(QCBOREncodeContext *pCtx,
-                                const char         *szLabel,
-                                uint8_t             uTagRequirement,
-                                UsefulBufC          MIMEData);
+QCBOREncode_AddTMIMEDataToMapSZ(QCBOREncodeContext    *pCtx,
+                                const char            *szLabel,
+                                enum QCBOREncodeTagReq uTagRequirement,
+                                UsefulBufC             MIMEData);
 
 /** See QCBOREncode_AddTMIMEData(). */
 static void
-QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext *pCtx,
-                               int64_t             nLabel,
-                               uint8_t             uTagRequirement,
-                               UsefulBufC          MIMEData);
+QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext    *pCtx,
+                               int64_t                nLabel,
+                               enum QCBOREncodeTagReq uTagRequirement,
+                               UsefulBufC             MIMEData);
 
 
 /**
@@ -491,23 +496,23 @@ QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext *pCtx,
  * See also QCBOREncode_AddTDayString().
  */
 static void
-QCBOREncode_AddTDateString(QCBOREncodeContext *pCtx,
-                           uint8_t             uTagRequirement,
-                           const char         *szDate);
+QCBOREncode_AddTDateString(QCBOREncodeContext    *pCtx,
+                           enum QCBOREncodeTagReq uTagRequirement,
+                           const char            *szDate);
 
 /** See QCBOREncode_AddTDateString(). */
 static void
-QCBOREncode_AddTDateStringToMapSZ(QCBOREncodeContext *pCtx,
-                                  const char         *szLabel,
-                                  uint8_t             uTagRequirement,
-                                  const char         *szDate);
+QCBOREncode_AddTDateStringToMapSZ(QCBOREncodeContext    *pCtx,
+                                  const char            *szLabel,
+                                  enum QCBOREncodeTagReq uTagRequirement,
+                                  const char            *szDate);
 
 /** See QCBOREncode_AddTDateString(). */
 static void
-QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext *pCtx,
-                                 int64_t             nLabel,
-                                 uint8_t             uTagRequirement,
-                                 const char         *szDate);
+QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext    *pCtx,
+                                 int64_t                nLabel,
+                                 enum QCBOREncodeTagReq uTagRequirement,
+                                 const char            *szDate);
 
 
 /**
@@ -536,23 +541,23 @@ QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext *pCtx,
  * See also QCBOREncode_AddTDateString().
  */
 static void
-QCBOREncode_AddTDaysString(QCBOREncodeContext *pCtx,
-                           uint8_t             uTagRequirement,
-                           const char         *szDate);
+QCBOREncode_AddTDaysString(QCBOREncodeContext    *pCtx,
+                           enum QCBOREncodeTagReq uTagRequirement,
+                           const char            *szDate);
 
 /** See QCBOREncode_AddTDaysString(). */
 static void
-QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext *pCtx,
-                                  const char         *szLabel,
-                                  uint8_t             uTagRequirement,
-                                  const char         *szDate);
+QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext    *pCtx,
+                                  const char            *szLabel,
+                                  enum QCBOREncodeTagReq uTagRequirement,
+                                  const char            *szDate);
 
 /** See QCBOREncode_AddTDaysString(). */
 static void
-QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pCtx,
-                                 int64_t             nLabel,
-                                 uint8_t             uTagRequirement,
-                                 const char         *szDate);
+QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext    *pCtx,
+                                 int64_t                nLabel,
+                                 enum QCBOREncodeTagReq uTagRequirement,
+                                 const char            *szDate);
 
 
 
@@ -578,15 +583,15 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t
 
 /** @deprecated Use QCBOREncode_AddTBinaryUUID() instead. */
 static void
-QCBOREncode_AddBinaryUUID(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
+QCBOREncode_AddBinaryUUID(QCBOREncodeContext *pCtx, UsefulBufC UUID);
 
 /** @deprecated Use QCBOREncode_AddTBinaryUUIDToMapSZ() instead. */
 static void
-QCBOREncode_AddBinaryUUIDToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
+QCBOREncode_AddBinaryUUIDToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC UUID);
 
 /** @deprecated Use QCBOREncode_AddTBinaryUUIDToMapN() instead. */
 static void
-QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC UUID);
 
 /** @deprecated Use QCBOREncode_AddTagNumber() instead. */
 static void
@@ -709,34 +714,34 @@ QCBOREncode_AddTag(QCBOREncodeContext *pMe, const uint64_t uTagNumber)
 
 
 static inline void
-QCBOREncode_AddTDateEpoch(QCBOREncodeContext *pMe,
-                          const uint8_t       uTag,
-                          const int64_t       nDate)
+QCBOREncode_AddTDateEpoch(QCBOREncodeContext          *pMe,
+                          const enum QCBOREncodeTagReq uTagRequirement,
+                          const int64_t                nDate)
 {
-   if(uTag == QCBOR_ENCODE_AS_TAG) {
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DATE_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDate);
 }
 
 static inline void
-QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext *pMe,
-                                 const char         *szLabel,
-                                 const uint8_t       uTag,
-                                 const int64_t       nDate)
+QCBOREncode_AddTDateEpochToMapSZ(QCBOREncodeContext          *pMe,
+                                 const char                  *szLabel,
+                                 const enum QCBOREncodeTagReq uTagRequirement,
+                                 const int64_t                nDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+   QCBOREncode_AddTDateEpoch(pMe, uTagRequirement, nDate);
 }
 
 static inline void
-QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext *pMe,
-                                const int64_t       nLabel,
-                                const uint8_t       uTag,
-                                const int64_t       nDate)
+QCBOREncode_AddTDateEpochToMapN(QCBOREncodeContext          *pMe,
+                                const int64_t                nLabel,
+                                const enum QCBOREncodeTagReq uTagRequirement,
+                                const int64_t                nDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDateEpoch(pMe, uTag, nDate);
+   QCBOREncode_AddTDateEpoch(pMe, uTagRequirement, nDate);
 }
 
 static inline void
@@ -766,99 +771,99 @@ QCBOREncode_AddDateEpochToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTDaysEpoch(QCBOREncodeContext *pMe,
-                          const uint8_t       uTag,
-                          const int64_t       nDays)
+QCBOREncode_AddTDaysEpoch(QCBOREncodeContext          *pMe,
+                          const enum QCBOREncodeTagReq uTagRequirement,
+                          const int64_t                nDays)
 {
-   if(uTag == QCBOR_ENCODE_AS_TAG) {
+   if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DAYS_EPOCH);
    }
    QCBOREncode_AddInt64(pMe, nDays);
 }
 
 static inline void
-QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext *pMe,
-                                 const char         *szLabel,
-                                 const uint8_t       uTag,
-                                 const int64_t       nDays)
+QCBOREncode_AddTDaysEpochToMapSZ(QCBOREncodeContext          *pMe,
+                                 const char                  *szLabel,
+                                 const enum QCBOREncodeTagReq uTagRequirement,
+                                 const int64_t                nDays)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDays);
+   QCBOREncode_AddTDaysEpoch(pMe, uTagRequirement, nDays);
 }
 
 static inline void
-QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext *pMe,
-                                const int64_t       nLabel,
-                                const uint8_t       uTag,
-                                const int64_t       nDays)
+QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext          *pMe,
+                                const int64_t                nLabel,
+                                const enum QCBOREncodeTagReq uTagRequirement,
+                                const int64_t                nDays)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTDaysEpoch(pMe, uTag, nDays);
+   QCBOREncode_AddTDaysEpoch(pMe, uTagRequirement, nDays);
 }
 
 
 
 static inline void
-QCBOREncode_AddTBinaryUUID(QCBOREncodeContext *pMe,
-                           const uint8_t       uTagRequirement,
-                           const UsefulBufC    Bytes)
+QCBOREncode_AddTBinaryUUID(QCBOREncodeContext          *pMe,
+                           const enum QCBOREncodeTagReq uTagRequirement,
+                           const UsefulBufC             UUID)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_BIN_UUID);
    }
-   QCBOREncode_AddBytes(pMe, Bytes);
+   QCBOREncode_AddBytes(pMe, UUID);
 }
 
 static inline void
-QCBOREncode_AddTBinaryUUIDToMapSZ(QCBOREncodeContext *pMe,
-                                  const char         *szLabel,
-                                  const uint8_t       uTagRequirement,
-                                  const UsefulBufC    Bytes)
+QCBOREncode_AddTBinaryUUIDToMapSZ(QCBOREncodeContext          *pMe,
+                                  const char                  *szLabel,
+                                  const enum QCBOREncodeTagReq uTagRequirement,
+                                  const UsefulBufC             UUID)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTBinaryUUID(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTBinaryUUID(pMe, uTagRequirement, UUID);
 }
 
 static inline void
-QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext *pMe,
-                                 const int64_t       nLabel,
-                                 const uint8_t       uTagRequirement,
-                                 const UsefulBufC    Bytes)
+QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext         *pMe,
+                                 const int64_t                nLabel,
+                                 const enum QCBOREncodeTagReq uTagRequirement,
+                                 const UsefulBufC             UUID)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTBinaryUUID(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTBinaryUUID(pMe, uTagRequirement, UUID);
 }
 
 static inline void
-QCBOREncode_AddBinaryUUID(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
+QCBOREncode_AddBinaryUUID(QCBOREncodeContext *pMe, const UsefulBufC UUID)
 {
-   QCBOREncode_AddTBinaryUUID(pMe, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTBinaryUUID(pMe, QCBOR_ENCODE_AS_TAG, UUID);
 }
 
 static inline void
 QCBOREncode_AddBinaryUUIDToMap(QCBOREncodeContext *pMe,
                                const char         *szLabel,
-                               const UsefulBufC    Bytes)
+                               const UsefulBufC    UUID)
 {
-   QCBOREncode_AddTBinaryUUIDToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTBinaryUUIDToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, UUID);
 }
 
 static inline void
 QCBOREncode_AddBinaryUUIDToMapN(QCBOREncodeContext *pMe,
                                 const int64_t       nLabel,
-                                const UsefulBufC    Bytes)
+                                const UsefulBufC    UUID)
 {
    QCBOREncode_AddTBinaryUUIDToMapN(pMe,
                                     nLabel,
                                     QCBOR_ENCODE_AS_TAG,
-                                    Bytes);
+                                    UUID);
 }
 
 
 static inline void
-QCBOREncode_AddTURI(QCBOREncodeContext *pMe,
-                    const uint8_t       uTagRequirement,
-                    const UsefulBufC    URI)
+QCBOREncode_AddTURI(QCBOREncodeContext          *pMe,
+                    const enum QCBOREncodeTagReq uTagRequirement,
+                    const UsefulBufC             URI)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_URI);
@@ -867,20 +872,20 @@ QCBOREncode_AddTURI(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddTURIToMapSZ(QCBOREncodeContext *pMe,
-                           const char         *szLabel,
-                           const uint8_t       uTagRequirement,
-                           const UsefulBufC    URI)
+QCBOREncode_AddTURIToMapSZ(QCBOREncodeContext          *pMe,
+                           const char                  *szLabel,
+                           const enum QCBOREncodeTagReq uTagRequirement,
+                           const UsefulBufC             URI)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTURI(pMe, uTagRequirement, URI);
 }
 
 static inline void
-QCBOREncode_AddTURIToMapN(QCBOREncodeContext *pMe,
-                          const int64_t       nLabel,
-                          const uint8_t       uTagRequirement,
-                          const UsefulBufC    URI)
+QCBOREncode_AddTURIToMapN(QCBOREncodeContext          *pMe,
+                          const int64_t                nLabel,
+                          const enum QCBOREncodeTagReq uTagRequirement,
+                          const UsefulBufC             URI)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTURI(pMe, uTagRequirement, URI);
@@ -911,9 +916,9 @@ QCBOREncode_AddURIToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTB64Text(QCBOREncodeContext *pMe,
-                        const uint8_t       uTagRequirement,
-                        const UsefulBufC    B64Text)
+QCBOREncode_AddTB64Text(QCBOREncodeContext          *pMe,
+                        const enum QCBOREncodeTagReq uTagRequirement,
+                        const UsefulBufC             B64Text)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_B64);
@@ -922,20 +927,20 @@ QCBOREncode_AddTB64Text(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddTB64TextToMapSZ(QCBOREncodeContext *pMe,
-                               const char         *szLabel,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    B64Text)
+QCBOREncode_AddTB64TextToMapSZ(QCBOREncodeContext          *pMe,
+                               const char                  *szLabel,
+                               const enum QCBOREncodeTagReq uTagRequirement,
+                               const UsefulBufC             B64Text)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTB64Text(pMe, uTagRequirement, B64Text);
 }
 
 static inline void
-QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext *pMe,
-                              const int64_t       nLabel,
-                              const uint8_t       uTagRequirement,
-                              const UsefulBufC    B64Text)
+QCBOREncode_AddTB64TextToMapN(QCBOREncodeContext          *pMe,
+                              const int64_t                nLabel,
+                              const enum QCBOREncodeTagReq uTagRequirement,
+                              const UsefulBufC             B64Text)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTB64Text(pMe, uTagRequirement, B64Text);
@@ -966,9 +971,9 @@ QCBOREncode_AddB64TextToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTB64URLText(QCBOREncodeContext *pMe,
-                           const uint8_t       uTagRequirement,
-                           const UsefulBufC    B64Text)
+QCBOREncode_AddTB64URLText(QCBOREncodeContext          *pMe,
+                           const enum QCBOREncodeTagReq uTagRequirement,
+                           const UsefulBufC             B64Text)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_B64URL);
@@ -977,20 +982,20 @@ QCBOREncode_AddTB64URLText(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddTB64URLTextToMapSZ(QCBOREncodeContext *pMe,
-                                  const char         *szLabel,
-                                  const uint8_t       uTagRequirement,
-                                  const UsefulBufC    B64Text)
+QCBOREncode_AddTB64URLTextToMapSZ(QCBOREncodeContext          *pMe,
+                                  const char                  *szLabel,
+                                  const enum QCBOREncodeTagReq uTagRequirement,
+                                  const UsefulBufC             B64Text)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTB64URLText(pMe, uTagRequirement, B64Text);
 }
 
 static inline void
-QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext *pMe,
-                                 const int64_t       nLabel,
-                                 const uint8_t       uTagRequirement,
-                                 const UsefulBufC    B64Text)
+QCBOREncode_AddTB64URLTextToMapN(QCBOREncodeContext          *pMe,
+                                 const int64_t                nLabel,
+                                 const enum QCBOREncodeTagReq uTagRequirement,
+                                 const UsefulBufC             B64Text)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTB64URLText(pMe, uTagRequirement, B64Text);
@@ -1023,64 +1028,64 @@ QCBOREncode_AddB64URLTextToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTRegex(QCBOREncodeContext *pMe,
-                      const uint8_t       uTagRequirement,
-                      const UsefulBufC    Bytes)
+QCBOREncode_AddTRegex(QCBOREncodeContext          *pMe,
+                      const enum QCBOREncodeTagReq uTagRequirement,
+                      const UsefulBufC             Regex)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_REGEX);
    }
-   QCBOREncode_AddText(pMe, Bytes);
+   QCBOREncode_AddText(pMe, Regex);
 }
 
 static inline void
-QCBOREncode_AddTRegexToMapSZ(QCBOREncodeContext *pMe,
-                             const char         *szLabel,
-                             const uint8_t       uTagRequirement,
-                             const UsefulBufC    Bytes)
+QCBOREncode_AddTRegexToMapSZ(QCBOREncodeContext          *pMe,
+                             const char                  *szLabel,
+                             const enum QCBOREncodeTagReq uTagRequirement,
+                             const UsefulBufC             Regex)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTRegex(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTRegex(pMe, uTagRequirement, Regex);
 }
 
 static inline void
-QCBOREncode_AddTRegexToMapN(QCBOREncodeContext *pMe,
-                            const int64_t       nLabel,
-                            const uint8_t       uTagRequirement,
-                            const UsefulBufC    Bytes)
+QCBOREncode_AddTRegexToMapN(QCBOREncodeContext          *pMe,
+                            const int64_t                nLabel,
+                            const enum QCBOREncodeTagReq uTagRequirement,
+                            const UsefulBufC             Regex)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTRegex(pMe, uTagRequirement, Bytes);
+   QCBOREncode_AddTRegex(pMe, uTagRequirement, Regex);
 }
 
 static inline void
-QCBOREncode_AddRegex(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
+QCBOREncode_AddRegex(QCBOREncodeContext *pMe, const UsefulBufC Regex)
 {
-   QCBOREncode_AddTRegex(pMe, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTRegex(pMe, QCBOR_ENCODE_AS_TAG, Regex);
 }
 
 static inline void
 QCBOREncode_AddRegexToMap(QCBOREncodeContext *pMe,
                           const char         *szLabel,
-                          const UsefulBufC    Bytes)
+                          const UsefulBufC    Regex)
 {
-   QCBOREncode_AddTRegexToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTRegexToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, Regex);
 }
 
 static inline void
 QCBOREncode_AddRegexToMapN(QCBOREncodeContext *pMe,
                            const int64_t       nLabel,
-                           const UsefulBufC    Bytes)
+                           const UsefulBufC    Regex)
 {
-   QCBOREncode_AddTRegexToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, Bytes);
+   QCBOREncode_AddTRegexToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, Regex);
 
 }
 
 
 static inline void
-QCBOREncode_AddTMIMEData(QCBOREncodeContext *pMe,
-                         const uint8_t       uTagRequirement,
-                         const UsefulBufC    MIMEData)
+QCBOREncode_AddTMIMEData(QCBOREncodeContext          *pMe,
+                         const enum QCBOREncodeTagReq uTagRequirement,
+                         const UsefulBufC             MIMEData)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_BINARY_MIME);
@@ -1089,20 +1094,20 @@ QCBOREncode_AddTMIMEData(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddTMIMEDataToMapSZ(QCBOREncodeContext *pMe,
-                                const char         *szLabel,
-                                const uint8_t       uTagRequirement,
-                                const UsefulBufC    MIMEData)
+QCBOREncode_AddTMIMEDataToMapSZ(QCBOREncodeContext          *pMe,
+                                const char                  *szLabel,
+                                const enum QCBOREncodeTagReq uTagRequirement,
+                                const UsefulBufC             MIMEData)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTMIMEData(pMe, uTagRequirement, MIMEData);
 }
 
 static inline void
-QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext *pMe,
-                               const int64_t       nLabel,
-                               const uint8_t       uTagRequirement,
-                               const UsefulBufC    MIMEData)
+QCBOREncode_AddTMIMEDataToMapN(QCBOREncodeContext          *pMe,
+                               const int64_t                nLabel,
+                               const enum QCBOREncodeTagReq uTagRequirement,
+                               const UsefulBufC             MIMEData)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTMIMEData(pMe, uTagRequirement, MIMEData);
@@ -1132,9 +1137,9 @@ QCBOREncode_AddMIMEDataToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTDateString(QCBOREncodeContext *pMe,
-                           const uint8_t       uTagRequirement,
-                           const char         *szDate)
+QCBOREncode_AddTDateString(QCBOREncodeContext          *pMe,
+                           const enum QCBOREncodeTagReq uTagRequirement,
+                           const char                  *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DATE_STRING);
@@ -1143,20 +1148,20 @@ QCBOREncode_AddTDateString(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddTDateStringToMapSZ(QCBOREncodeContext *pMe,
-                                  const char         *szLabel,
-                                  const uint8_t       uTagRequirement,
-                                  const char         *szDate)
+QCBOREncode_AddTDateStringToMapSZ(QCBOREncodeContext          *pMe,
+                                  const char                  *szLabel,
+                                  const enum QCBOREncodeTagReq uTagRequirement,
+                                  const char                  *szDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTDateString(pMe, uTagRequirement, szDate);
 }
 
 static inline void
-QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext *pMe,
-                                 const int64_t       nLabel,
-                                 const uint8_t       uTagRequirement,
-                                 const char         *szDate)
+QCBOREncode_AddTDateStringToMapN(QCBOREncodeContext          *pMe,
+                                 const int64_t                nLabel,
+                                 const enum QCBOREncodeTagReq uTagRequirement,
+                                 const char                  *szDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTDateString(pMe, uTagRequirement, szDate);
@@ -1186,9 +1191,9 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pMe,
 
 
 static inline void
-QCBOREncode_AddTDaysString(QCBOREncodeContext *pMe,
-                           const uint8_t       uTagRequirement,
-                           const char         *szDate)
+QCBOREncode_AddTDaysString(QCBOREncodeContext          *pMe,
+                           const enum QCBOREncodeTagReq uTagRequirement,
+                           const char                  *szDate)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
       QCBOREncode_AddTagNumber(pMe, CBOR_TAG_DAYS_STRING);
@@ -1197,20 +1202,20 @@ QCBOREncode_AddTDaysString(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext *pMe,
-                                  const char         *szLabel,
-                                  const uint8_t       uTagRequirement,
-                                  const char         *szDate)
+QCBOREncode_AddTDaysStringToMapSZ(QCBOREncodeContext          *pMe,
+                                  const char                  *szLabel,
+                                  const enum QCBOREncodeTagReq uTagRequirement,
+                                  const char                  *szDate)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTDaysString(pMe, uTagRequirement, szDate);
 }
 
 static inline void
-QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext *pMe,
-                                 const int64_t       nLabel,
-                                 const uint8_t       uTagRequirement,
-                                 const char         *szDate)
+QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext          *pMe,
+                                 const int64_t                nLabel,
+                                 const enum QCBOREncodeTagReq uTagRequirement,
+                                 const char                  *szDate)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTDaysString(pMe, uTagRequirement, szDate);
