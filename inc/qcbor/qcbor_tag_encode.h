@@ -129,7 +129,6 @@ enum QCBOREncodeTagReq {
 
 
 
-
 /**
  * @brief Add a tag number.
  *
