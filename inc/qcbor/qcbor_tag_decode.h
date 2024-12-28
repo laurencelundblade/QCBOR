@@ -287,7 +287,7 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * the constant can be increased and the library recompiled. It will
  * use more memory).
  *
- * See also @ref Tag-Decoding @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
+ * See also @ref TagDecoding @ref CBORTags.
  *
  * To reduce memory used by a @ref QCBORItem, tag numbers larger than
  * @c UINT16_MAX are mapped so the tag numbers in @c uTags should be
@@ -342,7 +342,7 @@ QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
  * and 63 a CBOR sequence.  This implementation doesn't distinguish
  * between the two (it would be more code and doesn't seem important).
  *
- * The @ref Tag-Usage discussion on the tag requirement applies here
+ * The @ref QCBORDecodeTagReq discussion on the tag requirement applies here
  * just the same as any other tag.
  *
  * In other cases, CBOR is wrapped in a byte string, but it is

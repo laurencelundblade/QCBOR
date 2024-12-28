@@ -651,7 +651,7 @@ QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  *
- * See @ref Tag-Usage for discussion on tag requirements.
+ * See @ref QCBORDecodeTagReq for discussion on tag requirements.
  */
 void
 QCBORDecode_GetTBigNumber(QCBORDecodeContext    *pCtx,
@@ -811,7 +811,7 @@ QCBORDecode_GetTBigNumberRawInMapSZ(QCBORDecodeContext    *pMe,
  *
  * Depending on @c uTagRequirement, the tag number
  * @ref CBOR_TAG_DECIMAL_FRACTION (4) may or may not need to be
- * present before the array. See @ref Tag-Usage.
+ * present before the array. See @ref QCBORDecodeTagReq.
  *
  * The exponent must always be an integer (CBOR type 0 or 1). The
  * mantissa may be an integer or a big number. If it is a big number,
@@ -998,7 +998,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext    *pCtx
  *
  * Depending on @c uTagRequirement, the tag number
  * @ref CBOR_TAG_BIGFLOAT (5) may or may not need to be present
- * before the array. See @ref Tag-Usage.
+ * before the array. See @ref QCBORDecodeTagReq.
  *
  * The exponent must always be an integer (CBOR type 0 or 1). The
  * mantissa may be an integer or a big number. If it is a big number,

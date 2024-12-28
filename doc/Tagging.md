@@ -6,13 +6,16 @@
 ## New Types
 
 CBOR allows for the definition of new data types beyond basic
-primitives like integers and strings. These new types can either be
+primitives like integers, strings, array and such. These new types can either be
 simple extensions of a primitive type with additional semantics or
 more complex structures involving large aggregations.
 
 The mechanism for identifying these new types is called tagging.
 Tagging uses a simple unsigned integer to indicate that the following
 CBOR item is a different type.
+
+For example, when an encoded integer is preceeded by the encoded
+tag number 1, the integer represents an epoch date.
 
 It's important to note that CBOR uses the word "tag" in an unusual
 way. In CBOR, a "tag" refers to the combination of the tag number and
@@ -22,7 +25,7 @@ By analogy, if you attach a small label to an elephant's ear, the
 "tag" in CBOR terms would be the combination of the label (tag number)
 and the elephant (tag content).
 
-QCBOR always uses the terms "tag number" to refer to the integer that
+QCBOR always uses the term "tag number" to refer to the integer that
 identifies the type, "tag content" to refer to the target of the
 indicating integer and "tag" as the full combination of both.
 
@@ -51,7 +54,7 @@ indicate something is of a data type. Ignoring it would be like
 ignoring a typedef or struct in C.
 
 However, it is common in CBOR-based protocols to use the format,
-semantics or definition of the tag content without it actually being a
+semantics and definition of the tag content without it actually being a
 *tag*. One can think of this as *borrowing* the tag content or implied
 type information.
 
@@ -89,28 +92,29 @@ particular content format. A CWT is of the later sort.
 Finally, every CBOR protocol should explicitly spell out how it is
 using each tag, borrowing tag content and such. If the protocol you
 are trying to implement doesn't, ask the designer.  Generally,
-protocols designs should not allow for some data item to optional be
+protocols designs should not allow for some data item to be
 either a tag or to be the borrowed tag content.  While allowing this
 tag optionality is a form of Postel's law, "be liberal in what you
 accept", current wisdom is somewhat the opposite.
 
 
-## Types and Tags in QCBOR
+## QCBOR Tag APIs
 
-TODO: bring in AddTagNumber() and GetTagNumber()
+The encode APIs are in @ref inc/qcbor/qcbor_tag_encode.h "qcbor_tag_encode.h"
+and decoding APIs in @ref inc/qcbor/qcbor_tag_decode.h "qcbor_tag_decode.h"
 
-QCBOR explicitly supports all the tags standardized in
-[RFC 8949](https://tools.ietf.org/html/rfc8949) for dates, big numbers and
-such. It has specific APIs and data structures for encoding and
-decoding them.
+The base primitives for encoding and decoding tag numbers are
+QCBOREncode_AddTagNumber() and QCBORDecode_VGetNextTagNumber().  These
+are used in constructing and decoding tags. Note that for decoding,
+all tag numbers have to be consumed before decoding the tag
+content. This is different from QCBOR v1 where tag numbers did not
+have to be explicitly consumed.
 
-The encode APIs are in @ref inc/qcbor/qcbor_encode_tag.h "qcbor_encode_tag.h".
-Their names start with
-"QCBOREncode_AddT". Decoding can be done by installing the provided
-callbacks, @ref QCBORDecode_TagDecoderTablev1, in which case they get
-decoded by QCBORDecode_VGetNext() and appear in a @ref
-QCBORItem. Alternative spiffy decode style functions from
-@ref inc/qcbor/qcbor_decode_tag.h "qcbor_decode_tag.h" can be called.
+QCBOR also provides APIs for directly encoding and decoding all the
+tags standardized in [RFC 8949](https://tools.ietf.org/html/rfc8949)
+for dates, big numbers and such. For encoding their names start with
+"QCBOREncode_AddT" and for decoding they start with "QCBOREncode_Get"
+(TODO: fix this).  These APIs can handle
 
 These APIs and structures support both the full tag form and the
 borrowed content form that is not a tag. An argument of type @ref xxx
@@ -118,27 +122,22 @@ and @ref QCBORDecodeTagReq is provided respectively to the tag encode
 and decode functions to distinguish between full tags and borrowed
 content.
 
-Early versions of QCBOR did not support encoding borrowed content. The
+Early versions of QCBOR do not support encoding borrowed content. The
 old APIs for dates, big numbers and such are listed as deprecated, but
 will continue to be supported. The encode side has functions like
 QCBOREncode_AddDateEpoch() rather than
 QCBOREncode_AddTDateEpoch(). The tag decode APIs always supported
 borrowed content.
 
-When decoding with QCBORDecode_GetNext(), the non-spiffy decode API,
-the proper tag form is automatically recognized by the tag number and
-decoded into @ref QCBORItem. This decoding API however cannot recognize
-borrowed content format. The caller must tell QCBOR when borrowed
-content format is expected.
+Last, QCBORDecode_InstallTagDecoders() allows callbacks to be
+installed that will fire on a particular tag number. These callbacks
+decode the tag content and put it into a QCBORItem with a new QCBOR
+data type. The decoded tags show up as a @ref QCBORItem fetched by
+QCBORDecode_VGetNext().
 
-The spiffy decode APIs for the particular tags are the way the caller
-tells QCBOR to expect borrowed content format. These spiffy decode
-APIs can also decode the proper tag as well. When asked to decode a
-proper tag and the input CBOR is not, it is a decode validity
-error. These APIs take an argument which says whether to expect the
-proper tag or just the borrowed content. They can also be told to
-allow either to "be liberal in what you accept", but this is not
-recommended.
+A set of callbacks called @ref QCBORDecode_TagDecoderTablev1 is
+provided for all the standard tags from RFC 8949. These are not
+automatically installed in QCBOR v2. These were built into QCBOR v1.
 
 
 ## Nested Tags
@@ -147,8 +146,9 @@ CBOR tags are an enclosing or encapsulating format. When one tag
 encloses another, the enclosed tag is the content for the enclosing
 tag.
 
-Encoding nested tags is easy with QCBOREncode_AddTagNumber(). Just call it
-several times before calling the functions to encode the tag content.
+Encoding nested tags is easy with QCBOREncode_AddTagNumber(). Just
+call it several times before calling the functions to encode the tag
+content.
 
 When QCBOR decodes tags it does so by first completely processing the
 built-in tags that it knows how to process. It returns that processed
@@ -261,9 +261,3 @@ accommodate this.
 As described above, it is common to use data types from the registry
 in a CBOR protocol without the explicit tag, to borrow the content, so
 in a way the IANA registry is a registry of data types.
-
-
-## See Also
-
-See @ref Tags-Overview and @ref Tag-Usage.
-

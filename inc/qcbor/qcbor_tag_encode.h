@@ -112,14 +112,13 @@ extern "C" {
 
 
 /**
- * Output the full CBOR tag. See @ref CBORTags, @ref Tag-Usage and
- * @ref Tags-Overview.
+ * Output the full CBOR tag. See @ref CBORTags.
  */
 #define QCBOR_ENCODE_AS_TAG      0
 
 /**
  * Output only the 'borrowed' content format for the relevant tag.
- * See @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
+ * See @ref CBORTags..
  */
 #define QCBOR_ENCODE_AS_BORROWED 1
 
@@ -132,7 +131,7 @@ extern "C" {
  * @param[in] uTagNumber  The tag number to add.
  *
  * This outputs a CBOR major type 6 item, a tag number that indicates
- * the next item is a different type.  See @ref Tags-Overview.
+ * the next item is a different type.  See @ref TagEncoding.
  *
  * For many of the common standard tags, a function to encode data
  * using it is provided and this is not needed. For example,
@@ -144,7 +143,7 @@ extern "C" {
  * major CBOR type. Any number of tag numbers can be added to a data
  * item by calling this multiple times before the data item is added.
  *
- * See also @ref TagDecoding.
+ * See also @ref TagEncoding.
  */
 static void
 QCBOREncode_AddTagNumber(QCBOREncodeContext *pCtx, uint64_t uTagNumber);

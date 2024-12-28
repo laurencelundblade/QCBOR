@@ -601,7 +601,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * every pItemList.auTagNumbers is empty or has tag numbers that are
  * expected. While tag numbers were once described as "optional",
  * they really do have critical information that should not be ignored.
- * See @ref Tag-Decoding
+ * See @ref TagDecoding
  *
  * This function works well with tag content decoders as described in
  * QCBORDecode_InstallTagDecoders().

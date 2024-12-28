@@ -681,7 +681,7 @@ typedef struct _QCBORItem {
    /**
     * PRIVATE MEMBER
     * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
-    * Also see @ref Tags-Overview.
+    * Also see @ref CBORTags
     *
     * In QCBOR v1 this was named uTags and was in the reverse order.
     * It wasn't explicitly described as private, but was implicitly private.
@@ -909,8 +909,8 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  *
  * - @c uDataType which indicates which member of the @c val union the
  *   data is in. This decoder figures out the type based on the CBOR
- *   major type, the CBOR "additionalInfo", the CBOR optional tags and
- *   the value of the integer.
+ *   major type, the CBOR "additionalInfo", and sometimes by
+ *   preceding tag numbers.
  *
  * - The value of the item, which might be an integer, a pointer and a
  *   length, the count of items in an array, a floating-point number or
@@ -921,7 +921,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * - The label for an item in a map, which may be a text or byte string
  *   or an integer.
  *
- * - The unprocessed tag numbers for which the item is the tag content.
+ * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,  unprocessed tag numbers.
  *
  * See @ref QCBORItem for all the details about what is returned.
  *
@@ -986,8 +986,6 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * @c QCBORItem.val.uCount contains the number of items in the
  * array. For indefinite-length arrays, @c QCBORItem.val.uCount
  * is @c UINT16_MAX.
- *
- * See extensive discussion in @ref Tag-Decoding.
  *
  * See [Decode Error Overview](#Decode-Errors-Overview).
  *
