@@ -86,42 +86,43 @@ extern "C" {
  *   function that creates a complex message like a COSE_Encrypt.
  *
  * Tags can nest, so there might be sequential calls to
- * QCBOREncode_AddTagNumber(). While deep nesting is rare andthere is no
+ * QCBOREncode_AddTagNumber(). While deep nesting is rare and there is no
  * limit for encoding, QCBOR decoding is limited to a
  * depth of @ref QCBOR_MAX_TAGS_PER_ITEM.
  *
  * ### Borrowing Tag Content
  *
- * As described in @ref AreTagsOptional, it is often the case that tag
- * content for a particular tag is encoded without the tag number.
- * This is "borrowing" tag content. It is similar to implicit types in
- * ASN.1 where the type is inferred by context.
+ * As explained in @ref AreTagsOptional, tag content for a specific
+ * tag is often encoded without including the tag number.  This
+ * practice, known as "borrowing" tag content, is comparable to
+ * implicit tagging in ASN.1, where the type is inferred from the
+ * context.
  *
- * For the standard tags supported by QCBOR, their methods include an
- * argument to control this behavior:
+ * All QCBOR APIs for encoding specific tags, such as
+ * QCBOREncode_AddTDaysEpoch(), include an argument of type
+ * @ref QCBOREncodeTagReq. This argument determines whether the tag
+ * number should be included or omitted.
  *
- * - @ref QCBOR_ENCODE_AS_TAG : Includes the tag number.
- * - @ref QCBOR_ENCODE_AS_BORROWED : Omits the tag number.
+ * For tags for which QCBOR provides no API, outputting borrowed
+ * content amounts to just omitting the tag number.
  *
- * For tags other than the standard ones supported by QCBOR methods,
- * the names of which starts with "QCBOREncode_AddT", all that is
- * needed to encode borrowed tag content is to not call
- * QCBOREncode_AddTagNumber(). This of course assumes the protocol can
- * be unambiguously decoded without the tag number.
+ * For tags without dedicated QCBOR APIs, encoding borrowed content is
+ * straightforward: simply omit the tag number.
  */
 
 
-/** Enum to indicates whether a tag should be encoded as a full tag or
- * as borrowed content. */
+/** Enum used by specific tag-encoding functions, those whose names
+ * start with "QCBOREncode_AddT", to indicates whether a tag should be
+ * encoded as a full tag or as borrowed content. */
 enum QCBOREncodeTagReq {
     /**
-     * Output the full CBOR tag. See @ref CBORTags.
+     * Output the full tag including the tag number. See @ref AreTagsOptional.
      */
      QCBOR_ENCODE_AS_TAG =  0,
 
     /**
-     * Output only the 'borrowed' content format for the relevant tag.
-     * See @ref CBORTags, @ref Tag-Usage and @ref Tags-Overview.
+     * Output only the borrowed content for the tag. No tag number is
+     * output.  See @ref AreTagsOptional.
      */
     QCBOR_ENCODE_AS_BORROWED = 1
 };
@@ -254,7 +255,7 @@ QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext    *pCtx,
  * @param[in] pCtx             The encoding context to add the UUID to.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
- * @param[in] Bytes            Pointer and length of the binary UUID.
+ * @param[in] UUID            Pointer and length of the binary UUID.
  *
  * A binary UUID as defined in 
  * [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
