@@ -37,7 +37,6 @@
 #include "ieee754.h" /* Does not use math.h */
 #include "decode_nesting.h"
 
-// TODO: Reduce the circular dependency here
 #include "qcbor/qcbor_tag_decode.h"
 
 
@@ -783,16 +782,6 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
 }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-static QCBORError
-QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfigFlags)
-{
-    (void)d;
-    if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
-        return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
-    } else {
-        return QCBOR_SUCCESS;
-    }
-}
 
 static QCBORError
 QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uConfigFlags)

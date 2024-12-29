@@ -15,9 +15,6 @@
 
 #include "qcbor/qcbor_main_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
-// TODO: see about removing these two includes
-#include "qcbor/qcbor_tag_decode.h"
-#include "ieee754.h" /* Does not use math.h */
 #include "decode_nesting.h"
 
 
@@ -606,8 +603,6 @@ QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
 
 
 
-
-
 /**
  * @brief Semi-private. Get pointer, length and item count of an array or map.
  *
@@ -995,7 +990,6 @@ QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pMe,
 Done:
    pMe->uLastError = (uint8_t)uErr;
 }
-
 
 
 

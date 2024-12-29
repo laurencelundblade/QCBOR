@@ -256,7 +256,7 @@ QCBOREncode_AddTDaysEpochToMapN(QCBOREncodeContext    *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] UUID            Pointer and length of the binary UUID.
  *
- * A binary UUID as defined in 
+ * A binary UUID as defined in
  * [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122.html) is added to the
  * output.
  *
@@ -291,7 +291,7 @@ QCBOREncode_AddTBinaryUUIDToMapN(QCBOREncodeContext    *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] URI              Pointer and length of the URI.
  *
- * The format of URI must be per 
+ * The format of URI must be per
  * [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986.html).
  *
  * It is output as CBOR major type 3, a text string, with tag @ref
@@ -330,7 +330,7 @@ QCBOREncode_AddTURIToMapN(QCBOREncodeContext    *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] B64Text          Pointer and length of the base-64 encoded text.
  *
- * The text content is Base64 encoded data per 
+ * The text content is Base64 encoded data per
  * [RFC 4648](https://www.rfc-editor.org/rfc/rfc4648.html).
  *
  * It is output as CBOR major type 3, a text string, with tag @ref
@@ -433,7 +433,7 @@ QCBOREncode_AddTRegexToMapN(QCBOREncodeContext    *pCtx,
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] MIMEData         Pointer and length of the MIME data.
  *
- * The text content is in MIME format per 
+ * The text content is in MIME format per
  * [RFC 2045](https://www.rfc-editor.org/rfc/rfc2045.html) including the headers.
  *
  * It is output as CBOR major type 2, a binary string, with tag
@@ -694,7 +694,7 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION    
+ *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION
  *    Note that the entire qcbor_tag_encode implementation is line.
  * ========================================================================= */
 

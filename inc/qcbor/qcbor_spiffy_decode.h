@@ -857,6 +857,21 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
                                      const uint32_t      uEndOffset);
 
 
+/** @private  Semi-private function. See qcbor_decode.c */
+void
+QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
+                                          const char         *szLabel,
+                                          const uint8_t       uQcborType,
+                                          QCBORItem          *pItem,
+                                          size_t             *puOffset);
+
+/** @private  Semi-private function. See qcbor_decode.c */
+void
+QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
+                                         const int64_t       nLabel,
+                                         const uint8_t       uQcborType,
+                                         QCBORItem          *pItem,
+                                         size_t             *puOffset);
 
 
 static inline void

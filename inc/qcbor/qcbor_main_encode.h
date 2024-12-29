@@ -166,7 +166,6 @@ enum QCBOREncodeConfig {
    /** By default QCBOR will error out when trying to encode a double
     * or float NaN that has a payload because NaN payloads are not
     * very interoperable. With this set, NaN payloads can be encoded.
-    *
     */
    QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD = 0x02,
 
@@ -192,9 +191,9 @@ enum QCBOREncodeConfig {
    QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS = 0x08,
 
    /** This disallows non-preferred floating number encoding,
-   QCBOREncode_AddFloatNoPreferred() and
-   QCBOREncode_AddDoubleNoPreferred().  It is not possible to disable
-   preferred serialization of type 0 and type 1 integers in QCBOR. */
+    * QCBOREncode_AddFloatNoPreferred() and
+    * QCBOREncode_AddDoubleNoPreferred().  It is not possible to disable
+    * preferred serialization of type 0 and type 1 integers in QCBOR. */
    QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS = 0x10,
 
    /**
@@ -911,7 +910,7 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
  * though map items are not all the same size because it always swaps
  * adjacent items.
  */
-void 
+void
 QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
 
 /** See QCBOREncode_CloseAndSortMapIndef(). */

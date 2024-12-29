@@ -130,7 +130,9 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
 
    FloatResult = IEEE754_DoubleToSmaller(dNum, true, bNoNaNPayload);
 
-   QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
+   QCBOREncode_Private_AddType7(pMe,
+                                (uint8_t)FloatResult.uSize,
+                                FloatResult.uValue);
 }
 
 
@@ -190,7 +192,9 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 
    FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
 
-   QCBOREncode_Private_AddType7(pMe, (uint8_t)FloatResult.uSize, FloatResult.uValue);
+   QCBOREncode_Private_AddType7(pMe,
+                                (uint8_t)FloatResult.uSize,
+                                FloatResult.uValue);
 }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
@@ -418,7 +422,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
       if(bNegative) {
          QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
       } else {
-         QCBOREncode_AddTBigNumberRaw(pMe, false, uTagRequirement, BigNumberNLZ);
+         QCBOREncode_AddTBigNumberRaw(pMe, false, uTagRequirement,BigNumberNLZ);
       }
    }
 }

@@ -156,7 +156,7 @@ extern "C" {
  * represent the value.  For example, CBOR always encodes the value 0
  * as one byte, 0x00. The representation as 0x00 includes
  * identification of the type as an integer too as the major type for
- * an integer is 0. See 
+ * an integer is 0. See
  * [RFC 8949 Appendix A](https://www.rfc-editor.org/rfc/rfc8949.html#section-appendix.a)
  * for more examples of CBOR encoding. This compact encoding is
  * preferred serialization CBOR as per
@@ -497,7 +497,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
  *                             byte order).
  *
  * This encodes CBOR tag numbers 2 and 3, positive and negative big
- * numbers, as defined in 
+ * numbers, as defined in
  * [RFC 8949 section 3.4.3](https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
  *
  * This performs the offset of one required when encoding negative
@@ -720,12 +720,15 @@ QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  * mantissa is a big number (See QCBOREncode_AddTBignumber())
  * allowing for arbitrarily large precision.
  *
- * Preferred serialization of the big number is used. This means it may be converted to
- * a type 0 or type 1 integers making the result the same as QCBOREncode_AddTDecimalFraction().
- * This also offsets negative big numbers by one.
+ * Preferred serialization of the big number is used. This means it
+ * may be converted to a type 0 or type 1 integers making the result
+ * the same as QCBOREncode_AddTDecimalFraction().  This also offsets
+ * negative big numbers by one.
  *
- * If you want the big number to be copied straight through without the conversion to type 0
- * and 1 integers and without the offset of 1 (and much smaller objet code) use QCBOREncode_AddTBigFloatBigMantissaRaw().
+ * If you want the big number to be copied straight through without
+ * the conversion to type 0 and 1 integers and without the offset of 1
+ * (and much smaller objet code) use
+ * QCBOREncode_AddTBigFloatBigMantissaRaw().
  *
  * See @ref expAndMantissa for decoded representation.
  */

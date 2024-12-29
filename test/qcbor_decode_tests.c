@@ -6244,7 +6244,7 @@ static const struct EaMTest pEaMTests[] = {
       true,
 
       QCBOR_SUCCESS, /* for GetNext */
-      QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
+      QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA,
       -20,
       0,
       0UL,
@@ -6340,7 +6340,7 @@ static const struct EaMTest pEaMTests[] = {
       true,
 
       QCBOR_SUCCESS, /* for GetNext */
-      QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM,
+      QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA,
       9223372036854775807,
       0,
       0UL,
@@ -6372,7 +6372,7 @@ static const struct EaMTest pEaMTests[] = {
       true,
 
       QCBOR_SUCCESS, /* for GetNext */
-      QCBOR_TYPE_BIGFLOAT_NEG_U64,
+      QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA,
       9223372036854775807,
       0,
       0xffffffffffffffff,
@@ -6404,7 +6404,7 @@ static const struct EaMTest pEaMTests[] = {
       true,
 
       QCBOR_SUCCESS, /* for GetNext */
-      QCBOR_TYPE_BIGFLOAT_POS_U64,
+      QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA,
       9223372036854775807,
       0,
       0xffffffffffffffff,
@@ -6509,8 +6509,8 @@ int32_t ProcessEaMTests(void)
                if(pT->nMantissaGN != Item.val.expAndMantissa.Mantissa.nInt) {
                    return (int32_t)(1+uIndex) * 1000 + 4;
                 }
-            } else if(Item.uDataType == QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 || Item.uDataType == QCBOR_TYPE_BIGFLOAT_NEG_U64 ||
-                      Item.uDataType == QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 || Item.uDataType == QCBOR_TYPE_BIGFLOAT_POS_U64) {
+            } else if(Item.uDataType == QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64 || Item.uDataType == QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA ||
+                      Item.uDataType == QCBOR_TYPE_DECIMAL_FRACTION_POS_U64 || Item.uDataType == QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA) {
                if(pT->uMantissaGU != Item.val.expAndMantissa.Mantissa.uInt) {
                    return (int32_t)(1+uIndex) * 1000 + 4;
                 }

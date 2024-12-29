@@ -1262,7 +1262,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem                    *pItem,
          }
          break;
 
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t    nMantissa;
             QCBORError uErr;
@@ -1279,7 +1279,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem                    *pItem,
          }
          break;
 
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             int64_t    nMantissa;
             QCBORError uErr;
@@ -1477,7 +1477,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
          }
          break;
 
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             uint64_t   uMantissa;
             QCBORError uErr;
@@ -1495,7 +1495,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
          }
          break;
 
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
             return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
          } else {
@@ -1682,7 +1682,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
          }
          break;
 
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
             double dMantissa = QCBORDecode_Private_BigNumberToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
             *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
@@ -1691,7 +1691,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
          }
          break;
 
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIGFLOAT) {
             double dMantissa = -1-QCBORDecode_Private_BigNumberToDouble(pItem->val.expAndMantissa.Mantissa.bigNum);
             *pdValue = dMantissa * exp2((double)pItem->val.expAndMantissa.nExponent);
@@ -1993,7 +1993,8 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
    } else if(uType == QCBOR_TYPE_INT64) {
       /* Offset of 1 for negative numbers already performed */
       *pbIsNegative = Item.val.int64 < 0;
-      *pBigNumber = QCBORDecode_Private_UIntToBigNumber((uint64_t)(*pbIsNegative ? -Item.val.int64 : Item.val.int64), BigNumberBuf);
+       const uint64_t uIntTmp = (uint64_t)(*pbIsNegative ? -Item.val.int64 : Item.val.int64);
+      *pBigNumber = QCBORDecode_Private_UIntToBigNumber(uIntTmp, BigNumberBuf);
    } else if(uType == QCBOR_TYPE_65BIT_NEG_INT) {
       /* Offset of 1 for negative numbers NOT already performed */
       *pbIsNegative = true;
@@ -2188,7 +2189,13 @@ QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext          *pMe,
    size_t     uOffset;
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
-   QCBORDecode_Private_BigNumberNoPreferredMain(pMe, uTagRequirement, &Item, uOffset, BigNumberBuf, pBigNumber, pbIsNegative);
+   QCBORDecode_Private_BigNumberNoPreferredMain(pMe,
+                                                uTagRequirement,
+                                               &Item,
+                                                uOffset,
+                                                BigNumberBuf,
+                                                pBigNumber,
+                                                pbIsNegative);
 }
 
 /* Public function, see qcbor/qcbor_number_decode.h */
@@ -2204,7 +2211,13 @@ QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext          *pMe,
    size_t     uOffset;
 
    QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_BigNumberNoPreferredMain(pMe, uTagRequirement, &Item, uOffset, BigNumberBuf, pBigNumber, pbIsNegative);
+   QCBORDecode_Private_BigNumberNoPreferredMain(pMe,
+                                                uTagRequirement,
+                                               &Item,
+                                                uOffset,
+                                                BigNumberBuf,
+                                                pBigNumber,
+                                                pbIsNegative);
 
 }
 
@@ -2221,7 +2234,13 @@ QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext          *pMe,
    size_t     uOffset;
 
    QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_BigNumberNoPreferredMain(pMe, uTagRequirement, &Item, uOffset, BigNumberBuf, pBigNumber, pbIsNegative);
+   QCBORDecode_Private_BigNumberNoPreferredMain(pMe,
+                                                uTagRequirement,
+                                               &Item,
+                                                uOffset,
+                                                BigNumberBuf,
+                                                pBigNumber,
+                                                pbIsNegative);
 }
 
 
@@ -2336,10 +2355,10 @@ static const uint8_t QCBORDecode_Private_DecimalFractionTypes[] = {
 
 static const uint8_t QCBORDecode_Private_BigFloatTypes[] = {
    QCBOR_TYPE_BIGFLOAT,
-   QCBOR_TYPE_BIGFLOAT_POS_BIGNUM,
-   QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM,
-   QCBOR_TYPE_BIGFLOAT_POS_U64,
-   QCBOR_TYPE_BIGFLOAT_NEG_U64,
+   QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA,
+   QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA,
+   QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA,
+   QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA,
    QCBOR_TYPE_NONE};
 
 /**
@@ -2368,7 +2387,7 @@ static const uint8_t QCBORDecode_Private_BigFloatTypes[] = {
  */
 static void
 QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
-                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       const enum QCBORDecodeTagReq uTagReq,
                                        const uint64_t               uTagNumber,
                                        const size_t                 uOffset,
                                        QCBORItem                   *pItem,
@@ -2390,7 +2409,7 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_ProcessTagItem(pMe,
                                       pItem,
-                                      uTagRequirement,
+                                      uTagReq,
                                       qTypes,
                                       uTagNumber,
                                       QCBORDecode_ExpMantissaTagCB,
@@ -2412,21 +2431,21 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
 #ifndef QCBOR_DISABLE_TAGS
       /* If tags are disabled, mantissas can never be big nums */
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          uErr = QCBORDecode_Private_PositiveBigNumberToInt(pItem->val.expAndMantissa.Mantissa.bigNum, pnMantissa);
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          uErr = QCBORDecode_Private_NegativeBigNumberToInt(pItem->val.expAndMantissa.Mantissa.bigNum, pnMantissa);
          break;
 #endif /* ! QCBOR_DISABLE_TAGS */
 
-      case QCBOR_TYPE_BIGFLOAT_NEG_U64:
+      case QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA:
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64:
-      case QCBOR_TYPE_BIGFLOAT_POS_U64:
+      case QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA:
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_U64:
          uErr = QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
          break;
@@ -2440,7 +2459,7 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
 
 static void
 QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
-                                          const enum QCBORDecodeTagReq uTagRequirement,
+                                          const enum QCBORDecodeTagReq uTagReq,
                                           const uint64_t       uTagNumber,
                                           const size_t         uOffset,
                                           QCBORItem           *pItem,
@@ -2465,7 +2484,7 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
 
    QCBORDecode_Private_ProcessTagItem(pMe,
                                       pItem,
-                                      uTagRequirement,
+                                      uTagReq,
                                       qTypes,
                                       uTagNumber,
                                       QCBORDecode_ExpMantissaTagCB,
@@ -2506,14 +2525,14 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
 #ifndef QCBOR_DISABLE_TAGS
       /* If tags are disabled, mantissas can never be big nums */
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          *pMantissa = pItem->val.expAndMantissa.Mantissa.bigNum;
          *pbIsNegative = false;
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA:
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          *pMantissa = pItem->val.expAndMantissa.Mantissa.bigNum;
          *pbIsNegative = true;
@@ -2548,7 +2567,7 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
  */
 static void
 QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
-                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       const enum QCBORDecodeTagReq uTagReq,
                                        const uint64_t               uTagNumber,
                                        const size_t                 uOffset,
                                        QCBORItem                   *pItem,
@@ -2573,7 +2592,7 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_ProcessTagItem(pMe,
                                       pItem,
-                                      uTagRequirement,
+                                      uTagReq,
                                       qTypes,
                                       uTagNumber,
                                       QCBORDecode_ExpMantissaTagCB,
@@ -2594,13 +2613,13 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_U64:
-      case QCBOR_TYPE_BIGFLOAT_POS_U64:
+      case QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA:
          TempMantissa.uDataType = QCBOR_TYPE_UINT64;
          TempMantissa.val.uint64 = pItem->val.expAndMantissa.Mantissa.uInt;
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64:
-      case QCBOR_TYPE_BIGFLOAT_NEG_U64:
+      case QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA:
          TempMantissa.uDataType = QCBOR_TYPE_65BIT_NEG_INT;
          TempMantissa.val.uint64 = pItem->val.expAndMantissa.Mantissa.uInt;
          break;
@@ -2608,14 +2627,14 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
 #ifndef QCBOR_DISABLE_TAGS
          /* If tags are disabled, mantissas can never be big nums */
       case QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM:
-      case QCBOR_TYPE_BIGFLOAT_POS_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
          TempMantissa.uDataType = QCBOR_TYPE_BYTE_STRING;
          TempMantissa.val.bigNum = pItem->val.expAndMantissa.Mantissa.bigNum;
          *pbIsNegative = false;
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-      case QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM:
+      case QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA:
          TempMantissa.uDataType = QCBOR_TYPE_BYTE_STRING;
          TempMantissa.val.bigNum = pItem->val.expAndMantissa.Mantissa.bigNum;
          *pbIsNegative = true;
@@ -2655,7 +2674,7 @@ QCBORDecode_GetTDecimalFraction(QCBORDecodeContext          *pMe,
 void
 QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext          *pMe,
                                       const int64_t                nLabel,
-                                      const enum QCBORDecodeTagReq uTagRequirement,
+                                      const enum QCBORDecodeTagReq uTagReq,
                                       int64_t                     *pnMantissa,
                                       int64_t                     *pnExponent)
 {
@@ -2664,7 +2683,7 @@ QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_DECIMAL_FRACTION,
                                           uOffset,
                                          &Item,
@@ -2678,7 +2697,7 @@ QCBORDecode_GetTDecimalFractionInMapN(QCBORDecodeContext          *pMe,
 void
 QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext          *pMe,
                                        const char                  *szLabel,
-                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       const enum QCBORDecodeTagReq uTagReq,
                                        int64_t                     *pnMantissa,
                                        int64_t                     *pnExponent)
 {
@@ -2687,7 +2706,7 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpIntMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_DECIMAL_FRACTION,
                                           uOffset,
                                          &Item,
@@ -2699,7 +2718,7 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext          *pMe,
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext          *pMe,
-                                           const enum QCBORDecodeTagReq uTagRequirement,
+                                           const enum QCBORDecodeTagReq uTagReq,
                                            const UsefulBuf              MantissaBuffer,
                                            UsefulBufC                  *pMantissa,
                                            bool                        *pbMantissaIsNegative,
@@ -2710,7 +2729,7 @@ QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_DECIMAL_FRACTION,
                                           uOffset,
                                          &Item,
@@ -2725,7 +2744,7 @@ QCBORDecode_GetTDecimalFractionBigMantissa(QCBORDecodeContext          *pMe,
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
                                                  const int64_t       nLabel,
-                                                 const enum QCBORDecodeTagReq uTagRequirement,
+                                                 const enum QCBORDecodeTagReq uTagReq,
                                                  const UsefulBuf     BufferForMantissa,
                                                  UsefulBufC         *pMantissa,
                                                  bool               *pbIsNegative,
@@ -2736,7 +2755,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_DECIMAL_FRACTION,
                                           uOffset,
                                          &Item,
@@ -2751,7 +2770,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapN(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
                                                   const char         *szLabel,
-                                                  const enum QCBORDecodeTagReq uTagRequirement,
+                                                  const enum QCBORDecodeTagReq uTagReq,
                                                   const UsefulBuf     BufferForMantissa,
                                                   UsefulBufC         *pMantissa,
                                                   bool               *pbIsNegative,
@@ -2762,7 +2781,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_DECIMAL_FRACTION,
                                           uOffset,
                                          &Item,
@@ -2775,7 +2794,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaInMapSZ(QCBORDecodeContext *pMe,
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
-                                              const enum QCBORDecodeTagReq uTagRequirement,
+                                              const enum QCBORDecodeTagReq uTagReq,
                                               const UsefulBuf     MantissaBuffer,
                                               UsefulBufC         *pMantissa,
                                               bool               *pbMantissaIsNegative,
@@ -2786,7 +2805,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                             uTagRequirement,
+                                             uTagReq,
                                              CBOR_TAG_DECIMAL_FRACTION,
                                              uOffset,
                                             &Item,
@@ -2801,7 +2820,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRaw(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext          *pMe,
                                                     const int64_t                nLabel,
-                                                    const enum QCBORDecodeTagReq uTagRequirement,
+                                                    const enum QCBORDecodeTagReq uTagReq,
                                                     const UsefulBuf              BufferForMantissa,
                                                     UsefulBufC                  *pMantissa,
                                                     bool                        *pbIsNegative,
@@ -2812,7 +2831,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext          
 
    QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                             uTagRequirement,
+                                             uTagReq,
                                              CBOR_TAG_DECIMAL_FRACTION,
                                              uOffset,
                                             &Item,
@@ -2827,7 +2846,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapN(QCBORDecodeContext          
 void
 QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
                                                      const char         *szLabel,
-                                                     const enum QCBORDecodeTagReq uTagRequirement,
+                                                     const enum QCBORDecodeTagReq uTagReq,
                                                      const UsefulBuf     BufferForMantissa,
                                                      UsefulBufC         *pMantissa,
                                                      bool               *pbIsNegative,
@@ -2838,7 +2857,7 @@ QCBORDecode_GetTDecimalFractionBigMantissaRawInMapSZ(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                             uTagRequirement,
+                                             uTagReq,
                                              CBOR_TAG_DECIMAL_FRACTION,
                                              uOffset,
                                             &Item,
@@ -2917,7 +2936,7 @@ QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext          *pMe,
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext          *pMe,
-                                    const enum QCBORDecodeTagReq uTagRequirement,
+                                    const enum QCBORDecodeTagReq uTagReq,
                                     const UsefulBuf     MantissaBuffer,
                                     UsefulBufC         *pMantissa,
                                     bool               *pbMantissaIsNegative,
@@ -2928,7 +2947,7 @@ QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_BIGFLOAT,
                                           uOffset,
                                          &Item,
@@ -2944,7 +2963,7 @@ QCBORDecode_GetTBigFloatBigMantissa(QCBORDecodeContext          *pMe,
 void
 QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
                                           const int64_t       nLabel,
-                                          const enum QCBORDecodeTagReq uTagRequirement,
+                                          const enum QCBORDecodeTagReq uTagReq,
                                           const UsefulBuf     BufferForMantissa,
                                           UsefulBufC         *pMantissa,
                                           bool               *pbIsNegative,
@@ -2955,7 +2974,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_BIGFLOAT,
                                           uOffset,
                                          &Item,
@@ -2970,7 +2989,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapN(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext          *pMe,
                                            const char                  *szLabel,
-                                           const enum QCBORDecodeTagReq uTagRequirement,
+                                           const enum QCBORDecodeTagReq uTagReq,
                                            const UsefulBuf              BufferForMantissa,
                                            UsefulBufC                  *pMantissa,
                                            bool                        *pbIsNegative,
@@ -2981,7 +3000,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaMain(pMe,
-                                          uTagRequirement,
+                                          uTagReq,
                                           CBOR_TAG_BIGFLOAT,
                                           uOffset,
                                          &Item,
@@ -2995,7 +3014,7 @@ QCBORDecode_GetTBigFloatBigMantissaInMapSZ(QCBORDecodeContext          *pMe,
 /* Public function, see qcbor/qcbor_number_decode.h */
 void
 QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
-                                       const enum QCBORDecodeTagReq uTagRequirement,
+                                       const enum QCBORDecodeTagReq uTagReq,
                                        const UsefulBuf     MantissaBuffer,
                                        UsefulBufC         *pMantissa,
                                        bool               *pbMantissaIsNegative,
@@ -3006,7 +3025,7 @@ QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                             uTagRequirement,
+                                             uTagReq,
                                              CBOR_TAG_BIGFLOAT,
                                              uOffset,
                                             &Item,
@@ -3020,7 +3039,7 @@ QCBORDecode_GetTBigFloatBigMantissaRaw(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
                                              const int64_t       nLabel,
-                                             const enum QCBORDecodeTagReq uTagRequirement,
+                                             const enum QCBORDecodeTagReq uTagReq,
                                              const UsefulBuf     BufferForMantissa,
                                              UsefulBufC         *pMantissa,
                                              bool               *pbIsNegative,
@@ -3031,7 +3050,7 @@ QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                             uTagRequirement,
+                                             uTagReq,
                                              CBOR_TAG_BIGFLOAT,
                                              uOffset,
                                             &Item,
@@ -3046,7 +3065,7 @@ QCBORDecode_GetTBigFloatBigMantissaRawInMapN(QCBORDecodeContext *pMe,
 void
 QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext          *pMe,
                                               const char                  *szLabel,
-                                              const enum QCBORDecodeTagReq uTagRequirement,
+                                              const enum QCBORDecodeTagReq uTagReq,
                                               const UsefulBuf              BufferForMantissa,
                                               UsefulBufC                  *pMantissa,
                                               bool                        *pbIsNegative,
@@ -3057,7 +3076,7 @@ QCBORDecode_GetTBigFloatBigMantissaRawInMapSZ(QCBORDecodeContext          *pMe,
 
    QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
    QCBORDecode_Private_ExpBigMantissaRawMain(pMe,
-                                             uTagRequirement,
+                                             uTagReq,
                                              CBOR_TAG_BIGFLOAT,
                                              uOffset,
                                             &Item,
