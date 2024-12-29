@@ -780,7 +780,7 @@ QCBORDecode_ExitBstrWrapped(QCBORDecodeContext *pMe)
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDate(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTEpochDate(QCBORDecodeContext          *pMe,
                          const enum QCBORDecodeTagReq uTagRequirement,
                          int64_t                     *pnTime)
 {
@@ -801,7 +801,7 @@ QCBORDecode_GetEpochDate(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTEpochDateInMapN(QCBORDecodeContext          *pMe,
                                int64_t                      nLabel,
                                const enum QCBORDecodeTagReq uTagRequirement,
                                int64_t                     *pnTime)
@@ -827,7 +827,7 @@ QCBORDecode_GetEpochDateInMapN(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTEpochDateInMapSZ(QCBORDecodeContext          *pMe,
                                 const char                  *szLabel,
                                 const enum QCBORDecodeTagReq uTagRequirement,
                                 int64_t                     *pnTime)
@@ -853,7 +853,7 @@ QCBORDecode_GetEpochDateInMapSZ(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDays(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTEpochDays(QCBORDecodeContext          *pMe,
                          const enum QCBORDecodeTagReq uTagRequirement,
                          int64_t                     *pnDays)
 {
@@ -874,7 +874,7 @@ QCBORDecode_GetEpochDays(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTEpochDaysInMapN(QCBORDecodeContext          *pMe,
                                int64_t                      nLabel,
                                const enum QCBORDecodeTagReq uTagRequirement,
                                int64_t                     *pnDays)
@@ -900,7 +900,7 @@ QCBORDecode_GetEpochDaysInMapN(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetEpochDaysInMapSZ(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTEpochDaysInMapSZ(QCBORDecodeContext          *pMe,
                                 const char                  *szLabel,
                                 const enum QCBORDecodeTagReq uTagRequirement,
                                 int64_t                     *pnDays)
@@ -966,7 +966,7 @@ QCBORDecode_Private_GetMIME(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetMIMEMessage(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTMIMEMessage(QCBORDecodeContext          *pMe,
                            const enum QCBORDecodeTagReq uTagRequirement,
                            UsefulBufC                  *pMessage,
                            bool                        *pbIsTag257)
@@ -985,7 +985,7 @@ QCBORDecode_GetMIMEMessage(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTMIMEMessageInMapN(QCBORDecodeContext          *pMe,
                                  const int64_t                nLabel,
                                  const enum QCBORDecodeTagReq uTagRequirement,
                                  UsefulBufC                  *pMessage,
@@ -1009,7 +1009,7 @@ QCBORDecode_GetMIMEMessageInMapN(QCBORDecodeContext          *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 void
-QCBORDecode_GetMIMEMessageInMapSZ(QCBORDecodeContext          *pMe,
+QCBORDecode_GetTMIMEMessageInMapSZ(QCBORDecodeContext          *pMe,
                                   const char                  *szLabel,
                                   const enum QCBORDecodeTagReq uTagRequirement,
                                   UsefulBufC                  *pMessage,
