@@ -113,8 +113,7 @@ have to be explicitly consumed.
 QCBOR also provides APIs for directly encoding and decoding all the
 tags standardized in [RFC 8949](https://tools.ietf.org/html/rfc8949)
 for dates, big numbers and such. For encoding their names start with
-"QCBOREncode_AddT" and for decoding they start with "QCBOREncode_Get"
-(TODO: fix this).  These APIs can handle
+"QCBOREncode_AddT" and for decoding they start with "QCBOREncode_GetT"
 
 These APIs and structures support both the full tag form and the
 borrowed content form that is not a tag. An argument of type @ref QCBOREncodeTagReq

@@ -163,9 +163,10 @@ enum QCBOREncodeConfig {
     */
    QCBOR_ENCODE_CONFIG_SORT = 0x01,
 
-   /** By default QCBOR will error out when trying to encode a double
-    * or float NaN that has a payload because NaN payloads are not
-    * very interoperable. With this set, NaN payloads can be encoded.
+   /** By default QCBOR will error with @ref QCBOR_ERR_NOT_ALLOWED
+    * when trying to encode a double or float NaN that has a payload
+    * because NaN payloads are not very interoperable. With this set,
+    * NaN payloads can be encoded.
     */
    QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD = 0x02,
 
@@ -401,9 +402,8 @@ QCBOREncode_Config(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
  *
  * This is the same as QCBOREncode_Config() except it can't
  * configure anything to do with map sorting. That includes
- * both @ref CDE and @ref dCBOR.
- *
- *
+ * both @ref CDE and @ref dCBOR. @ref QCBOR_ERR_NOT_ALLOWED
+ * is returned if trying to configure map sorting.
  */
 static void
 QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
@@ -1448,6 +1448,10 @@ QCBOREncode_Private_AddType7(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_Config(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfig)
 {
+   /* The close function is made a function pointer as a way to avoid
+    * linking the proportionately large chunk of code for sorting
+    * maps unless explicitly requested. QCBOREncode_CloseAndSortMap()
+    * doesn't get linked unless this function is called. */
    if(uConfig & QCBOR_ENCODE_CONFIG_SORT) {
       pMe->pfnCloseMap = QCBOREncode_CloseAndSortMap;
    } else {
@@ -1461,7 +1465,7 @@ static inline void
 QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfig)
 {
    if(uConfig & QCBOR_ENCODE_CONFIG_SORT) {
-      pMe->uError = 99;
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
    } else {
       pMe->uConfigFlags = (int)uConfig;
    }

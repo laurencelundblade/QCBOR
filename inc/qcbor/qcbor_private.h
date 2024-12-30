@@ -235,7 +235,7 @@ struct _QCBOREncodeContext {
    int               uConfigFlags;   /*  enum QCBOREncodeConfig */
 
    void            (*pfnCloseMap)(QCBORPrivateEncodeContext *); /* Use of function
-                               * pointer explained in TODO: */
+                               * pointer explained in QCBOREncode_Config() */
    QCBORTrackNesting nesting; /* Keep track of array and map nesting */
 };
 

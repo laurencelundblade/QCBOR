@@ -569,6 +569,11 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext    *pCtx,
  *    They just have been replaced by something better.                      *
  * ========================================================================= */
 
+/**
+ * \defgroup DeprecatedAddTag  Deprecated functions for adding tags.
+ * @{
+ */
+
 /** @deprecated Use QCBOREncode_AddTDateEpoch() instead. */
 static void
 QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx, int64_t nDate);
@@ -685,6 +690,7 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
                                 int64_t             nLabel,
                                 const char         *szDate);
 
+/**@}*/
 
 /* ========================================================================= *
  *    END OF DEPRECATED FUNCTION DECLARATIONS                                *

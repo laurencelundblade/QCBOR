@@ -2003,7 +2003,7 @@ int32_t ParseMapAsArrayTest(void)
    if(uErr) {
       return MakeTestResultCode(11, 11, uErr);
    }
-   QCBORDecode_GetEpochDate(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
+   QCBORDecode_GetTEpochDate(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = CheckOneLetterString(&DCtx, 'i');
    if(uErr) {
       return MakeTestResultCode(11, 12, uErr);
@@ -3693,7 +3693,7 @@ int32_t SpiffyDateDecodeTest(void)
    QCBORDecode_EnterMap(&DC, NULL);
 
    // A single-precision date
-   QCBORDecode_GetEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+   QCBORDecode_GetTEpochDateInMapSZ(&DC, "x", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                    &nEpochDate5);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
@@ -3706,7 +3706,7 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // A half-precision date with value -2 FFF
-   QCBORDecode_GetEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+   QCBORDecode_GetTEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                   &nEpochDate4);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS)) {
@@ -3719,7 +3719,7 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Fail to get an epoch date by string label
-   QCBORDecode_GetEpochDateInMapSZ(&DC, "no-label",
+   QCBORDecode_GetTEpochDateInMapSZ(&DC, "no-label",
                                    QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                    &nEpochDate6);
    uError = QCBORDecode_GetAndResetError(&DC);
@@ -3728,7 +3728,7 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Fail to get an epoch date by integer label
-   QCBORDecode_GetEpochDateInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+   QCBORDecode_GetTEpochDateInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                   &nEpochDate6);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
@@ -3736,7 +3736,7 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Fail to get a string date by string label
-   QCBORDecode_GetDateStringInMapSZ(&DC, "no-label",
+   QCBORDecode_GetTDateStringInMapSZ(&DC, "no-label",
                                     QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                     &StringDate1);
    uError = QCBORDecode_GetAndResetError(&DC);
@@ -3745,7 +3745,7 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Fail to get a string date by integer label
-   QCBORDecode_GetDateStringInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+   QCBORDecode_GetTDateStringInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                    &StringDate1);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_LABEL_NOT_FOUND) {
@@ -3756,16 +3756,16 @@ int32_t SpiffyDateDecodeTest(void)
 
 
    // Untagged integer 0
-   QCBORDecode_GetEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+   QCBORDecode_GetTEpochDateInMapN(&DC, 8, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                   &nEpochDate3);
    // Untagged date string
-   QCBORDecode_GetDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+   QCBORDecode_GetTDateStringInMapSZ(&DC, "y", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                     &StringDate2);
 
-   QCBORDecode_GetDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+   QCBORDecode_GetTDaysStringInMapN(&DC, 99, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                    &StringDays2);
 
-   QCBORDecode_GetEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+   QCBORDecode_GetTEpochDaysInMapN(&DC, 17, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
                                   &nEpochDays2);
 
    QCBORDecode_ExitMap(&DC);
@@ -3784,11 +3784,11 @@ int32_t SpiffyDateDecodeTest(void)
    uint64_t           uTag1, uTag2;
 
    // Tagged date string
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+   QCBORDecode_GetTDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                    &StringDate1);
 
    // Epoch date 1400000000; Tue, 13 May 2014 16:53:20 GMT
-   QCBORDecode_GetEpochDateInMapN(&DC,
+   QCBORDecode_GetTEpochDateInMapN(&DC,
                                   1,
                                   QCBOR_TAG_REQUIREMENT_TAG |
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
@@ -3796,7 +3796,7 @@ int32_t SpiffyDateDecodeTest(void)
    uTag1 = QCBORDecode_GetNthTagOfLast(&DC, 0);
 
    // Get largest negative double precision epoch date allowed
-   QCBORDecode_GetEpochDateInMapN(&DC,
+   QCBORDecode_GetTEpochDateInMapN(&DC,
                                   5,
                                   QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG |
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
@@ -3812,7 +3812,7 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Untagged -1000 with label z
-   QCBORDecode_GetEpochDateInMapSZ(&DC,
+   QCBORDecode_GetTEpochDateInMapSZ(&DC,
                                    "z",
                                    QCBOR_TAG_REQUIREMENT_NOT_A_TAG |
                                     QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS,
@@ -3821,7 +3821,7 @@ int32_t SpiffyDateDecodeTest(void)
 
 
    // Get largest double precision epoch date allowed
-   QCBORDecode_GetEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
+   QCBORDecode_GetTEpochDateInMapN(&DC, 7, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                   &nEpochDate2);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)) {
@@ -3841,10 +3841,10 @@ int32_t SpiffyDateDecodeTest(void)
     * and decode options as that is implemented by code
     * that is tested well by the date testing above.
     */
-   QCBORDecode_GetDaysStringInMapSZ(&DC, "SDS", QCBOR_TAG_REQUIREMENT_TAG,
+   QCBORDecode_GetTDaysStringInMapSZ(&DC, "SDS", QCBOR_TAG_REQUIREMENT_TAG,
                                     &StringDays1);
 
-   QCBORDecode_GetEpochDaysInMapSZ(&DC, "SDE", QCBOR_TAG_REQUIREMENT_TAG,
+   QCBORDecode_GetTEpochDaysInMapSZ(&DC, "SDE", QCBOR_TAG_REQUIREMENT_TAG,
                                    &nEpochDays1);
 
    QCBORDecode_ExitMap(&DC);
@@ -3853,21 +3853,21 @@ int32_t SpiffyDateDecodeTest(void)
    }
 
    // Too-negative float, -9.2233720368547748E+18
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   QCBORDecode_GetTEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 1111;
    }
 
    // Too-large integer
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   QCBORDecode_GetTEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_DATE_OVERFLOW) {
       return 1;
    }
 
    // Half-precision minus infinity
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   QCBORDecode_GetTEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2;
@@ -3875,7 +3875,7 @@ int32_t SpiffyDateDecodeTest(void)
 
 
    // Bad content for epoch date
-   QCBORDecode_GetEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
+   QCBORDecode_GetTEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 3;
@@ -3883,7 +3883,7 @@ int32_t SpiffyDateDecodeTest(void)
 
    // Bad content for string date
    // TODO: should this set StringDate3 to NULL? variance between v1 and v2
-   QCBORDecode_GetDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate3);
+   QCBORDecode_GetTDateString(&DC, QCBOR_TAG_REQUIREMENT_TAG, &StringDate3);
    uError = QCBORDecode_GetAndResetError(&DC);
    if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 4;
@@ -3975,7 +3975,7 @@ int32_t SpiffyDateDecodeTest(void)
    */
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_GetNextTagNumberInMapN(&DC, 1, &uTag1);
-   QCBORDecode_GetEpochDateInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDate2);
+   QCBORDecode_GetTEpochDateInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDate2);
 
 #endif /* ! QCBOR_DISABLE_TAGS */
 
@@ -4503,24 +4503,24 @@ int32_t TagNumberDecodeTest(void)
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    // untagged date string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_SUCCESS) {
       return 100;
    }
    // untagged byte string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 101;
    }
    // tagged regex
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 102;
    }
    // tagged date string with a byte string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 103;
    }
@@ -4628,24 +4628,24 @@ int32_t TagNumberDecodeTest(void)
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    // untagged date string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_SUCCESS) {
       return 250;
    }
    // untagged byte string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 251;
    }
    // tagged regex
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 252;
    }
    // tagged date string with a byte string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 253;
    }
@@ -4662,27 +4662,27 @@ int32_t TagNumberDecodeTest(void)
 
    QCBORDecode_EnterArray(&DCtx, NULL);
    // tagged date string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 300;
    }
    // untagged date string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 301;
    }
    // untagged byte string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 302;
    }
    // tagged regex
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 303;
    }
    // tagged date string with a byte string
-   QCBORDecode_GetDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_TAG_CONTENT) { // TODO: make sure this is the right error
       return 304;
    }
@@ -7651,7 +7651,7 @@ int32_t EnterMapTest(void)
 
 
 #ifndef QCBOR_DISABLE_TAGS
-   QCBORDecode_GetEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
+   QCBORDecode_GetTEpochDateInMapN(&DCtx, 0x04, QCBOR_TAG_REQUIREMENT_TAG, &nInt);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2024;
@@ -8963,25 +8963,25 @@ int32_t DecodeTaggedTypeTests(void)
    bool       bNeg;
 
    QCBORDecode_EnterMap(&DC, NULL);
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_TAG, &String);
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
+   QCBORDecode_GetTDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
    if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS) {
       return 1;
    }
-   QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 2;
    }
-   QCBORDecode_GetDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 3;
    }
-   QCBORDecode_GetDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
-   QCBORDecode_GetDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
+   QCBORDecode_GetTDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 4;
    }
-   QCBORDecode_GetDateStringInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
+   QCBORDecode_GetTDateStringInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 5;
    }
@@ -9009,120 +9009,120 @@ int32_t DecodeTaggedTypeTests(void)
       return 14;
    }
 
-   QCBORDecode_GetURIInMapN(&DC, 20, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTURIInMapN(&DC, 20, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 20;
    }
-   QCBORDecode_GetURIInMapN(&DC, 21, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTURIInMapN(&DC, 21, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 21;
    }
-   QCBORDecode_GetURIInMapN(&DC, 22, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTURIInMapN(&DC, 22, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 22;
    }
-   QCBORDecode_GetURIInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTURIInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 23;
    }
 
-   QCBORDecode_GetB64InMapN(&DC, 30, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTB64InMapN(&DC, 30, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 30;
    }
-   QCBORDecode_GetB64InMapN(&DC, 31, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTB64InMapN(&DC, 31, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 31;
    }
-   QCBORDecode_GetB64InMapN(&DC, 32, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTB64InMapN(&DC, 32, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 32;
    }
-   QCBORDecode_GetB64InMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTB64InMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 33;
    }
 
-   QCBORDecode_GetB64URLInMapN(&DC, 40, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTB64URLInMapN(&DC, 40, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 40;
    }
-   QCBORDecode_GetB64URLInMapN(&DC, 41, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTB64URLInMapN(&DC, 41, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 41;
    }
-   QCBORDecode_GetB64URLInMapN(&DC, 42, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTB64URLInMapN(&DC, 42, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 42;
    }
-   QCBORDecode_GetB64URLInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTB64URLInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 43;
    }
 
-   QCBORDecode_GetRegexInMapN(&DC, 50, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTRegexInMapN(&DC, 50, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 50;
    }
-   QCBORDecode_GetRegexInMapN(&DC, 51, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTRegexInMapN(&DC, 51, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 51;
    }
-   QCBORDecode_GetRegexInMapN(&DC, 52, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTRegexInMapN(&DC, 52, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 52;
    }
-   QCBORDecode_GetRegexInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTRegexInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 53;
    }
 
    // MIME
    bool bIsNot7Bit;
-   QCBORDecode_GetMIMEMessageInMapN(&DC, 60, QCBOR_TAG_REQUIREMENT_TAG, &String, &bIsNot7Bit);
+   QCBORDecode_GetTMIMEMessageInMapN(&DC, 60, QCBOR_TAG_REQUIREMENT_TAG, &String, &bIsNot7Bit);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
       bIsNot7Bit == true) {
       return 60;
    }
-   QCBORDecode_GetMIMEMessageInMapN(&DC, 61, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String, &bIsNot7Bit);
+   QCBORDecode_GetTMIMEMessageInMapN(&DC, 61, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String, &bIsNot7Bit);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
       bIsNot7Bit == true) {
       return 61;
    }
-   QCBORDecode_GetMIMEMessageInMapN(&DC, 62, QCBOR_TAG_REQUIREMENT_TAG, &String, &bIsNot7Bit);
+   QCBORDecode_GetTMIMEMessageInMapN(&DC, 62, QCBOR_TAG_REQUIREMENT_TAG, &String, &bIsNot7Bit);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
       bIsNot7Bit == false) {
       return 62;
    }
-   QCBORDecode_GetMIMEMessageInMapN(&DC, 63, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String, &bIsNot7Bit);
+   QCBORDecode_GetTMIMEMessageInMapN(&DC, 63, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String, &bIsNot7Bit);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS ||
       bIsNot7Bit == false) {
       return 63;
    }
-   QCBORDecode_GetMIMEMessageInMapN(&DC, 64, QCBOR_TAG_REQUIREMENT_TAG, &String, &bNeg);
+   QCBORDecode_GetTMIMEMessageInMapN(&DC, 64, QCBOR_TAG_REQUIREMENT_TAG, &String, &bNeg);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 64;
    }
-   QCBORDecode_GetMIMEMessageInMapSZ(&DC, "zzz", QCBOR_TAG_REQUIREMENT_TAG, &String, &bNeg);
+   QCBORDecode_GetTMIMEMessageInMapSZ(&DC, "zzz", QCBOR_TAG_REQUIREMENT_TAG, &String, &bNeg);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 65;
    }
 
 
-   QCBORDecode_GetBinaryUUIDInMapN(&DC, 70, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTBinaryUUIDInMapN(&DC, 70, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 70;
    }
 
-   QCBORDecode_GetBinaryUUIDInMapN(&DC, 71, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
+   QCBORDecode_GetTBinaryUUIDInMapN(&DC, 71, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_SUCCESS) {
       return 71;
    }
-   QCBORDecode_GetBinaryUUIDInMapN(&DC, 72, QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTBinaryUUIDInMapN(&DC, 72, QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 72;
    }
-   QCBORDecode_GetBinaryUUIDInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_TAG, &String);
+   QCBORDecode_GetTBinaryUUIDInMapSZ(&DC, "xxx", QCBOR_TAG_REQUIREMENT_TAG, &String);
    if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 73;
    }

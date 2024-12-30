@@ -554,9 +554,7 @@ typedef enum {
     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
-   /** Trying to encode something that is discouraged (e.g., 65-bit
-    * negative integer) without allowing it by calling
-    * QCBOREncode_Allow() */
+   /** Trying to do something that is not allowed. */
    QCBOR_ERR_NOT_ALLOWED = 80,
 
    /** QCBORDecode_EnterBstrWrapped() cannot be used on
