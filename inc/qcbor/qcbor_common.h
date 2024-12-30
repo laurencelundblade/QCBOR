@@ -36,7 +36,6 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_PREFERRED_FLOAT
 #ifdef __cplusplus
 extern "C" {
 #if 0
