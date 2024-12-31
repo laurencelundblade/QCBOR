@@ -36,7 +36,6 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -64,7 +63,7 @@ extern "C" {
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
-
+/* This is an alpha (not ready for commercial use) release of 2.0.0 */
 
 /**
  * This define indicates a version of QCBOR that supports spiffy
@@ -554,9 +553,7 @@ typedef enum {
     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
-   /** Trying to encode something that is discouraged (e.g., 65-bit
-    * negative integer) without allowing it by calling
-    * QCBOREncode_Allow() */
+   /** Trying to do something that is not allowed. */
    QCBOR_ERR_NOT_ALLOWED = 80,
 
    /** QCBORDecode_EnterBstrWrapped() cannot be used on

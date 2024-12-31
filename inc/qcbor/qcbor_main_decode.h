@@ -399,24 +399,24 @@ typedef enum {
 /** A floating-point number made of base-2 exponent and positive big
  *  number mantissa.  See @ref expAndMantissa and
  *  QCBOREncode_AddTBigFloatBigMantissa(). */
-// TODO: rename to BIGMANTISSA?
+#define QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA    18
 #define QCBOR_TYPE_BIGFLOAT_POS_BIGNUM         18
 
 /** A floating-point number made of base-2 exponent and negative big
  *  number mantissa.  See @ref expAndMantissa and
  *  QCBOREncode_AddTBigFloatBigMantissa(). */
+#define QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA    19
 #define QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM         19
 
 /** A floating-point number made of base-2 exponent and positive big
  *  number mantissa.  See @ref expAndMantissa and
  *  QCBOREncode_AddTBigFloatBigMantissa(). */
-// TODO: rename to U64MANTISSA
-#define QCBOR_TYPE_BIGFLOAT_POS_U64            82
+#define QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA    82
 
 /** A floating-point number made of base-2 exponent and negative big
  *  number mantissa.  See @ref expAndMantissa and
  *  QCBOREncode_AddTBigFloatBigMantissa(). */
-#define QCBOR_TYPE_BIGFLOAT_NEG_U64            83
+#define QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA    83
 
 /** Type for the simple value false. */
 #define QCBOR_TYPE_FALSE         20
@@ -857,6 +857,7 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx,
                        bool                bAllStrings);
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 /**
  * @brief Sets up a custom string allocator for indefinite-length strings
  *
@@ -890,12 +891,13 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx,
  * @c uLabelAlloc @c == @c 1 in @ref QCBORItem. Note this is in a
  * separate GitHub repository.
  */
-void
+static void
 QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
                            QCBORStringAllocate pfAllocateFunction,
                            void               *pAllocateContext,
                            bool                bAllStrings);
 
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 /**
  * @brief Get the next item (integer, byte string, array...) in the
@@ -921,7 +923,8 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * - The label for an item in a map, which may be a text or byte string
  *   or an integer.
  *
- * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,  unprocessed tag numbers.
+ * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
+ *   unprocessed tag numbers.
  *
  * See @ref QCBORItem for all the details about what is returned.
  *
@@ -1222,7 +1225,7 @@ QCBORDecode_EndCheck(QCBORDecodeContext *pCtx);
  * use. Because of this, It can't be called multiple times like
  * QCBORDecode_PartialFinish().
  *
- * Some CBOR protocols use a CBOR sequence defined in 
+ * Some CBOR protocols use a CBOR sequence defined in
  * [RFC 8742](https://tools.ietf.org/html/rfc8742).
  * A CBOR sequence typically
  * doesn't start out with a map or an array. The end of the CBOR is
@@ -1439,22 +1442,6 @@ QCBORError
 QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
                                       QCBORItem          *pDecodedItem);
 
-/** @private  Semi-private function. See qcbor_decode.c */
-void
-QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
-                                          const char         *szLabel,
-                                          const uint8_t       uQcborType,
-                                          QCBORItem          *pItem,
-                                          size_t             *puOffset);
-
-/** @private  Semi-private function. See qcbor_decode.c */ // TODO: this a next are spiffy
-void
-QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
-                                         const int64_t       nLabel,
-                                         const uint8_t       uQcborType,
-                                         QCBORItem          *pItem,
-                                         size_t             *puOffset);
-
 
 /** @private  Semi-private function. See qcbor_decode.c */
 uint64_t
@@ -1480,6 +1467,19 @@ QCBORError
 QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe,
                                       bool                bMarkEnd,
                                       bool               *pbBreak);
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+static inline void
+QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
+                           QCBORStringAllocate pfAllocateFunction,
+                           void               *pAllocateContext,
+                           bool                bAllStrings)
+{
+   pMe->StringAllocator.pfAllocator   = pfAllocateFunction;
+   pMe->StringAllocator.pAllocateCxt  = pAllocateContext;
+   pMe->bStringAllocateAll            = bAllStrings;
+}
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 static inline uint32_t
@@ -1548,7 +1548,9 @@ static inline void
 QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   memcpy(pMe->auLastTagNumbers, pItem->auTagNumbers, sizeof(pItem->auTagNumbers));
+   memcpy(pMe->auLastTagNumbers,
+          pItem->auTagNumbers,
+          sizeof(pItem->auTagNumbers));
 #else /* ! QCBOR_DISABLE_TAGS */
    (void)pMe;
    (void)pItem;

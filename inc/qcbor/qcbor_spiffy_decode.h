@@ -510,7 +510,12 @@ QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 /**
  * @brief Position traversal cursor by map label.
  *
- * TODO: finish this documentation
+ * @param[in] pCtx  The decode context.
+ * @param[in] nLabel  The map label to seek too.
+ *
+ * On failure, such as map label not found, this sets the last error
+ * and doesn't change the traversal cursor.  On success the traversal
+ * cursor is moved to the map label item.
  */
 void
 QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
@@ -519,7 +524,12 @@ QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
 /**
  * @brief Position traversal cursor by map label.
  *
- * TODO: finish this documentation
+ * @param[in] pCtx  The decode context.
+ * @param[in] nLabel  The map label to seek too.
+ *
+ * On failure, such as map label not found, this sets the last error
+ * and doesn't change the traversal cursor.  On success the traversal
+ * cursor is moved to the map label item.
  */
 void
 QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel);
@@ -857,6 +867,21 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
                                      const uint32_t      uEndOffset);
 
 
+/** @private  Semi-private function. See qcbor_decode.c */
+void
+QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
+                                          const char         *szLabel,
+                                          const uint8_t       uQcborType,
+                                          QCBORItem          *pItem,
+                                          size_t             *puOffset);
+
+/** @private  Semi-private function. See qcbor_decode.c */
+void
+QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
+                                         const int64_t       nLabel,
+                                         const uint8_t       uQcborType,
+                                         QCBORItem          *pItem,
+                                         size_t             *puOffset);
 
 
 static inline void
