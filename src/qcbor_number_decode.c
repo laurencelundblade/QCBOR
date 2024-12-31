@@ -2310,41 +2310,6 @@ QCBORDecode_GetTBigNumberRawInMapSZ(QCBORDecodeContext          *pMe,
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
-
-// TODO: relocate these notes?
-/* Some notes from the work to disable tags.
- * Some are out of date since tag refactoring.
- *
- * The API for big floats and decimal fractions seems good.
- * If there's any issue with it it's that the code size to
- * implement is a bit large because of the conversion
- * to/from int and bignum that is required. There is no API
- * that doesn't do the conversion so dead stripping will never
- * leave that code out.
- *
- * The implementation itself seems correct, but not as clean
- * and neat as it could be. It could probably be smaller too.
- *
- * The implementation has three main parts / functions
- *  - The decoding of the array of two
- *  - All the tag and type checking for the various API functions
- *  - Conversion to/from bignum and int
- *
- * The type checking seems like it wastes the most code for
- * what it needs to do.
- *
- * The inlining for the conversion is probably making the
- * overall code base larger.
- *
- * The tests cases could be organized a lot better and be
- * more thorough.
- *
- * Seems also like there could be more common code in the
- * first tier part of the public API. Some functions only
- * vary by a TagSpec.
- */
-
-
 static const uint8_t QCBORDecode_Private_DecimalFractionTypes[] = {
    QCBOR_TYPE_DECIMAL_FRACTION,
    QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,

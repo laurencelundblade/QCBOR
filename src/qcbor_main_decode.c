@@ -213,27 +213,6 @@ QCBORDecode_Init(QCBORDecodeContext *pMe,
 
 
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-
-// TODO: inline this; #ifdef out the prototype too
-/* Public function; see qcbor_main_decode.h */
-void
-QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
-                           QCBORStringAllocate pfAllocateFunction,
-                           void               *pAllocateContext,
-                           bool                bAllStrings)
-{
-   pMe->StringAllocator.pfAllocator   = pfAllocateFunction;
-   pMe->StringAllocator.pAllocateCxt  = pAllocateContext;
-   pMe->bStringAllocateAll            = bAllStrings;
-}
-#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
-
-
-
-
-
-
 /*
  * Decoding items is done in six layers, one calling the next one
  * down. If a layer has no work to do for a particular item, it

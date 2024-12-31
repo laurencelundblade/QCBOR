@@ -34,9 +34,15 @@ QCBOR_OBJ=src/UsefulBuf.o \
           src/ieee754.o \
           src/qcbor_err_to_str.o
 
-TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
-    test/qcbor_decode_tests.o test/run_tests.o \
-    test/float_tests.o test/half_to_double_from_rfc7049.o example.o tag-examples.o ub-example.o
+TEST_OBJ=test/UsefulBuf_Tests.o \
+         test/qcbor_encode_tests.o \
+         test/qcbor_decode_tests.o \
+         test/run_tests.o \
+         test/float_tests.o \
+         test/half_to_double_from_rfc7049.o \
+         example.o \
+         tag-examples.o \
+         ub-example.o
 
 .PHONY: all so install uninstall clean warn
 
@@ -65,7 +71,9 @@ libqcbor.so: $(QCBOR_OBJ)
 PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h \
                  inc/qcbor/qcbor_private.h \
                  inc/qcbor/qcbor_common.h \
-                 inc/qcbor/qcbor_encode.h \
+                 inc/qcbor/qcbor_main_encode.h \
+                 inc/qcbor/qcbor_number_encode.h \
+                 inc/qcbor/qcbor_tag_encode.h \
                  inc/qcbor/qcbor_decode.h \
                  inc/qcbor/qcbor_main_decode.h \
                  inc/qcbor/qcbor_spiffy_decode.h \
@@ -74,11 +82,18 @@ PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h \
 
 src/UsefulBuf.o: inc/qcbor/UsefulBuf.h
 
-src/qcbor_encode.o: inc/qcbor/UsefulBuf.h \
-                    inc/qcbor/qcbor_private.h \
-                    inc/qcbor/qcbor_common.h \
-                    inc/qcbor/qcbor_encode.h \
-                    src/ieee754.h
+src/qcbor_main_encode.o: inc/qcbor/UsefulBuf.h \
+                         inc/qcbor/qcbor_private.h \
+                         inc/qcbor/qcbor_common.h \
+                         inc/qcbor/qcbor_main_encode.h
+
+src/qcbor_tag_encode.o: inc/qcbor/UsefulBuf.h \
+                        inc/qcbor/qcbor_private.h \
+                        inc/qcbor/qcbor_common.h \
+                        inc/qcbor/qcbor_main_encode.h \
+                        inc/qcbor/qcbor_number_encode.h \
+                        inc/qcbor/qcbor_tag_encode.h \
+                        src/ieee754.h
 
 src/qcbor_main_decode.o: inc/qcbor/UsefulBuf.h \
                          inc/qcbor/qcbor_private.h \
@@ -90,6 +105,14 @@ src/qcbor_main_decode.o: inc/qcbor/UsefulBuf.h \
                          src/ieee754.h
 
 src/qcbor_tag_decode.o: inc/qcbor/UsefulBuf.h \
+                        inc/qcbor/qcbor_private.h \
+                        inc/qcbor/qcbor_common.h \
+                        inc/qcbor/qcbor_main_decode.h \
+                        inc/qcbor/qcbor_spiffy_decode.h \
+                        src/decode_nesting.h \
+                        inc/qcbor/qcbor_tag_decode.h
+
+src/qcbor_spiffy_decode.o: inc/qcbor/UsefulBuf.h \
                         inc/qcbor/qcbor_private.h \
                         inc/qcbor/qcbor_common.h \
                         inc/qcbor/qcbor_main_decode.h \
@@ -136,8 +159,16 @@ install: libqcbor.a $(PUBLIC_INTERFACE)
 	install -m 644 inc/qcbor/qcbor.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_private.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_common.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_main_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_spiffy_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_number_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_tag_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_spiffy_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_main_encode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_number_encode.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_tag_encode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_encode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/UsefulBuf.h $(DESTDIR)$(PREFIX)/include/qcbor
 

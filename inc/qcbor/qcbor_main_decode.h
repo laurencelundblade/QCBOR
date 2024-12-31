@@ -857,6 +857,7 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx,
                        bool                bAllStrings);
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 /**
  * @brief Sets up a custom string allocator for indefinite-length strings
  *
@@ -890,12 +891,13 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pCtx,
  * @c uLabelAlloc @c == @c 1 in @ref QCBORItem. Note this is in a
  * separate GitHub repository.
  */
-void
+static void
 QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
                            QCBORStringAllocate pfAllocateFunction,
                            void               *pAllocateContext,
                            bool                bAllStrings);
 
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 /**
  * @brief Get the next item (integer, byte string, array...) in the
@@ -1465,6 +1467,19 @@ QCBORError
 QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe,
                                       bool                bMarkEnd,
                                       bool               *pbBreak);
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+static inline void
+QCBORDecode_SetUpAllocator(QCBORDecodeContext *pMe,
+                           QCBORStringAllocate pfAllocateFunction,
+                           void               *pAllocateContext,
+                           bool                bAllStrings)
+{
+   pMe->StringAllocator.pfAllocator   = pfAllocateFunction;
+   pMe->StringAllocator.pAllocateCxt  = pAllocateContext;
+   pMe->bStringAllocateAll            = bAllStrings;
+}
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 static inline uint32_t

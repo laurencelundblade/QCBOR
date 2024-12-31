@@ -63,7 +63,7 @@ extern "C" {
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
-
+/* This is an alpha (not ready for commercial use) release of 2.0.0 */
 
 /**
  * This define indicates a version of QCBOR that supports spiffy
