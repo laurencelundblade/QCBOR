@@ -1,10 +1,13 @@
 /*! @mainpage QCBOR Documentation
 
+QCBOR is available for download @ref https://github.com/laurencelundblade/QCBOR "here on GitHub"
+
 @par Table of Contents
 
-API Reference
+API Reference:
 - Common
    - Error codes and common constants: @ref inc/qcbor/qcbor_common.h "qcbor_common.h"
+   - Functions for managing buffers of binary data: @ref inc/qcbor/UsefulBuf.h "UsefulBuf.h"
 - Encoding
    - Main/Basic encode functions: @ref inc/qcbor/qcbor_main_encode.h "qcbor_main_encode.h"
    - Number encode functions: @ref inc/qcbor/qcbor_number_encode.h "qcbor_number_encode.h"
@@ -15,9 +18,11 @@ API Reference
    - Tag decode functions: @ref inc/qcbor/qcbor_tag_decode.h "qcbor_tag_decode.h"
    - Number decode functions: @ref inc/qcbor/qcbor_number_decode.h "qcbor_number_decode.h"
 
-Note: the API Reference is largely complete, the subject matter below is partial
+Note:
+- This is for QCBOR v2, but v1 is largely compatible
+- the API Reference is largely complete, the subject matter below is partial
 
-Subject Matter
+Subject Matter:
 - @ref Overview "QCBOR overview and implementation limits"
 - @ref Building "Building QCBOR with make and cmake"
 - @ref CodeSize "Minimizing the amount of code linked and disabling features"
