@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 12/31/2024   llundblade      Minor documentation tweaks for Doxygen.
  08/31/2024   llundblade      Add UsefulBufC_NTH_BYTE().
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
@@ -498,7 +499,15 @@ static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC);
 static inline UsefulBufC UsefulBuf_FromSZ(const char *szString);
 
 
-/* Get the nth byte from a UsefulBufC. There's no length check! */
+/**
+ * @brief Get the nth byte from a UsefulBufC.
+ *
+ * @param[in] UBC   UsefulBufC from which to get byte
+ * @param[in] n     Index of byte to get
+ *
+ * WARNING: this doesn't check that @c is within the UsefulBufC. This point
+ * of this is to have the ugly cast in just one place.
+ */
 #define UsefulBufC_NTH_BYTE(UBC, n)  (((const uint8_t *)(UBC.ptr))[n])
 
 
@@ -864,11 +873,13 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *   - 16 bytes (15 bytes plus alignment padding) on a 32-bit CPU
  */
 typedef struct useful_out_buf {
-   /* PRIVATE DATA STRUCTURE */
-   UsefulBuf  UB;       /* Memory that is being output to */
-   size_t     data_len; /* length of the valid data, the insertion point */
-   uint16_t   magic;    /* Used to detect corruption and lack
-                         * of initialization */
+   /** @private Memory that is being output to */
+   UsefulBuf  UB;
+   /** @private length of the valid data, the insertion point */
+   size_t     data_len;
+   /** @private Magic number to detect lack of initalization/corruption */
+   uint16_t   magic;
+   /** @private Used to detect corruption and lack of initialization */
    uint8_t    err;
 } UsefulOutBuf;
 
@@ -881,7 +892,7 @@ typedef struct useful_out_buf {
  * returned @ref UsefulBufC has the size.
  *
  * As one can see, this is just a NULL pointer and very large size.
- * The NULL pointer tells UsefulOutputBuf to not copy any data.
+ * The NULL pointer tells @ref UsefulOutBuf to not copy any data.
  */
 #ifdef __cplusplus
 #define SizeCalculateUsefulBuf {NULL, SIZE_MAX}
@@ -1035,7 +1046,7 @@ static inline void UsefulOutBuf_InsertString(UsefulOutBuf *pUOutBuf,
 /**
  * @brief Insert a byte into the @ref UsefulOutBuf.
  *
- * @param[in] pUOutBuf  Pointer to the UsefulOutBuf.
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[in] byte      Bytes to insert.
  * @param[in] uPos      Index in output buffer at which to insert.
  *
@@ -1348,7 +1359,7 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
  * UsefulOutBuf how much was written.
  *
  * Warning: this bypasses the buffer safety provided by
- * UsefulOutBuf!
+ * @ref UsefulOutBuf!
  */
 static inline UsefulBuf
 UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
@@ -1366,14 +1377,14 @@ UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
  * with UsefulOutBuf_GetOutPlace().
  *
  * Warning: this bypasses the buffer safety provided by
- * UsefulOutBuf!
+ * @ref UsefulOutBuf!
  */
 void
 UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
 
 
 /**
- *  @brief Returns the data put into a UsefulOutBuf.
+ *  @brief Returns the data put into a @ref UsefulOutBuf.
  *
  *  @param[in] pUOutBuf Pointer to the @ref UsefulOutBuf.
  *
@@ -1391,7 +1402,7 @@ UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pUOutBuf);
 
 
 /**
- * @brief Copy out the data put into a UsefulOutBuf.
+ * @brief Copy out the data put into a @ref UsefulOutBuf.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[out] Dest     The destination buffer to copy into.
@@ -1407,7 +1418,7 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pUOutBuf, UsefulBuf Dest);
 
 
 /**
- * @brief Returns data starting at an offset that was put into a UsefulOutBuf.
+ * @brief Returns data starting at an offset that was put into a @ref UsefulOutBuf.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
  * @param[in] uOffset    Offset to bytes to return.
@@ -1430,7 +1441,7 @@ UsefulBufC
 UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
 
 
-/*
+/**
  * @brief Return a substring of the output data.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
@@ -1573,13 +1584,17 @@ void UsefulOutBuf_Swap(UsefulOutBuf *pUOutBuf,
  *   - 32-bit machine: 8 + 4 + 2 + 1 (+ 1 byte padding to align) = 16 bytes
  */
 typedef struct useful_input_buf {
-   /* PRIVATE DATA STRUCTURE */
-   UsefulBufC UB;     /* Data being parsed */
-   size_t     cursor; /* Current offset in data being parse */
-   uint16_t   magic;  /* Check for corrupted or uninitialized UsefulInputBuf */
-   uint8_t    err;    /* Set request goes off end or magic number is bad */
+   /** @private Data being parsed */
+   UsefulBufC UB;
+   /** @private Current offset in data being parse */
+   size_t     cursor;
+   /** @private Check for corrupted or uninitialized UsefulInputBuf */
+   uint16_t   magic;
+   /** @private Set if request goes off end or magic number is bad */
+   uint8_t    err;
 } UsefulInputBuf;
 
+/** @private The  actual value of @c magic in UsefulInputBuf. */
 #define UIB_MAGIC (0xB00F)
 
 
