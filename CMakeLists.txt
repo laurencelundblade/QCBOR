@@ -94,5 +94,6 @@ install(
 )
 
 if (NOT BUILD_QCBOR_TEST STREQUAL "OFF")
+    enable_testing()
     add_subdirectory(test)
 endif()
