@@ -1,6 +1,10 @@
 /*! @mainpage QCBOR Documentation
 
-QCBOR is available for download @ref https://github.com/laurencelundblade/QCBOR "here on GitHub"
+QCBOR can be downloaded from its [GitHub repository](https://github.com/laurencelundblade/QCBOR).
+This documentation corresponds to QCBOR v2, currently in its alpha release
+phase. While much of the content also applies to v1 -- which is stable,
+commercially suitable, and compatible with v2 -- it's important to note that
+v2 introduces new features and APIs not available in v1.
 
 @par Table of Contents
 
@@ -17,10 +21,6 @@ API Reference:
    - Spiffy decode functions: @ref inc/qcbor/qcbor_spiffy_decode.h "qcbor_spiffy_decode.h"
    - Tag decode functions: @ref inc/qcbor/qcbor_tag_decode.h "qcbor_tag_decode.h"
    - Number decode functions: @ref inc/qcbor/qcbor_number_decode.h "qcbor_number_decode.h"
-
-Note:
-- This is for QCBOR v2, but v1 is largely compatible
-- the API Reference is largely complete, the subject matter below is partial
 
 Subject Matter:
 - @ref Overview "QCBOR overview and implementation limits"
