@@ -687,7 +687,7 @@ typedef struct _QCBORItem {
     * It wasn't explicitly described as private, but was implicitly private.
     */
    QCBORMappedTagNumbers auTagNumbers;
-#endif
+#endif /* ! QCBOR_DISABLE_TAGS */
 } QCBORItem;
 
 /**
