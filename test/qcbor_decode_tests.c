@@ -8858,6 +8858,26 @@ int32_t EnterBstrTest(void)
       return 300 + (int32_t)uErr;
    }
 
+   /* Try to enter some thing that is not a bstr */
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty),
+                    0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 400 + (int32_t)uErr;
+   }
+
+   /* Try to enter some thing else that is not a bstr */
+   QCBORDecode_Init(&DC,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap),
+                    0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 500 + (int32_t)uErr;
+   }
+
    return 0;
 }
 
