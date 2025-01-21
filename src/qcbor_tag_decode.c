@@ -632,7 +632,7 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
                                              &bTypeMatched);
 
    if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      uError = QCBOR_ERR_BAD_TAG_CONTENT; // TODO: error
+      return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
 
