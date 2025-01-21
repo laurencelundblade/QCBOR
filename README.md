@@ -130,6 +130,9 @@ Replaced by RFC 8949.
   with the test suite. The test suite dependencies are minimal and the
   same as the library's.
 
+## Documentation
+
+Full API documentation is at https://www.securitytheory.com/qcbor-docs/
 
 ## Comparison to TinyCBOR
 
@@ -193,7 +196,7 @@ QCBOR.
 
 This is the 2.0 alpha release. It has large changes and feature
 additions. It's not ready for commericial use yet. The main short
-coming the need for more testing of the newer features. It will
+coming is the need for more testing of the newer features. It will
 go through alpha, then to beta and then to an official 2.0
 commerical release sometimes in 2025.
 
@@ -232,5 +235,5 @@ EAT and CWT.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
 Copyright (c) 2021-2023, Arm Limited. All rights reserved.
