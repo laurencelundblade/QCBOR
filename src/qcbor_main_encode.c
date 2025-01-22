@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -644,13 +644,13 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
     */
    size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
 
-   /* QCBOR_MAX_ARRAY_OFFSET is slightly less than UINT32_MAX so this
+   /* QCBOR_MAX_SIZE is slightly less than UINT32_MAX so this
     * code can run on a 32-bit machine and tests can pass on a 32-bit
     * machine. If it was exactly UINT32_MAX, then this code would not
     * compile or run on a 32-bit machine and an #ifdef or some machine
-    * size detection would be needed reducing portability.
+    * size detection would be needed, reducing portability.
     */
-   if(uEndPosition >= QCBOR_MAX_ARRAY_OFFSET) {
+   if(uEndPosition >= QCBOR_MAX_SIZE) {
       pMe->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
 
    } else {

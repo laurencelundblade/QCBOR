@@ -2,7 +2,7 @@
  * qcbor_spiffy_decode.c -- "Spiffy" QCBOR decoding
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -359,9 +359,9 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
    // Check here makes sure that this won't accidentally be
    // QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
-   // QCBOR_MAX_DECODE_INPUT_SIZE.
+   // QCBOR_MAX_SIZE.
    // Cast to uint32_t to possibly address cases where SIZE_MAX < UINT32_MAX
-   if((uint32_t)uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if((uint32_t)uEndOffset >= QCBOR_MAX_SIZE) {
       uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }

@@ -2,7 +2,7 @@
  * qcbor_private -- Non-public data structures for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -159,17 +159,6 @@ extern "C" {
 #define CBOR_SIMPLEV_RESERVED_START  CBOR_SIMPLEV_ONEBYTE
 #define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
-
-/* The largest offset to the start of an array or map. It is slightly
- * less than UINT32_MAX so the error condition can be tested on 32-bit
- * machines.  UINT32_MAX comes from uStart in QCBORTrackNesting being
- * a uin32_t.
- *
- * This will cause trouble on a machine where size_t is less than 32-bits.
- *
- * TODO: make this public?
- */
-#define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
 
 
 /* The number of tags that are 16-bit or larger that can be handled

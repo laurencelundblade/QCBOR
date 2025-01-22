@@ -291,7 +291,7 @@ int32_t DecodeTaggedTypeTests(void);
 
 /*
  Test the detection of input that is too large. Requires
- a special build that makes QCBOR_MAX_DECODE_INPUT_SIZE small.
+ a special build that makes QCBOR_MAX_SIZE small.
  */
 int32_t TooLargeInputTest(void);
 

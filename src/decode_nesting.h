@@ -2,7 +2,7 @@
  * decode_nesting.c -- All inline implementation of QCBORDecodeNesting
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -336,12 +336,12 @@ DecodeNesting_EnterBoundedMapOrArray(QCBORDecodeNesting *pNesting,
     * Have descended into this before this is called. The job here is
     * just to mark it in bounded mode.
     *
-    * Check against QCBOR_MAX_DECODE_INPUT_SIZE make sure that
+    * Check against QCBOR_MAX_SIZE make sure that
     * uOffset doesn't collide with QCBOR_NON_BOUNDED_OFFSET.
     *
     * Cast of uOffset to uint32_t for cases where SIZE_MAX < UINT32_MAX.
     */
-   if((uint32_t)uOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if((uint32_t)uOffset >= QCBOR_MAX_SIZE) {
       return QCBOR_ERR_INPUT_TOO_LARGE;
    }
 
