@@ -270,7 +270,7 @@ typedef enum {
    QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
 
    /** During encoding, the length of the encoded CBOR exceeded
-    *  @ref QCBOR_MAX_ARRAY_OFFSET, which is slightly less than
+    *  @ref QCBOR_MAX_SIZE, which is slightly less than
     *  @c UINT32_MAX. */
    QCBOR_ERR_BUFFER_TOO_LARGE = 3,
 
@@ -361,7 +361,7 @@ typedef enum {
 #define QCBOR_END_OF_NOT_WELL_FORMED_ERRORS 39
 
    /** During decoding, the input is too large. It is greater than
-    *  QCBOR_MAX_DECODE_INPUT_SIZE. This is an implementation limit.
+    *  QCBOR_MAX_SIZE. This is an implementation limit.
     *  This error makes no further decoding possible. */
    QCBOR_ERR_INPUT_TOO_LARGE = 40,
 
@@ -599,7 +599,13 @@ const char *
 qcbor_err_to_str(QCBORError uErr);
 
 
-
+/* The maximum size in bytes for input to decode or encoder output. */
+/* It is slightly less than UINT32_MAX to accommodate
+ * QCBOR_NON_BOUNDED_OFFSET and so the limit can be tested on 32-bit
+ * machines. This will cause trouble where size_t is less than 32
+ * bits.
+ */
+#define QCBOR_MAX_SIZE  (UINT32_MAX - 100)
 
 /**
  * The maximum nesting of arrays and maps when encoding or

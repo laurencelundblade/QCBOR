@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_tag_decode.c -- Tag content decoders
  *
- * Copyright (c) 2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2025, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -634,7 +634,7 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
                                              &bTypeMatched);
 
    if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
-      uError = QCBOR_ERR_BAD_TAG_CONTENT; // TODO: error
+      return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
 
@@ -660,14 +660,14 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
 
    const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
    /* This check makes the cast of uPreviousLength to uint32_t below safe. */
-   if(uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if(uPreviousLength >= QCBOR_MAX_SIZE) {
       uError = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
 
    const size_t uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf), pItem->val.string.ptr);
    /* This check makes the cast of uStartOfBstr to uint32_t below safe. */
-   if(uStartOfBstr == SIZE_MAX || uStartOfBstr > QCBOR_MAX_DECODE_INPUT_SIZE) {
+   if(uStartOfBstr == SIZE_MAX || uStartOfBstr > QCBOR_MAX_SIZE) {
       /* This should never happen because pItem->val.string.ptr should
        * always be valid since it was just returned.
        */
