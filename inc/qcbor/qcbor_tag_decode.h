@@ -272,6 +272,8 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * Normally, tag numbers are processed QCBORDecode_VGetNextTagNumber() or
  * QCBORTagContentCallBack.
  *
+ * TODO: rewrite this paragraph
+ * TODO: are tag not fetched by QCBORDecode_VGetNextTagNumber put here?
  * When QCBOR decodes an item that is a tag, it will fully decode tags
  * it is able to. Tags that it is unable to process are put in a list
  * in the QCBORItem.
@@ -291,7 +293,7 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * See also @ref TagDecoding @ref CBORTags.
  *
  * To reduce memory used by a @ref QCBORItem, tag numbers larger than
- * @c UINT16_MAX are mapped so the tag numbers in @c uTags should be
+ * @c UINT16_MAX are mapped so the tag numbers in @c auTagNumbers must be
  * accessed with this function rather than directly.
  *
  * This returns @ref CBOR_TAG_INVALID64 if any error occurred when
@@ -1121,7 +1123,7 @@ QCBORDecode_ExpMantissaTagCB(QCBORDecodeContext *pDecodeCtx,
 #ifndef QCBOR_DISABLE_TAGS
 
 /**
- * @brief [Deprecated] Returns the tag numbers for an item..
+ * @brief [Deprecated] Returns the tag numbers for an item.
  * @deprecated Use QCBORDecode_GetNthTagNumber() instead.
  *
  * @param[in] pCtx    The decoder context.

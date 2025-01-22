@@ -3987,6 +3987,84 @@ int32_t SpiffyDateDecodeTest(void)
 
 
 #ifndef QCBOR_DISABLE_TAGS
+
+
+struct TestInput {
+   const char *szDescription;
+   UsefulBufC  EncodedCBOR;
+};
+
+
+/* Tests don't lend themselves to iteration over this,
+ * but still nice to organize into an array with descriptions. */
+static const struct TestInput spTagInput2[] = {
+   /* 0 */
+   {"55799([4([1, 3])]), CBOR magic number in front of decimal fraction",
+      {
+         (uint8_t[]){0xd9, 0xd9, 0xf7, // CBOR magic number
+            0x81, // Array of one
+            0xd8, 0x04, // non-preferred serialization of tag 4, decimal fraction
+            0x82, // Array of two that is the faction 1/3
+            0x01,
+            0x03}, 9},
+   },
+
+   /* 1 */
+   {"More than 4 tags on an item 225(226(227(228(229([])))))",
+      {
+         (uint8_t[]) {0xd8, 0xe1,
+            0xd8, 0xe2,
+            0xd8, 0xe3,
+            0xd8, 0xe4,
+            0xd8, 0xe5,
+            0x80}, 11},
+   },
+
+   /* 2 */
+   {"10489608748473423768( 2442302356( 21590( 240([]))))",
+      {
+         (uint8_t[]) {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+            0xda, 0x91, 0x92, 0x93, 0x94,
+            0xd9, 0x54, 0x56,
+            0xd8, 0xf0,
+            0x80}, 20},
+   },
+
+   /* 3 */
+   {"21590(10489608748473423768(2442302357(65534([]))))",
+      {
+         (uint8_t[]) {0xdb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x54, 0x56,
+            0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+            0xda, 0x91, 0x92, 0x93, 0x95,
+            0xd9, 0xff, 0xfe,
+            0x80}, 27},
+   },
+
+   /* 4 */
+   {"More than 4 tags 269488144( 269488145( 269488146( 269488147( 269488148([])))))",
+      {
+         (uint8_t[]) {0xda, 0x10, 0x10, 0x10, 0x10,
+            0xda, 0x10, 0x10, 0x10, 0x11,
+            0xda, 0x10, 0x10, 0x10, 0x12,
+            0xda, 0x10, 0x10, 0x10, 0x13,
+            0xda, 0x10, 0x10, 0x10, 0x14,
+            0x80}, 26},
+   },
+
+   /* 5 */
+   {"An invalid decimal fraction with an additional tag",
+      {
+         (uint8_t[]) {0xd9, 0xff, 0xfa,
+            0xd8, 0x02,
+            0x00}, 6},
+   },
+
+   {NULL,
+   NULLUsefulBufC}
+};
+
+
+
 // Input for one of the tagging tests
 static const uint8_t spTagInput[] = {
    0xd9, 0xd9, 0xf7, // CBOR magic number
@@ -4274,16 +4352,11 @@ int32_t TagNumberDecodeTest(void)
       return -10;
    }
 
-   /* Testing with v2 */
-   QCBORDecode_Init(&DCtx,
-                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
-                     QCBOR_DECODE_MODE_NORMAL);
 
-   /*
-    This test matches the magic number tag and the fraction tag
-    55799([...])
-    */
+   /* V2 tag mode testing */
    uint64_t uTagNumber;
+
+   QCBORDecode_Init(&DCtx, spTagInput2[0].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_SUCCESS) {
       return -200;
@@ -4303,109 +4376,92 @@ int32_t TagNumberDecodeTest(void)
       return -500;
    }
 
-
-
-   /*
-    4([1,3])
-    */
-   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   if(uError != QCBOR_SUCCESS) {
-      return -200;
-   }
-   if(uTagNumber != CBOR_TAG_DECIMAL_FRACTION) {
-      return -300;
-   }
-
-
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
-   if(uError != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_ARRAY ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_DECIMAL_FRACTION ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 1) != CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 2) != CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 3) != CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ||
-      Item.val.uCount != 2) {
-      return -4;
-   }
-   // consume the items in the array
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
-
-
-   /*
-    More than 4 tags on an item 225(226(227(228(229([])))))
-    */
+   /* More than 4 tag numbers */
+   QCBORDecode_Init(&DCtx, spTagInput2[1].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -2;
    }
 
-
-   /* tag 10489608748473423768(
-             2442302356(
-                21590(
-                   240(
-                      []))))
-    */
+   /* An array with for big tag numbers on it */
+   QCBORDecode_Init(&DCtx, spTagInput2[2].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   if(uError != QCBOR_SUCCESS ||  uTagNumber != 10489608748473423768ULL) {
-      return -6;
+   if(uError != QCBOR_SUCCESS || uTagNumber != 10489608748473423768ULL) {
+      return -81;
    }
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_SUCCESS || uTagNumber != 2442302356ULL) {
-      return -6;
+      return -81;
    }
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_SUCCESS || uTagNumber != 21590ULL) {
-      return -6;
+      return -81;
    }
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_SUCCESS || uTagNumber != 240ULL) {
-      return -6;
+      return -81;
    }
    uError = QCBORDecode_GetNext(&DCtx, &Item);
-   if(uError != QCBOR_SUCCESS) {
-      return -2;
-   }
-   if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 0) {
-      return -1003;
+   if(uError != QCBOR_SUCCESS || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -81;
    }
 
-   /* tag 21590(
-             10489608748473423768(
-                2442302357(
-                   21591(
-                       []))))
-    */
-   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
 
+   /* Decode the four tag numbers and see success */
+   QCBORDecode_Init(&DCtx, spTagInput2[3].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 21590ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 10489608748473423768ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 2442302357ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 65534ULL) {
+      return -81;
+   }
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 0) != 65534ULL ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 1) != 2442302357ULL ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 2) != 10489608748473423768ULL ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 3) != 21590ULL) {
+      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 3) != 65534ULL ||
+      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 2) != 2442302357ULL ||
+      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 1) != 10489608748473423768ULL ||
+      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 0) != 21590ULL) {
       return -8;
    }
 
-   /* Make sure to blow past the limit of tags that must be mapped.
-      works in conjuntion with entries above.
-    269488144(269488145(269488146(269488147([]))))
-    */
+   /* As above, but ask for a 5th tag number */
+   QCBORDecode_Init(&DCtx, spTagInput2[3].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != CBOR_TAG_INVALID64) {
+      return -7;
+   }
+
+   /* More than 4 tags. Even with v2 processing, there is a max of 4 tags. */
+   /* (Perhaps v2 processing will be different someday and not have this limit. */
+   QCBORDecode_Init(&DCtx, spTagInput2[4].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -9;
    }
 
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   /* The input is a bad decimal frac with extra tag number */
+   QCBORDecode_Init(&DCtx, spTagInput2[5].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_InstallTagDecoders(&DCtx, QCBORDecode_TagDecoderTablev1, NULL);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError == QCBOR_SUCCESS) {
       return -10;
    }
+   // 65530
    /* 0-0-0-0-0-0-0--0-0--0*/
 
 

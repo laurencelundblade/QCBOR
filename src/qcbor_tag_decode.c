@@ -33,7 +33,9 @@ QCBORDecode_GetNextTagNumber(QCBORDecodeContext *pMe, uint64_t *puTagNumber)
 
    uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
    if(uOffset == pMe->uTagNumberCheckOffset) {
-      pMe->uTagNumberIndex++;
+      if(pMe->uTagNumberIndex != QCBOR_ALL_TAGS_PROCESSED) {
+         pMe->uTagNumberIndex++;
+      }
    } else {
       pMe->uTagNumberIndex = 0;
    }
