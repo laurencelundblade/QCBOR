@@ -3999,7 +3999,7 @@ struct TestInput {
  * but still nice to organize into an array with descriptions. */
 static const struct TestInput spTagInput2[] = {
    /* 0 */
-   "55799([4([1, 3])]), CBOR magic number in from of decimal fraction",
+   "55799([4([1, 3])]), CBOR magic number in front of decimal fraction",
    {
       (uint8_t[]){0xd9, 0xd9, 0xf7, // CBOR magic number
          0x81, // Array of one
@@ -4346,16 +4346,11 @@ int32_t TagNumberDecodeTest(void)
       return -10;
    }
 
-   /* Testing with v2 */
-   QCBORDecode_Init(&DCtx,
-                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
-                     QCBOR_DECODE_MODE_NORMAL);
 
-   /*
-    This test matches the magic number tag and the fraction tag
-    55799([...])
-    */
+   /* V2 tag mode testing */
    uint64_t uTagNumber;
+
+   QCBORDecode_Init(&DCtx, spTagInput2[0].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_SUCCESS) {
       return -200;
@@ -4375,45 +4370,35 @@ int32_t TagNumberDecodeTest(void)
       return -500;
    }
 
-
-
-   /*
-    4([1,3])
-    */
-   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
-   if(uError != QCBOR_SUCCESS) {
-      return -200;
-   }
-   if(uTagNumber != CBOR_TAG_DECIMAL_FRACTION) {
-      return -300;
-   }
-
-
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
-   if(uError != QCBOR_SUCCESS ||
-      Item.uDataType != QCBOR_TYPE_ARRAY ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_DECIMAL_FRACTION ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 1) != CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 2) != CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 3) != CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTag(&DCtx, &Item, 4) != CBOR_TAG_INVALID64 ||
-      Item.val.uCount != 2) {
-      return -4;
-   }
-   // consume the items in the array
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
-   uError = QCBORDecode_GetNext(&DCtx, &Item);
-
-
-   /*
-    More than 4 tags on an item 225(226(227(228(229([])))))
-    */
+   /* More than 4 tag numbers */
+   QCBORDecode_Init(&DCtx, spTagInput2[1].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -2;
    }
 
-
+   /* An array with for big tag numbers on it */
+   QCBORDecode_Init(&DCtx, spTagInput2[2].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 10489608748473423768ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 2442302356ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 21590ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
+   if(uError != QCBOR_SUCCESS || uTagNumber != 240ULL) {
+      return -81;
+   }
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS || Item.uDataType != QCBOR_TYPE_ARRAY) {
+      return -81;
+   }
 
 
    /* Decode the four tag numbers and see success */
@@ -4463,9 +4448,7 @@ int32_t TagNumberDecodeTest(void)
       return -9;
    }
 
-
    /* The input is a bad decimal frac with extra tag number */
-   /* TODO: maybe look into how this behaved internally more */
    QCBORDecode_Init(&DCtx, spTagInput2[5].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    QCBORDecode_InstallTagDecoders(&DCtx, QCBORDecode_TagDecoderTablev1, NULL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
