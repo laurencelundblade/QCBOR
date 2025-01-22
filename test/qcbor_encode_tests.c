@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2024, Laurence Lundblade.
+ Copyright (c) 2018-2025, Laurence Lundblade.
  Copyright (c) 2022, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2742,7 +2742,7 @@ int32_t EncodeErrorTests(void)
    // Third, fit an array in exactly at max position allowed
    QCBOREncode_Init(&EC, Buffer);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, QCBOR_MAX_ARRAY_OFFSET-6});
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, QCBOR_MAX_SIZE-6});
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_CloseArray(&EC);
    QCBOREncode_CloseArray(&EC);

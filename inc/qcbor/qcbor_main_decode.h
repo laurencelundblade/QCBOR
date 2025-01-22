@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -286,11 +286,6 @@ typedef enum {
 
 
 
-/**
- * The maximum size of input to the decoder. Slightly less than
- * @c UINT32_MAX to make room for some special indicator values.
- */
-#define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
 /**
  * The maximum number of tags that may occur on an individual nested
@@ -1398,6 +1393,12 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * ========================================================================= */
 
 /**
+ * @deprecated  Use @ref QCBOR_MAX_SIZE instead.
+ */
+#define QCBOR_MAX_DECODE_INPUT_SIZE QCBOR_MAX_SIZE
+
+
+/**
  * @deprecated The v2 tag number behavior is more correct.
  * @brief [Deprecated] Configure CBOR decoder context for QCBOR v1 compatibility.
  *
@@ -1583,11 +1584,11 @@ QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t 
 
 
 /* A few cross checks on size constants and special value lengths */
-#if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_DECODE_INPUT_SIZE
+#if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_SIZE
 #error QCBOR_MAP_OFFSET_CACHE_INVALID is too large
 #endif
 
-#if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_DECODE_INPUT_SIZE
+#if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_SIZE
 #error QCBOR_NON_BOUNDED_OFFSET is too large
 #endif
 
