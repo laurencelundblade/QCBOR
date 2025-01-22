@@ -1,7 +1,7 @@
 # Guidelines from https://docs.fedoraproject.org/en-US/packaging-guidelines/CMake/
 
 Name: qcbor
-Version: 2.0.0.a1
+Version: 2.0.0.a2
 Release: 0%{?dist}
 Summary: A CBOR encoder/decoder library
 URL: https://github.com/laurencelundblade/QCBOR
