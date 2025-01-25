@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_spiffy_decode.h -- higher-level easier-to-use CBOR decoding.
  *
- * Copyright (c) 2020-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2020-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -136,7 +136,7 @@ extern "C" {
  *
  * See also QCBORDecode_EnterBstrWrapped().
  */
-static void
+static inline void
 QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
                           UsefulBufC         *pBytes);
 
@@ -168,7 +168,7 @@ QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
  * This does no translation of line endings. See QCBOREncode_AddText()
  * for a discussion of line endings in CBOR.
  */
-static void
+static inline void
 QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
                           UsefulBufC         *pText);
 
@@ -817,6 +817,13 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
+
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
+void
+QCBORDecode_Private_GetString(QCBORDecodeContext *pMe,
+                              UsefulBufC         *pText,
+                              uint8_t             uType);
+
 /** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
 QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pCtx,
@@ -1003,20 +1010,10 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-
-
 static inline void
 QCBORDecode_GetByteString(QCBORDecodeContext *pMe, UsefulBufC *pBytes)
 {
-   QCBORItem  Item;
-
-   QCBORDecode_VGetNext(pMe, &Item);
-
-   if(pMe->uLastError == QCBOR_SUCCESS && Item.uDataType == QCBOR_TYPE_BYTE_STRING) {
-      *pBytes = Item.val.string;
-   } else {
-      *pBytes = NULLUsefulBufC;
-   }
+   QCBORDecode_Private_GetString(pMe, pBytes, QCBOR_TYPE_BYTE_STRING);
 }
 
 static inline void
@@ -1055,15 +1052,7 @@ QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pMe,
 static inline void
 QCBORDecode_GetTextString(QCBORDecodeContext *pMe, UsefulBufC *pText)
 {
-   QCBORItem  Item;
-
-   QCBORDecode_VGetNext(pMe, &Item);
-
-   if(pMe->uLastError == QCBOR_SUCCESS && Item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-      *pText = Item.val.string;
-   } else {
-      *pText = NULLUsefulBufC;
-   }
+   QCBORDecode_Private_GetString(pMe, pText, QCBOR_TYPE_TEXT_STRING);
 }
 
 static inline void

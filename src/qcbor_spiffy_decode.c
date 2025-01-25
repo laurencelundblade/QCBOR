@@ -66,6 +66,25 @@
 #endif
 
 
+/* Public function, see qcbor/qcbor_spiffy_decode.h */
+void
+QCBORDecode_Private_GetString(QCBORDecodeContext *pMe, UsefulBufC *pText, uint8_t uType)
+{
+   QCBORItem  Item;
+
+   QCBORDecode_VGetNext(pMe, &Item);
+
+   *pText = NULLUsefulBufC;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      if(Item.uDataType == uType) {
+         *pText = Item.val.string;
+      } else {
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      }
+   }
+}
+
+
 /* Return true if the labels in Item1 and Item2 are the same.
    Works only for integer and string labels. Returns false
    for any other type. */
