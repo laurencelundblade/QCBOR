@@ -33,6 +33,12 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
+
+/* See https://www.securitytheory.com/qcbor-docs/ for the full
+ * searchable documnetation built from these headers.
+ */
+
+
 #ifndef qcbor_main_decode_h
 #define qcbor_main_decode_h
 

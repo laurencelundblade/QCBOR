@@ -2,7 +2,7 @@
  * qcbor_common -- Common definitions for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -33,6 +33,10 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
+/* See https://www.securitytheory.com/qcbor-docs/ for the full
+ * searchable documnetation built from these headers.
+ */
+
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
@@ -42,6 +46,7 @@ extern "C" {
 } // Keep editor indention formatting happy
 #endif
 #endif
+
 
 /**
  * @file qcbor_common.h

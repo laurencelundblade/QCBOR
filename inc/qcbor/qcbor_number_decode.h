@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_number_decode.h -- CBOR number decoding.
  *
- * Copyright (c) 2020-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2020-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -10,6 +10,13 @@
  *
  * Forked from qcbor_decode.h on 11/23/2024
  * ========================================================================== */
+
+
+/* See https://www.securitytheory.com/qcbor-docs/ for the full
+ * searchable documnetation built from these headers.
+ */
+
+
 #ifndef qcbor_number_decode_h
 #define qcbor_number_decode_h
 
