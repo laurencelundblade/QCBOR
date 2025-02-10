@@ -66,18 +66,27 @@
 #endif
 
 
-/* Public function, see qcbor/qcbor_spiffy_decode.h */
+/**
+ * @brief Spiffy decode get a byte string.
+ *
+ * @param[in] pMe       The decode context.
+ * @param[in] uType     The CBOR qcbor type requested.
+ * @param[out] pString  The returned string.
+ *
+ * This sets the spiffy decode last error if there is a problem
+ * deocing or the string is not of the requested type.
+ */
 void
-QCBORDecode_Private_GetString(QCBORDecodeContext *pMe, UsefulBufC *pText, uint8_t uType)
+QCBORDecode_Private_GetString(QCBORDecodeContext *pMe, const uint8_t uType, UsefulBufC *pString)
 {
    QCBORItem  Item;
 
    QCBORDecode_VGetNext(pMe, &Item);
 
-   *pText = NULLUsefulBufC;
+   *pString = NULLUsefulBufC;
    if(pMe->uLastError == QCBOR_SUCCESS) {
       if(Item.uDataType == uType) {
-         *pText = Item.val.string;
+         *pString = Item.val.string;
       } else {
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
       }

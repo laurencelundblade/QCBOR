@@ -821,8 +821,8 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
 /** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
 QCBORDecode_Private_GetString(QCBORDecodeContext *pMe,
-                              UsefulBufC         *pText,
-                              uint8_t             uType);
+                              uint8_t             uType,
+                              UsefulBufC         *pText);
 
 /** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
@@ -1013,7 +1013,7 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
 static inline void
 QCBORDecode_GetByteString(QCBORDecodeContext *pMe, UsefulBufC *pBytes)
 {
-   QCBORDecode_Private_GetString(pMe, pBytes, QCBOR_TYPE_BYTE_STRING);
+   QCBORDecode_Private_GetString(pMe, QCBOR_TYPE_BYTE_STRING, pBytes);
 }
 
 static inline void
@@ -1052,7 +1052,7 @@ QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pMe,
 static inline void
 QCBORDecode_GetTextString(QCBORDecodeContext *pMe, UsefulBufC *pText)
 {
-   QCBORDecode_Private_GetString(pMe, pText, QCBOR_TYPE_TEXT_STRING);
+   QCBORDecode_Private_GetString(pMe, QCBOR_TYPE_TEXT_STRING, pText);
 }
 
 static inline void
