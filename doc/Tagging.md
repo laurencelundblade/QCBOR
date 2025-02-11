@@ -161,7 +161,7 @@ tag that QCBOR did not.
 Nesting of tags is certainly used in CBOR protocols, but deep nesting
 is less common so QCBOR has an implementation limit of 4 levels of tag
 encapsulation on some tag content. (This can be increased by changing
-QCBOR_MAX_TAGS_PER_ITEM, but it will increase stack memory use by
+@ref QCBOR_MAX_TAGS_PER_ITEM, but it will increase stack memory use by
 increasing the size of a QCBORItem).
 
 QCBOR also saves memory by mapping the tag values larger than
