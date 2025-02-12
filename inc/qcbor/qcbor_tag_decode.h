@@ -35,7 +35,7 @@ extern "C" {
  * @anchor TagDecoding
  * ## Tag Decoding
  *
-  * See @ref CBORTags first if you are unfamiliar with the notion of
+  * See @ref CBORTags first if you are unfamiliar with
  * tags in CBOR.
  *
  * QCBOR v2 offers several ways to decode tags.
@@ -194,12 +194,12 @@ enum QCBORDecodeTagReq {
 
 #ifndef QCBOR_DISABLE_TAGS
 /**
- * @brief Returns the tag numbers for an item.
+ * @brief Get the next tag number.
  *
- * @param[in] pCtx    The decoder context.
+ * @param[in] pCtx          The decoder context.
  * @param[out] puTagNumber  The returned tag number.
  *
- * In QCBOR v2, all tag numbers on an item MUST be fetched with this
+ * In QCBOR v2, all tag numbers on an item must be fetched with this
  * method. If not, @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER will
  * occur. This is a major change from QCBORv1. The QCBOR v1 behavior
  * is too lax for proper CBOR decoding. When a tag number occurs it
@@ -208,7 +208,7 @@ enum QCBORDecodeTagReq {
  * incorrectly characterized as optional implying they could be
  * ignored.
  *
- * In typical item decoding, tag numbers are not used, not present and
+ * In much item decoding, tag numbers are not used, not present and
  * not expected. There's no need to call this.
  *
  * When the protocol being decoded does use a tag number then this
@@ -222,8 +222,8 @@ enum QCBORDecodeTagReq {
  * number to switch the flow of decoding. If there's a possibility of
  * a tag number then this must be called.
  *
- * If this is called and there is no tag number, then this will return
- * @ref QCBOR_SUCCESS and the tag number returned will be
+ * If this is called and there is no tag number, then this will succeed
+ * (no error will be set) and the tag number returned will be
  * @ref CBOR_TAG_INVALID64.
  *
  * Usually there is only one tag number per item, but CBOR allows
@@ -242,9 +242,9 @@ QCBORDecode_VGetNextTagNumber(QCBORDecodeContext *pCtx, uint64_t *puTagNumber);
 
 
 /**
- * @brief Returns the tag numbers for an item.
+ * @brief Get the next tag number.
  *
- * @param[in] pCtx    The decoder context.
+ * @param[in] pCtx          The decoder context.
  * @param[out] puTagNumber  The returned tag number.
  *
  * @return See error table of decoding errors set by QCBORDecode_VGetNext().
@@ -264,30 +264,31 @@ QCBORError
 QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabel, uint64_t *puTagNumber);
 
 
-
 /**
  * @brief Returns the tag numbers for a decoded item.
  *
  * @param[in] pCtx    The decoder context.
- * @param[in] pItem The CBOR item to get the tag for.
- * @param[in] uIndex The index of the tag to get.
+ * @param[in] pItem   The decoded CBOR item to get the tag number from.
+ * @param[in] uIndex  The index of the tag to get.
  *
  * @returns The nth tag number or @ref CBOR_TAG_INVALID64.
  *
- * Typically, this is only used with @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
- * Normally, tag numbers are processed QCBORDecode_VGetNextTagNumber() or
- * QCBORTagContentCallBack.
+ * Tag numbers are typically processed by consuming them with
+ * QCBORDecode_VGetNextTagNumber() or a QCBORTagContentCallBack(),
+ * rather than this function. Use of this function should not be mixed
+ * with use of QCBORDecode_VGetNextTagNumber() or
+ * QCBORDecode_GetNextTagNumber().
  *
- * TODO: rewrite this paragraph
- * TODO: are tag not fetched by QCBORDecode_VGetNextTagNumber put here?
- * When QCBOR decodes an item that is a tag, it will fully decode tags
- * it is able to. Tags that it is unable to process are put in a list
- * in the QCBORItem.
+ * When QCBOR is initialized with
+ * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS, tag numbers preceding
+ * an item are accumulated and associated with the QCBORItem (as was
+ * always done in QCBOR v1). This function retrieves them from the
+ * item. They cannot be accessed directly from @c pItem because they
+ * are mapped to save space.
  *
- * Tags nest. Here the tag with index 0 is the outermost, the one
- * furthest form the data item that is the tag content. This is
- * the opposite order of QCBORDecode_GetNthTag(), but more
- * useful.
+ * Tags nest. The tag at index 0 is the outermost, the furthest from
+ * the tagged data item. This ordering is the reverse of
+ * QCBORDecode_GetNthTag(), but is generally more useful.
  *
  * Deep tag nesting is rare so this implementation imposes a limit of
  * @ref QCBOR_MAX_TAGS_PER_ITEM on nesting and returns @ref
@@ -296,15 +297,16 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * the constant can be increased and the library recompiled. It will
  * use more memory).
  *
+ * Deep tag nesting is rare, so this implementation limits nesting to
+ * @ref QCBOR_MAX_TAGS_PER_ITEM.  If this limit is exceeded,
+ * @ref QCBOR_ERR_TOO_MANY_TAGS is returned. This constraint is
+ * specific to this implementation, not CBOR itself .
+ *
  * See also @ref TagDecoding @ref CBORTags.
  *
- * To reduce memory used by a @ref QCBORItem, tag numbers larger than
- * @c UINT16_MAX are mapped so the tag numbers in @c auTagNumbers must be
- * accessed with this function rather than directly.
- *
- * This returns @ref CBOR_TAG_INVALID64 if any error occurred when
- * getting the item. This is also returned if there are no tags on the
- * item or no tag at @c uIndex.
+ * If an error occurs when retrieving the item, or if the item has no
+ * tags or no tag at @c uIndex, this function returns @ref
+ * CBOR_TAG_INVALID64.
  */
 uint64_t
 QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint8_t uIndex);
@@ -318,14 +320,22 @@ QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pIt
  *
  * @returns The nth tag number or @ref CBOR_TAG_INVALID64.
  *
- * This returns tags of the most recently decoded item. See
- * QCBORDecode_GetNthTagNumber(). This is particularly of use for spiffy
- * decode functions that don't return a @ref QCBORItem.
+ * Like QCBORDecode_GetNthTagNumber(), this function is used when
+ * QCBOR is initialized with
+ * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. It returns the tag
+ * numbers of the most recently decoded item. See
+ * QCBORDecode_GetNthTagNumber().
  *
- * This does not work for QCBORDecode_GetNext(),
- * QCBORDecode_PeekNext(), QCBORDecode_VPeekNext() or
- * QCBORDecode_VGetNextConsume() but these all return a
- * @ref QCBORItem, so it is not necessary.
+ * This is useful with spiffy decode functions that do not return a
+ * @ref QCBORItem. Use of this function should not be mixed with use
+ * of QCBORDecode_VGetNextTagNumber() or
+ * QCBORDecode_GetNextTagNumber().
+ *
+ * It does not work with QCBORDecode_GetNext(),
+ * QCBORDecode_PeekNext(), QCBORDecode_VPeekNext(), or
+ * QCBORDecode_VGetNextConsume() as these return the tag numbers in a
+ * @ref QCBORItem rather than save them as the last tags in the decode
+ * context.
  *
  * If a decoding error is set, then this returns @ref CBOR_TAG_INVALID64.
  */

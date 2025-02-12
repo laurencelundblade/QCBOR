@@ -295,7 +295,7 @@ typedef enum {
 
 /**
  * The maximum number of tags that may occur on an individual nested
- * item. Typically 4.
+ * item. Typically 4. This is a QCBOR implementation limit.
  */
 #define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
