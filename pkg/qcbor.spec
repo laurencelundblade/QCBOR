@@ -1,7 +1,7 @@
 # Guidelines from https://docs.fedoraproject.org/en-US/packaging-guidelines/CMake/
 
 Name: qcbor
-Version: 2.0.0.a2
+Version: 2.0.0.a3
 Release: 0%{?dist}
 Summary: A CBOR encoder/decoder library
 URL: https://github.com/laurencelundblade/QCBOR
@@ -53,5 +53,7 @@ Development files needed to build and link to the QCBOR library.
 
 
 %changelog
+* Tue Deb 11 2025 Laurence Lundblade <lgl@island-resort.com> - 2.0.0.a3
+- QCBOR 2.0 alpha release 3. GetString error handling fix. Documentation fixes. Not ready for commercial use.
 * Fri Dec 20 2024 Laurence Lundblade <lgl@island-resort.com> - 2.0.0.a1
 - QCBOR 2.0 alpha release 1. Not ready for commercial use.
