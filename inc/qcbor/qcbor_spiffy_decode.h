@@ -136,7 +136,7 @@ extern "C" {
  *
  * See also QCBORDecode_EnterBstrWrapped().
  */
-static inline void
+static void
 QCBORDecode_GetByteString(QCBORDecodeContext *pCtx,
                           UsefulBufC         *pBytes);
 
@@ -168,7 +168,7 @@ QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pCtx,
  * This does no translation of line endings. See QCBOREncode_AddText()
  * for a discussion of line endings in CBOR.
  */
-static inline void
+static void
 QCBORDecode_GetTextString(QCBORDecodeContext *pCtx,
                           UsefulBufC         *pText);
 
