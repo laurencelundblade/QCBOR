@@ -823,6 +823,13 @@ QCBORDecode_GetSimpleInMapSZ(QCBORDecodeContext *pCtx,
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
+
+/** @private  Semi-private function. See qcbor_spiffy_decode.c */
+void
+QCBORDecode_Private_GetString(QCBORDecodeContext *pMe,
+                              uint8_t             uType,
+                              UsefulBufC         *pText);
+
 /** @private  Semi-private function. See qcbor_spiffy_decode.c */
 void
 QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pCtx,
@@ -1009,20 +1016,10 @@ QCBORDecode_GetMapFromMapSZ(QCBORDecodeContext *pMe,
 }
 
 
-
-
 static inline void
 QCBORDecode_GetByteString(QCBORDecodeContext *pMe, UsefulBufC *pBytes)
 {
-   QCBORItem  Item;
-
-   QCBORDecode_VGetNext(pMe, &Item);
-
-   if(pMe->uLastError == QCBOR_SUCCESS && Item.uDataType == QCBOR_TYPE_BYTE_STRING) {
-      *pBytes = Item.val.string;
-   } else {
-      *pBytes = NULLUsefulBufC;
-   }
+   QCBORDecode_Private_GetString(pMe, QCBOR_TYPE_BYTE_STRING, pBytes);
 }
 
 static inline void
@@ -1061,15 +1058,7 @@ QCBORDecode_GetByteStringInMapSZ(QCBORDecodeContext *pMe,
 static inline void
 QCBORDecode_GetTextString(QCBORDecodeContext *pMe, UsefulBufC *pText)
 {
-   QCBORItem  Item;
-
-   QCBORDecode_VGetNext(pMe, &Item);
-
-   if(pMe->uLastError == QCBOR_SUCCESS && Item.uDataType == QCBOR_TYPE_TEXT_STRING) {
-      *pText = Item.val.string;
-   } else {
-      *pText = NULLUsefulBufC;
-   }
+   QCBORDecode_Private_GetString(pMe, QCBOR_TYPE_TEXT_STRING, pText);
 }
 
 static inline void

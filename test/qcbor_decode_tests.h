@@ -299,7 +299,7 @@ int32_t TooLargeInputTest(void);
 /*
  Test spiffy decoding of indefinite length strings.
  */
-int32_t SpiffyIndefiniteLengthStringsTests(void);
+int32_t SpiffyStringTest(void);
 
 
 /*

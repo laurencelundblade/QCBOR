@@ -66,6 +66,34 @@
 #endif
 
 
+/**
+ * @brief Spiffy decode get a byte string.
+ *
+ * @param[in] pMe       The decode context.
+ * @param[in] uType     The CBOR qcbor type requested.
+ * @param[out] pString  The returned string.
+ *
+ * This sets the spiffy decode last error if there is a problem
+ * deocing or the string is not of the requested type.
+ */
+void
+QCBORDecode_Private_GetString(QCBORDecodeContext *pMe, const uint8_t uType, UsefulBufC *pString)
+{
+   QCBORItem  Item;
+
+   QCBORDecode_VGetNext(pMe, &Item);
+
+   *pString = NULLUsefulBufC;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      if(Item.uDataType == uType) {
+         *pString = Item.val.string;
+      } else {
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      }
+   }
+}
+
+
 /* Return true if the labels in Item1 and Item2 are the same.
    Works only for integer and string labels. Returns false
    for any other type. */

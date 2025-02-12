@@ -9323,7 +9323,7 @@ int32_t TooLargeInputTest(void)
 
 /*
  An array of three map entries
- 1) Indefinite length string label for indefinite lenght byte string
+ 1) Indefinite length string label for indefinite length byte string
  2) Indefinite length string label for an integer
  3) Indefinite length string label for an indefinite-length negative big num
  */
@@ -9414,6 +9414,58 @@ int32_t SpiffyIndefiniteLengthStringsTests(void)
    return 0;
 }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+static const uint8_t spStringsTest[] = {
+   0x63, 'a', 'b', 'c',
+   0x43, 'd', 'e', 'f'
+};
+
+static const uint8_t spNotWellFormed[] = {
+   0xff
+};
+
+int32_t SpiffyStringTest(void)
+{
+   QCBORDecodeContext DC;
+   UsefulBufC         String;
+
+   QCBORDecode_Init(&DC, ByteArrayLiteralToUsefulBufC(spStringsTest), 0);
+
+   QCBORDecode_GetTextString(&DC, &String);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS &&
+      UsefulBuf_Compare(String,  SZLiteralToUsefulBufC("abc"))) {
+      return 1;
+   }
+
+   QCBORDecode_GetByteString(&DC, &String);
+   if(QCBORDecode_GetError(&DC) != QCBOR_SUCCESS &&
+      UsefulBuf_Compare(String,  SZLiteralToUsefulBufC("def"))) {
+      return 2;
+   }
+
+   QCBORDecode_Init(&DC, ByteArrayLiteralToUsefulBufC(spStringsTest), 0);
+   QCBORDecode_GetByteString(&DC, &String);
+   if(QCBORDecode_GetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE &&
+      !UsefulBuf_IsNULLC(String)) {
+      return 3;
+   }
+
+   QCBORDecode_Init(&DC, ByteArrayLiteralToUsefulBufC(spNotWellFormed), 0);
+   QCBORDecode_GetByteString(&DC, &String);
+   if(QCBORDecode_GetError(&DC) != QCBOR_ERR_BAD_BREAK &&
+      !UsefulBuf_IsNULLC(String)) {
+      return 4;
+   }
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   return SpiffyIndefiniteLengthStringsTests();
+#else
+   return 0;
+#endif
+
+}
+
 
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS

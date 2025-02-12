@@ -131,7 +131,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(MemPoolTest),
    TEST_ENTRY(IndefiniteLengthStringTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
+   TEST_ENTRY(SpiffyStringTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    TEST_ENTRY(SetUpAllocatorTest),
    TEST_ENTRY(CBORTestIssue134),
