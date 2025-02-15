@@ -1,7 +1,7 @@
 /*
  * t_cose_qcbor_gap.c
  *
- * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2025, Laurence Lundblade. All rights reserved.
  * Created by Laurence Lundblade on 5/29/23.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -11,7 +11,7 @@
 #include "t_cose_qcbor_gap.h"
 
 
-#if !defined(QCBOR_MAJOR_VERSION) || QCBOR_MAJOR_VERSION < 2
+#if QCBOR_MAJOR_VERSION < 2
 
 #include "qcbor/qcbor_decode.h"
 
@@ -39,4 +39,4 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pMe,
     pMe->uLastError = cursor->last_error;
 }
 
-#endif
+#endif /* QCBOR_MAJOR_VERSION < 2 */

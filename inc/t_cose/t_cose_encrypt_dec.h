@@ -2,7 +2,7 @@
  * t_cose_encrypt_dec.h
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
- * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2025, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -100,8 +100,6 @@ struct t_cose_encrypt_dec_ctx {
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
-
-    uint64_t                         unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
 
     struct q_useful_buf           extern_enc_struct_buffer;
 };
@@ -234,7 +232,7 @@ t_cose_encrypt_add_param_storage(struct t_cose_encrypt_dec_ctx   *context,
  * described in RFC 9052 section 5.2. It needs to be the size of the
  * CBOR-encoded protected headers, the externally supplied data and some overhead.
  *
- * TODO: size calculation mode that will tell the caller how bit it should be
+ * TODO: size calculation mode that will tell the caller how big it should be
  */
 static void
 t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
@@ -244,8 +242,7 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
  * \brief Decryption of a \c COSE_Encrypt0 or \c COSE_Encrypt structure.
  *
  * \param[in,out] context       The t_cose_encrypt_dec_ctx context.
- * \param[in] message           The COSE message (a COSE_Encrypt0
- *                              or COSE_Encrypt).
+ * \param[in] cbor_decoder    Source of the input COSE message to decrypt.
  * \param[in] ext_sup_data               Externally supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] plaintext_buffer  A buffer for plaintext.
  * \param[out] plaintext        Place to return pointer and length of
@@ -263,6 +260,14 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
  * COSE_Recipient processers that have been set up with decryption
  * keys.
  *
+ * If \c context was set up with T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED, this expects
+ * one tag number to indicate COSE_Encrypt vs COSE_Encryptt0.
+ * Other wise the context must have been set up to indicate
+ * COSE_Encrypt or COSE_Encrypt0 and no tag numbers
+ * are expected.  That is, the caller should have consumed
+ * any tag numbers before calling this. See t_cose_encrypt_dec_message()
+ * which does more tag number processing.
+ *
  * Each \ref struct t_cose_recipient_dec is invoked on each \c
  * COSE_Recipient until one successfully decrypts the content
  * encryption key. Only one success is necessary. Each
@@ -277,7 +282,7 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
 // TODO: support a decode-only mode
 static enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
-                   struct q_useful_buf_c          message,
+                   QCBORDecodeContext            *cbor_decoder,
                    struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf            plaintext_buffer,
                    struct q_useful_buf_c         *plaintext,
@@ -288,8 +293,7 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  * \brief Decrypt a \c COSE_Encrypt0 or \c COSE_Encrypt with detached cipher text.
  *
  * \param[in,out] context               The t_cose_encrypt_dec_ctx context.
- * \param[in] message                      The COSE message (a COSE_Encrypt0
- *                                      or COSE_Encrypt).
+ * \param[in] cbor_decoder    Source of the input COSE message to decrypt.
  * \param[in] ext_sup_data               Externally supplied data or \ref NULL_Q_USEFUL_BUF.
  * \param[in] detached_ciphertext  The detached ciphertext.
  * \param[in] plaintext_buffer                A buffer for plaintext.
@@ -298,13 +302,13 @@ t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *context,
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * Note: If the ciphertext is integrated into the COSE_Encrypt0 or
- * COSE_Encrypt structure then set the detached_ciphertext parameter
- * NULL and detached_ciphertext to 0.
+ * See t_cose_encrypt_dec(). This works the same, except ciphertext for the COSE_Encrypt0
+ * or COSE_Encrypt must be an encoded CBOR NULL. The payload is conveyed outside
+ * the COSE_Encrypt0 or COSE_Encrypt and passed in to \c detached_ciphertext.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
-                            struct q_useful_buf_c          message,
+                            QCBORDecodeContext            *cbor_decoder,
                             struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          detached_ciphertext,
                             struct q_useful_buf            plaintext_buffer,
@@ -313,32 +317,55 @@ t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *context,
 
 
 
-/**
- * \brief Return unprocessed tags from most recent decryption.
+
+/*
+ * This is the same as t_cose_encrypt_dec() except for two
+ * things.
  *
- * \param[in] context   The t_cose decryption context.
- * \param[in] n         Index of the tag to return.
+ * First, it takes the COSE message to decrypt as a buffer of bytes.
  *
- * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
- *          at the index or the index is too large.
+ * Second, this will process any tag numbers that preceed the
+ * COSE message and return them in \c tag_numbers.
  *
- * The 0th tag is the one for which the COSE message is the content. Loop
- * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
- * is \ref T_COSE_MAX_TAGS_TO_RETURN.
- *
- * It will be necessary to call this for a general implementation
- * of a CWT since sometimes the CWT tag is required. This is also
- * useful for recursive processing of nested COSE signing, mac
- * and encryption.
+ * TODO: test this with all the initialization options.
  */
-static inline uint64_t
-t_cose_encrypt_dec_nth_tag(const struct t_cose_encrypt_dec_ctx *context,
-                           size_t                               n);
+enum t_cose_err_t
+t_cose_encrypt_dec_msg(struct t_cose_encrypt_dec_ctx *context,
+                       struct q_useful_buf_c          cose_message,
+                       struct q_useful_buf_c          ext_sup_data,
+                       struct q_useful_buf            plaintext_buffer,
+                       struct q_useful_buf_c         *plaintext,
+                       struct t_cose_parameter      **returned_parameters,
+                       uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
+
+enum t_cose_err_t
+t_cose_encrypt_dec_detached_msg(struct t_cose_encrypt_dec_ctx *context,
+                                struct q_useful_buf_c          cose_message,
+                                struct q_useful_buf_c          ext_sup_data,
+                                struct q_useful_buf_c          detached_ciphertext,
+                                struct q_useful_buf            plaintext_buffer,
+                                struct q_useful_buf_c         *plaintext,
+                                struct t_cose_parameter      **returned_parameters,
+                                uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
 
 
 /* ------------------------------------------------------------------------
  * Inline implementations of public functions defined above.
  */
+
+
+enum t_cose_err_t
+t_cose_encrypt_dec_main_private(struct t_cose_encrypt_dec_ctx* me,
+                                QCBORDecodeContext            *cbor_decoder,
+                                const struct q_useful_buf_c    ext_sup_data,
+                                const struct q_useful_buf_c    detached_ciphertext,
+                                struct q_useful_buf            plaintext_buffer,
+                                struct q_useful_buf_c         *plaintext,
+                                struct t_cose_parameter      **returned_parameters,
+                                uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
 static inline void
 t_cose_encrypt_dec_init(struct t_cose_encrypt_dec_ctx *me,
                         uint32_t                       option_flags)
@@ -387,30 +414,40 @@ t_cose_decrypt_set_enc_struct_buffer(struct t_cose_encrypt_dec_ctx *context,
 
 static inline enum t_cose_err_t
 t_cose_encrypt_dec(struct t_cose_encrypt_dec_ctx *me,
-                   struct q_useful_buf_c          message,
+                   QCBORDecodeContext            *cbor_decoder,
                    struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf            plaintext_buffer,
                    struct q_useful_buf_c         *plaintext,
                    struct t_cose_parameter      **returned_parameters)
 {
-    return t_cose_encrypt_dec_detached(me,
-                                       message,
-                                       ext_sup_data,
-                                       NULL_Q_USEFUL_BUF_C,
-                                       plaintext_buffer,
-                                       plaintext,
-                                       returned_parameters);
+    return t_cose_encrypt_dec_main_private(me,
+                                           cbor_decoder,
+                                           ext_sup_data,
+                                           NULL_Q_USEFUL_BUF_C,
+                                           plaintext_buffer,
+                                           plaintext,
+                                           returned_parameters,
+                                           NULL);
 }
 
 
-static inline uint64_t
-t_cose_encrypt_dec_nth_tag(const struct t_cose_encrypt_dec_ctx *me,
-                           size_t                               n)
+static inline enum t_cose_err_t
+t_cose_encrypt_dec_detached(struct t_cose_encrypt_dec_ctx *me,
+                            QCBORDecodeContext            *cbor_decoder,
+                            struct q_useful_buf_c          ext_sup_data,
+                            struct q_useful_buf_c          detached_ciphertext,
+                            struct q_useful_buf            plaintext_buffer,
+                            struct q_useful_buf_c         *plaintext,
+                            struct t_cose_parameter      **returned_parameters)
 {
-    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
-        return CBOR_TAG_INVALID64;
-    }
-    return me->unprocessed_tag_nums[n];
+    return t_cose_encrypt_dec_main_private(me,
+                                           cbor_decoder,
+                                           ext_sup_data,
+                                           detached_ciphertext,
+                                           plaintext_buffer,
+                                           plaintext,
+                                           returned_parameters,
+                                           NULL);
 }
 
 #ifdef __cplusplus

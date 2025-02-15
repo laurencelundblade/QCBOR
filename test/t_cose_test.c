@@ -813,12 +813,11 @@ int32_t all_header_parameters_test(void)
                                  key_pair,
                                  Q_USEFUL_BUF_FROM_SZ_LITERAL("11"));
 
-    result =
-        t_cose_test_message_sign1_sign(&sign_ctx,
-                                       T_COSE_TEST_ALL_PARAMETERS,
-                                       s_input_payload,
-                                       signed_cose_buffer,
-                                      &output);
+    result = t_cose_test_message_sign1_sign(&sign_ctx,
+                                             T_COSE_TEST_ALL_PARAMETERS,
+                                             s_input_payload,
+                                             signed_cose_buffer,
+                                            &output);
     if(result) {
         return 1;
     }
@@ -828,12 +827,10 @@ int32_t all_header_parameters_test(void)
 
 
     result = t_cose_sign1_verify(&verify_ctx,
-                                       /* COSE to verify */
-                                       output,
-                                       /* The returned payload */
-                                       &payload,
-                                       /* Get parameters for checking */
-                                       &parameters);
+                                  output, /* COSE message to verify */
+                                 &payload, /* The returned payload */
+                                 &parameters/* Get parameters for checking */
+                                 );
     if(result) {
         return -2;
     }
@@ -920,6 +917,9 @@ int32_t bad_parameters_test(void)
         test = &bad_parameters_tests_table[n];
         if(!test->test_option) {
             break;
+        }
+        if(n == 0) {
+            err = 11; // To set a break point
         }
         err = run_test_sign_and_verify(test->test_option, test->verify_option);
         if(err != test->result) {
@@ -1536,11 +1536,12 @@ int32_t sign1_structure_decode_test(void)
         t_cose_sign_add_param_storage(&verify_ctx, &extra_params);
 
 
-        result = t_cose_sign_verify(&verify_ctx,
-                                     cose_sign,
-                                     Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
-                                    &payload,
-                                    &decoded_params);
+        result = t_cose_sign_verify_msg(&verify_ctx,
+                                        cose_sign,
+                                        Q_USEFUL_BUF_FROM_SZ_LITERAL("AAD"),
+                                       &payload,
+                                       &decoded_params,
+                                        NULL);
         if(result != T_COSE_SUCCESS) {
             return -99;
         }
@@ -1554,7 +1555,7 @@ int32_t sign1_structure_decode_test(void)
 
 
     for(int i = 0; !q_useful_buf_c_is_null(sign1_sample_inputs[i].CBOR); i++) {
-        if(i == 7) {
+        if(i == 9) {
             result = 9;
         }
 
@@ -2224,17 +2225,15 @@ int32_t crypto_context_test(void)
     t_cose_signature_verify_main_set_key(&verifier, key_pair, NULL_Q_USEFUL_BUF_C);
     t_cose_signature_verify_main_set_crypto_context(&verifier, &crypto_context);
     crypto_context.test_error = T_COSE_SUCCESS;
-    t_cose_sign_verify_init(&verify_ctx, T_COSE_OPT_MESSAGE_TYPE_SIGN1);
+    t_cose_sign_verify_init(&verify_ctx, 0);
     t_cose_sign_add_verifier(&verify_ctx,
                              t_cose_signature_verify_from_main(&verifier));
-    result = t_cose_sign_verify(&verify_ctx,
-                                /* COSE to verify */
-                                good_signed_cose,
-                                NULL_Q_USEFUL_BUF_C,
-                                /* The returned payload */
-                                &payload,
-                                /* Don't return parameters */
-                                NULL);
+    result = t_cose_sign_verify_msg(&verify_ctx,
+                                     good_signed_cose, /* COSE to verify */
+                                     NULL_Q_USEFUL_BUF_C, /* No ext sup  data*/
+                                    &payload, /* The returned payload */
+                                     NULL, /* Don't return parameters */
+                                     NULL/* Don't care about tag numbers */);
     if(result) {
         return 2000 + (int32_t)result;
     }
@@ -2248,14 +2247,12 @@ int32_t crypto_context_test(void)
     /* __4__ See failure when crypto context is set for failure  */
     crypto_context.test_error = 18; /* 18 just picked to make test work */
     /* Run the signature verification */
-    result = t_cose_sign_verify(&verify_ctx,
-                                /* COSE to verify */
-                                good_signed_cose,
-                                NULL_Q_USEFUL_BUF_C,
-                                /* The returned payload */
-                                &payload,
-                                /* Don't return parameters */
-                                NULL);
+    result = t_cose_sign_verify_msg(&verify_ctx,
+                                     good_signed_cose, /* COSE to verify */
+                                     NULL_Q_USEFUL_BUF_C, /* No ext sup  data*/
+                                    &payload, /* The returned payload */
+                                     NULL, /* Don't return parameters */
+                                     NULL/* Don't care about tag numbers */);
     if(result != 18) {
         return 2000 + (int32_t)result;
     }

@@ -15,8 +15,9 @@
 
 #include "qcbor/qcbor_decode.h"
 
-#if !defined(QCBOR_MAJOR_VERSION) || QCBOR_MAJOR_VERSION < 2
 
+
+#if QCBOR_MAJOR_VERSION < 2
 
 
 /* These two functions are planned for QCBOR 2, but we want t_cose
@@ -49,6 +50,6 @@ void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSaveDecodeCursor *cur
 
 void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSaveDecodeCursor *cursor);
 
-#endif /* QCBOR_MAJOR_VERSION >= 2 */
+#endif /* QCBOR_MAJOR_VERSION < 2 */
 
 #endif /* t_cose_qcbor_gap_h */

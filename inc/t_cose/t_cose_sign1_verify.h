@@ -80,6 +80,8 @@ struct t_cose_sign1_verify_ctx {
     struct t_cose_signature_verify_eddsa eddsa_verifier;
 
     uint32_t                             option_flags;
+
+    uint64_t                             tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]; /* v1 order, inner-most first */
 };
 
 
@@ -248,7 +250,7 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *contex
  * payload is an indefinite-length byte string, this error will be
  * returned.
  */
-enum t_cose_err_t
+static enum t_cose_err_t
 t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *context,
                     struct q_useful_buf_c           sign1,
                     struct q_useful_buf_c          *payload,
@@ -316,7 +318,7 @@ t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *context,
  */
 static inline enum t_cose_err_t
 t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *context,
-                             struct q_useful_buf_c           cose_sign1,
+                             struct q_useful_buf_c           cose_message,
                              struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters);
@@ -351,51 +353,60 @@ t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *context,
  * Inline implementations of public functions defined above.
  */
 
+enum t_cose_err_t
+t_cose_sign1_private_verify_main(struct t_cose_sign1_verify_ctx *me,
+                                 struct q_useful_buf_c           cose_message,
+                                 struct q_useful_buf_c           ext_sup_data,
+                                 bool                            payload_is_detached,
+                                 struct q_useful_buf_c          *payload,
+                                 struct t_cose_parameters       *parameters);
+
+
+
+static inline enum t_cose_err_t
+t_cose_sign1_verify(struct t_cose_sign1_verify_ctx *me,
+                    struct q_useful_buf_c           cose_message,
+                    struct q_useful_buf_c          *payload,
+                    struct t_cose_parameters       *parameters)
+{
+    return t_cose_sign1_private_verify_main(me,
+                                            cose_message,
+                                            NULLUsefulBufC,
+                                            false,
+                                            payload,
+                                            parameters);
+}
+
 
 static inline enum t_cose_err_t
 t_cose_sign1_verify_aad(struct t_cose_sign1_verify_ctx *me,
-                        struct q_useful_buf_c           cose_sign1,
+                        struct q_useful_buf_c           cose_message,
                         struct q_useful_buf_c           ext_sup_data,
                         struct q_useful_buf_c          *payload,
                         struct t_cose_parameters       *parameters)
 {
-     enum t_cose_err_t           return_value;
-     struct t_cose_parameter *decoded_params;
-
-     return_value = t_cose_sign_verify(&(me->me2),
-                                       cose_sign1,
-                                       ext_sup_data,
-                                       payload,
-                                      &decoded_params);
-     if(parameters != NULL) {
-         t_cose_params_common(decoded_params, parameters);
-     }
-
-     return return_value;
+     return t_cose_sign1_private_verify_main(me,
+                                             cose_message,
+                                             ext_sup_data,
+                                             false,
+                                             payload,
+                                             parameters);
 }
 
 
 static inline enum t_cose_err_t
 t_cose_sign1_verify_detached(struct t_cose_sign1_verify_ctx *me,
-                             struct q_useful_buf_c           cose_sign1,
+                             struct q_useful_buf_c           cose_message,
                              struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameters       *parameters)
 {
-    enum t_cose_err_t        return_value;
-    struct t_cose_parameter *decoded_params;
-
-    return_value = t_cose_sign_verify_detached(&(me->me2),
-                                               cose_sign1,
-                                               ext_sup_data,
-                                               detached_payload,
-                                              &decoded_params);
-
-    if(parameters != NULL) {
-        return_value = t_cose_params_common(decoded_params, parameters);
-    }
-
-    return return_value;
+    return t_cose_sign1_private_verify_main(me,
+                                            cose_message,
+                                            ext_sup_data,
+                                            true,
+                                           &detached_payload,
+                                            parameters);
 }
 
 
@@ -418,9 +429,12 @@ t_cose_sign1_verify_auxiliary_buffer_size(struct t_cose_sign1_verify_ctx *me)
 
 static inline uint64_t
 t_cose_sign1_get_nth_tag(const struct t_cose_sign1_verify_ctx *me,
-                         size_t                                n)
+                         const size_t                          tag_index)
 {
-    return t_cose_sign_verify_nth_tag(&(me->me2), n);
+    if(tag_index > T_COSE_MAX_TAGS_TO_RETURN) {
+        return CBOR_TAG_INVALID64;
+    }
+    return me->tag_numbers[tag_index];
 }
 
 

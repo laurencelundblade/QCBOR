@@ -1,7 +1,7 @@
 /*
  * t_cose_sign_verify.h
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  *
  * SPDX-License-Identifier: BSD-3-Clause
  * Created by Laurence Lundblade on 7/17/22.
@@ -53,7 +53,6 @@ extern "C" {
 
 
 
-
 /**
  * Context for signature verification.
  */
@@ -61,7 +60,7 @@ struct t_cose_sign_verify_ctx {
     /* Private data structure */
     struct t_cose_signature_verify   *verifiers;
     uint32_t                          option_flags;
-    uint64_t                          unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
+    bool                              v1_compatible;
     struct t_cose_parameter_storage   params;
     struct t_cose_parameter           __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  *p_storage;
@@ -79,7 +78,11 @@ struct t_cose_sign_verify_ctx {
  *
  * This must be called before using the verification context.
  *
- * TODO: describe (and implement) selection of COSE_Sign1 vs COSE_Sign.
+ * \c option_flags may include \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED,
+ * \ref T_COSE_OPT_MESSAGE_TYPE_SIGN1 or \ref T_COSE_OPT_MESSAGE_TYPE_SIGN
+ * to indicate which COSE message type is expected. If
+ * \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED is given, then there must
+ * be a tag number in the input encoded CBOR to indicate which.
  */
 static void
 t_cose_sign_verify_init(struct t_cose_sign_verify_ctx *context,
@@ -184,7 +187,7 @@ t_cose_sign_add_param_storage(struct t_cose_sign_verify_ctx   *context,
 
 
 /*
- * If custom headers that are not strings or integers needed to be
+ * If custom headers that are not strings or integers need to be
  * decoded and processed, then use this to set a call back handler.
  * Typically this is not needed.
  */
@@ -198,8 +201,7 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  * \brief Verify a COSE_Sign1 or COSE_Sign.
  *
  * \param[in,out] context   The t_cose signature verification context.
- * \param[in] message       Pointer and length of CBOR encoded \c COSE_Sign1
- *                          or \c COSE_Sign message that is to be verified.
+ * \param[in] cbor_decoder    Source of the input COSE message to verify..
  * \param[in] ext_sup_data  Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[out] payload      Pointer and length of the payload that is returned.
  *                          Must not be \c NULL.
@@ -247,7 +249,7 @@ t_cose_sign_set_special_param_decoder(struct t_cose_sign_verify_ctx  *context,
  */
 static enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
-                   struct q_useful_buf_c          message,
+                   QCBORDecodeContext            *cbor_decoder,
                    struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters);
@@ -258,34 +260,37 @@ t_cose_sign_verify(struct t_cose_sign_verify_ctx *context,
 */
 static enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *context,
-                            struct q_useful_buf_c          message,
+                            QCBORDecodeContext            *cbor_decoder,
                             struct q_useful_buf_c          ext_sup_data,
-                            struct q_useful_buf_c          payload,
+                            struct q_useful_buf_c          detached_payload,
                             struct t_cose_parameter      **parameters);
 
 
 
-/**
- * \brief Return unprocessed tags from most recent signature verify.
- *
- * \param[in] context   The t_cose signature verification context.
- * \param[in] n         Index of the tag to return.
- *
- * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
- *          at the index or the index is too large.
- *
- * The 0th tag is the one for which the COSE message is the content. Loop
- * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
- * is \ref T_COSE_MAX_TAGS_TO_RETURN.
- *
- * It will be necessary to call this for a general implementation
- * of a CWT since sometimes the CWT tag is required. This is also
- * needed for recursive processing of nested COSE signing and/or
- * encryption.
+/* This is the same as t_cose_sign_verify() except the
+ * input message is given as a pointer and length and
+ * it does more tag number processing.
  */
-static uint64_t
-t_cose_sign_verify_nth_tag(const struct t_cose_sign_verify_ctx *context,
-                           size_t                                n);
+static enum t_cose_err_t
+t_cose_sign_verify_msg(struct t_cose_sign_verify_ctx *context,
+                       struct q_useful_buf_c          cose_message,
+                       struct q_useful_buf_c          ext_sup_data,
+                       struct q_useful_buf_c         *payload,
+                       struct t_cose_parameter      **parameters,
+                       uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
+
+
+/* This is the same as t_cose_sign_verify_msg() except the
+ * payload is detached. */
+static enum t_cose_err_t
+t_cose_sign_verify_detached_msg(struct t_cose_sign_verify_ctx *context,
+                                struct q_useful_buf_c          cose_message,
+                                struct q_useful_buf_c          ext_sup_data,
+                                struct q_useful_buf_c          detached_payload,
+                                struct t_cose_parameter      **parameters,
+                                uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
 
 
 
@@ -302,11 +307,23 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  * Private and inline implementations of public functions defined above.
  */
 
+
+
+enum t_cose_err_t
+t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
+                           QCBORDecodeContext            *decoder,
+                           struct q_useful_buf_c          ext_sup_data,
+                           bool                           is_detached,
+                           struct q_useful_buf_c         *payload,
+                           struct t_cose_parameter      **parameters,
+                           uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
+
 /**
  * \brief Semi-private function to verify a COSE_Sign or COSE_Sign1.
  *
  * \param[in,out] me   The t_cose signature verification context.
- * \param[in] message         Pointer and length of CBOR encoded \c COSE_Sign1
+ * \param[in] cose_message         Pointer and length of CBOR encoded \c COSE_Sign1
  *                          or \c COSE_Sign message that is to be verified.
  * \param[in] ext_sup_data  Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
  * \param[in] is_detached         Indicates the payload is detached.
@@ -321,44 +338,82 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx *context);
  * directly.
  */
 enum t_cose_err_t
-t_cose_sign_verify_private(struct t_cose_sign_verify_ctx *me,
-                           struct q_useful_buf_c          message,
-                           struct q_useful_buf_c          ext_sup_data,
-                           bool                           is_detached,
-                           struct q_useful_buf_c         *payload,
-                           struct t_cose_parameter      **parameters);
+t_cose_sign_verify_msg_private(struct t_cose_sign_verify_ctx *me,
+                               struct q_useful_buf_c          cose_message,
+                               struct q_useful_buf_c          ext_sup_data,
+                               bool                           is_detached,
+                               struct q_useful_buf_c         *payload,
+                               struct t_cose_parameter      **parameters,
+                               uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
 
 
 
 static inline enum t_cose_err_t
 t_cose_sign_verify(struct t_cose_sign_verify_ctx *me,
-                   struct q_useful_buf_c          message,
+                   QCBORDecodeContext            *cbor_decoder,
                    struct q_useful_buf_c          ext_sup_data,
                    struct q_useful_buf_c         *payload,
                    struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
-                                      message,
+                                      cbor_decoder,
                                       ext_sup_data,
                                       false,
                                       payload,
-                                      parameters);
+                                      parameters,
+                                      NULL);
 }
 
 
 static inline enum t_cose_err_t
 t_cose_sign_verify_detached(struct t_cose_sign_verify_ctx *me,
-                            struct q_useful_buf_c          message,
+                            QCBORDecodeContext            *cbor_decoder,
                             struct q_useful_buf_c          ext_sup_data,
                             struct q_useful_buf_c          detached_payload,
                             struct t_cose_parameter      **parameters)
 {
     return t_cose_sign_verify_private(me,
-                                      message,
+                                      cbor_decoder,
                                       ext_sup_data,
                                       true,
-                                     &detached_payload,
-                                      parameters);
+                                      &detached_payload,
+                                      parameters,
+                                      NULL);
+}
+
+
+
+static inline enum t_cose_err_t
+t_cose_sign_verify_msg(struct t_cose_sign_verify_ctx *me,
+                       struct q_useful_buf_c          cose_message,
+                       struct q_useful_buf_c          ext_sup_data,
+                       struct q_useful_buf_c         *payload,
+                       struct t_cose_parameter      **parameters,
+                       uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    return t_cose_sign_verify_msg_private(me,
+                                          cose_message,
+                                          ext_sup_data,
+                                          false,
+                                          payload,
+                                          parameters,
+                                          tag_numbers);
+}
+static inline enum t_cose_err_t
+t_cose_sign_verify_detached_msg(struct t_cose_sign_verify_ctx *me,
+                                struct q_useful_buf_c          cose_message,
+                                struct q_useful_buf_c          ext_sup_data,
+                                struct q_useful_buf_c          detached_payload,
+                                struct t_cose_parameter      **parameters,
+                                uint64_t                       tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    return t_cose_sign_verify_msg_private(me,
+                                          cose_message,
+                                          ext_sup_data,
+                                          true,
+                                         &detached_payload,
+                                          parameters,
+                                          tag_numbers);
 }
 
 
@@ -407,16 +462,6 @@ t_cose_sign_verify_get_last(struct t_cose_sign_verify_ctx  *me)
     return me->last_verifier;
 }
 
-
-static inline uint64_t
-t_cose_sign_verify_nth_tag(const struct t_cose_sign_verify_ctx *me,
-                           size_t                                n)
-{
-    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
-        return CBOR_TAG_INVALID64;
-    }
-    return me->unprocessed_tag_nums[n];
-}
 
 
 

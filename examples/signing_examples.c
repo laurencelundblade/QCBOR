@@ -1,7 +1,7 @@
 /*
  * signing_examples.c
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  *
  * Created by Laurence Lundblade on 2/20/23 from previous files.
  *
@@ -243,21 +243,25 @@ int32_t one_step_sign_example(void)
      * to put them.
      */
     return_value =
-        t_cose_sign_verify(/* In: The context set up with signing key */
-                           &verify_ctx,
+        t_cose_sign_verify_msg(/* In: The context set up with signing key */
+                                &verify_ctx,
 
-                           /* In: The signed and coded COSE message to verify */
-                           signed_cose,
+                               /* In: The signed and coded COSE message to verify */
+                               signed_cose,
 
-                           /* In: Externally Supplied Data (none here) */
-                           NULL_Q_USEFUL_BUF_C,
+                               /* In: Externally Supplied Data (none here) */
+                               NULL_Q_USEFUL_BUF_C,
 
-                           /* Out: Pointer and length of verify payload */
-                           &returned_payload,
+                               /* Out: Pointer and length of verify payload */
+                               &returned_payload,
 
-                           /* Out: linked list of header parameters.
-                            * Not requested in this case. */
-                           NULL);
+                               /* Out: linked list of header parameters.
+                                * Not requested in this case. */
+                               NULL,
+
+                               /* Out: preceding tag numbers.
+                                * Not requested in this case. */
+                               NULL);
 
     printf("Verification complete: %d (%s)\n",
            return_value, return_value ? "fail" : "success");
@@ -463,23 +467,27 @@ int32_t one_step_multi_sign_detached_example(void)
      * to put them.
      */
     return_value =
-        t_cose_sign_verify_detached(/* In: The verification context. */
-                                    &verify_ctx,
+        t_cose_sign_verify_detached_msg(/* In: The verification context. */
+                                        &verify_ctx,
 
-                                    /* In: The signed and encoded COSE
-                                     * message to verify. */
-                                    signed_cose,
+                                        /* In: The signed and encoded COSE
+                                         * message to verify. */
+                                        signed_cose,
 
-                                    /* In: Externally Supplied AAD */
-                                    aad,
+                                        /* In: Externally Supplied AAD */
+                                        aad,
 
-                                    /* in: The detachd payload to verify */
-                                    payload,
+                                        /* in: The detachd payload to verify */
+                                        payload,
 
-                                    /* Out: linked list of header
-                                     * parameters.  Not requested in
-                                     * this case. */
-                                    NULL);
+                                        /* Out: linked list of header
+                                         * parameters.  Not requested in
+                                         * this case. */
+                                        NULL,
+
+                                        /* Out: preceding tag numbers. Not
+                                         * requested in this case. */
+                                        NULL);
 
     printf("Verification complete: %d (%s)\n",
            return_value, return_value ? "fail" : "success");
@@ -721,21 +729,24 @@ int32_t two_step_sign_example(void)
      * to put them.
      */
     return_value =
-        t_cose_sign_verify(/* In: The context set up with signing key */
-                           &verify_ctx,
+        t_cose_sign_verify_msg(/* In: The context set up with signing key */
+                              &verify_ctx,
 
-                           /* In: The signed and coded COSE message to verify */
-                           signed_cose,
+                               /* In: The signed and coded COSE message to verify */
+                               signed_cose,
 
-                           /* In: Externally Supplied Data (none here) */
-                           NULL_Q_USEFUL_BUF_C,
+                               /* In: Externally Supplied Data (none here) */
+                               NULL_Q_USEFUL_BUF_C,
 
-                           /* Out: Pointer and length of verify payload */
-                           &payload,
+                               /* Out: Pointer and length of verify payload */
+                              &payload,
 
-                           /* Out: linked list of header parameters.
-                            * Not requested in this case. */
-                           NULL);
+                               /* Out: linked list of header parameters.
+                                * Not requested in this case. */
+                               NULL,
+
+                               /* Out: unprocessed tags. Not requested here. */
+                               NULL);
 
     printf("Verification complete: %d (%s)\n",
            return_value, return_value ? "fail" : "success");

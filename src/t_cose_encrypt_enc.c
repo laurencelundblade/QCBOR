@@ -2,7 +2,7 @@
  * t_cose_encrypt_enc.c
  *
  * Copyright (c) 2022, Arm Limited. All rights reserved.
- * Copyright (c) 2023, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2025, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -22,7 +22,7 @@
 
 
 /*
- * Pubilc Function. See t_cose_sign_sign.h
+ * Public Function. See t_cose_encrypt_enc.h
  */
 enum t_cose_err_t
 t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,

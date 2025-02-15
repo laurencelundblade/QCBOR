@@ -212,7 +212,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     }
 
 
-    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
 
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
@@ -230,12 +230,13 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     // TODO: header callbacks
 
-    t_cose_err = t_cose_encrypt_dec(&dec_ctx,
-                                     encrypted_cose_message,
-                                     ext_sup_data,
-                                     decrypted_payload_buf,
-                                    &decrypted_payload,
-                                    &decoded_parameters);
+    t_cose_err = t_cose_encrypt_dec_msg(&dec_ctx,
+                                         encrypted_cose_message,
+                                         ext_sup_data,
+                                         decrypted_payload_buf,
+                                        &decrypted_payload,
+                                        &decoded_parameters,
+                                         NULL);
     if(t_cose_err) {
         return_value = 3000 + (int32_t)t_cose_err;
         goto Done;
@@ -269,15 +270,16 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0);
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
-    t_cose_err = t_cose_encrypt_dec_detached(&dec_ctx,
-                                              encrypted_cose_message,
-                                              NULL_Q_USEFUL_BUF_C,
-                                              encrypted_detached,
-                                              decrypted_payload_buf,
-                                             &decrypted_payload,
-                                             NULL);
+    t_cose_err = t_cose_encrypt_dec_detached_msg(&dec_ctx,
+                                                  encrypted_cose_message,
+                                                  NULL_Q_USEFUL_BUF_C,
+                                                  encrypted_detached,
+                                                  decrypted_payload_buf,
+                                                 &decrypted_payload,
+                                                  NULL,
+                                                  NULL);
     if(t_cose_err) {
         return_value = 7000 + (int32_t)t_cose_err;
         goto Done;
@@ -374,17 +376,18 @@ int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer)
         goto Done2;
     }
 
-    t_cose_encrypt_dec_init(&decrypt_context, T_COSE_OPT_MESSAGE_TYPE_ENCRYPT);
+    t_cose_encrypt_dec_init(&decrypt_context, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
     t_cose_recipient_dec_keywrap_init(&kw_unwrap_recipient);
     t_cose_recipient_dec_keywrap_set_kek(&kw_unwrap_recipient, kek, NULL_Q_USEFUL_BUF_C);
     t_cose_encrypt_dec_add_recipient(&decrypt_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
 
-    result = t_cose_encrypt_dec(&decrypt_context,
-                                cose_encrypt_buffer,
-                                NULL_Q_USEFUL_BUF_C,
-                                decrypted_buffer,
-                                &decrypted_payload,
-                                &params);
+    result = t_cose_encrypt_dec_msg(&decrypt_context,
+                                     cose_encrypt_buffer,
+                                     NULL_Q_USEFUL_BUF_C,
+                                     decrypted_buffer,
+                                    &decrypted_payload,
+                                    &params,
+                                     NULL);
 
     if(result != T_COSE_SUCCESS) {
         return_value = 2000 + (int32_t)result;
@@ -516,12 +519,13 @@ esdh_enc_dec(int32_t curve, int32_t payload_cose_algorithm_id)
     t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
-    result = t_cose_encrypt_dec(&dec_ctx,
-                                 cose_encrypted_message,
-                                 NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                 decrypted_buffer,
-                                &decrypted_payload,
-                                &params);
+    result = t_cose_encrypt_dec_msg(&dec_ctx,
+                                     cose_encrypted_message,
+                                     NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                     decrypted_buffer,
+                                    &decrypted_payload,
+                                    &params,
+                                     NULL);
     if(result != T_COSE_SUCCESS) {
         goto Done;
     }
@@ -609,12 +613,13 @@ int32_t decrypt_known_good(void)
     t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
-    result = t_cose_encrypt_dec(&dec_ctx,
-                                UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_p256_wrap_128), /* in: message to decrypt */
-                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                decrypted_buffer,
-                                &decrypted_payload,
-                                &params);
+    result = t_cose_encrypt_dec_msg(&dec_ctx,
+                                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_p256_wrap_128), /* in: message to decrypt */
+                                     NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                     decrypted_buffer,
+                                    &decrypted_payload,
+                                    &params,
+                                     NULL);
 
     if(result != T_COSE_SUCCESS) {
         return (int32_t)result + 2000;
@@ -674,12 +679,13 @@ int32_t run_decrypt_test(const struct decrypt_test *test)
     t_cose_encrypt_dec_add_recipient(&dec_ctx,
                                      (struct t_cose_recipient_dec *)&dec_recipient);
 
-    result = t_cose_encrypt_dec(&dec_ctx,
-                                test->message, /* in: message to decrypt */
-                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                decrypted_buffer,
-                                &decrypted_payload,
-                                &params);
+    result = t_cose_encrypt_dec_msg(&dec_ctx,
+                                     test->message, /* in: message to decrypt */
+                                     NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                     decrypted_buffer,
+                                    &decrypted_payload,
+                                    &params,
+                                     NULL);
 
     free_fixed_test_ec_encryption_key(pubkey);
     free_fixed_test_ec_encryption_key(privatekey);
@@ -849,7 +855,7 @@ int32_t decrypt_known_bad(void)
 
     for(i = 0; test_list[i].sz_description != NULL; i++) {
         const struct decrypt_test *t = &test_list[i];
-        const char *test_to_break_on = "one recipient array is a map";
+        const char *test_to_break_on = "wrong tag";
         if(!strncmp(t->sz_description, test_to_break_on, strlen(test_to_break_on))){
             /* For setting break point for a particular test */
             result = 99;
@@ -973,12 +979,13 @@ kdf_instance_test(int32_t                             ecdh_alg,
     kdf_ctx_buf.len = enc_items->kdf_context_size;
     t_cose_recipient_dec_esdh_kdf_buf(&dec_recipient, kdf_ctx_buf);
 
-    result = t_cose_encrypt_dec(&dec_ctx,
-                                cose_encrypted_message,
-                                NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
-                                decrypted_buffer,
-                                &decrypted_payload,
-                                &params);
+    result = t_cose_encrypt_dec_msg(&dec_ctx,
+                                     cose_encrypted_message,
+                                     NULL_Q_USEFUL_BUF_C, /* in/unused: AAD */
+                                     decrypted_buffer,
+                                    &decrypted_payload,
+                                    &params,
+                                     NULL);
 Done:
     free_fixed_test_ec_encryption_key(publickey);
     free_fixed_test_ec_encryption_key(privatekey);

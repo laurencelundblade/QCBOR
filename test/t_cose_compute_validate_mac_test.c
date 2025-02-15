@@ -1,7 +1,7 @@
 /*
  *  t_cose_compute_validate_mac_test.c
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  * Copyright (c) 2022-2023, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -109,11 +109,12 @@ static int32_t compute_validate_basic_test_alg_mac(int32_t cose_alg)
 
     t_cose_mac_set_validate_key(&validate_ctx, key);
 
-    cose_res = t_cose_mac_validate(&validate_ctx,
+    cose_res = t_cose_mac_validate_msg(&validate_ctx,
                                     maced_cose,  /* COSE to validate */
                                     in_exp_sup_data,
                                    &out_payload, /* Payload from maced_cose */
-                                    NULL);
+                                    NULL,
+                                           NULL);
     if(cose_res != T_COSE_SUCCESS) {
         return_value = 5000 + (int32_t)cose_res;
         goto Done;
@@ -240,11 +241,11 @@ int32_t compute_validate_mac_fail_test(void)
 
     t_cose_mac_set_validate_key(&validate_ctx, key);
 
-    result = t_cose_mac_validate(&validate_ctx,
+    result = t_cose_mac_validate_msg(&validate_ctx,
                                   maced_cose, /* COSE to validate */
                                   NULL_Q_USEFUL_BUF_C,
                                  &payload,    /* Payload from maced_cose */
-                                  NULL);
+                                  NULL, NULL);
 
     if(result != T_COSE_ERR_HMAC_VERIFY) {
         return_value = 5000 + (int32_t)result;
@@ -500,11 +501,12 @@ int32_t compute_validate_known_good_test(void)
     /* Verify the COSE_Mac0 structure */
     t_cose_mac_validate_init(&validate_ctx, 0);
     t_cose_mac_set_validate_key(&validate_ctx, key);
-    cose_res = t_cose_mac_validate(&validate_ctx,
-                                    maced_cose,  /* COSE to validate */
-                                    NULL_Q_USEFUL_BUF_C,
-                                   &payload_out, /* Payload from maced_cose */
-                                    NULL);
+    cose_res = t_cose_mac_validate_msg(&validate_ctx,
+                                        maced_cose,  /* COSE to validate */
+                                        NULL_Q_USEFUL_BUF_C,
+                                       &payload_out, /* Payload from maced_cose */
+                                        NULL,
+                                        NULL);
     if (cose_res != T_COSE_SUCCESS) {
         return_value = 3000 + (int32_t)cose_res;
         goto Done;
@@ -527,11 +529,11 @@ int32_t compute_validate_known_good_test(void)
     T_COSE_PARAM_STORAGE_INIT(extra_params, _params);
     t_cose_mac_add_param_storage(&validate_ctx, &extra_params);
 
-    cose_res = t_cose_mac_validate(&validate_ctx,
-                                    Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_big_head),
-                                    NULL_Q_USEFUL_BUF_C,
-                                   &payload_out, /* Payload from maced_cose */
-                                   &returns_params);
+    cose_res = t_cose_mac_validate_msg(&validate_ctx,
+                                        Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_big_head),
+                                        NULL_Q_USEFUL_BUF_C,
+                                       &payload_out, /* Payload from maced_cose */
+                                       &returns_params, NULL);
     if (cose_res != T_COSE_SUCCESS) {
         return_value = 3000 + (int32_t)cose_res;
         goto Done;
@@ -549,11 +551,11 @@ int32_t compute_validate_known_good_test(void)
     t_cose_mac_set_validate_key(&validate_ctx, key);
     t_cose_mac_add_param_storage(&validate_ctx, &extra_params);
 
-    cose_res = t_cose_mac_validate(&validate_ctx,
-                                    Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_error_header),
-                                    NULL_Q_USEFUL_BUF_C,
-                                   &payload_out, /* Payload from maced_cose */
-                                   &returns_params);
+    cose_res = t_cose_mac_validate_msg(&validate_ctx,
+                                        Q_USEFUL_BUF_FROM_BYTE_ARRAY_LITERAL(hmac_error_header),
+                                        NULL_Q_USEFUL_BUF_C,
+                                       &payload_out, /* Payload from maced_cose */
+                                       &returns_params, NULL);
     if (cose_res != T_COSE_ERR_CBOR_DECODE) {
         return_value = 5000 + (int32_t)cose_res;
         goto Done;
@@ -576,6 +578,7 @@ int32_t compute_validate_detached_content_mac_fail_test(void)
     struct t_cose_mac_calculate_ctx   mac_ctx;
     struct t_cose_mac_validate_ctx    validate_ctx;
     QCBOREncodeContext           cbor_encode;
+    QCBORDecodeContext           cbor_decode;
     int32_t                      return_value;
     enum t_cose_err_t            result;
     Q_USEFUL_BUF_MAKE_STACK_UB(  maced_cose_buffer, 300);
@@ -631,8 +634,10 @@ int32_t compute_validate_detached_content_mac_fail_test(void)
 
     t_cose_mac_set_validate_key(&validate_ctx, key);
 
+    QCBORDecode_Init(&cbor_decode, maced_cose, 0);
+
     result = t_cose_mac_validate_detached(&validate_ctx, /* in: me*/
-                                           maced_cose, /* in: COSE message to validate */
+                                          &cbor_decode, /* in: COSE message to validate */
                                            NULL_Q_USEFUL_BUF_C, /* in: AAD */
                                            Q_USEFUL_BUF_FROM_SZ_LITERAL("hayload"), /* in: detached payload */
                                           NULL); /* out: decoded parameters */

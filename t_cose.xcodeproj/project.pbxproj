@@ -43,6 +43,11 @@
 		E730E61823612DAB00175CE0 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
 		E730E61923612DAB00175CE0 /* t_cose_sign1_sign.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8E226CB9460040613B /* t_cose_sign1_sign.c */; };
 		E730E62123612E3900175CE0 /* t_cose_test_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36EA4226CBB570040613B /* t_cose_test_crypto.c */; };
+		E73559BE2D30BEFC0023A20A /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73559BD2D30BECD0023A20A /* libqcbor.a */; };
+		E73559BF2D30BEFD0023A20A /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73559BD2D30BECD0023A20A /* libqcbor.a */; };
+		E73559C02D30BEFE0023A20A /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73559BD2D30BECD0023A20A /* libqcbor.a */; };
+		E73559C12D30BEFE0023A20A /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73559BD2D30BECD0023A20A /* libqcbor.a */; };
+		E73559C22D30BEFF0023A20A /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E73559BD2D30BECD0023A20A /* libqcbor.a */; };
 		E73BF6D723AFFB4100DF5C36 /* t_cose_sign1_verify.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E8A226CB9460040613B /* t_cose_sign1_verify.c */; };
 		E73BF6DB23AFFB4100DF5C36 /* t_cose_psa_crypto.c in Sources */ = {isa = PBXBuildFile; fileRef = E73CDAD223AD4E6D00D262E0 /* t_cose_psa_crypto.c */; };
 		E73BF6DC23AFFB4100DF5C36 /* t_cose_util.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E89226CB9460040613B /* t_cose_util.c */; };
@@ -120,11 +125,6 @@
 		E7AF703728DADFCF00F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
 		E7AF703828DADFD000F07637 /* t_cose_param_test.c in Sources */ = {isa = PBXBuildFile; fileRef = E7AF703528DADF5E00F07637 /* t_cose_param_test.c */; };
 		E7B72D792AE23AF400A0CD06 /* t_cose_signature_sign_restart.c in Sources */ = {isa = PBXBuildFile; fileRef = E7088A0E2A50B78100F1B2DE /* t_cose_signature_sign_restart.c */; };
-		E7B72D7C2AE23DE900A0CD06 /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */; };
-		E7B72D7D2AE23DE900A0CD06 /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */; };
-		E7B72D7E2AE23DEA00A0CD06 /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */; };
-		E7B72D7F2AE23DEA00A0CD06 /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */; };
-		E7B72D802AE23E7500A0CD06 /* libqcbor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */; };
 		E7C960B527FC97A800FB537C /* libmbedcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */; };
 		E7E36E7C226CB8400040613B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E7B226CB8400040613B /* main.c */; };
 		E7E36E90226CB9460040613B /* t_cose_util.c in Sources */ = {isa = PBXBuildFile; fileRef = E7E36E89226CB9460040613B /* t_cose_util.c */; };
@@ -243,6 +243,7 @@
 		E730E60623612D2B00175CE0 /* sha256.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sha256.h; path = b_con_hash/sha256.h; sourceTree = "<group>"; };
 		E730E60723612D2B00175CE0 /* sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sha256.c; path = b_con_hash/sha256.c; sourceTree = "<group>"; };
 		E730E62023612DAB00175CE0 /* t_cose_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_test; sourceTree = BUILT_PRODUCTS_DIR; };
+		E73559BD2D30BECD0023A20A /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
 		E73BF6EE23AFFB4100DF5C36 /* PSA examples */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "PSA examples"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73BF71C23B07ACF00DF5C36 /* Ossl examples */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "Ossl examples"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73CDAC623A7316700D262E0 /* t_cose_psa */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_psa; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -427,7 +428,6 @@
 		E7AE88FF29D54C000093B326 /* x509.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = x509.h; path = "../../mbedtls-2.28.0/include/mbedtls/x509.h"; sourceTree = "<group>"; };
 		E7AF703428DADF5E00F07637 /* t_cose_param_test.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = t_cose_param_test.h; sourceTree = "<group>"; };
 		E7AF703528DADF5E00F07637 /* t_cose_param_test.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = t_cose_param_test.c; sourceTree = "<group>"; };
-		E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libqcbor.a; path = ../../../../../usr/local/lib/libqcbor.a; sourceTree = "<group>"; };
 		E7E36E78226CB8400040613B /* t_cose_openssl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = t_cose_openssl; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7E36E7B226CB8400040613B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		E7E36E89226CB9460040613B /* t_cose_util.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = t_cose_util.c; sourceTree = "<group>"; };
@@ -455,7 +455,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7B72D802AE23E7500A0CD06 /* libqcbor.a in Frameworks */,
+				E73559BE2D30BEFC0023A20A /* libqcbor.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,7 +464,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7FECC5328877DFE00420F6F /* libmbedcrypto.a in Frameworks */,
-				E7B72D7E2AE23DEA00A0CD06 /* libqcbor.a in Frameworks */,
+				E73559C12D30BEFE0023A20A /* libqcbor.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -473,7 +473,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7F17339293ED70E00E5ADF3 /* libcrypto.a in Frameworks */,
-				E7B72D7F2AE23DEA00A0CD06 /* libqcbor.a in Frameworks */,
+				E73559C22D30BEFF0023A20A /* libqcbor.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -482,7 +482,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7C960B527FC97A800FB537C /* libmbedcrypto.a in Frameworks */,
-				E7B72D7D2AE23DE900A0CD06 /* libqcbor.a in Frameworks */,
+				E73559C02D30BEFE0023A20A /* libqcbor.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,7 +491,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E74FFBBA263BAB38003B66FF /* libcrypto.a in Frameworks */,
-				E7B72D7C2AE23DE900A0CD06 /* libqcbor.a in Frameworks */,
+				E73559BF2D30BEFD0023A20A /* libqcbor.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -899,7 +899,7 @@
 		E7F70AB22270D989007CE07F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				E7B72D7A2AE23DE400A0CD06 /* libqcbor.a */,
+				E73559BD2D30BECD0023A20A /* libqcbor.a */,
 				E751F9F027E1F90F00EBA5FA /* libmbedcrypto.a */,
 				E74FFBB8263BAB0D003B66FF /* libcrypto.a */,
 			);
@@ -1364,7 +1364,7 @@
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;
@@ -1430,7 +1430,7 @@
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = YES;

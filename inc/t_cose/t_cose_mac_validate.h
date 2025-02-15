@@ -1,7 +1,7 @@
 /*
  * t_cose_mac_validate.h
  *
- * Copyright (c) 2019, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2019, 2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2020-2023 Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -21,23 +21,15 @@
 extern "C" {
 #endif
 
-/**
- * The maximum number of unprocessed tags that can be returned by
- * t_cose_sign1_get_nth_tag(). The CWT
- * tag is an example of the tags that might returned. The COSE tags
- * that are processed, don't count here.
- */
-#define T_COSE_MAX_TAGS_TO_RETURN 4
 
 /**
- * Context for tag validation.  It is about 24 bytes on a
- * 64-bit machine and 12 bytes on a 32-bit machine.
+ * Context for tag validation.  It is about 360 bytes on a
+ * 64-bit machine.
  */
 struct t_cose_mac_validate_ctx {
     /* Private data structure */
     struct t_cose_key                validation_key;
     uint32_t                         option_flags;
-    uint64_t                         unprocessed_tag_nums[T_COSE_MAX_TAGS_TO_RETURN];
     struct t_cose_parameter          __params[T_COSE_NUM_DECODE_HEADERS];
     struct t_cose_parameter_storage  parameter_storage;
     struct t_cose_parameter_storage *p_storage;
@@ -123,20 +115,29 @@ t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *context,
  * \brief Validate a \c COSE_Mac0 message.
  *
  * \param[in] context         The context of COSE_Mac0 validation.
- * \param[in] cose_mac        Pointer and length of CBOR encoded \c COSE_Mac0
- *                            that is to be validated.
+ * \param[in] cbor_decoder    Source of the input COSE message to validate.
  * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
- * \param[out] payload        Pointer and length of the still
- *                            CBOR encoded payload.
+ * \param[out] payload        Pointer and length of the payload.
  * \param[out] return_params  Place to return decoded parameters.
  *                            May be \c NULL.
  *
  * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * The validation involves the following steps.
+ * This is the base method for MAC validation. It links the least object code. See t_cose_mac_validate_msg() for
+ * a method that takes the message from a buffer and does
+ * more tag number processing.
  *
- * The CBOR structure is parsed and validated. It makes sure \c COSE_Mac0
- * is valid CBOR and that it is tagged as a \c COSE_Mac0.
+ * The COSE message to be validated is decoded from the given QCBOR
+ * decode context.
+ *
+ * If the validation context is configured
+ * with T_COSE_OPT_MESSAGE_TYPE_MAC0 in \c option,
+ * then this will error out if  any tag numbers are present.
+ * If configured with T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED
+ * one tag number identifying the type of COSE Mac message
+ * must be present. As this currently only supports COSE_Mac0,
+ * this will error out if the tag number is other than that
+ * for COSE_Mac0.
  *
  * The MAC algorithm is pulled out of the protected header.
  *
@@ -157,44 +158,82 @@ t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *context,
  */
 static enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *context,
-                    struct q_useful_buf_c           cose_mac,
+                    QCBORDecodeContext             *cbor_decoder,
                     struct q_useful_buf_c           ext_sup_data,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameter       **return_params);
 
-/*
- * This is the same as t_cose_mac_validate(), but the payload is detached.
- * See t_cose_mac_compute_detached() for more details in t_cose_mac_compute.h
+
+/**
+ * \brief Validate a \c COSE_Mac0 message with detached payload.
+ *
+ * \param[in] context         The context of COSE_Mac0 validation.
+ * \param[in] cbor_decoder        Source of the input message to validate.
+ * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[in] detached_payload        Pointer and length of the payload.
+ * \param[out] return_params  Place to return decoded parameters.
+ *                            May be \c NULL.
+ *
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
+ *
+ * This is the same as t_cose_mac_validate() except the payload is detached.
+ * The payload is not in the COSE message. It is external and thus supplied
+ * for validation as an input parameter.
  */
 static enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *context,
-                             struct q_useful_buf_c           cose_mac,
+                             QCBORDecodeContext             *cbor_decoder,
                              struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params);
 
 
 /**
- * \brief Return unprocessed tags from most recent MAC validate.
+ * \brief Validate a \c COSE_Mac0 message.
  *
- * \param[in] context   The t_cose mac validation context.
- * \param[in] n         Index of the tag to return.
+ * \param[in] context         The context of COSE_Mac0 validation.
+ * \param[in] cose_mac        Pointer and length of CBOR encoded \c COSE_Mac0
+ *                            that is to be validated.
+ * \param[in] ext_sup_data    Externally supplied data or \c NULL_Q_USEFUL_BUF_C.
+ * \param[out] payload        Pointer and length of the still
+ *                            CBOR encoded payload.
+ * \param[out] return_params  Place to return decoded parameters.
+ *                            May be \c NULL.
+ * \param[out] tag_numbers Place to return preceding tag numbers or NULL.
  *
- * \return  The tag value or \ref CBOR_TAG_INVALID64 if there is no tag
- *          at the index or the index is too large.
+ * \return This returns one of the error codes defined by \ref t_cose_err_t.
  *
- * The 0th tag is the one for which the COSE message is the content. Loop
- * from 0 up until \ref CBOR_TAG_INVALID64 is returned. The maximum
- * is \ref T_COSE_MAX_TAGS_TO_RETURN.
+ * This is a wrapper around t_cose_mac_validate().
  *
- * It will be necessary to call this for a general implementation
- * of a CWT since sometimes the CWT tag is required. This is also
- * useful for recursive processing of nested COSE signing, mac
- * and encryption.
+ * Internally, this creates an instance of the CBOR decoder and initializes it with
+ * the COSE message.
+ *
+ * All tag numbers preceding the message are consumed.
+ * \ref T_COSE_OPT_MESSAGE_TYPE_MAC0 and \ref T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED
+ * are used the same as t_cose_mac_validate(),
+ * Tag numbers not used in determing the message type
+ * are returned in \c tag_numbers
+ * so they can be checked by the caller.  Tag numbers are usually not optional an
+ * should not be ignored. If
+ * tag numbers are present in the input and \c tag_numbers is NULL, an
+ * error occurs.
  */
-static inline uint64_t
-t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *context,
-                            size_t                                n);
+static enum t_cose_err_t
+t_cose_mac_validate_msg(struct t_cose_mac_validate_ctx *context,
+                        struct q_useful_buf_c           cose_message,
+                        struct q_useful_buf_c           ext_sup_data,
+                        struct q_useful_buf_c          *payload,
+                        struct t_cose_parameter       **return_params,
+                        uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
+
+static enum t_cose_err_t
+t_cose_mac_validate_detached_msg(struct t_cose_mac_validate_ctx *context,
+                                 struct q_useful_buf_c           cose_message,
+                                 struct q_useful_buf_c           ext_sup_data,
+                                 struct q_useful_buf_c           detached_payload,
+                                 struct t_cose_parameter       **return_params,
+                                 uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
 
 
 
@@ -202,35 +241,25 @@ t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *context,
  * Private and inline implementations of public functions defined above.
  * ------------------------------------------------------------------------ */
 
-
-/**
- * \brief Semi-private function to validate a COSE_Mac0 message.
- *
- * \param[in] context   The context of COSE_Mac0 validation.
- * \param[in] cose_mac  Pointer and length of CBOR encoded \c COSE_Mac0
- *                      that is to be validated.
- * \param[in] ext_sup_data       The Additional Authenticated Data or
- *                      \c NULL_Q_USEFUL_BUF_C.
- * \param[in] payload_is_detached  If \c true, indicates the \c payload
- *                                 is detached.
- * \param[out] payload             Pointer and length of the still CBOR
- *                                 encoded payload.
- * \param[out] return_params       Place to return decoded parameters.
- *                                 May be \c NULL.
- *
- * \return This returns one of the error codes defined by \ref t_cose_err_t.
- *
- * It is a semi-private function internal to the implementation which means its
- * interface isn't guaranteed so it should not be called directly. Call
- * t_cose_mac_validate() or t_cose_mac_validate_detached() instead of this.
- */
+/** @private  Semi-private function. See t_cose_mac_validate.c */
 enum t_cose_err_t
-t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *context,
-                            struct q_useful_buf_c           cose_mac,
+t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
+                            QCBORDecodeContext             *cbor_decoder,
                             struct q_useful_buf_c           ext_sup_data,
                             bool                            payload_is_detached,
                             struct q_useful_buf_c          *payload,
-                            struct t_cose_parameter       **return_params);
+                            struct t_cose_parameter       **return_params,
+                            uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
+
+/** @private  Semi-private function. See t_cose_mac_validate.c */
+enum t_cose_err_t
+t_cose_mac_validate_msg_private(struct t_cose_mac_validate_ctx *context,
+                                struct q_useful_buf_c           cose_message,
+                                struct q_useful_buf_c           ext_sup_data,
+                                bool                            payload_is_detached,
+                                struct q_useful_buf_c          *payload,
+                                struct t_cose_parameter       **return_params,
+                                uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN]);
 
 
 static inline void
@@ -267,48 +296,72 @@ t_cose_mac_set_special_param_decoder(struct t_cose_mac_validate_ctx *me,
     me->special_param_decode_ctx = decode_ctx;
 }
 
-
 static inline enum t_cose_err_t
 t_cose_mac_validate(struct t_cose_mac_validate_ctx *me,
-                    struct q_useful_buf_c           cose_mac,
+                    QCBORDecodeContext             *cbor_decoder,
                     struct q_useful_buf_c           ext_sup_data,
                     struct q_useful_buf_c          *payload,
                     struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
-                                       cose_mac,
+                                       cbor_decoder,
                                        ext_sup_data,
                                        false,
                                        payload,
-                                       return_params);
+                                       return_params,
+                                       NULL);
 }
-
 
 static inline enum t_cose_err_t
 t_cose_mac_validate_detached(struct t_cose_mac_validate_ctx *me,
-                             struct q_useful_buf_c           cose_mac,
+                             QCBORDecodeContext             *cbor_decoder,
                              struct q_useful_buf_c           ext_sup_data,
                              struct q_useful_buf_c           detached_payload,
                              struct t_cose_parameter       **return_params)
 {
     return t_cose_mac_validate_private(me,
-                                       cose_mac,
+                                       cbor_decoder,
                                        ext_sup_data,
                                        true,
-                                      &detached_payload,
-                                       return_params);
+                                       &detached_payload,
+                                       return_params,
+                                       NULL);
 }
 
-
-static inline uint64_t
-t_cose_mac_validate_nth_tag(const struct t_cose_mac_validate_ctx *me,
-                            size_t                                n)
+static inline enum t_cose_err_t
+t_cose_mac_validate_msg(struct t_cose_mac_validate_ctx *me,
+                        struct q_useful_buf_c           cose_message,
+                        struct q_useful_buf_c           ext_sup_data,
+                        struct q_useful_buf_c          *payload,
+                        struct t_cose_parameter       **return_params,
+                        uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
 {
-    if(n > T_COSE_MAX_TAGS_TO_RETURN) {
-        return CBOR_TAG_INVALID64;
-    }
-    return me->unprocessed_tag_nums[n];
+    return t_cose_mac_validate_msg_private(me,
+                                           cose_message,
+                                           ext_sup_data,
+                                           false,
+                                           payload,
+                                           return_params,
+                                           tag_numbers);
 }
+
+static inline enum t_cose_err_t
+t_cose_mac_validate_detached_msg(struct t_cose_mac_validate_ctx *me,
+                                 struct q_useful_buf_c           cose_message,
+                                 struct q_useful_buf_c           ext_sup_data,
+                                 struct q_useful_buf_c           detached_payload,
+                                 struct t_cose_parameter       **return_params,
+                                 uint64_t                        tag_numbers[T_COSE_MAX_TAGS_TO_RETURN])
+{
+    return t_cose_mac_validate_msg_private(me,
+                                           cose_message,
+                                           ext_sup_data,
+                                           true,
+                                           &detached_payload,
+                                           return_params,
+                                           tag_numbers);
+}
+
 
 
 #ifdef __cplusplus

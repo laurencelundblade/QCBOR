@@ -1,14 +1,19 @@
-This is the DEV BRANCH for t_cose 2.0. It is an ALPHA quality release. The major 
-features are in place. Test and documentation are not complete.  There may be 
-minor changes.
+This is the DEV BRANCH for t_cose 2.0. It is an ALPHA quality
+release. The major features are in place. Test and documentation are
+not complete.  There will be changes.
 
-COMPATIBILITY NOTE: t_cose 2.0 supports the same sign and verify APIs that t_cose 1.x 
-does, but it is recommended that t_cose 2.0 users move to the new APIs for better efficiency
-and code size. Specifically, users should move from t_cose_sign1_xxxx to t_cose_sign_xxx.
-The t_cose_sign_xxx APIs in 2.0 support both COSE_Sign and COSE_Sign1.  A select
-few users that are very concerned about code size and that do not need any t_cose 2.x
-features may choose to stay with t_cose 1.x as overall it a smaller implementation
-of COSE_Sign1.
+COMPATIBILITY NOTE: v2.0 is backwards compatible with v1.x, but there
+are new APIs in v2.0 for signing and verification. The v2.0 APIs
+support both COSE_Sign and COSE_Sign1 and support multiple
+signatures. The v2.0 API are named "t_cose_sign_xxx" and the
+old ones, which support only COSE_Sign1, are named "t_cose_sign1_xxx".
+If you are using this v2.0 t_cose library, it is
+better to use the v2.0 API, t_cose_sign_xxx because it uses
+less memory and links in less code. This is because in v2.0
+the old APIs are supported by a compatibility layer.
+
+However, some use cases may want to continue with v1.x. It is smaller
+over all. But note that it only supports COSE_Sign1.
 
 ![t_cose](https://github.com/laurencelundblade/t_cose/blob/master/t-cose-logo.png?raw=true)
 
