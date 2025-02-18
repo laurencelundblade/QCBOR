@@ -4238,7 +4238,7 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     * level is reached.  It may do nothing, or ascend all the way to
     * the top level.
     */
-   uErr = QCBORDecode_Private_NestLevelAscender(pMe, NULL, false);
+   uErr = QCBORDecode_Private_NestLevelAscender(pMe, NULL, NULL);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
