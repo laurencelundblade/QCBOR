@@ -1331,5 +1331,5 @@ QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart)
 
    const size_t uEnd = QCBOREncode_Tell(pMe);
 
-   return UsefulOutBuf_SubString(&(pMe->OutBuf), uStart, uEnd - uStart);
+   return UsefulOutBuf_OutSubString(&(pMe->OutBuf), uStart, uEnd - uStart);
 }
