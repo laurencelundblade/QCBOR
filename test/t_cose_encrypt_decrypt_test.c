@@ -120,9 +120,11 @@ check_headers(const struct t_cose_parameter *headers, bool is_non_aead)
 }
 
 
-int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
+int32_t encrypt0_enc_dec(int32_t cose_algorithm_id, bool enable_non_aead_encryption, bool enable_non_aead_decryption)
 {
     struct t_cose_encrypt_enc      enc_context;
+    uint32_t                       option_flags;
+    bool                           is_non_aead = false;
     enum t_cose_err_t              t_cose_err;
     int32_t                        return_value;
     struct t_cose_key              cek;
@@ -143,19 +145,22 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
     struct t_cose_parameter         p_storage_array[10];
 
     switch(cose_algorithm_id) {
-        case T_COSE_ALGORITHM_A128GCM:
         case T_COSE_ALGORITHM_A128CTR:
         case T_COSE_ALGORITHM_A128CBC:
+            is_non_aead = true;
+        case T_COSE_ALGORITHM_A128GCM:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("128-bit key xxxx");
             break;
-        case T_COSE_ALGORITHM_A192GCM:
         case T_COSE_ALGORITHM_A192CTR:
         case T_COSE_ALGORITHM_A192CBC:
+            is_non_aead = true;
+        case T_COSE_ALGORITHM_A192GCM:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("192-bit key xxxxyyyyyyyy");
             break;
-        case T_COSE_ALGORITHM_A256GCM:
         case T_COSE_ALGORITHM_A256CTR:
         case T_COSE_ALGORITHM_A256CBC:
+            is_non_aead = true;
+        case T_COSE_ALGORITHM_A256GCM:
             cek_bytes = Q_USEFUL_BUF_FROM_SZ_LITERAL("256-bit key xxxxyyyyyyyyzzzzzzzz");
             break;
         case T_COSE_ALGORITHM_AES128CCM_16_128:
@@ -176,8 +181,12 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done2;
     }
 
+    option_flags = T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0;
+    if(enable_non_aead_encryption) {
+        option_flags |= T_COSE_OPT_ENABLE_NON_AEAD;
+    }
     t_cose_encrypt_enc_init(&enc_context,
-                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
+                            option_flags,
                             cose_algorithm_id);
 
 
@@ -206,13 +215,21 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
                                      cose_message_buf,
                                     &encrypted_cose_message);
 
-    if(t_cose_err) {
+    if(t_cose_err == T_COSE_ERR_NON_AEAD_DISABLED && is_non_aead && !enable_non_aead_encryption) {
+        /* t_cose could prevent unintended use of non AEAD ciphers */
+        return_value = 0;
+        goto Done;
+    }
+    else if(t_cose_err) {
         return_value = 2000 + (int32_t)t_cose_err;
         goto Done;
     }
 
-
-    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
+    option_flags = T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED;
+    if(enable_non_aead_decryption) {
+        option_flags |= T_COSE_OPT_ENABLE_NON_AEAD;
+    }
+    t_cose_encrypt_dec_init(&dec_ctx, option_flags);
 
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
 
@@ -237,7 +254,12 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
                                         &decrypted_payload,
                                         &decoded_parameters,
                                          NULL);
-    if(t_cose_err) {
+    if(t_cose_err == T_COSE_ERR_NON_AEAD_DISABLED && is_non_aead && !enable_non_aead_decryption) {
+        /* t_cose could prevent unintended use of non AEAD ciphers */
+        return_value = 0;
+        goto Done;
+    }
+    else if(t_cose_err) {
         return_value = 3000 + (int32_t)t_cose_err;
         goto Done;
     }
@@ -255,7 +277,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
 
     /* ---- test detached ----- */
     t_cose_encrypt_enc_init(&enc_context,
-                            T_COSE_OPT_MESSAGE_TYPE_ENCRYPT0,
+                            option_flags,
                             cose_algorithm_id);
     t_cose_encrypt_set_cek(&enc_context, cek);
     t_cose_err = t_cose_encrypt_enc_detached(&enc_context,
@@ -270,7 +292,7 @@ int32_t encrypt0_enc_dec(int32_t cose_algorithm_id)
         goto Done;
     }
 
-    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
+    t_cose_encrypt_dec_init(&dec_ctx, option_flags);
     t_cose_encrypt_dec_set_cek(&dec_ctx, cek);
     t_cose_err = t_cose_encrypt_dec_detached_msg(&dec_ctx,
                                                   encrypted_cose_message,
@@ -303,49 +325,118 @@ Done2:
 int32_t base_encrypt_decrypt_test(void)
 {
     int32_t rv;
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128GCM);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128GCM, false, false);
     if(rv) {
         return 10000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192GCM);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192GCM, false, false);
     if(rv) {
         return 20000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256GCM);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256GCM, false, false);
     if(rv) {
         return 30000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CTR);
+    /* Enable non-AEAD ciphers on both Sender and Recipient side.
+     * Success on both side are expected.
+     */
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CTR, true, true);
     if(rv) {
         return 40000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CTR);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CTR, true, true);
     if(rv) {
         return 50000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CTR);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CTR, true, true);
     if(rv) {
         return 60000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CBC);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CBC, true, true);
     if(rv) {
         return 70000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CBC);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CBC, true, true);
     if(rv) {
         return 80000 + rv;
     }
 
-    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CBC);
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CBC, true, true);
     if(rv) {
         return 90000 + rv;
+    }
+
+    /* Disable non-AEAD ciphers on both Sender and Recipient side.
+     * Failure and early return on Sender side is expected.
+     */
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CTR, false, false);
+    if(rv) {
+        return 100000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CTR, false, false);
+    if(rv) {
+        return 110000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CTR, false, false);
+    if(rv) {
+        return 120000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CBC, false, false);
+    if(rv) {
+        return 130000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CBC, false, false);
+    if(rv) {
+        return 140000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CBC, false, false);
+    if(rv) {
+        return 150000 + rv;
+    }
+
+    /* Disable non-AEAD ciphers on only Recipient side.
+     * Failure and early return on Recipient side is expected.
+     */
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CTR, true, false);
+    if(rv) {
+        return 160000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CTR, true, false);
+    if(rv) {
+        return 170000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CTR, true, false);
+    if(rv) {
+        return 180000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A128CBC, true, false);
+    if(rv) {
+        return 190000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A192CBC, true, false);
+    if(rv) {
+        return 200000 + rv;
+    }
+
+    rv = encrypt0_enc_dec(T_COSE_ALGORITHM_A256CBC, true, false);
+    if(rv) {
+        return 210000 + rv;
     }
 
     return 0;
@@ -355,9 +446,10 @@ int32_t base_encrypt_decrypt_test(void)
 
 #ifndef T_COSE_DISABLE_KEYWRAP
 
-int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer)
+int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer, bool enable_non_aead)
 {
     enum t_cose_err_t                   result;
+    uint32_t                            option_flags;
     int32_t                             return_value = 0;
     struct t_cose_recipient_dec_keywrap kw_unwrap_recipient;
     struct t_cose_encrypt_dec_ctx       decrypt_context;
@@ -376,7 +468,11 @@ int32_t decrypt_key_wrap(struct q_useful_buf_c cose_encrypt_buffer)
         goto Done2;
     }
 
-    t_cose_encrypt_dec_init(&decrypt_context, T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED);
+    option_flags = T_COSE_OPT_MESSAGE_TYPE_UNSPECIFIED;
+    if(enable_non_aead) {
+        option_flags |= T_COSE_OPT_ENABLE_NON_AEAD;
+    }
+    t_cose_encrypt_dec_init(&decrypt_context, option_flags);
     t_cose_recipient_dec_keywrap_init(&kw_unwrap_recipient);
     t_cose_recipient_dec_keywrap_set_kek(&kw_unwrap_recipient, kek, NULL_Q_USEFUL_BUF_C);
     t_cose_encrypt_dec_add_recipient(&decrypt_context, (struct t_cose_recipient_dec *)&kw_unwrap_recipient);
@@ -418,11 +514,11 @@ int32_t decrypt_known_good_aeskw_non_aead_test(void)
         return INT32_MIN; /* Means no testing was actually done */
     }
 
-    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128ctr_a128kw));
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128ctr_a128kw), true);
     if(return_value != 0) {
         return return_value + 10000;
     }
-    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128cbc_a128kw));
+    return_value = decrypt_key_wrap(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(cose_encrypt_a128cbc_a128kw), true);
     if(return_value != 0) {
         return return_value + 20000;
     }
@@ -478,7 +574,7 @@ esdh_enc_dec(int32_t curve, int32_t payload_cose_algorithm_id)
      * body of the message.
      */
     t_cose_encrypt_enc_init(&enc_ctx,
-                             T_COSE_OPT_MESSAGE_TYPE_ENCRYPT,
+                             T_COSE_OPT_MESSAGE_TYPE_ENCRYPT | T_COSE_OPT_ENABLE_NON_AEAD,
                              payload_cose_algorithm_id);
 
     /* Create the recipient object telling it the algorithm and the public key
@@ -510,7 +606,7 @@ esdh_enc_dec(int32_t curve, int32_t payload_cose_algorithm_id)
     }
 
 
-    t_cose_encrypt_dec_init(&dec_ctx, 0);
+    t_cose_encrypt_dec_init(&dec_ctx, T_COSE_OPT_ENABLE_NON_AEAD);
 
     t_cose_recipient_dec_esdh_init(&dec_recipient);
 

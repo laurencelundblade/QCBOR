@@ -74,6 +74,14 @@ t_cose_encrypt_enc_detached(struct t_cose_encrypt_enc *me,
     /* ---- Algorithm ID, IV and parameter list ---- */
     /* Determine algorithm parameters */
     is_non_aead_cipher = t_cose_alg_is_non_aead(me->payload_cose_algorithm_id);
+    if(is_non_aead_cipher && !(me->option_flags & T_COSE_OPT_ENABLE_NON_AEAD)) {
+        /* The libraty caller (sender) MUST explicitly enable non AEAD
+        * content encryption algorithms with \c T_COSE_OPT_ENABLE_NON_AEAD
+        * awaring that the COSE message MUST be in conjunction with an
+        * authentication and integrity mechanism, such as a digital signature.
+        */
+        return T_COSE_ERR_NON_AEAD_DISABLED;
+    }
     if(is_non_aead_cipher && !q_useful_buf_c_is_null_or_empty(ext_sup_data)) {
         /* Section 6 of RFC9459 says,
         * COSE libraries that support either AES-CTR or AES-CBC and

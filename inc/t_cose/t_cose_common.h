@@ -644,10 +644,15 @@ enum t_cose_err_t {
     /** An initialization vector (IV) is empty, wrong type or such. */
     T_COSE_ERR_BAD_IV = 92,
 
+    /** Disabled non AEAD content encryption algorithms are used.
+     * They are disabled by default for security reasons.
+     * See \ref T_COSE_OPT_ENABLE_NON_AEAD if you are sure to use them. */
+    T_COSE_ERR_NON_AEAD_DISABLED = 93,
+  
     /** Failure decoding a COSE message */
-    T_COSE_ERR_MESSAGE_FORMAT = 93,
+    T_COSE_ERR_MESSAGE_FORMAT = 94,
 
-    T_COSE_ERR_UNPROCESSED_TAG_NUMBERS = 94
+    T_COSE_ERR_UNPROCESSED_TAG_NUMBERS = 95
 
 };
 
@@ -799,6 +804,21 @@ enum t_cose_err_t {
  * fine if there is no kid.
  */
 #define T_COSE_OPT_REQUIRE_KID 0x00001000
+
+/**
+ * WARNING: DO NOT use this option flag without understanding the
+ * security consideration of RFC 9459 and AEAD to CBC Downgrade
+ * Attacks proposed in https://eprint.iacr.org/2024/1110.pdf .
+ * By default, non AEAD content encryption algorithms are disabled
+ * for security reasons, so that the encryption and decryption functions
+ * return error \ref T_COSE_ERR_NON_AEAD_DISABLED when they are used.
+ * They are enabled only this option flag is set on
+ * \ref t_cose_encrypt_enc_init and \ref t_cose_encrypt_dec_init .
+ *
+ * TODO: Warn COSE_Encrypt lacking authentication and integrity in one place,
+ * and refer it from here.
+ */
+#define T_COSE_OPT_ENABLE_NON_AEAD 0x00002000
 
 
 /**
