@@ -188,6 +188,8 @@ t_cose_encrypt_dec_main_private(struct t_cose_encrypt_dec_ctx* me,
     if(return_value != T_COSE_SUCCESS) {
         return return_value;
     }
+#else
+    (void)tag_numbers;
 #endif /* QCBOR_VERSION_MAJOR == 1 */
 
     /* --- Finish tag number & type processing, COSE_Encrypt or COSE_Encrypt0? --- */

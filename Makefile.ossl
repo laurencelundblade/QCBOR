@@ -71,7 +71,7 @@ OTHER_OPTS=
 # https://github.com/laurencelundblade/tdv.  This script is used
 # before pushes to master (though not yet through an automated build
 # process). See "warn:" below.
-C_OPTS=-Os -fPIC
+C_OPTS=-Os -fPIC -Wno-deprecated-declarations
 
 
 # ---- Aggregate includes and options ----

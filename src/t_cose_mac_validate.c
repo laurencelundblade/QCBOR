@@ -97,6 +97,8 @@ t_cose_mac_validate_private(struct t_cose_mac_validate_ctx *me,
     if(return_value != T_COSE_SUCCESS) {
         goto Done;
     }
+#else
+    (void)tag_numbers;
 #endif /* QCBOR_VERSION_MAJOR == 1 */
 
     if(message_type_tag_number != T_COSE_OPT_MESSAGE_TYPE_MAC0 ) {
