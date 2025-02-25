@@ -215,7 +215,7 @@ enum QCBOREncodeConfig {
     * set when trying to encode non-preferred big numbers with
     * QCBOREncode_AddTBigNumberNoPreferred() or
     * QCBOREncode_AddTBigNumberRaw(). */
-   QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS = 0x40, // TODO: test this one
+   QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS = 0x40,
 
 
    /**
@@ -1042,8 +1042,8 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pCtx);
  * raw CBOR added here to have indefinite lengths.
  *
  * The raw CBOR added here is not checked in anyway. If it is not
- * conforming or has open arrays or such, the final encoded CBOR
- * will probably be wrong or not what was intended.
+ * well-formed or has open arrays or such, the final encoded CBOR
+ * will not be well-formed.
  *
  * If the encoded CBOR being added here contains multiple items, they
  * must be enclosed in a map or array. At the top level the raw

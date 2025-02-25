@@ -1,6 +1,6 @@
 /*==============================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,9 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 02/21/2025  llundblade   Improve magic number to detect lack of initialization.
+ 02/21/2025  llundblade   Bug fixes to UsefulOutBuf_Compare().
+ 02/21/2025  llundblade   Rename to UsefulOutBuf_OutSubString().
  08/08/2024  llundblade   Add UsefulOutBuf_SubString().
  21/05/2024  llundblade   Comment formatting and some code tidiness.
  1/7/2024    llundblade   Add UsefulInputBuf_Compare().

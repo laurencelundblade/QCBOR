@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -226,7 +226,7 @@ QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
 
 
 /**
- * @brief Is there a carry when you subtract 1 from the BigNumber.
+ * @brief Is there a carry when you subtract 1 from the BigNumber?
  *
  * @param[in]  BigNumber  Big number to check for carry.
  *
@@ -331,9 +331,9 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
  * @return Big number with no leading zeros.
  *
  * If the big number is all zeros, this returns a big number that is
- * one zero rather than the empty string.
+ * a single zero rather than the empty string.
  *
- * RFC 8949 3.4.3 does not explicitly decoders MUST handle the empty
+ * RFC 8949 3.4.3 does not explicitly say decoders MUST handle the empty
  * string, but does say decoders MUST handle leading zeros. So
  * Postel's Law is applied here and 0 is not encoded as an empty
  * string.

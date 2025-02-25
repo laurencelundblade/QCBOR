@@ -1,6 +1,6 @@
 /* =========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  * All rights reserved.
  *
@@ -43,6 +43,8 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 02/21/2025   llundblade      Correct documentaion for UsefulOutBuf_Compare()
+ 02/21/2025   llundblade      Rename to UsefulOutBuf_OutSubString().
  12/31/2024   llundblade      Minor documentation tweaks for Doxygen.
  08/31/2024   llundblade      Add UsefulBufC_NTH_BYTE().
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().

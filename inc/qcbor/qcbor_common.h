@@ -576,6 +576,12 @@ typedef enum {
     * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 
+   /** File a an issue in github if this happens!  For map sorting, QCBOR decodes the
+    * CBOR that it just encoded. This error is returned if QCBOR can't decode what
+    * it just encoded. */
+   QCBOR_ERR_SORT_FAIL = 91,
+
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */

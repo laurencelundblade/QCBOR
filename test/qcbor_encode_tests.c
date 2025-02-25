@@ -1080,6 +1080,21 @@ int32_t BigNumEncodeTests(void)
       }
    }
 
+   /* Test failure for attempting non-prefered serialiation */
+   QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
+   QCBOREncode_AddTBigNumberRaw(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_SZ_LITERAL("\x00"));
+   if(QCBOREncode_GetErrorState(&Enc) != QCBOR_ERR_NOT_PREFERRED) {
+      return -1;
+   }
+
+   QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
+   QCBOREncode_AddTBigNumberNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_SZ_LITERAL("\x00"));
+   if(QCBOREncode_GetErrorState(&Enc) != QCBOR_ERR_NOT_PREFERRED) {
+      return -2;
+   }
+
    return 0;
 }
 
@@ -3533,6 +3548,73 @@ OpenCloseBytesTest(void)
 
 
 
+struct SortTests {
+   const char *szDescription;
+   UsefulBufC   ToBeSorted;
+   UsefulBufC   Sorted;
+   QCBORError   uError;
+};
+
+static const struct SortTests sSortTests[] =
+{
+   {
+      "Simple Sort Test",
+      {"\x03\x03\x01\x01\x04\x04\x02\x02", 8},
+      {"\xBF\x01\x01\x02\x02\x03\x03\x04\x04\xFF", 10},
+      QCBOR_SUCCESS
+   },
+
+   {
+      "Not well formed label",
+      {"\x1c\x03\x01\x01\x04\x04\x02\x02", 8},
+      NULLUsefulBufC,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "Not well formed value",
+      {"\x03\x1c\x01\x01\x04\x04\x02\x02", 8},
+      NULLUsefulBufC,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "Not well formed label at end",
+      {"\x03\x03\x01\x01\x04\x04\x1c\x02", 8},
+      NULLUsefulBufC,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "Extraneous break",
+      {"\x03\x03\x01\x01\x04\xff\x02\x02", 8},
+      NULLUsefulBufC,
+      QCBOR_ERR_HIT_END
+   },
+
+   {
+      "Off end",
+      {"\x03\x03\x01\x01\x04\x04\x02\x6f\x68\x69", 10},
+      NULLUsefulBufC,
+      QCBOR_ERR_HIT_END
+   },
+
+   {
+      "Indef string chunk in error",
+      {"\x03\x03\x5f\x61\x68\x1c\xff\x01\x04\x04\x02\x02", 12},
+      NULLUsefulBufC,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      NULL,
+      NULLUsefulBufC,
+      NULLUsefulBufC,
+      QCBOR_SUCCESS
+   }
+};
+
+
 int32_t
 SortMapTest(void)
 {
@@ -3541,6 +3623,41 @@ SortMapTest(void)
    UsefulBufC                 EncodedAndSorted;
    QCBORError                 uErr;
    struct UBCompareDiagnostic CompareDiagnostics;
+
+   for(int nIndex = 0; ; nIndex++) {
+      const struct SortTests *pTest = &sSortTests[nIndex];
+
+      if(pTest->szDescription == NULL) {
+         break;
+      }
+
+      if(nIndex == 6) {
+         uErr = 0; /* For break point */
+      }
+
+      QCBOREncode_Init(&EC, TestBuf);
+      /* Have to use indefinite length map to make test work */
+      QCBOREncode_OpenMapIndefiniteLength(&EC);
+      /* Violating layering here to be able to make test work.
+       * In particular to test error handling when the CBOR
+       * being sorted is not well formed. That should never happen
+       * but it needs to be tested for code safety.
+       */
+      UsefulOutBuf_AppendUsefulBuf(&(EC.OutBuf), pTest->ToBeSorted);
+      QCBOREncode_CloseAndSortMapIndef(&EC);
+      uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+      if(uErr != pTest->uError) {
+         return MakeTestResultCode((uint32_t)nIndex, 0, uErr);
+      }
+
+      if(uErr == QCBOR_SUCCESS && !UsefulBuf_IsNULLC(pTest->Sorted)) {
+         if(UsefulBuf_Compare(pTest->Sorted, EncodedAndSorted)) {
+            return MakeTestResultCode((uint32_t)nIndex, 1, uErr);
+
+         }
+      }
+   }
+   // TODO: Move most of the tests below into sSortTests
 
 
    /* --- Basic sort test case --- */
