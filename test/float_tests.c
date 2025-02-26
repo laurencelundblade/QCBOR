@@ -323,12 +323,17 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
+   /* -18446744073709551616.0 -- largest that encodes into negative uint64 (65-bit neg) */
+   {-18446744073709551616.0,                     -18446744073709551616.0f,
+    {"\xFA\xDF\x80\x00\x00",                 5}, {"\xFB\xC3\xF0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\xDF\x80\x00\x00",                 5}, {"\x3B\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
    /* List terminator */
    {0.0, 0.0f, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
 
 
-/* Can't use types double and float here because there's no way in C to
+/* Can't use the types double and float here because there's no way in C to
  * construct arbitrary payloads for those types.
  */
 struct NaNTestCase {
@@ -416,7 +421,7 @@ FloatValuesTests(void)
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
-      if(uTestIndex == 2) {
+      if(uTestIndex == 48) {
          uDecoded = 1;
       }
 

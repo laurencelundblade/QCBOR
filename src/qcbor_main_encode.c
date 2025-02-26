@@ -839,10 +839,10 @@ QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
  * change.
  */
 static QCBORError
-QCBOREncodePriv_DecodeHead(UsefulInputBuf *pUInBuf,
-                           int            *pnMajorType,
-                           uint64_t       *puArgument,
-                           int            *pnAdditionalInfo)
+QCBOREncode_Private_DecodeHead(UsefulInputBuf *pUInBuf,
+                               int            *pnMajorType,
+                               uint64_t       *puArgument,
+                               int            *pnAdditionalInfo)
 {
    QCBORError uReturn;
 
@@ -899,66 +899,94 @@ Done:
  *
  * @param[in] pInBuf  UsefulInputBuf from which to consume item.
  *
- * Recursive, but stack usage is light and encoding depth limit
+ * @retval QCBOR_SUCCESS  The next item has been consumed successfully.
+ *
+ * @retval QCBOR_ERR_HIT_END The next item is a break or has hit the end.
+ *
+ * @retval a QCOR error code indicating some decode failure
+ *
+ * Recursive, but stack usage is light and encoding depth limited.
  */
 static QCBORError
-QCBOR_Private_ConsumeNext(UsefulInputBuf *pInBuf)
+QCBOREncode_Private_ConsumeNext(UsefulInputBuf *pInBuf)
 {
-   int      nMajor;
-   uint64_t uArgument;
-   int      nAdditional;
-   uint16_t uItemCount;
-   uint16_t uMul;
-   uint16_t i;
+   int        nMajor;
+   uint64_t   uArgument;
+   int        nAdditional;
+   uint16_t   uItemCountTotal;
+   uint16_t   uMul;
+   uint16_t   uItemCounter;
    QCBORError uCBORError;
 
-   uCBORError = QCBOREncodePriv_DecodeHead(pInBuf, &nMajor, &uArgument, &nAdditional);
+   uCBORError = QCBOREncode_Private_DecodeHead(pInBuf, &nMajor, &uArgument, &nAdditional);
    if(uCBORError != QCBOR_SUCCESS) {
-      return uCBORError;
+      goto Done;
    }
 
    uMul = 1;
+
+   /* This intentionally doesn't check for a some not-well-formed
+    * conditions such as the wrong type in an indefinite length
+    * string chunk and the disallowed forms of the simple type.
+    * These conditions should never occur because this only decodes
+    * what was encoded by QCBOR. This saves object code.
+    */
 
    switch(nMajor) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
          break;
 
-      case CBOR_MAJOR_TYPE_SIMPLE:
-         return uArgument == CBOR_SIMPLE_BREAK ? 1 : 0;
-         break;
-
-      case CBOR_MAJOR_TYPE_BYTE_STRING:
-      case CBOR_MAJOR_TYPE_TEXT_STRING:
+      case CBOR_MAJOR_TYPE_BYTE_STRING: /* Major type 2 */
+      case CBOR_MAJOR_TYPE_TEXT_STRING: /* Major type 3 */
          if(nAdditional == LEN_IS_INDEFINITE) {
-            /* Segments of indefinite length */
-            while(QCBOR_Private_ConsumeNext(pInBuf) == 0);
+            /* Chunks of indefinite length string */
+            do {
+               uCBORError = QCBOREncode_Private_ConsumeNext(pInBuf);
+            } while(uCBORError == QCBOR_SUCCESS);
+            if(uCBORError != QCBOR_ERR_HIT_END) {
+               return uCBORError;
+            }
+            uCBORError = QCBOR_SUCCESS;
+         } else {
+            /* The bytes of a definite length string */
+            (void)UsefulInputBuf_GetBytes(pInBuf, uArgument);
          }
-         (void)UsefulInputBuf_GetBytes(pInBuf, uArgument);
          break;
 
-      case CBOR_MAJOR_TYPE_TAG:
-         QCBOR_Private_ConsumeNext(pInBuf);
-         break;
-
-      case CBOR_MAJOR_TYPE_MAP:
+      case CBOR_MAJOR_TYPE_MAP: /* Major type 5 */
          uMul = 2;
          /* Fallthrough */
-      case CBOR_MAJOR_TYPE_ARRAY:
-         uItemCount = (uint16_t)uArgument * uMul;
+      case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
+         /* Cast is safe because this is decoding CBOR that was created
+          * by QCBOR and because QCBOREncode_Private_ConsumeNext() can
+          * never read off the end. */
+         uItemCountTotal = (uint16_t)uArgument * uMul;
          if(nAdditional == LEN_IS_INDEFINITE) {
-            uItemCount = UINT16_MAX;
+            uItemCountTotal = UINT16_MAX;
          }
-         for(i = uItemCount; i > 0; i--) {
-            if(QCBOR_Private_ConsumeNext(pInBuf)) {
-               /* End of indefinite length */
+         for(uItemCounter = uItemCountTotal; uItemCounter > 0; uItemCounter--) {
+            uCBORError = QCBOREncode_Private_ConsumeNext(pInBuf);
+            if(uCBORError != QCBOR_SUCCESS) {
                break;
             }
          }
+         if(nAdditional == LEN_IS_INDEFINITE && uCBORError == QCBOR_ERR_HIT_END) {
+            uCBORError = QCBOR_SUCCESS;
+         }
+         break;
+
+      case CBOR_MAJOR_TYPE_TAG: /* Major type 6 */
+         uCBORError = QCBOREncode_Private_ConsumeNext(pInBuf);
+         break;
+
+      case CBOR_MAJOR_TYPE_SIMPLE: /* Major type 7 */
+         return uArgument == CBOR_SIMPLE_BREAK ? QCBOR_ERR_HIT_END : QCBOR_SUCCESS;
          break;
    }
 
-   return QCBOR_SUCCESS;
+Done:
+   return uCBORError;
 }
 
 
@@ -999,23 +1027,26 @@ QCBOREncode_Private_DecodeNextInMap(QCBOREncodeContext *pMe, uint32_t uStart)
    UsefulInputBuf_Init(&InBuf, EncodedMapBytes);
 
    /* This is always used on maps, so consume two, the label and the value */
-   uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
-   if(uCBORError) {
+   uCBORError = QCBOREncode_Private_ConsumeNext(&InBuf);
+   if(uCBORError != QCBOR_SUCCESS) {
+      pMe->uError = (uint8_t)uCBORError;
+      Result.uLabelLen = 0;
       return Result;
    }
 
    /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
    Result.uLabelLen = (uint32_t)UsefulInputBuf_Tell(&InBuf);
 
-   uCBORError = QCBOR_Private_ConsumeNext(&InBuf);
-   if(uCBORError) {
+   uCBORError = QCBOREncode_Private_ConsumeNext(&InBuf);
+   if(uCBORError != QCBOR_SUCCESS) {
+      pMe->uError = (uint8_t)uCBORError;
       Result.uLabelLen = 0;
       return Result;
    }
 
+   /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
    Result.uItemLen = (uint32_t)UsefulInputBuf_Tell(&InBuf);
 
-   /* Cast is safe because this is QCBOR which limits sizes to UINT32_MAX */
    return Result;
 }
 
@@ -1093,7 +1124,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
          }
          uStart2 = uStart2 + Lens2.uItemLen;
       }
-   } while(bSwapped);
+   } while(bSwapped && pMe->uError == QCBOR_SUCCESS);
 }
 
 
@@ -1331,5 +1362,5 @@ QCBOREncode_SubString(QCBOREncodeContext *pMe, const size_t uStart)
 
    const size_t uEnd = QCBOREncode_Tell(pMe);
 
-   return UsefulOutBuf_SubString(&(pMe->OutBuf), uStart, uEnd - uStart);
+   return UsefulOutBuf_OutSubString(&(pMe->OutBuf), uStart, uEnd - uStart);
 }

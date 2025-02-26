@@ -127,7 +127,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   Out = UsefulOutBuf_SubString(&UOB, 10, 8);
+   Out = UsefulOutBuf_OutSubString(&UOB, 10, 8);
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(UsefulBuf_FROM_SZ_LITERAL("unbounce"), Out) ||
       UsefulOutBuf_GetError(&UOB)) {
@@ -135,7 +135,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   Out = UsefulOutBuf_SubString(&UOB, 0, Expected.len);
+   Out = UsefulOutBuf_OutSubString(&UOB, 0, Expected.len);
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(Expected, Out) ||
       UsefulOutBuf_GetError(&UOB)) {
@@ -143,7 +143,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   Out = UsefulOutBuf_SubString(&UOB, Expected.len, 0);
+   Out = UsefulOutBuf_OutSubString(&UOB, Expected.len, 0);
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(UsefulBuf_FROM_SZ_LITERAL(""), Out) ||
       UsefulOutBuf_GetError(&UOB)) {
@@ -232,8 +232,11 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 const char *UOBTest_BoundaryConditionsTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(outbuf, 2);
+   UsefulOutBuf            UOB_UnInitialized;
+   UsefulOutBuf            UOB;
 
-   UsefulOutBuf UOB;
+   /* For test detection of uninitlized UOB (wrong magic number) */
+   memset(&UOB_UnInitialized, 42, sizeof(UsefulInputBuf));
 
    UsefulOutBuf_Init(&UOB, outbuf);
 
@@ -284,26 +287,31 @@ const char *UOBTest_BoundaryConditionsTest(void)
       return "insert with data should have failed";
    }
 
+   UsefulOutBuf_InsertString(&UOB_UnInitialized, "abc123", 0);
+   if(!UsefulOutBuf_GetError(&UOB_UnInitialized)) {
+      return "InsertString failed uninit detect";
+   }
+
    UsefulOutBuf_Init(&UOB, outBuf2);
    UsefulOutBuf_AppendString(&UOB, "abc123");
 
-   UsefulBufC Out = UsefulOutBuf_SubString(&UOB, 7, 1);
+   UsefulBufC Out = UsefulOutBuf_OutSubString(&UOB, 7, 1);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString start should fail off end 1";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 5, 3);
+   Out = UsefulOutBuf_OutSubString(&UOB, 5, 3);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 2";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 0, 7);
+   Out = UsefulOutBuf_OutSubString(&UOB, 0, 7);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 3";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 7, 0);
+   Out = UsefulOutBuf_OutSubString(&UOB, 7, 0);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 4";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 6, 1);
+   Out = UsefulOutBuf_OutSubString(&UOB, 6, 1);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 5";
    }
@@ -313,6 +321,17 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(UsefulOutBuf_GetError(&UOB)) {
       return "insert in huge should have succeeded";
    }
+   UsefulOutBuf_Init(&UOB, outBuf2);
+   Out = UsefulOutBuf_OutSubString(&UOB, 0, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString len should fail off end 5";
+   }
+   Out = UsefulOutBuf_OutSubString(&UOB_UnInitialized, 0, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString failed uninit detect";
+   }
+
+
 
    UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX -5);
@@ -1091,13 +1110,18 @@ const char *UBAdvanceTest(void)
 const char * UOBExtraTests(void)
 {
    #define COMPARE_TEST_SIZE 10
-   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE);
+   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE); /* includes initialization */
    int                       nCompare;
    UsefulBufC                Out;
+   UsefulOutBuf              UOB_UnInitialized;
 
-   /* Test UsefulOutBuf_Compare() */
+   /* For test detection of uninitlized UOB (wrong magic number) */
+   memset(&UOB_UnInitialized, 42, sizeof(UsefulInputBuf));
+
+   /* --- Test UsefulOutBuf_Compare() --- */
    UsefulOutBuf_AppendString(&UOB, "abcabdefab");
 
+   /* Tests of equal length, not off the end. */
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 8, 2);
    if(nCompare != 0) {
       return "ab should compare equal";
@@ -1106,6 +1130,11 @@ const char * UOBExtraTests(void)
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 3);
    if(nCompare != 'd' - 'c') {
       return "abc should not equal abd";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 3, 3, 0, 3);
+   if(nCompare !=  'c' - 'd') {
+      return "abd should not equal abc";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 3, 2, 8, 2);
@@ -1138,40 +1167,93 @@ const char * UOBExtraTests(void)
       return "b should compare equal to b";
    }
 
+   /* Tests off end */
    nCompare = UsefulOutBuf_Compare(&UOB, 10, 1, 10, 1);
    if(nCompare != 0) {
-      return "Comparison off the end is equal";
+      return "Comparison off the end is not equal";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 1, 100, 1);
-   if(nCompare != 0) {
-      return "Comparison off the end is equal";
+   if(nCompare != -1) {
+      return "Comparison off end fail 1";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 100, 1, 0, 1);
-   if(nCompare != 0) {
-      return "Comparison off the end is equal";
+   if(nCompare != 1) {
+      return "Comparison off end fail 2";
    }
 
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 3, 0, 3);
+   if(nCompare != 1) {
+      return "Comparison off end fail 3";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 8, 3);
+   if(nCompare != -1) {
+      return "Comparison off end fail 4";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 10, 1, 5, 1);
+   if(nCompare != 1) {
+      return "Comparison off end fail 5";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 5, 1, 10, 1);
+   if(nCompare != -1) {
+      return "Comparison off end fail 6";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 3, 0, 2);
+   if(nCompare != 0) {
+      return "Comparison off end fail 7";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 8, 100);
+   if(nCompare != 0) {
+      return "Comparison off end fail 8";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 0, 0, 0);
+   if(nCompare != 0) {
+      return "Empty compare failed";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 1, 1, 9, 3);
+   if(nCompare != 0) {
+      return "Unequal lengths, off end";
+   }
+
+   /* Tests of unequal lengths */
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 2);
-   if(nCompare > 0) {
+   if(nCompare >= 0) {
       return "Comparison of unequal lengths incorrect";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 8, 2, 0, 3);
-   if(nCompare < 0) {
+   if(nCompare <= 0) {
       return "Comparison of unequal lengths incorrect 2";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 2, 3);
    if(nCompare != 'c' - 'a') {
-      return "Inequal lengths, but inequal strings";
+      return "Unequal lengths, unequal strings";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 1, 3, 4, 2);
    if(nCompare != 'd' - 'c') {
-      return "Inequal lengths, but inequal strings";
+      return "Unequal lengths, unequal strings";
    }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 7, 0, 7, 1);
+   if(nCompare != 1) {
+      return "zero length unequal length compare";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 8, 3, 5);
+   if(nCompare != 'd' - 'c') {
+      return "another unequal length compare";
+   }
+
 
    /* Test UsefulOutBuf_Swap() */
 
@@ -1284,6 +1366,11 @@ const char * UOBExtraTests(void)
    Out = UsefulOutBuf_OutUBufOffset(&UOB, 7);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "GetOutput fail 5";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB_UnInitialized, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 7";
    }
 
    return NULL;

@@ -1,6 +1,6 @@
 /* =========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  * All rights reserved.
  *
@@ -43,6 +43,8 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 02/21/2025   llundblade      Correct documentaion for UsefulOutBuf_Compare()
+ 02/21/2025   llundblade      Rename to UsefulOutBuf_OutSubString().
  12/31/2024   llundblade      Minor documentation tweaks for Doxygen.
  08/31/2024   llundblade      Add UsefulBufC_NTH_BYTE().
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
@@ -1452,9 +1454,9 @@ UsefulOutBuf_OutUBufOffset(UsefulOutBuf *pUOutBuf, size_t uOffset);
  * substring. @c NULLUsefulBufC is returned if the requested substring
  * is off the end of the output bytes or if in error state.
  */
-UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pUOutBuf,
-                                  const size_t  uStart,
-                                  const size_t  uLen);
+UsefulBufC UsefulOutBuf_OutSubString(UsefulOutBuf *pUOutBuf,
+                                     const size_t  uStart,
+                                     const size_t  uLen);
 
 
 /**
@@ -1483,26 +1485,28 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  * @return  0 for equality, positive if uStart1 is lexographically larger,
  *          negative if uStart2 is lexographically larger.
  *
- * This looks into bytes that have been output at the offsets @c start1
- * and @c start2. It compares bytes at those two starting points until
- * they are not equal or @c uLen1 or @c uLen2 is reached. If the
- * length of the string given is off the end of the output data, the
- * string will be effectively truncated to the data in the output
- * buffer for the comparison.
+ * This looks into bytes that have been output at the offsets
+ * @c start1 and @c start2. It compares bytes at those two starting
+ * points until they are not equal or @c uLen1 or @c uLen2 is
+ * reached. If the length of the string given is off the end of the
+ * output data, the string will be effectively (not actually)
+ * truncated to the data in the output buffer for the comparison.
  *
- * This returns positive when @c uStart1 lexographically sorts ahead
- * of @c uStart2 and vice versa.  Zero is returned if the strings
- * compare equally.
+ * This function returns a positive value if the first string
+ * lexicographically precedes the second and a negative value if the
+ * second precedes the first. If the strings are equal, it returns
+ * zero.
  *
- * If lengths are unequal and the first bytes are an exact subset of
- * the second string, then a positve value will be returned and vice
- * versa.
+ * If one string is a substring of the other, the shorter string is
+ * considered smaller. For example, if the first string is "ab" and
+ * the second is "abc", a positive value is returned. The empty string
+ * is always the smallest and sorts ahead of all others.
  *
- * If either start is past the end of data in the output buffer, 0
- * will be returned. It is the caller's responsibility to make sure
- * the offsets are not off the end so that a comparison is actually
- * being made. No data will ever be read off the end of the buffer so
- * this safe no matter what offsets are passed.
+ * If either starting offset is beyond the end of the output buffer,
+ * the function returns zero.  It is the caller’s responsibility to
+ * ensure that offsets are within bounds so that a valid comparison is
+ * performed. No data will ever be read beyond the buffer’s end,
+ * making the function safe regardless of the provided offsets.
  *
  * This is a relatively odd function in that it works on data in the
  * output buffer. It is employed by QCBOR to sort CBOR-encoded maps
@@ -2477,6 +2481,8 @@ static inline size_t UsefulInputBuf_BytesUnconsumed(UsefulInputBuf *pMe)
     * or was never initialized.
     */
    if(pMe->magic != UIB_MAGIC) {
+      /* Strangely gcov thinks the line is not covered by tests even
+       * though it clearly is (tested with break point and printf) */
       return 0;
    }
 
@@ -2710,6 +2716,12 @@ static inline UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *p
    return pMe->UB;
 }
 
+
+/* For backwards compatibility */
+static inline UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe, const size_t uStart, const size_t uLen)
+{
+   return UsefulOutBuf_OutSubString(pMe, uStart, uLen);
+}
 
 #ifdef __cplusplus
 }

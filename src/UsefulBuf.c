@@ -1,6 +1,6 @@
 /*==============================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,9 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 02/21/2025  llundblade   Improve magic number to detect lack of initialization.
+ 02/21/2025  llundblade   Bug fixes to UsefulOutBuf_Compare().
+ 02/21/2025  llundblade   Rename to UsefulOutBuf_OutSubString().
  08/08/2024  llundblade   Add UsefulOutBuf_SubString().
  21/05/2024  llundblade   Comment formatting and some code tidiness.
  1/7/2024    llundblade   Add UsefulInputBuf_Compare().
@@ -246,11 +249,6 @@ void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t uInsertionPos)
 {
-   if(pMe->err) {
-      /* Already in error state. */
-      return;
-   }
-
    /* 0. Sanity check the UsefulOutBuf structure
     * A "counter measure". If magic number is not the right number it
     * probably means pMe was not initialized or it was corrupted. Attackers
@@ -260,6 +258,11 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
       pMe->err = 1;
       return;  /* Magic number is wrong due to uninitalization or corrption */
+   }
+
+   if(pMe->err) {
+      /* Already in error state. */
+      return;
    }
 
    /* Make sure valid data is less than buffer size. This would only occur
@@ -358,11 +361,6 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     * rarely used.
     */
 
-   if(pMe->err) {
-      /* Already in error state. */
-      return;
-   }
-
    /* 0. Sanity check the UsefulOutBuf structure
     *
     * A "counter measure". If magic number is not the right number it
@@ -373,6 +371,11 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
       pMe->err = 1;
       return;  /* Magic number is wrong due to uninitalization or corrption */
+   }
+
+   if(pMe->err) {
+      /* Already in error state. */
+      return;
    }
 
    /* Make sure valid data is less than buffer size. This would only
@@ -409,12 +412,12 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
  */
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pMe)
 {
-   if(pMe->err) {
+   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      pMe->err = 1;
       return NULLUsefulBufC;
    }
 
-   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = 1;
+   if(pMe->err) {
       return NULLUsefulBufC;
    }
 
@@ -442,9 +445,9 @@ UsefulBufC UsefulOutBuf_CopyOut(UsefulOutBuf *pMe, UsefulBuf pDest)
  *
  * Code Reviewers: THIS FUNCTION DOES POINTER MATH
  */
-UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe,
-                                  const size_t  uStart,
-                                  const size_t  uLen)
+UsefulBufC UsefulOutBuf_OutSubString(UsefulOutBuf *pMe,
+                                     const size_t  uStart,
+                                     const size_t  uLen)
 {
    const UsefulBufC Tmp = UsefulOutBuf_OutUBuf(pMe);
 
@@ -544,34 +547,53 @@ int UsefulOutBuf_Compare(UsefulOutBuf *pMe,
    const uint8_t *pEnd;
    const uint8_t *p1;
    const uint8_t *p2;
+   const uint8_t *p1Start;
+   const uint8_t *p2Start;
    const uint8_t *p1End;
    const uint8_t *p2End;
    int            uComparison;
+   size_t         uComparedLen1;
+   size_t         uComparedLen2;
 
-   pBase = pMe->UB.ptr;
-   pEnd = (const uint8_t *)pBase + pMe->data_len;
-   p1   = pBase + uStart1;
-   p2   = pBase + uStart2;
-   p1End = p1 + uLen1;
-   p2End = p2 + uLen2;
+   pBase   = pMe->UB.ptr;
+   pEnd    = (const uint8_t *)pBase + pMe->data_len;
+   p1Start = pBase + uStart1;
+   p2Start = pBase + uStart2;
+   p1End   = p1Start + uLen1;
+   p2End   = p2Start + uLen2;
 
    uComparison = 0;
-   while(p1 < pEnd && p2 < pEnd && p1 < p1End && p2 < p2End) {
+   for(p1 = p1Start, p2 = p2Start;
+       p1 < pEnd && p2 < pEnd && p1 < p1End && p2 < p2End;
+       p1++, p2++) {
       uComparison = *p2 - *p1;
       if(uComparison != 0) {
-         break;;
+         break;
       }
-      p1++;
-      p2++;
    }
 
-   if(uComparison == 0 && p1 != p1End && p2 != p2End) {
-      if(uLen1 > uLen2) {
+   /* Loop might have terminated because strings were off
+    * the end of the buffer. Compute actual lengths compared.
+    */
+   uComparedLen1 = uLen1;
+   if(p1 >= pEnd) {
+      uComparedLen1 = (size_t)(p1 - p1Start);
+   }
+   uComparedLen2 = uLen2;
+   if(p2 >= pEnd) {
+      uComparedLen2 = (size_t)(p2 - p2Start);
+   }
+
+   if(uComparison == 0) {
+      /* All bytes were equal, now check the lengths */
+      if(uComparedLen2 > uComparedLen1) {
+         /* string 1 is a substring of string 2 */
          uComparison = 1;
-      } else if(uLen2 < uLen1){
+      } else if(uComparedLen1 > uComparedLen2) {
+         /* string 2 is a substring of string 1 */
          uComparison = -1;
-      } else  {
-         return 0;
+      } else {
+         /* do nothing, uComparison already is 0 */
       }
    }
 
