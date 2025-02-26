@@ -937,12 +937,8 @@ QCBOREncode_Private_ConsumeNext(UsefulInputBuf *pInBuf)
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
          break;
 
-      case CBOR_MAJOR_TYPE_SIMPLE:
-         return uArgument == CBOR_SIMPLE_BREAK ? QCBOR_ERR_HIT_END : QCBOR_SUCCESS;
-         break;
-
-      case CBOR_MAJOR_TYPE_BYTE_STRING:
-      case CBOR_MAJOR_TYPE_TEXT_STRING:
+      case CBOR_MAJOR_TYPE_BYTE_STRING: /* Major type 2 */
+      case CBOR_MAJOR_TYPE_TEXT_STRING: /* Major type 3 */
          if(nAdditional == LEN_IS_INDEFINITE) {
             /* Chunks of indefinite length string */
             do {
@@ -958,14 +954,13 @@ QCBOREncode_Private_ConsumeNext(UsefulInputBuf *pInBuf)
          }
          break;
 
-      case CBOR_MAJOR_TYPE_TAG:
-         uCBORError = QCBOREncode_Private_ConsumeNext(pInBuf);
-         break;
-
-      case CBOR_MAJOR_TYPE_MAP:
+      case CBOR_MAJOR_TYPE_MAP: /* Major type 5 */
          uMul = 2;
          /* Fallthrough */
-      case CBOR_MAJOR_TYPE_ARRAY:
+      case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
+         /* Cast is safe because this is decoding CBOR that was created
+          * by QCBOR and because QCBOREncode_Private_ConsumeNext() can
+          * never read off the end. */
          uItemCountTotal = (uint16_t)uArgument * uMul;
          if(nAdditional == LEN_IS_INDEFINITE) {
             uItemCountTotal = UINT16_MAX;
@@ -979,6 +974,14 @@ QCBOREncode_Private_ConsumeNext(UsefulInputBuf *pInBuf)
          if(nAdditional == LEN_IS_INDEFINITE && uCBORError == QCBOR_ERR_HIT_END) {
             uCBORError = QCBOR_SUCCESS;
          }
+         break;
+
+      case CBOR_MAJOR_TYPE_TAG: /* Major type 6 */
+         uCBORError = QCBOREncode_Private_ConsumeNext(pInBuf);
+         break;
+
+      case CBOR_MAJOR_TYPE_SIMPLE: /* Major type 7 */
+         return uArgument == CBOR_SIMPLE_BREAK ? QCBOR_ERR_HIT_END : QCBOR_SUCCESS;
          break;
    }
 

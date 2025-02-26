@@ -3555,14 +3555,14 @@ OpenCloseBytesTest(void)
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
-struct SortTests {
+struct SortTest {
    const char *szDescription;
-   UsefulBufC   ToBeSorted;
-   UsefulBufC   Sorted;
-   QCBORError   uError;
+   UsefulBufC  ToBeSorted;
+   UsefulBufC  Sorted;
+   QCBORError  uError;
 };
 
-static const struct SortTests sSortTests[] =
+static const struct SortTest sSortTests[] =
 {
    {
       "Simple Sort Test",
@@ -3614,6 +3614,17 @@ static const struct SortTests sSortTests[] =
    },
 
    {
+      "All sorts of labels",
+      {"\x81\x00\x03\xFB\x40\x09\x1E\xB8\x51\xEB\x85\x1F\x01\xf4\x04\xa2"
+       "\x05\x05\x06\x06\x02\xc1\x38\xff\x05\x81\x01\x06\x81\x20\x07\x19"
+       "\x00\x01\x08", 35},
+      {"\xBF\x19\x00\x01\x08\x81\x00\x03\x81\x01\x06\x81\x20\x07\xA2\x05"
+       "\x05\x06\x06\x02\xC1\x38\xFF\x05\xF4\x04\xFB\x40\x09\x1E\xB8\x51"
+       "\xEB\x85\x1F\x01\xFF", 37},
+      QCBOR_SUCCESS
+   },
+
+   {
       NULL,
       NULLUsefulBufC,
       NULLUsefulBufC,
@@ -3634,13 +3645,13 @@ SortMapTest(void)
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
    for(int nIndex = 0; ; nIndex++) {
-      const struct SortTests *pTest = &sSortTests[nIndex];
+      const struct SortTest *pTest = &sSortTests[nIndex];
 
       if(pTest->szDescription == NULL) {
          break;
       }
 
-      if(nIndex == 6) {
+      if(nIndex == 7) {
          uErr = 0; /* For break point */
       }
 
