@@ -1080,18 +1080,24 @@ int32_t BigNumEncodeTests(void)
       }
    }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   QCBORError uExpectedErr = QCBOR_ERR_NOT_PREFERRED;
+#else
+   QCBORError uExpectedErr = QCBOR_SUCCESS;
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
    /* Test failure for attempting non-prefered serialiation */
    QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
    QCBOREncode_AddTBigNumberRaw(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_SZ_LITERAL("\x00"));
-   if(QCBOREncode_GetErrorState(&Enc) != QCBOR_ERR_NOT_PREFERRED) {
+   if(QCBOREncode_GetErrorState(&Enc) != uExpectedErr) {
       return -1;
    }
 
    QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
    QCBOREncode_AddTBigNumberNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_SZ_LITERAL("\x00"));
-   if(QCBOREncode_GetErrorState(&Enc) != QCBOR_ERR_NOT_PREFERRED) {
+   if(QCBOREncode_GetErrorState(&Enc) != uExpectedErr) {
       return -2;
    }
 
@@ -3547,6 +3553,7 @@ OpenCloseBytesTest(void)
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 struct SortTests {
    const char *szDescription;
@@ -3613,7 +3620,7 @@ static const struct SortTests sSortTests[] =
       QCBOR_SUCCESS
    }
 };
-
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 int32_t
 SortMapTest(void)
@@ -3623,6 +3630,8 @@ SortMapTest(void)
    UsefulBufC                 EncodedAndSorted;
    QCBORError                 uErr;
    struct UBCompareDiagnostic CompareDiagnostics;
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
    for(int nIndex = 0; ; nIndex++) {
       const struct SortTests *pTest = &sSortTests[nIndex];
@@ -3657,6 +3666,7 @@ SortMapTest(void)
          }
       }
    }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
    // TODO: Move most of the tests below into sSortTests
 
 
@@ -4203,11 +4213,9 @@ int32_t DCBORTest(void)
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DCBOR);
    QCBOREncode_AddUndef(&EC);
-   QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
       return 102;
    }
-
 
    /* Improvement: when indefinite length string encoding is supported
     * test it here too. */
