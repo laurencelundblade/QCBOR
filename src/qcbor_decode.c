@@ -3139,6 +3139,8 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
  * @param[in]  pMe              The decoder context.
  * @param[in]  pItemToConsume   The array/map whose contents are to be
  *                              consumed.
+ * @param[out] pbBreak          Set to true if extra break was consumed.
+ *                              Can be NULL.
  * @param[out] puNextNestLevel  The next nesting level after the item was
  *                              fully consumed.
  *
@@ -3178,8 +3180,11 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
 
    } else {
       /* pItemToConsume is not a map or array. Just pass the nesting
-       * level through. */
+       * level through.  Ensure pbBreak is false. */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
+      if(pbBreak) {
+         *pbBreak = false;
+      }
 
       uReturn = QCBOR_SUCCESS;
    }
