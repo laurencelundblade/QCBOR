@@ -6,7 +6,7 @@ Release: 0%{?dist}
 Summary: A CBOR encoder/decoder library
 URL: https://github.com/laurencelundblade/QCBOR
 License: BSD-3-Clause
-Source0: %{URL}/archive/refs/tags/v1.5.1.tar.gz
+Source0: %{URL}/archive/refs/tags/v1.5.2.tar.gz
 
 BuildRequires: cmake
 BuildRequires: gcc
@@ -24,7 +24,7 @@ Development files needed to build and link to the QCBOR library.
 
 
 %prep
-%setup -q -n QCBOR-1.5.1
+%setup -q -n QCBOR-1.5.2
 %cmake -DBUILD_QCBOR_TEST=APP
 
 
@@ -53,5 +53,9 @@ Development files needed to build and link to the QCBOR library.
 
 
 %changelog
+* Jun 16 2025 Laurence Lundblade <lgl@island-resort.com> - 1.5.2
+- Bug fix for QCBORDecode_GetMap() and QCBORDecode_GetArray()
+- Fix warning for compilers compliant with C23 standard
+- Minor documentation fix
 * Jan 8 2024 Laurence Lundblade <lgl@island-resort.com> - 1.5.1
 - Initial library RPM packaging.
