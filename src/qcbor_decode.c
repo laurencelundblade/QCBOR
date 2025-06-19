@@ -5458,6 +5458,7 @@ QCBOR_Private_ConvertNegativeBigNumToSigned(const UsefulBufC BigNum,
  * @retval QCBOR_ERR_UNEXPECTED_TYPE  Of a type that can't be converted
  * @retval QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW  Conversion result is too large
  *                                               or too small.
+ * @retval QCBOR_ERR_FLOAT_EXCEPTION   Encountered NaN or infinity or such.
  */
 static QCBORError
 QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
@@ -5466,32 +5467,65 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
 {
    switch(pItem->uDataType) {
       case QCBOR_TYPE_FLOAT:
-      case QCBOR_TYPE_DOUBLE:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-         if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            /* https://pubs.opengroup.org/onlinepubs/009695399/functions/llround.html
-             http://www.cplusplus.com/reference/cmath/llround/
-             */
-            // Not interested in FE_INEXACT
-            feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
-            if(pItem->uDataType == QCBOR_TYPE_DOUBLE) {
-               *pnValue = llround(pItem->val.dfnum);
-            } else {
-               *pnValue = lroundf(pItem->val.fnum);
-            }
-            if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
-               // llround() shouldn't result in divide by zero, but catch
-               // it here in case it unexpectedly does.  Don't try to
-               // distinguish between the various exceptions because it seems
-               // they vary by CPU, compiler and OS.
-               return QCBOR_ERR_FLOAT_EXCEPTION;
-            }
-         } else {
+         if(!(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT)) {
             return  QCBOR_ERR_UNEXPECTED_TYPE;
          }
-#else
+         if(isnan(pItem->val.fnum)) {
+            /* In some environments, llround() will succeed on NaN
+             * when it really shouldn't, so catch the error here. */
+            return QCBOR_ERR_FLOAT_EXCEPTION;
+         }
+         if(pItem->val.fnum == INFINITY || pItem->val.fnum == -INFINITY) {
+            return QCBOR_ERR_FLOAT_EXCEPTION;
+         }
+         /* https://pubs.opengroup.org/onlinepubs/009695399/functions/llround.html
+          * http://www.cplusplus.com/reference/cmath/llround/
+          */
+         /* Not interested in FE_INEXACT */
+         feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
+         *pnValue = lroundf(pItem->val.fnum);
+         if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
+            /* llround() shouldn't result in divide by zero, but catch
+             * it here in case it unexpectedly does.  Don't try to
+             * distinguish between the various exceptions because it seems
+             * they vary by CPU, compiler and OS.
+             */
+            return QCBOR_ERR_FLOAT_EXCEPTION;
+         }
+         break;
+
+      case QCBOR_TYPE_DOUBLE:
+         if(!(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT)) {
+            return  QCBOR_ERR_UNEXPECTED_TYPE;
+         }
+         if(isnan(pItem->val.dfnum)) {
+            /* In some environments, llround() will succeed on NaN
+             * when it really shouldn't, so catch the error here. */
+            return QCBOR_ERR_FLOAT_EXCEPTION;
+         }
+         if(pItem->val.dfnum == INFINITY || pItem->val.dfnum == -INFINITY) {
+            return QCBOR_ERR_FLOAT_EXCEPTION;
+         }
+         /* https://pubs.opengroup.org/onlinepubs/009695399/functions/llround.html
+          * http://www.cplusplus.com/reference/cmath/llround/
+          */
+         /* Not interested in FE_INEXACT */
+         feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
+         *pnValue = llround(pItem->val.dfnum);
+         if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
+            /* llround() shouldn't result in divide by zero, but catch
+             * it here in case it unexpectedly does.  Don't try to
+             * distinguish between the various exceptions because it seems
+             * they vary by CPU, compiler and OS.
+             */
+            return QCBOR_ERR_FLOAT_EXCEPTION;
+         }
+         break;
+
+#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_INT64:
