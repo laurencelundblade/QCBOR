@@ -7810,6 +7810,17 @@ static const struct NumberConversion NumberConversions[] = {
       INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
+
+   {
+      "-inifinity single precision",
+      {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      -INFINITY,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
 };
 
 
@@ -7847,7 +7858,13 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
+
       int64_t nInt;
+
+      if(nIndex == 27) {
+         nInt = 9;
+      }
+
       QCBORDecode_GetInt64ConvertAll(&DCtx, 0xffff, &nInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorInt64) {
          return (int32_t)(2000+nIndex);
