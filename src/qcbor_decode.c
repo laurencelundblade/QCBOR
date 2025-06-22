@@ -5466,8 +5466,8 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
                            int64_t         *pnValue)
 {
    switch(pItem->uDataType) {
-      case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
+      case QCBOR_TYPE_FLOAT:
          if(!(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT)) {
             return  QCBOR_ERR_UNEXPECTED_TYPE;
          }
@@ -5524,6 +5524,8 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          break;
 
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+      case QCBOR_TYPE_FLOAT:
+      case QCBOR_TYPE_DOUBLE:
          return QCBOR_ERR_HW_FLOAT_DISABLED;
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
