@@ -57,5 +57,6 @@ Development files needed to build and link to the QCBOR library.
 - Bug fix for QCBORDecode_GetMap() and QCBORDecode_GetArray()
 - Fix warning for compilers compliant with C23 standard
 - Minor documentation fix
+- Fix for embedded platforms with partial implementations of llround()
 * Jan 8 2024 Laurence Lundblade <lgl@island-resort.com> - 1.5.1
 - Initial library RPM packaging.
