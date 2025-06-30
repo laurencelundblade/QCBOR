@@ -3344,6 +3344,11 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
    QCBORError uReturn;
    uint64_t   uFoundItemBitMap = 0;
 
+   if (pInfo) {
+      pInfo->uItemCount = 0;
+      pInfo->uStartOffset = 0;
+   }
+
    if(pMe->uLastError != QCBOR_SUCCESS) {
       uReturn = pMe->uLastError;
       goto Done2;
