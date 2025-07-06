@@ -349,6 +349,8 @@ extern "C" {
  * encountered during decoding. Functions that are encoding floating
  * point values are not available.
  *
+ * @anchor Limitations
+ *
  * ## Limitations
  *
  * Summary limitations:

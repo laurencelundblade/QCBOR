@@ -10189,6 +10189,20 @@ int32_t GetMapAndArrayTest(void)
    }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+
+   /* ------ */
+   static const uint8_t spEmptyMap[] = "\xA0";
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetArrayFromMapSZ(&DCtx, "xx", &Item, &ReturnedEncodedCBOR);
+
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 106;
+   }
+
    return 0;
 }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
