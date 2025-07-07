@@ -3975,7 +3975,6 @@ QCBORDecode_GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemList)
 {
    QCBORError uErr = QCBORDecode_Private_MapSearch(pMe, pItemList, NULL, NULL);
    pMe->uLastError = (uint8_t)uErr;
-   // TODO: this this on empty map
 }
 
 /*
@@ -3994,9 +3993,6 @@ QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
    QCBORError uErr = QCBORDecode_Private_MapSearch(pMe, pItemList, NULL, &CallBack);
 
    pMe->uLastError = (uint8_t)uErr;
-
-   // TODO: this this on empty map
-
 }
 
 
@@ -4312,8 +4308,6 @@ QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pMe,
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
-
-      // TODO: test this on empy map
    }
 
    uErr = QCBORDecode_Private_ExitBoundedLevel(pMe, pMe->uMapEndOffsetCache);
