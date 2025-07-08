@@ -3356,21 +3356,21 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
    if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
       pItemArray->uLabelType != QCBOR_TYPE_NONE) {
-      /* QCBOR_TYPE_NONE as first item indicates just looking
-         for the end of an array, so don't give error. */
+      /* QCBOR_TYPE_NONE as first item indicates just looking for the
+       * end of an array, so don't give error. */
       uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
       goto Done2;
    }
 
    if(DecodeNesting_IsBoundedEmpty(&(pMe->nesting))) {
-      // It is an empty bounded array or map
+      /* It is an empty bounded array or map */
       if(pItemArray->uLabelType == QCBOR_TYPE_NONE) {
-         // Just trying to find the end of the map or array
+         /* Just trying to find the end of the map or array */
          pMe->uMapEndOffsetCache = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
          uReturn = QCBOR_SUCCESS;
       } else {
-         // Nothing is ever found in an empty array or map. All items
-         // are marked as not found below.
+         /* Nothing is ever found in an empty array or map. All items
+          * are marked as not found below. */
          uReturn = QCBOR_SUCCESS;
       }
       goto Done2;
@@ -3383,35 +3383,35 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
    /* Reposition to search from the start of the map / array */
    QCBORDecode_Private_RewindMapOrArray(pMe);
 
-   /*
-    Loop over all the items in the map or array. Each item
-    could be a map or array, but label matching is only at
-    the main level. This handles definite- and indefinite-
-    length maps and arrays. The only reason this is ever
-    called on arrays is to find their end position.
-
-    This will always run over all items in order to do
-    duplicate detection.
-
-    This will exit with failure if it encounters an
-    unrecoverable error, but continue on for recoverable
-    errors.
-
-    If a recoverable error occurs on a matched item, then
-    that error code is returned.
+   /* Loop over all the items in the map or array. Each item could be
+    * a map or array, but label matching is only at the main
+    * level. This handles definite- and indefinite- length maps and
+    * arrays. The only reason this is ever called on arrays is to find
+    * their end position.
+    *
+    * This will always run over all items in order to do duplicate
+    * detection.
+    *
+    * This will exit with failure if it encounters an unrecoverable
+    * error, but continue on for recoverable errors.
+    *
+    * If a recoverable error occurs on a matched item, then that error
+    * code is returned.
     */
    const uint8_t uMapNestLevel = DecodeNesting_GetBoundedModeLevel(&(pMe->nesting));
    uint8_t       uNextNestLevel;
    do {
+      QCBORItem   Item;
+      bool        bMatched;
+      QCBORError  uResult;
       /* Remember offset of the item because sometimes it has to be returned */
       const size_t uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
       /* Get the item */
-      QCBORItem Item;
       /* QCBORDecode_Private_GetNextTagContent() rather than GetNext()
        * because a label match is performed on recoverable errors to
        * be able to return the the error code for the found item. */
-      QCBORError uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+      uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsUnrecoverableError(uResult)) {
          /* The map/array can't be decoded when unrecoverable errors occur */
          uReturn = uResult;
@@ -3424,7 +3424,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       }
 
       /* See if item has one of the labels that are of interest */
-      bool bMatched = false;
+      bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
          if(QCBORItem_MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
@@ -3457,31 +3457,26 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
 
       if(!bMatched && pCallBack != NULL) {
-         /*
-          Call the callback on unmatched labels.
-          (It is tempting to do duplicate detection here, but that would
-          require dynamic memory allocation because the number of labels
-          that might be encountered is unbounded.)
-         */
+         /* Call the callback on unmatched labels.
+	       * (It is tempting to do duplicate detection here, but that
+          * would require dynamic memory allocation because the number
+          * of labels that might be encountered is unbounded.) */
          uReturn = (*(pCallBack->pfCallback))(pCallBack->pCBContext, &Item);
          if(uReturn != QCBOR_SUCCESS) {
             goto Done;
          }
       }
 
-      /*
-       Consume the item whether matched or not. This
-       does the work of traversing maps and array and
-       everything in them. In this loop only the
-       items at the current nesting level are examined
-       to match the labels.
-       */
+      /* Consume the item whether matched or not. This does the work
+       * of traversing maps and array and everything in them. In this
+       * loop only the items at the current nesting level are examined
+       * to match the labels. */
       uReturn = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uNextNestLevel);
       if(uReturn != QCBOR_SUCCESS) {
          goto Done;
       }
 
-      if(pInfo) {
+      if(pInfo != NULL) {
          pInfo->uItemCount++;
       }
 
@@ -3491,10 +3486,12 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
    const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
-   // Check here makes sure that this won't accidentally be
-   // QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
-   // QCBOR_MAX_DECODE_INPUT_SIZE.
-   // Cast to uint32_t to possibly address cases where SIZE_MAX < UINT32_MAX
+   /* Check here makes sure that this won't accidentally be
+    * QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
+    * QCBOR_MAX_DECODE_INPUT_SIZE.  Cast to uint32_t to possibly
+    * address cases where SIZE_MAX < UINT32_MAX. It is near-impossible
+    * to test this, so test coverage of this function is not 100%,
+    * but it is 100% when this is commented out. */
    if((uint32_t)uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
       uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;

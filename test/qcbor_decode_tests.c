@@ -7543,6 +7543,12 @@ int32_t EnterMapTest(void)
       return 4306;
    }
 
+   /* Test while in error condition */
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
+      return 4309;
+   }
+
    /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
    QCBORItem Item;
    (void)QCBORDecode_GetAndResetError(&DCtx);
@@ -7554,6 +7560,7 @@ int32_t EnterMapTest(void)
       return 4707;
    }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetItemInMapSZ(&DCtx, "map in a map", QCBOR_TYPE_ANY, &Item);
@@ -7563,6 +7570,8 @@ int32_t EnterMapTest(void)
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 4) {
       return 4807;
    }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
 
    nReturn = EnterMapCursorTest();
 
