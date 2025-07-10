@@ -74,19 +74,19 @@ QCBORDecode_GetNextTagNumberInMapN(QCBORDecodeContext *pMe, const int64_t nLabel
 {
    size_t         uOffset;
    MapSearchInfo  Info;
-   QCBORItem      OneItemSeach[2];
+   QCBORItem      OneItemSearch[2];
    QCBORError     uReturn;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return pMe->uLastError;
    }
 
-   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
-   OneItemSeach[0].label.int64 = nLabel;
-   OneItemSeach[0].uDataType   = QCBOR_TYPE_ANY;
-   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSearch[0].label.int64 = nLabel;
+   OneItemSearch[0].uDataType   = QCBOR_TYPE_ANY;
+   OneItemSearch[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, &Info, NULL);
+   uReturn = QCBORDecode_Private_MapSearch(pMe, OneItemSearch, &Info, NULL);
 
    uOffset = Info.uStartOffset;
    if(uOffset == pMe->uTagNumberCheckOffset) {
@@ -98,10 +98,10 @@ QCBORDecode_GetNextTagNumberInMapN(QCBORDecodeContext *pMe, const int64_t nLabel
    *puTagNumber = CBOR_TAG_INVALID64;
 
    *puTagNumber = QCBORDecode_GetNthTagNumber(pMe,
-                                              &OneItemSeach[0],
+                                              &OneItemSearch[0],
                                               pMe->uTagNumberIndex);
    if(*puTagNumber == CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTagNumber(pMe, &OneItemSeach[0], pMe->uTagNumberIndex+1) == CBOR_TAG_INVALID64 ) {
+      QCBORDecode_GetNthTagNumber(pMe, &OneItemSearch[0], pMe->uTagNumberIndex+1) == CBOR_TAG_INVALID64 ) {
       pMe->uTagNumberIndex = QCBOR_ALL_TAGS_PROCESSED;
    }
    pMe->uTagNumberCheckOffset = uOffset;
@@ -117,19 +117,19 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pMe, const char *szLabel
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    size_t         uOffset;
    MapSearchInfo  Info;
-   QCBORItem      OneItemSeach[2];
+   QCBORItem      OneItemSearch[2];
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return pMe->uLastError;
    }
 
-   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
-   OneItemSeach[0].uDataType    = QCBOR_TYPE_ANY;
-   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSearch[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSearch[0].uDataType    = QCBOR_TYPE_ANY;
+   OneItemSearch[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
    QCBORError uReturn = QCBORDecode_Private_MapSearch(pMe,
-                                                      OneItemSeach,
+                                                      OneItemSearch,
                                                       &Info,
                                                       NULL);
 
@@ -144,10 +144,10 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pMe, const char *szLabel
    *puTagNumber = CBOR_TAG_INVALID64;
 
    *puTagNumber = QCBORDecode_GetNthTagNumber(pMe,
-                                              &OneItemSeach[0],
+                                              &OneItemSearch[0],
                                               pMe->uTagNumberIndex);
    if(*puTagNumber == CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTagNumber(pMe, &OneItemSeach[0], pMe->uTagNumberIndex+1) == CBOR_TAG_INVALID64 ) {
+      QCBORDecode_GetNthTagNumber(pMe, &OneItemSearch[0], pMe->uTagNumberIndex+1) == CBOR_TAG_INVALID64 ) {
       pMe->uTagNumberIndex = 255; /* All tags clear for this item */
    }
    pMe->uTagNumberCheckOffset = uOffset;
