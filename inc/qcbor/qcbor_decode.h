@@ -1080,7 +1080,7 @@ QCBORDecode_PeekNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * at the next item to be decoded as expected.
  *
  * There are some special rules for the traversal cursor when fetching
- * map items by label. See the description of @SpiffyDecode.
+ * map items by label. See the description of @ref SpiffyDecode.
  *
  * When traversal is bounded because an array or map has been entered
  * (e.g., QCBORDecode_EnterMap()) and all items in the array or map
