@@ -7551,6 +7551,11 @@ int32_t EnterMapTest(void)
 
    /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
    QCBORItem Item;
+   QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
+      return 4311;
+   }
+
    (void)QCBORDecode_GetAndResetError(&DCtx);
    QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
@@ -7570,6 +7575,16 @@ int32_t EnterMapTest(void)
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 4) {
       return 4807;
    }
+
+   QCBORDecode_GetItemInMapSZ(&DCtx, "xxx", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 4754;
+   }
+   QCBORDecode_GetItemInMapSZ(&DCtx, "map in a map", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 4754;
+   }
+
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
@@ -10106,6 +10121,12 @@ static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
 #endif /* !QCBOR_DISABLE_TAGS */
 #endif
 
+/* Simple value 1, not well formed */
+static const uint8_t spNWF[] = {0xf8, 0x01};
+
+static const uint8_t spArrayWithNWF[] = {0x81, 0xff};
+
+
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 int32_t GetMapAndArrayTest(void)
 {
@@ -10196,6 +10217,42 @@ int32_t GetMapAndArrayTest(void)
    QCBORDecode_GetAndResetError(&DCtx);
    if(uPosition != QCBORDecode_Tell(&DCtx)) {
       return 42;
+   }
+
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item);
+   QCBORDecode_GetMap(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 66;
+   }
+   QCBORDecode_ExitMap(&DCtx);
+
+
+   QCBORDecode_Rewind(&DCtx);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 66;
+   }
+
+   /* erererere*/
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNWF),
+                    0);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_TYPE_7) {
+      return 67;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayWithNWF),
+                    0);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_BREAK) {
+      return 67;
    }
 
 
