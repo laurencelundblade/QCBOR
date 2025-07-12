@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_spiffy_decode.h -- higher-level easier-to-use CBOR decoding.
  *
- * Copyright (c) 2020-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2020-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
