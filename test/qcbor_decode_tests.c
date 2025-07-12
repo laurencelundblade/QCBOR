@@ -10121,13 +10121,14 @@ static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
 #endif /* !QCBOR_DISABLE_TAGS */
 #endif
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+
 /* Simple value 1, not well formed */
 static const uint8_t spNWF[] = {0xf8, 0x01};
 
 static const uint8_t spArrayWithNWF[] = {0x81, 0xff};
 
 
-#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -10446,7 +10447,7 @@ int32_t GetMapAndArrayTest(void)
 }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
-   
+
 int32_t
 ErrorHandlingTests(void)
 {
