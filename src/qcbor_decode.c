@@ -3458,7 +3458,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
       if(!bMatched && pCallBack != NULL) {
          /* Call the callback on unmatched labels.
-	       * (It is tempting to do duplicate detection here, but that
+          * (It is tempting to do duplicate detection here, but that
           * would require dynamic memory allocation because the number
           * of labels that might be encountered is unbounded.) */
          uReturn = (*(pCallBack->pfCallback))(pCallBack->pCBContext, &Item);
