@@ -8017,6 +8017,12 @@ int32_t EnterMapTest(void)
 
    /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
    QCBORItem Item;
+   QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
+      return 4311;
+   }
+
+   /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
    (void)QCBORDecode_GetAndResetError(&DCtx);
    QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
@@ -8036,6 +8042,17 @@ int32_t EnterMapTest(void)
    if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 4) {
       return 4807;
    }
+
+   QCBORDecode_GetItemInMapSZ(&DCtx, "xxx", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 4754;
+   }
+   QCBORDecode_GetItemInMapSZ(&DCtx, "map in a map", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 4754;
+   }
+
+
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    nReturn = EnterMapCursorTest();
