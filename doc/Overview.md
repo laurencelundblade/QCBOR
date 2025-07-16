@@ -109,6 +109,8 @@ CBOR allows a label to be any type of data including an array or a
 map. It is possible to use this API to construct and parse such
 labels, but it is not explicitly supported.
 
+@anchor Limitations
+
 ## Limitations
 
 Summary limitations:

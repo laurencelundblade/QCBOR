@@ -7478,6 +7478,53 @@ static int32_t EnterMapCursorTest(void)
 }
 
 
+QCBORError CBTest(void *pCallbackCtx, const QCBORItem *pItem)
+{
+   (void)pCallbackCtx;
+   (void)pItem;
+   return QCBOR_SUCCESS;
+}
+
+
+struct CbTest2Ctx {
+   bool found2;
+   bool found4;
+   bool error;
+};
+
+QCBORError CBTest2(void *pCallbackCtx, const QCBORItem *pItem)
+{
+   struct CbTest2Ctx *pCtx;
+
+   pCtx = (struct CbTest2Ctx *)pCallbackCtx;
+
+   if(pItem->uLabelType != QCBOR_TYPE_INT64) {
+      pCtx->error = true;
+      return QCBOR_SUCCESS;
+   }
+
+   switch(pItem->label.int64) {
+
+      case 2:
+         pCtx->found2 = true;
+         break;
+
+      case 4:
+         pCtx->found4 = true;
+         break;
+
+      case 3:
+         /* To test error return out of callback */
+         return QCBOR_ERR_CALLBACK_FAIL;
+
+      default:
+         pCtx->error = true;
+
+   }
+   return QCBOR_SUCCESS;
+}
+
+
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
@@ -7855,6 +7902,158 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_LABEL_TYPE) {
       return 3000;
    }
+
+   QCBORItem SearchItems[4];
+
+   /* GetItems on an empty map */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   SearchItems[0].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[0].label.int64 = 0;
+   SearchItems[0].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[1].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4000;
+   }
+   if(SearchItems[0].uDataType != QCBOR_TYPE_NONE) {
+      return 4001;
+   }
+
+   /* Get Items with call back on empty map */
+   SearchItems[0].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[0].label.int64 = 0;
+   SearchItems[0].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[1].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORDecode_GetItemsInMapWithCallback(&DCtx, SearchItems, NULL, CBTest);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4002;
+   }
+   if(SearchItems[0].uDataType != QCBOR_TYPE_NONE) {
+      return 4003;
+   }
+
+   /* Test exiting an empty map */
+   QCBORDecode_ExitMap(&DCtx);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4702;
+   }
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spNested), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* GetItems test */
+   SearchItems[0].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[0].label.int64 = 3;
+   SearchItems[0].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[1].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[1].label.int64 = 1;
+   SearchItems[1].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[2].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[2].label.int64 = 99;
+   SearchItems[2].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[3].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4104;
+   }
+   if(SearchItems[0].uDataType != QCBOR_TYPE_INT64 ||
+      SearchItems[1].uDataType != QCBOR_TYPE_INT64 ||
+      SearchItems[0].val.int64 != 3 ||
+      SearchItems[1].val.int64 != 1 ||
+      SearchItems[2].uDataType != QCBOR_TYPE_NONE) {
+      return 4103;
+   }
+
+
+   /* Test callback */
+   SearchItems[0].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[0].label.int64 = 3;
+   SearchItems[0].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[1].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[1].label.int64 = 1;
+   SearchItems[1].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[2].uLabelType  = QCBOR_TYPE_NONE;
+
+   struct CbTest2Ctx CTX;
+   CTX.error  = false;
+   CTX.found2 = false;
+   CTX.found4 = false;
+   QCBORDecode_GetItemsInMapWithCallback(&DCtx, SearchItems, &CTX, CBTest2);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4204;
+   }
+   if(!CTX.found2 || !CTX.found4) {
+      return 4201;
+   }
+
+   if(SearchItems[0].uDataType != QCBOR_TYPE_INT64 || SearchItems[1].uDataType != QCBOR_TYPE_INT64) {
+      return 4203;
+   }
+
+   /* Test error-exit from callback */
+   SearchItems[0].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[0].label.int64 = 2;
+   SearchItems[0].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[1].uLabelType  = QCBOR_TYPE_INT64;
+   SearchItems[1].label.int64 = 1;
+   SearchItems[1].uDataType   = QCBOR_TYPE_ANY;
+   SearchItems[2].uLabelType  = QCBOR_TYPE_NONE;
+
+   CTX.error  = false;
+   CTX.found2 = false;
+   CTX.found4 = false;
+   QCBORDecode_GetItemsInMapWithCallback(&DCtx, SearchItems, &CTX, CBTest2);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
+      return 4306;
+   }
+
+   /* Test while in error condition */
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
+      return 4309;
+   }
+
+   /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
+   QCBORItem Item;
+   QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
+      return 4311;
+   }
+
+   /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
+   (void)QCBORDecode_GetAndResetError(&DCtx);
+   QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4704;
+   }
+   if(Item.uDataType != QCBOR_TYPE_INT64 || Item.val.int64 != 1) {
+      return 4707;
+   }
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetItemInMapSZ(&DCtx, "map in a map", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4804;
+   }
+   if(Item.uDataType != QCBOR_TYPE_MAP || Item.val.uCount != 4) {
+      return 4807;
+   }
+
+   QCBORDecode_GetItemInMapSZ(&DCtx, "xxx", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 4754;
+   }
+   QCBORDecode_GetItemInMapSZ(&DCtx, "map in a map", QCBOR_TYPE_ANY, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 4754;
+   }
+
+
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    nReturn = EnterMapCursorTest();
 
@@ -11391,6 +11590,17 @@ int32_t GetMapAndArrayTest(void)
       return 102;
    }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+   /* ------ */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetArrayFromMapSZ(&DCtx, "xx", &Item, &ReturnedEncodedCBOR);
+
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
+      return 106;
+   }
 
    return 0;
 }
