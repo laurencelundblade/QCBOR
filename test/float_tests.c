@@ -361,32 +361,42 @@ static const struct NaNTestCase NaNTestCases[] =  {
    /* Payload with single rightmost set */
    {0x7ff8000000000001,                          0x00000000,
     {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+    {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 leftmost bits set -- converts to half */
    {0x7ffffc0000000000,                          0x00000000,
     {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 rightmost bits set -- cannot convert to half */
    {0x7ff80000000003ff,                          0x00000000,
     {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+    {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xF9\x7E\x00", 3}},
 
    /* Payload with 23 leftmost bits set -- converts to a single */
-   {0x7ffFFFFFE0000000,                          0x7fffffff,
+   {0x7fffffffe0000000,                          0x7fffffff,
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
+
+   /* Payload with 23rd leftmost bit set -- converts to a single */
+   {0x7ff8000020000000,                          0x7fc00001,
+    {"\xFA\x7F\xC0\x00\x01", 5},                 {"\xFB\x7F\xF8\x00\x00\x20\x00\x00\x00", 9},
+    {"\xFA\x7F\xC0\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
+
+   /* Payload with randomly chosen bit pattern -- converts to a single */
+   {0x7ff83d7c40000000,                          0x7fc1ebe2,
+    {"\xFA\x7F\xC1\xEB\xE2", 5},                 {"\xFB\x7F\xF8\x3D\x7C\x40\x00\x00\x00", 9},
+    {"\xFA\x7F\xC1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* Payload with 24 leftmost bits set -- fails to convert to a single */
-   {0x7ffFFFFFF0000000,                          0x00000000,
+   {0x7ffffffff0000000,                          0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+    {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xF9\x7E\x00", 3}},
 
    /* Payload with all bits set */
    {0x7fffffffffffffff,                          0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
+    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xF9\x7E\x00", 3}},
 
    /* List terminator */
    {0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
@@ -567,8 +577,7 @@ FloatValuesTests(void)
    for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pNaNTestCase = &NaNTestCases[uTestIndex];
 
-
-      if(uTestIndex == 4) {
+      if(uTestIndex == 2) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
@@ -591,12 +600,12 @@ FloatValuesTests(void)
           * instructions that do conversion between double and single.
           * It is off because it is only used on occasion to verify
           * QCBOR and because it is suspected that some HW/CPU does
-          * implement this correctly. NaN payloads are an obscure
+          * not implement this correctly. NaN payloads are an obscure
           * feature. */
          float f;
          double d, d2;
 
-         d = UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uNumber);
+         d = UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble);
 
          /* Cast the double to a single and then back to a double and
           * see if they are equal. If so, then the NaN payload doesn't
@@ -609,17 +618,26 @@ FloatValuesTests(void)
          f = (float)d;
          d2 = (double)f;
 
-         /* The length of encoded doubles is 9, singles 5 and halves
-          * 3. If there are NaN payload bits that can't be converted,
-          * then the length must be 9.
+         /* This checks the detection of the condition when the
+          * NaN payload can't be converted to a single.
           */
-         if((uint64_t)d != (uint64_t)d2 && pNaNTestCase->Preferred.len != 9) {
-            /* QCBOR conversion not the same as HW conversion */
-            return MakeTestResultCode(uTestIndex, 9, 200);
+         if(pNaNTestCase->Preferred.len == 9) {
+            if(UsefulBufUtil_CopyDoubleToUint64(d) == UsefulBufUtil_CopyDoubleToUint64(d2)) {
+               /* QCBOR conversion not the same as HW conversion */
+               return MakeTestResultCode(uTestIndex, 9, 200);
+            }
+         }
+
+         /* This checks the reduction from double to single when it can
+          * be done with no loss of NaN payload bits. */
+         if(pNaNTestCase->Preferred.len == 5) {
+            if(UsefulBufUtil_CopyFloatToUint32(f) != pNaNTestCase->uSingle) {
+               /* QCBOR conversion not the same as HW conversion */
+               return MakeTestResultCode(uTestIndex, 19, 200);
+            }
          }
       }
 #endif /* QCBOR_COMPARE_TO_HW_NAN_CONVERSION */
-
 
       /* NaN Encode of Not Preferred */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
@@ -681,6 +699,17 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex+100, 13, 200);
       }
 
+      /* NaN Encode of CDE */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+      QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex+100, 14, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pNaNTestCase->CDE)) {
+         return MakeTestResultCode(uTestIndex+100, 14, 200);
+      }
 
       /* NaN Encode of DCBOR */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
@@ -688,12 +717,11 @@ FloatValuesTests(void)
       QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex+100, 14, uErr);;
+         return MakeTestResultCode(uTestIndex+100, 15, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pNaNTestCase->DCBOR)) {
-         return MakeTestResultCode(uTestIndex+100, 14, 200);
+         return MakeTestResultCode(uTestIndex+100, 15, 200);
       }
-
    }
 
    return 0;
