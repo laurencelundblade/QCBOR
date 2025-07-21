@@ -77,8 +77,22 @@ qcbor_err_to_str(const QCBORError uErr) {
       if(uErr >= QCBOR_ERR_FIRST_USER_DEFINED && uErr <= QCBOR_ERR_LAST_USER_DEFINED) {
          /* Static buffer is not thread safe, but this is only a diagnostic */
          static char buf[20];
+         // The MSC compiler will flag the following string function calls as unsafe
+         // since their safe versions are not used (i.e., strcpy_s, _strnlen). If the
+         // /sdl flag is specified, the compilation step will fail altogether. The code
+         // is actually safe since the 20 byte buffer is large enough to hold the
+         // string "USER_DEFINED_" plus the 3 digits of the error code followed by the
+         // null terminator. Hence, to avoid issues, the MSC compiler is instructed to
+         // ignore the C4996 warning.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996) // disable C4996 (unsafe function)
+#endif
          strcpy(buf, "USER_DEFINED_");
          size_t uEndOffset = strlen(buf);
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
          buf[uEndOffset]   = (char)(uErr/100 + '0');
          buf[uEndOffset+1] = (char)(((uErr/10) % 10) + '0');
          buf[uEndOffset+2] = (char)((uErr % 10 )+ '0');
