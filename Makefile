@@ -1,6 +1,6 @@
 # Makefile -- UNIX-style make for qcbor as a lib and command line test
 #
-# Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -44,6 +44,8 @@ TEST_OBJ=test/UsefulBuf_Tests.o \
          tag-examples.o \
          ub-example.o
 
+COV_FILES=test/*.gcno src/*.gcno test/*.gcda src/*.gcda *.gcno *.gcda *.gcov
+
 .PHONY: all so install uninstall clean warn
 
 all: qcbortest libqcbor.a
@@ -53,6 +55,9 @@ so:	libqcbor.so
 qcbortest: libqcbor.a $(TEST_OBJ) cmd_line_main.o
 	$(CC) -o $@ $^ libqcbor.a $(LIBS)
 
+qcborcov: $(QCBOR_OBJ) $(TEST_OBJ) cmd_line_main.o
+	$(CC) -fprofile-arcs -ftest-coverage -o $@ $^ $(LIBS)
+
 libqcbor.a: $(QCBOR_OBJ)
 	ar -r $@ $^
 
@@ -60,6 +65,10 @@ libqcbor.a: $(QCBOR_OBJ)
 # used in the QCBOR release process. See CFLAGS above.
 warn:
 	make CMD_LINE="$(CMD_LINE) -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
+
+# run "make coverage" to build for gcov test coverage tool
+coverage:
+	make CMD_LINE="$(CMD_LINE) -fprofile-arcs -ftest-coverage" qcborcov
 
 
 # The shared library is not made by default because of platform
@@ -184,4 +193,4 @@ uninstall: libqcbor.a $(PUBLIC_INTERFACE)
 		libqcbor.a libqcbor.so libqcbor.so.1 libqcbor.so.1.0.0)
 
 clean:
-	rm -f $(QCBOR_OBJ) $(TEST_OBJ) libqcbor.a cmd_line_main.o libqcbor.a libqcbor.so qcbormin qcbortest
+	rm -f $(QCBOR_OBJ) $(TEST_OBJ) $(COV_FILES) libqcbor.a cmd_line_main.o libqcbor.a libqcbor.so qcbormin qcbortest
