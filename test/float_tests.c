@@ -1,7 +1,7 @@
 /* ==========================================================================
  * float_tests.c -- tests for float and conversion to/from half-precision
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -77,10 +77,14 @@ struct FloatTestCase {
  */
 
 /* Always four lines per test case so shell scripts can process into
- * other formats. CDE and DCBOR standards are not complete yet,
- * encodings are what is expected.  C string literals are used because they
- * are the shortest notation. They are used __with a length__ . Null
- * termination doesn't work because there are zero bytes.
+ * other formats.
+ *
+ * C string literals are used because they are the shortest
+ * notation. They are used __with a length__ . Null termination
+ * doesn't work because there are zero bytes.
+ *
+ * While the CDE and dCBOR standards are not complete as of mid-2025,
+ * they are unlikely to change, so the tests here are likely correct.
  */
 static const struct FloatTestCase FloatTestCases[] =  {
    /* Zero */
@@ -217,7 +221,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
    {16777217,                                    0.0f,
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9},
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\x1A\x01\x00\x00\x01", 5}},
- 
+
    /* 33554430 -- exponent 24 to test single exponent boundary */
    {33554430,                                    33554430.0f,
     {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\xFB\x41\x7F\xFF\xFF\xE0\x00\x00\x00", 9},
@@ -248,7 +252,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
-   /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision to represent 18014398509481983) */
+   /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision for 18014398509481983) */
    {18014398509481982,                           0,
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
@@ -257,7 +261,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
    {18014398509481984,                           18014398509481984.0f,
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
-   
+
    /* 18446742974197924000.0.0 -- largest single that can convert to uint64 */
    {18446742974197924000.0,                      18446742974197924000.0f,
     {"\xFA\x5F\x7F\xFF\xFF",                 5}, {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
@@ -333,8 +337,46 @@ static const struct FloatTestCase FloatTestCases[] =  {
 };
 
 
-/* Can't use the types double and float here because there's no way in C to
- * construct arbitrary payloads for those types.
+
+
+#define SINGLE_NUM_SIGNIFICAND_BITS (23)
+#define SINGLE_NUM_EXPONENT_BITS    (8)
+#define SINGLE_NUM_SIGN_BITS        (1)
+
+#define SINGLE_SIGNIFICAND_SHIFT    (0)
+#define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
+#define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
+
+#define SINGLE_SIGNIFICAND_MASK     (0x7fffffU) // The lower 23 bits
+#define SINGLE_EXPONENT_MASK        (0xffU << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
+#define SINGLE_SIGN_MASK            (0x01U << SINGLE_SIGN_SHIFT) // 1 bit of sign
+
+#define SINGLE_NAN_BITS             SINGLE_EXPONENT_MASK /* NAN bits except payload */
+
+
+
+#define DOUBLE_NUM_SIGNIFICAND_BITS (52)
+#define DOUBLE_NUM_EXPONENT_BITS    (11)
+#define DOUBLE_NUM_SIGN_BITS        (1)
+
+#define DOUBLE_SIGNIFICAND_SHIFT    (0)
+#define DOUBLE_EXPONENT_SHIFT       (DOUBLE_NUM_SIGNIFICAND_BITS)
+#define DOUBLE_SIGN_SHIFT           (DOUBLE_NUM_SIGNIFICAND_BITS + DOUBLE_NUM_EXPONENT_BITS)
+
+#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffULL) /* The lower 52 bits */
+#define DOUBLE_EXPONENT_MASK        (0x7ffULL << DOUBLE_EXPONENT_SHIFT) /* 11 bits of exponent */
+
+#define DOUBLE_NAN_BITS             DOUBLE_EXPONENT_MASK /* NAN bits except payload */
+
+
+
+
+/* Can't use the types double and float here because there's no compile
+ * time initializer in C to construct NaNs.
+
+ * The tests: encode the double in the 4 different ways and see the result is as expected
+ *            encode the single in the 4 different ways and see the result is as expected
+ *            decode the preferred and non-preferred (CDE is always the same as preferred; DCBOR is not reversable)
  */
 struct NaNTestCase {
    uint64_t    uDouble; /* Converted to double in test */
@@ -346,55 +388,60 @@ struct NaNTestCase {
 };
 
 /* Always four lines per test case so shell scripts can process into
- * other formats. CDE and DCBOR standards are not complete yet,
- * encodings are a guess. C string literals are used because they
- * are the shortest notation. They are used __with a length__ . Null
- * termination doesn't work because there are zero bytes.
+ * other formats.
+ *
+ * C string literals are used because they are the shortest
+ * notation. They are used __with a length__ . Null termination
+ * doesn't work because there are bytes with value zero.
+ *
+ * While the CDE and dCBOR standards are not complete as of mid-2025,
+ * they are unlikely to change, so the tests here are likely correct.
  */
 static const struct NaNTestCase NaNTestCases[] =  {
+   /* Reminder: DOUBLE_NAN_BITS | x00 is INIFINITY, not a NaN */
 
-   /* Payload with most significant bit set, a qNaN by most implementations */
-   {0x7ff8000000000000,                          0x00000000,
+   /* Payload with leftmost significant bit set, a qNaN by most implementations */
+   {DOUBLE_NAN_BITS | 0x8000000000000,           0x00000000,
     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
-   /* Payload with single rightmost set */
-   {0x7ff8000000000001,                          0x00000000,
-    {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
-    {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
+   /* Payload with single rightmost bit set */
+   {DOUBLE_NAN_BITS | 0x01,                      0x00000000,
+    {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 leftmost bits set -- converts to half */
-   {0x7ffffc0000000000,                          0x00000000,
+   {DOUBLE_NAN_BITS | 0xffc0000000000,           0x00000000,
     {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 rightmost bits set -- cannot convert to half */
-   {0x7ff80000000003ff,                          0x00000000,
-    {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9},
-    {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xF9\x7E\x00", 3}},
+   {DOUBLE_NAN_BITS | 0x03ff,                    0x00000000,
+    {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9},
+    {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xF9\x7E\x00", 3}},
 
    /* Payload with 23 leftmost bits set -- converts to a single */
-   {0x7fffffffe0000000,                          0x7fffffff,
+   {DOUBLE_NAN_BITS | 0xfffffe0000000,           SINGLE_NAN_BITS | 0x7fffff,
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* Payload with 23rd leftmost bit set -- converts to a single */
-   {0x7ff8000020000000,                          0x7fc00001,
-    {"\xFA\x7F\xC0\x00\x01", 5},                 {"\xFB\x7F\xF8\x00\x00\x20\x00\x00\x00", 9},
-    {"\xFA\x7F\xC0\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
+   {DOUBLE_NAN_BITS | 0x0000020000000,           SINGLE_NAN_BITS | 0x01,
+    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
+    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* Payload with randomly chosen bit pattern -- converts to a single */
-   {0x7ff83d7c40000000,                          0x7fc1ebe2,
-    {"\xFA\x7F\xC1\xEB\xE2", 5},                 {"\xFB\x7F\xF8\x3D\x7C\x40\x00\x00\x00", 9},
-    {"\xFA\x7F\xC1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
+   {DOUBLE_NAN_BITS | 0x43d7c40000000,           SINGLE_NAN_BITS | 0x21ebe2,
+    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
+    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* Payload with 24 leftmost bits set -- fails to convert to a single */
-   {0x7ffffffff0000000,                          0x00000000,
+   {DOUBLE_NAN_BITS | 0xffffff0000000,           0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
     {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xF9\x7E\x00", 3}},
 
-   /* Payload with all bits set */
-   {0x7fffffffffffffff,                          0x00000000,
+   /* Payload with all bits set -- no conversion */
+   {DOUBLE_NAN_BITS | 0xfffffffffffff,           0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xF9\x7E\x00", 3}},
 
@@ -425,13 +472,13 @@ FloatValuesTests(void)
    uint64_t                     uDecoded;
 #ifdef QCBOR_DISABLE_FLOAT_HW_USE
    uint32_t                     uDecoded2;
-#endif
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-   /* Test a variety of doubles */
+   /* Test a variety of doubles and some singles */
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
-      if(uTestIndex == 48) {
+      if(uTestIndex == 17) {
          uDecoded = 1;
       }
 
@@ -577,7 +624,7 @@ FloatValuesTests(void)
    for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pNaNTestCase = &NaNTestCases[uTestIndex];
 
-      if(uTestIndex == 2) {
+      if(uTestIndex == 5) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
@@ -651,7 +698,7 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex+100, 11, 200);
       }
 
-      /* NaN Decode of Not Preferred */
+      /* NaN Decode of Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
@@ -665,7 +712,7 @@ FloatValuesTests(void)
       if(uDecoded != pNaNTestCase->uDouble) {
          return MakeTestResultCode(uTestIndex+100, 12, 200);
       }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
       if(pNaNTestCase->Preferred.len == 5) {
          if(Item.uDataType != QCBOR_TYPE_FLOAT) {
             return MakeTestResultCode(uTestIndex, 4, 0);
@@ -685,7 +732,7 @@ FloatValuesTests(void)
             return MakeTestResultCode(uTestIndex+100, 12, 200);
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
       /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
@@ -730,7 +777,7 @@ FloatValuesTests(void)
 
 
 /* Public function. See float_tests.h */
-int32_t 
+int32_t
 HalfPrecisionAgainstRFCCodeTest(void)
 {
    QCBORItem          Item;
@@ -794,10 +841,10 @@ HalfPrecisionAgainstRFCCodeTest(void)
  *  NaN,  // Double
  *  Infinity, // Double
  *  0.0,  // Half (Duplicate because of use in encode tests)
- *  3.140000104904175, // Single
- *  0.0,  // Single
- *  NaN,  // Single
- *  Infinity, // Single
+ *  3.140000104904175, // Single  XXX
+ *  0.0,  // Single  XXX
+ *  NaN,  // Single XXX
+ *  Infinity, // Single XXX
  *  {100: 0.0, 101: 3.1415926, "euler": 2.718281828459045, 105: 0.0,
  *   102: 0.0, 103: 3.141592502593994, "euler2": 2.7182817459106445, 106: 0.0}]
  */
@@ -868,7 +915,7 @@ int32_t
 GeneralFloatEncodeTests(void)
 {
    /* See FloatNumberTests() for tests that really cover lots of float values.
-    * Add new tests for new values or decode modes there. 
+    * Add new tests for new values or decode modes there.
     * This test is primarily to cover all the float encode methods. */
 
    UsefulBufC Encoded;
@@ -932,7 +979,7 @@ GeneralFloatEncodeTests(void)
 
 
 /* Public function. See float_tests.h */
-int32_t 
+int32_t
 GeneralFloatDecodeTests(void)
 {
    /* See FloatNumberTests() for tests that really cover lots of float values */
@@ -1228,12 +1275,38 @@ GeneralFloatDecodeTests(void)
 #define DOUBLE_SIGN_MASK            (0x01ULL << DOUBLE_SIGN_SHIFT) // 1 bit of sign
 #define DOUBLE_QUIET_NAN_BIT        (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS-1))
 
+#include <stdlib.h>
+#include <stdio.h>
 
-static int NaNExperiments() {
-    double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
-    double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
-    double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
+static int
+NaNExperiments(void)
+{
+   // double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
+   // double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
+   // double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
 
+
+   for(int i = 999; i < 1000; i++) {
+      uint64_t x1 = (uint64_t)rand() % SINGLE_SIGNIFICAND_MASK;
+
+      uint64_t uDub = DOUBLE_EXPONENT_MASK | (x1 << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS));
+
+      double dd = UsefulBufUtil_CopyUint64ToDouble(uDub);
+
+      float ff = (float)dd;
+
+      uint32_t uu = UsefulBufUtil_CopyFloatToUint32(ff);
+
+      uint64_t x2 = uu & SINGLE_SIGNIFICAND_MASK;
+
+      if(x2 != x1) {
+         printf("%d: %llx %llx %llx\n", i, x1, x2, x1 ^ x2);
+      }
+
+
+   }
+
+#if 0
     float f1 = (float)dqNaN;
     float f2 = (float)dsNaN;
     float f3 = (float)dqNaNPayload;
@@ -1246,6 +1319,7 @@ static int NaNExperiments() {
     // Result of this on x86 is that every NaN is a qNaN. The intel
     // CVTSD2SS instruction ignores the NaN payload and even converts
     // a sNaN to a qNaN.
+#endif
 
     return 0;
 }

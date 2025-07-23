@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.h -- Conversion between half, double & single-precision floats
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -70,6 +70,24 @@
  */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision);
+
+
+/**
+ * @brief Convert single-precision float to double-precision float.
+ *
+ * @param[in] f   Single-precision number to convert.
+ *
+ * @returns double-precision value.
+ *
+ * This is a lossless conversion because every single-precision value
+ * can be represented as a double. There is no error condition.
+ *
+ * This is in lieu of a cast that usually results in CPU instructions
+ * that convert. These instructions don't reliably handle NaN payloads.
+ * This does.
+ */
+double
+IEEE754_FloatToDouble(float f);
 
 
 /** Holds a floating-point value that could be half, single or

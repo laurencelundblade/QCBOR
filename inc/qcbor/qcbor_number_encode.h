@@ -75,7 +75,7 @@ extern "C" {
  *
  * With CBOR preferred serialization, the encoder outputs the smallest
  * representation of the double or float that preserves precision. Zero,
- * NaN and infinity are always output as a half-precision, each taking
+ * NaN and infinity are always encoded as a half-precision, each taking
  * just 2 bytes. This reduces the number of bytes needed to encode
  * double and single-precision, especially if zero, NaN and infinity are
  * frequently used.

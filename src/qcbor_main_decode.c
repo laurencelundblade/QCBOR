@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -832,37 +832,32 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          /* Single precision is normally returned as a double since
           * double is widely supported, there is no loss of precision,
-          * it makes it easy for the caller in most cases and it can
+          * it makes it easy for the caller and it can
           * be converted back to single with no loss of precision
           *
           * The cast to uint32_t is safe because the encoded value was
           * 32 bits. It was widened to 64 bits to be passed in here.
           */
+         // TODO: see if passing uArgument as a uint32_t around is less code
          single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
          uReturn = QCBORDecode_Private_SingleConformance(single, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
 
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-         /* In the normal case, use HW to convert float to
-          * double. */
-         pDecodedItem->val.dfnum = (double)single;
+         pDecodedItem->val.dfnum = IEEE754_FloatToDouble(single);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         /* Use of float HW is disabled, return as a float. */
+
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         /* QCBOR's SW float conversion is disabled */
          pDecodedItem->val.fnum  = single;
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         /* IEEE754_FloatToDouble() could be used here to return as
-          * a double, but it adds object code and most likely
-          * anyone disabling FLOAT HW use doesn't care about floats
-          * and wants to save object code.
-          */
-#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS); // TODO: right errors for fannout?
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
