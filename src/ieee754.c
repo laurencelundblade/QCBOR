@@ -440,7 +440,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
                                                  HALF_QUIET_NAN_BIT,
                                                  HALF_EXPONENT_INF_OR_NAN);
          } else {
-            /* The NaN can only be converted if no payload bits are lost
+            /* The NaN can only be converted if no significand bits are lost
              * per RFC 8949 section 4.1 that defines Preferred
              * Serializaton. Note that Deterministically Encode CBOR in
              * section 4.2 allows for some variation of this rule, but at
@@ -449,6 +449,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
              * expecting an update to CDE. This code may need to be
              * updated for CDE.
              */
+            // 23 bits shifted by 10 leaves 13 bits that are to be dropped: 0x1fff
             uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
             if(uDroppedBits == 0) {
                /* --- IS CONVERTABLE NAN --- */
@@ -923,7 +924,7 @@ IEEE754_SingleToInt(const float f)
             uInteger <<= nSingleUnbiasedExponent - SINGLE_NUM_SIGNIFICAND_BITS;
          }
          if(bIsNegative) {
-         /* Cast safe because exponent range check above */
+            /* Cast safe because exponent range check above */
             if(nSingleUnbiasedExponent == 63) {
                Result.integer.un_signed = uInteger;
                Result.type              = IEEE754_ToInt_IS_65BIT_NEG;

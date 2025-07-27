@@ -11025,6 +11025,13 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       {0, 0, 0}
    },
    {
+      "0.0000000000",
+      {"\xfb\x00\x00\00\00\00\00\00\00", 9},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {0, 0, 0}
+   },
+   {
       "NaN",
       {"\xf9\x7e\x00", 3},
       QCBOR_SUCCESS,

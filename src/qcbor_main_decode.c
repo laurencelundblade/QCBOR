@@ -832,6 +832,11 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
+         single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
+         uReturn = QCBORDecode_Private_SingleConformance(single, uConfigFlags);
+         if(uReturn != QCBOR_SUCCESS) {
+            break;
+         }
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          /* Single precision is normally returned as a double since
           * double is widely supported, there is no loss of precision,
@@ -842,11 +847,6 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
           * 32 bits. It was widened to 64 bits to be passed in here.
           */
          // TODO: see if passing uArgument as a uint32_t around is less code
-         single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-         uReturn = QCBORDecode_Private_SingleConformance(single, uConfigFlags);
-         if(uReturn != QCBOR_SUCCESS) {
-            break;
-         }
 
          pDecodedItem->val.dfnum = IEEE754_FloatToDouble(single);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
