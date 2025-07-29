@@ -43,8 +43,148 @@ MakeTestResultCode(uint32_t   uTestCase,
 #include "half_to_double_from_rfc7049.h"
 
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+
+
+/* ----- Half Precsion ----------- */
+#define HALF_NUM_SIGNIFICAND_BITS (10)
+#define HALF_NUM_EXPONENT_BITS    (5)
+#define HALF_NUM_SIGN_BITS        (1)
+
+#define HALF_SIGNIFICAND_SHIFT    (0)
+#define HALF_EXPONENT_SHIFT       (HALF_NUM_SIGNIFICAND_BITS)
+#define HALF_SIGN_SHIFT           (HALF_NUM_SIGNIFICAND_BITS + HALF_NUM_EXPONENT_BITS)
+
+#define HALF_SIGNIFICAND_MASK     (0x3ffU) // The lower 10 bits
+#define HALF_EXPONENT_MASK        (0x1fU << HALF_EXPONENT_SHIFT) // 0x7c00 5 bits of exponent
+#define HALF_SIGN_MASK            (0x01U << HALF_SIGN_SHIFT) // 0x8000 1 bit of sign
+#define HALF_QUIET_NAN_BIT        (0x01U << (HALF_NUM_SIGNIFICAND_BITS-1)) // 0x0200
+
+/* Biased    Biased    Unbiased   Use
+ *  0x00       0        -15       0 and subnormal
+ *  0x01       1        -14       Smallest normal exponent
+ *  0x1e      30         15       Largest normal exponent
+ *  0x1F      31         16       NaN and Infinity  */
+#define HALF_EXPONENT_BIAS        (15)
+#define HALF_EXPONENT_MAX         (HALF_EXPONENT_BIAS)    //  15 Unbiased
+#define HALF_EXPONENT_MIN         (-HALF_EXPONENT_BIAS+1) // -14 Unbiased
+#define HALF_EXPONENT_ZERO        (-HALF_EXPONENT_BIAS)   // -15 Unbiased
+#define HALF_EXPONENT_INF_OR_NAN  (HALF_EXPONENT_BIAS+1)  //  16 Unbiased
+
+
+/* ------ Single-Precision -------- */
+#define SINGLE_NUM_SIGNIFICAND_BITS (23)
+#define SINGLE_NUM_EXPONENT_BITS    (8)
+#define SINGLE_NUM_SIGN_BITS        (1)
+
+#define SINGLE_SIGNIFICAND_SHIFT    (0)
+#define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
+#define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
+
+#define SINGLE_SIGNIFICAND_MASK     (0x7fffffU) // The lower 23 bits
+#define SINGLE_EXPONENT_MASK        (0xffU << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
+#define SINGLE_SIGN_MASK            (0x01U << SINGLE_SIGN_SHIFT) // 1 bit of sign
+#define SINGLE_QUIET_NAN_BIT        (0x01U << (SINGLE_NUM_SIGNIFICAND_BITS-1))
+
+/* Biased  Biased   Unbiased  Use
+ *  0x0000     0     -127      0 and subnormal
+ *  0x0001     1     -126      Smallest normal exponent
+ *  0x7f     127        0      1
+ *  0xfe     254      127      Largest normal exponent
+ *  0xff     255      128      NaN and Infinity  */
+#define SINGLE_EXPONENT_BIAS        (127)
+#define SINGLE_EXPONENT_MAX         (SINGLE_EXPONENT_BIAS)
+#define SINGLE_EXPONENT_MIN         (-SINGLE_EXPONENT_BIAS+1)
+#define SINGLE_EXPONENT_ZERO        (-SINGLE_EXPONENT_BIAS)
+#define SINGLE_EXPONENT_INF_OR_NAN  (SINGLE_EXPONENT_BIAS+1)
+
+#define SINGLE_NAN_BITS             SINGLE_EXPONENT_MASK /* NAN bits except payload */
+#define SINGLE_QNAN                 0x400000
+#define SINGLE_SNAN                 0x000000
+
+
+/* --------- Double-Precision ---------- */
+#define DOUBLE_NUM_SIGNIFICAND_BITS (52)
+#define DOUBLE_NUM_EXPONENT_BITS    (11)
+#define DOUBLE_NUM_SIGN_BITS        (1)
+
+#define DOUBLE_SIGNIFICAND_SHIFT    (0)
+#define DOUBLE_EXPONENT_SHIFT       (DOUBLE_NUM_SIGNIFICAND_BITS)
+#define DOUBLE_SIGN_SHIFT           (DOUBLE_NUM_SIGNIFICAND_BITS + DOUBLE_NUM_EXPONENT_BITS)
+
+#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffULL) // The lower 52 bits
+#define DOUBLE_EXPONENT_MASK        (0x7ffULL << DOUBLE_EXPONENT_SHIFT) // 11 bits of exponent
+#define DOUBLE_SIGN_MASK            (0x01ULL << DOUBLE_SIGN_SHIFT) // 1 bit of sign
+#define DOUBLE_QUIET_NAN_BIT        (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS-1))
+
+
+/* Biased      Biased   Unbiased  Use
+ * 0x00000000     0     -1023     0 and subnormal
+ * 0x00000001     1     -1022     Smallest normal exponent
+ * 0x000007fe  2046      1023     Largest normal exponent
+ * 0x000007ff  2047      1024     NaN and Infinity  */
+#define DOUBLE_EXPONENT_BIAS        (1023)
+#define DOUBLE_EXPONENT_MAX         (DOUBLE_EXPONENT_BIAS)
+#define DOUBLE_EXPONENT_MIN         (-DOUBLE_EXPONENT_BIAS+1)
+#define DOUBLE_EXPONENT_ZERO        (-DOUBLE_EXPONENT_BIAS)
+#define DOUBLE_EXPONENT_INF_OR_NAN  (DOUBLE_EXPONENT_BIAS+1)
+
+#define DOUBLE_NAN_BITS             DOUBLE_EXPONENT_MASK /* NAN bits except payload */
+#define DOUBLE_QNAN                 0x8000000000000ULL
+#define DOUBLE_SNAN                 0x0000000000000ULL
+
+
+
+#ifdef NAN_EXPERIMENT
+#include <stdlib.h>
+#include <stdio.h>
+
  int
-NaNExperiments(void);
+NaNExperiments(void)
+{
+   // double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
+   // double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
+   // double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
+
+
+   for(int i = 999; i < 1000; i++) {
+      uint64_t x1 = (uint64_t)rand() % SINGLE_SIGNIFICAND_MASK;
+
+      uint64_t uDub = DOUBLE_EXPONENT_MASK | (x1 << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS));
+
+      double dd = UsefulBufUtil_CopyUint64ToDouble(uDub);
+
+      float ff = (float)dd;
+
+      uint32_t uu = UsefulBufUtil_CopyFloatToUint32(ff);
+
+      uint64_t x2 = uu & SINGLE_SIGNIFICAND_MASK;
+
+      if(x2 != x1) {
+         printf("%d: %llx %llx %llx %llx\n", i, x1, x2, x1 ^ x2, x1 & 0x200000);
+      }
+   }
+
+#if 0
+    float f1 = (float)dqNaN;
+    float f2 = (float)dsNaN;
+    float f3 = (float)dqNaNPayload;
+
+
+    uint32_t uqNaN = UsefulBufUtil_CopyFloatToUint32((float)dqNaN);
+    uint32_t usNaN = UsefulBufUtil_CopyFloatToUint32((float)dsNaN);
+    uint32_t uqNaNPayload = UsefulBufUtil_CopyFloatToUint32((float)dqNaNPayload);
+
+    // Result of this on x86 is that every NaN is a qNaN. The intel
+    // CVTSD2SS instruction ignores the NaN payload and even converts
+    // a sNaN to a qNaN.
+#endif
+
+    return 0;
+}
+#endif /* NAN_EXPERIMENT */
+
+
 
 
 struct FloatTestCase {
@@ -341,42 +481,159 @@ static const struct FloatTestCase FloatTestCases[] =  {
 };
 
 
+/* Public function. See float_tests.h
+ *
+ * This is the main test of floating-point encoding / decoding. It is
+ * data-driven by the above tables. It works better than tests below that
+ * it mostly replaces because it tests one number at a time, rather than
+ * putting them all in a map. It is much easier to debug test failures
+ * and to add new tests. */
+int32_t
+FloatValuesTests(void)
+{
+   unsigned int                 uTestIndex;
+   const struct FloatTestCase  *pTestCase;
+   MakeUsefulBufOnStack(        TestOutBuffer, 20);
+   UsefulBufC                   TestOutput;
+   QCBOREncodeContext           EnCtx;
+   QCBORError                   uErr;
+   QCBORDecodeContext           DCtx;
+   QCBORItem                    Item;
+   uint64_t                     uDecoded;
 
+   /* Test a variety of doubles and some singles */
+   for(uTestIndex = 0; /* DISABLES CODE */ (0) && FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
+      pTestCase = &FloatTestCases[uTestIndex];
 
-#define SINGLE_NUM_SIGNIFICAND_BITS (23)
-#define SINGLE_NUM_EXPONENT_BITS    (8)
-#define SINGLE_NUM_SIGN_BITS        (1)
+      if(uTestIndex == 15) {
+         uDecoded = 1;
+      }
 
-#define SINGLE_SIGNIFICAND_SHIFT    (0)
-#define SINGLE_EXPONENT_SHIFT       (SINGLE_NUM_SIGNIFICAND_BITS)
-#define SINGLE_SIGN_SHIFT           (SINGLE_NUM_SIGNIFICAND_BITS + SINGLE_NUM_EXPONENT_BITS)
+      /* Number Encode of Preferred */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
-#define SINGLE_SIGNIFICAND_MASK     (0x7fffffU) // The lower 23 bits
-#define SINGLE_EXPONENT_MASK        (0xffU << SINGLE_EXPONENT_SHIFT) // 8 bits of exponent
-#define SINGLE_SIGN_MASK            (0x01U << SINGLE_SIGN_SHIFT) // 1 bit of sign
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 1, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->Preferred)) {
+         return MakeTestResultCode(uTestIndex, 1, 200);
+      }
 
-#define SINGLE_NAN_BITS             SINGLE_EXPONENT_MASK /* NAN bits except payload */
+      /* Number Encode of Not Preferred */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
-#define SINGLE_QNAN                 0x400000
-#define SINGLE_SNAN                 0x000000
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 2, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
+         return MakeTestResultCode(uTestIndex, 2, 200);
+      }
 
+      /* Number Encode of CDE */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 20, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
+         return MakeTestResultCode(uTestIndex, 21, 200);
+      }
 
-#define DOUBLE_NUM_SIGNIFICAND_BITS (52)
-#define DOUBLE_NUM_EXPONENT_BITS    (11)
-#define DOUBLE_NUM_SIGN_BITS        (1)
+      /* Number Encode of dCBOR */
+      QCBOREncode_Init(&EnCtx, TestOutBuffer);
+      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
+      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
+      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
-#define DOUBLE_SIGNIFICAND_SHIFT    (0)
-#define DOUBLE_EXPONENT_SHIFT       (DOUBLE_NUM_SIGNIFICAND_BITS)
-#define DOUBLE_SIGN_SHIFT           (DOUBLE_NUM_SIGNIFICAND_BITS + DOUBLE_NUM_EXPONENT_BITS)
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 22, uErr);;
+      }
+      if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
+         return MakeTestResultCode(uTestIndex, 23, 200);
+      }
 
-#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffULL) /* The lower 52 bits */
-#define DOUBLE_EXPONENT_MASK        (0x7ffULL << DOUBLE_EXPONENT_SHIFT) /* 11 bits of exponent */
+      /* Number Decode of Preferred */
+      QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 3, uErr);;
+      }
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+      if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+         return MakeTestResultCode(uTestIndex, 4, 0);
+      }
+      if(isnan(pTestCase->dNumber)) {
+         if(!isnan(Item.val.dfnum)) {
+            return MakeTestResultCode(uTestIndex, 5, 0);
+         }
+      } else {
+         if(Item.val.dfnum != pTestCase->dNumber) {
+            return MakeTestResultCode(uTestIndex, 6, 0);
+         }
+      }
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-#define DOUBLE_NAN_BITS             DOUBLE_EXPONENT_MASK /* NAN bits except payload */
+      /* When QCBOR_DISABLE_FLOAT_HW_USE is set, single-precision is not
+       * converted to double when decoding, so test differently. len == 5
+       * indicates single-precision in the encoded CBOR. */
+      if(pTestCase->Preferred.len == 5) {
+         if(Item.uDataType != QCBOR_TYPE_FLOAT) {
+            return MakeTestResultCode(uTestIndex, 41, 0);
+         }
+         if(isnan(pTestCase->dNumber)) {
+            if(!isnan(Item.val.fnum)) {
+               return MakeTestResultCode(uTestIndex, 51, 0);
+            }
+         } else {
+            if(Item.val.fnum != pTestCase->fNumber) {
+               return MakeTestResultCode(uTestIndex, 61, 0);
+            }
+         }
+      } else {
+         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+            return MakeTestResultCode(uTestIndex, 42, 0);
+         }
+         if(isnan(pTestCase->dNumber)) {
+            if(!isnan(Item.val.dfnum)) {
+               return MakeTestResultCode(uTestIndex, 52, 0);
+            }
+         } else {
+            if(Item.val.dfnum != pTestCase->dNumber) {
+               return MakeTestResultCode(uTestIndex, 62, 0);
+            }
+         }
+      }
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-#define DOUBLE_QNAN                 0x8000000000000ULL
-#define DOUBLE_SNAN                 0x0000000000000ULL
+      /* Number Decode of Not Preferred */
+      QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 7, uErr);;
+      }
+      if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
+         return MakeTestResultCode(uTestIndex, 8, 0);
+      }
+      if(isnan(pTestCase->dNumber)) {
+         if(!isnan(Item.val.dfnum)) {
+            return MakeTestResultCode(uTestIndex, 9, 0);
+         }
+      } else {
+         if(Item.val.dfnum != pTestCase->dNumber) {
+            return MakeTestResultCode(uTestIndex, 10, 0);
+         }
+      }
+   }
+
+   return 0;
+}
 
 
 /* Can't use the types double and float here because there's no compile
@@ -511,32 +768,8 @@ static const struct NaNTestCase NaNTestCases[] =  {
 };
 
 
-/* returns 0..0xFFFF if float16 encoding possible, -1 otherwise.
-   b64 is a binary64 floating point as an unsigned long. */
-int try_float16_encode(unsigned long b64) {
-  unsigned long s16 = b64 >> 48 & 0x8000;
-  unsigned long mant = b64 & 0xfffffffffffffUL;
-  unsigned long exp = b64 >> 52 & 0x7ff;
-  if (exp == 0 && mant == 0)    /* f64 denorms are out of range */
-    return (int)s16;                 /* so handle 0.0 and -0.0 only */
-  if (exp >= 999 && exp < 1009) { /* f16 denorm, exp16 = 0 */
-    if (mant & ((1UL << (1051 - exp)) - 1))
-      return -1;                /* bits lost in f16 denorm */
-    return (int)(s16 + ((mant + 0x10000000000000UL) >> (1051 - exp)));
-  }
-  if (mant & 0x3ffffffffffUL)   /* bits lost in f16 */
-    return -1;
-  if (exp >= 1009 && exp <= 1038) /* normalized f16 */
-    return (int)(s16 + ((exp - 1008) << 10) + (mant >> 42));
-  if (exp == 2047)              /* Inf, NaN */
-    return (int)(s16 + 0x7c00 + (mant >> 42));
-  return -1;
-}
-
-
-
-static int32_t 
-CompareToHardware(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex) 
+static int32_t
+CompareToHardware(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex)
 {
 #ifndef QCBOR_COMPARE_TO_HW_NAN_CONVERSION
    if(pNaNTestCase->uExpectedSingle) {
@@ -550,9 +783,9 @@ CompareToHardware(const struct NaNTestCase *pNaNTestCase, unsigned int uTestInde
       float f;
       double d;
       uint32_t ufff;
-      
+
       d = UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble);
-      
+
       /* Cast the double to a single and then back to a double and
        * see if they are equal. If so, then the NaN payload doesn't
        * have any bits that are lost when converting to single and
@@ -562,9 +795,9 @@ CompareToHardware(const struct NaNTestCase *pNaNTestCase, unsigned int uTestInde
        * not widely supported.
        */
       f = (float)d;
-      
+
       ufff = UsefulBufUtil_CopyFloatToUint32(f);
-      
+
       if(ufff  != (pNaNTestCase->uExpectedSingle | SINGLE_QNAN)) { // TODO: document this
          return MakeTestResultCode(uTestIndex, 14, 200);
       }
@@ -583,11 +816,11 @@ CompareToCarsten(const UsefulBufC TestOutput, const struct NaNTestCase *pNaNTest
       yy[0] = 0xf9;
       yy[1] = (xxx & 0xff00) >> 8;
       yy[2] = xxx & 0xff;
-      
+
       UsefulBufC zz;
       zz.len = 3;
       zz.ptr = yy;
-      
+
       if(UsefulBuf_Compare(TestOutput, zz)) {
          return MakeTestResultCode(uTestIndex+100, 12, 200);
       }
@@ -597,7 +830,7 @@ CompareToCarsten(const UsefulBufC TestOutput, const struct NaNTestCase *pNaNTest
 }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-static int32_t 
+static int32_t
 CompareToHW2(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex) {
 #ifndef XXXXXQCBOR_COMPARE_TO_HW_NAN_CONVERSION
    if(pNaNTestCase->uExpectedDouble) {
@@ -611,9 +844,9 @@ CompareToHW2(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex) {
       float f;
       double d2;
       uint64_t dd;
-      
+
       f = UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle);
-      
+
       /* Cast the double to a single and then back to a double and
        * see if they are equal. If so, then the NaN payload doesn't
        * have any bits that are lost when converting to single and
@@ -623,9 +856,9 @@ CompareToHW2(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex) {
        * not widely supported.
        */
       d2 = (double)f;
-      
+
       dd = UsefulBufUtil_CopyDoubleToUint64(d2);
-      
+
       if(dd != (pNaNTestCase->uExpectedDouble | DOUBLE_QNAN)) { // TODO: document this
          return MakeTestResultCode(uTestIndex+100, 37, 200);
       }
@@ -633,6 +866,8 @@ CompareToHW2(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex) {
 #endif
    return 0;
 }
+
+
 
 int32_t
 NaNPayloadsTest(void)
@@ -927,164 +1162,6 @@ NaNPayloadsTest(void)
 }
 
 
-/* Public function. See float_tests.h
- *
- * This is the main test of floating-point encoding / decoding. It is
- * data-driven by the above tables. It works better than tests below that
- * it mostly replaces because it tests one number at a time, rather than
- * putting them all in a map. It is much easier to debug test failures
- * and to add new tests. */
-int32_t
-FloatValuesTests(void)
-{
-   unsigned int                 uTestIndex;
-   const struct FloatTestCase  *pTestCase;
-   MakeUsefulBufOnStack(        TestOutBuffer, 20);
-   UsefulBufC                   TestOutput;
-   QCBOREncodeContext           EnCtx;
-   QCBORError                   uErr;
-   QCBORDecodeContext           DCtx;
-   QCBORItem                    Item;
-   uint64_t                     uDecoded;
-
-   // NaNExperiments();
-
-   /* Test a variety of doubles and some singles */
-   for(uTestIndex = 0; /* DISABLES CODE */ (0) && FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
-      pTestCase = &FloatTestCases[uTestIndex];
-
-      if(uTestIndex == 15) {
-         uDecoded = 1;
-      }
-
-      /* Number Encode of Preferred */
-      QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
-      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 1, uErr);;
-      }
-      if(UsefulBuf_Compare(TestOutput, pTestCase->Preferred)) {
-         return MakeTestResultCode(uTestIndex, 1, 200);
-      }
-
-      /* Number Encode of Not Preferred */
-      QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
-      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 2, uErr);;
-      }
-      if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
-         return MakeTestResultCode(uTestIndex, 2, 200);
-      }
-
-      /* Number Encode of CDE */
-      QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE);
-      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
-      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 20, uErr);;
-      }
-      if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
-         return MakeTestResultCode(uTestIndex, 21, 200);
-      }
-
-      /* Number Encode of dCBOR */
-      QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
-      QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
-      uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 22, uErr);;
-      }
-      if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
-         return MakeTestResultCode(uTestIndex, 23, 200);
-      }
-
-      /* Number Decode of Preferred */
-      QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
-      uErr = QCBORDecode_GetNext(&DCtx, &Item);
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 3, uErr);;
-      }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-      if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-         return MakeTestResultCode(uTestIndex, 4, 0);
-      }
-      if(isnan(pTestCase->dNumber)) {
-         if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 5, 0);
-         }
-      } else {
-         if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 6, 0);
-         }
-      }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-      /* When QCBOR_DISABLE_FLOAT_HW_USE is set, single-precision is not
-       * converted to double when decoding, so test differently. len == 5
-       * indicates single-precision in the encoded CBOR. */
-      if(pTestCase->Preferred.len == 5) {
-         if(Item.uDataType != QCBOR_TYPE_FLOAT) {
-            return MakeTestResultCode(uTestIndex, 41, 0);
-         }
-         if(isnan(pTestCase->dNumber)) {
-            if(!isnan(Item.val.fnum)) {
-               return MakeTestResultCode(uTestIndex, 51, 0);
-            }
-         } else {
-            if(Item.val.fnum != pTestCase->fNumber) {
-               return MakeTestResultCode(uTestIndex, 61, 0);
-            }
-         }
-      } else {
-         if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-            return MakeTestResultCode(uTestIndex, 42, 0);
-         }
-         if(isnan(pTestCase->dNumber)) {
-            if(!isnan(Item.val.dfnum)) {
-               return MakeTestResultCode(uTestIndex, 52, 0);
-            }
-         } else {
-            if(Item.val.dfnum != pTestCase->dNumber) {
-               return MakeTestResultCode(uTestIndex, 62, 0);
-            }
-         }
-      }
-#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-
-      /* Number Decode of Not Preferred */
-      QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
-      uErr = QCBORDecode_GetNext(&DCtx, &Item);
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 7, uErr);;
-      }
-      if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-         return MakeTestResultCode(uTestIndex, 8, 0);
-      }
-      if(isnan(pTestCase->dNumber)) {
-         if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 9, 0);
-         }
-      } else {
-         if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 10, 0);
-         }
-      }
-   }
-
-   return 0;
-}
-
-
-
 /* Public function. See float_tests.h */
 int32_t
 HalfPrecisionAgainstRFCCodeTest(void)
@@ -1137,7 +1214,7 @@ HalfPrecisionAgainstRFCCodeTest(void)
    return 0;
 }
 
-//#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /*
@@ -1562,74 +1639,3 @@ GeneralFloatDecodeTests(void)
    return 0;
 }
 
-
-
-#ifndef NAN_EXPERIMENT
-/*
- Code for checking what the double to float cast does with
- NaNs.  Not run as part of tests. Keep it around to
- be able to check various platforms and CPUs.
- */
-
-#define DOUBLE_NUM_SIGNIFICAND_BITS (52)
-#define DOUBLE_NUM_EXPONENT_BITS    (11)
-#define DOUBLE_NUM_SIGN_BITS        (1)
-
-#define DOUBLE_SIGNIFICAND_SHIFT    (0)
-#define DOUBLE_EXPONENT_SHIFT       (DOUBLE_NUM_SIGNIFICAND_BITS)
-#define DOUBLE_SIGN_SHIFT           (DOUBLE_NUM_SIGNIFICAND_BITS + DOUBLE_NUM_EXPONENT_BITS)
-
-#define DOUBLE_SIGNIFICAND_MASK     (0xfffffffffffffULL) // The lower 52 bits
-#define DOUBLE_EXPONENT_MASK        (0x7ffULL << DOUBLE_EXPONENT_SHIFT) // 11 bits of exponent
-#define DOUBLE_SIGN_MASK            (0x01ULL << DOUBLE_SIGN_SHIFT) // 1 bit of sign
-#define DOUBLE_QUIET_NAN_BIT        (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS-1))
-
-#include <stdlib.h>
-#include <stdio.h>
-
- int
-NaNExperiments(void)
-{
-   // double dqNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT);
-   // double dsNaN = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | 0x01);
-   // double dqNaNPayload = UsefulBufUtil_CopyUint64ToDouble(DOUBLE_EXPONENT_MASK | DOUBLE_QUIET_NAN_BIT | 0xf00f);
-
-
-   for(int i = 999; i < 1000; i++) {
-      uint64_t x1 = (uint64_t)rand() % SINGLE_SIGNIFICAND_MASK;
-
-      uint64_t uDub = DOUBLE_EXPONENT_MASK | (x1 << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS));
-
-      double dd = UsefulBufUtil_CopyUint64ToDouble(uDub);
-
-      float ff = (float)dd;
-
-      uint32_t uu = UsefulBufUtil_CopyFloatToUint32(ff);
-
-      uint64_t x2 = uu & SINGLE_SIGNIFICAND_MASK;
-
-      if(x2 != x1) {
-         printf("%d: %llx %llx %llx %llx\n", i, x1, x2, x1 ^ x2, x1 & 0x200000);
-      }
-
-
-   }
-
-#if 0
-    float f1 = (float)dqNaN;
-    float f2 = (float)dsNaN;
-    float f3 = (float)dqNaNPayload;
-
-
-    uint32_t uqNaN = UsefulBufUtil_CopyFloatToUint32((float)dqNaN);
-    uint32_t usNaN = UsefulBufUtil_CopyFloatToUint32((float)dsNaN);
-    uint32_t uqNaNPayload = UsefulBufUtil_CopyFloatToUint32((float)dqNaNPayload);
-
-    // Result of this on x86 is that every NaN is a qNaN. The intel
-    // CVTSD2SS instruction ignores the NaN payload and even converts
-    // a sNaN to a qNaN.
-#endif
-
-    return 0;
-}
-#endif /* NAN_EXPERIMENT */
