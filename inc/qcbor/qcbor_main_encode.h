@@ -270,10 +270,10 @@ enum QCBOREncodeConfig {
    /**
     * See draft-mcnally-deterministic-cbor.
     *
-    * This is a superset of CDE. This function does everything
-    * QCBOREncode_SerializationCDE() does. Also it is a super set of
+    * This is a superset of CDE. This  does everything
+    * QCBOR_ENCODE_CONFIG_CDE does. Also, it is a super set of
     * preferred serialization and does everything
-    * QCBOREncode_SerializationPreferred() does.
+    * QCBOR_ENCODE_CONFIG_PREFERRED does.
     *
     * The main feature of dCBOR is that there is only one way to
     * serialize a particular numeric value. This changes the behavior
@@ -285,7 +285,7 @@ enum QCBOREncodeConfig {
     * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads
     * if you pass a NaN to one of the floating-point encoding
     * functions.  This mode forces all NaNs to the half-precision
-    * queit NaN.
+    * quiet NaN. TODO: rewrite the above
     *
     * TODO: confirm and test NaN payload behavior dCBOR reduces all
     * NaN payloads to half-precision quiet NaN

@@ -34,6 +34,11 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void);
  */
 int32_t FloatValuesTests(void);
 
+/*
+
+ */
+int32_t NaNPayloadsTest(void);
+
 
 /*
  * This calls each and every method for encoding

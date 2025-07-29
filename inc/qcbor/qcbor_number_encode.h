@@ -274,16 +274,25 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  *
  * This encodes using preferred serialization, selectively encoding
  * the input floating-point number as either double-precision,
- * single-precision or half-precision. Infinity, NaN and 0 are always
+ * single-precision or half-precision. Infinity and 0 are always
  * encoded as half-precision. The reduction to single-precision or
  * half-precision is only performed if there is no loss or precision.
+ *
+ * Typically, a NaN is a "quiet NaN" with no payload. The @c NAN
+ * constant defined in <math.h> is the quiet NaN with no payload. Preferred
+ * serilization reduces this to half-precision. If your use case goes
+ * out of its way to set NaN payloads, they are encoded using
+ * a reduction that is the same as for numeric values. If the right
+ * most bits of the NaN's significand that are removed in a reduction are zero, the reduction
+ * is performed. For example, if the rightmost 29 bits of a double NaN
+ * significand are zero, then it will be reduced to a single.
  *
  * Half-precision floating-point numbers take up 2 bytes, half that of
  * single-precision, one quarter of double-precision. This can reduce
  * the size of encoded output a lot, especially if the values 0,
  * infinity and NaN occur frequently.
  *
- * QCBOR decoding returns double-precision reversing this reduction.
+ * QCBOR decoding returns double-precision, reversing this reduction.
  *
  * Normally this outputs only CBOR major type 7.  If
  * QCBOREncode_SerializationdCBOR() is called to enter dCBOR mode,
@@ -1382,6 +1391,10 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
+      pMe->uError = QCBOR_ERR_HALF_PRECISION_DISABLED; // TODO: document this; change it's name too
+      return;
+   }
    QCBOREncode_Private_AddDoubleRaw(pMe, dNum);
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
@@ -1441,6 +1454,10 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
+      pMe->uError = QCBOR_ERR_HALF_PRECISION_DISABLED; // TODO: document this; change it's name too
+      return;
+   }
    QCBOREncode_Private_AddFloatRaw(pMe, fNum);
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
