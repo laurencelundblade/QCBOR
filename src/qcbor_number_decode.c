@@ -2,7 +2,7 @@
  * qcbor_number_decode.c -- Number decoding beyond the basic ints and floats
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -457,18 +457,17 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
 {
    switch(pItem->uDataType) {
       case QCBOR_TYPE_FLOAT:
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               // Simple cast does the job.
-               *pdValue = (double)pItem->val.fnum;
+               *pdValue = IEEE754_FloatToDouble(pItem->val.fnum);
             } else {
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }
          }
-#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         return QCBOR_ERR_HALF_PRECISION_DISABLED; // TODO: new error code for all of preferred
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
 
       case QCBOR_TYPE_DOUBLE:
