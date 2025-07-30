@@ -8460,7 +8460,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       NAN,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS), /* TODO: different in 2.0 (and 1.6) */
    },
    {
       "half-precision Floating point value -4",
@@ -8481,7 +8481,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS), /* TODO: different in 2.0 (and 1.6) */
    },
 };
 
@@ -8525,7 +8525,7 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      if(nIndex == 21) {
+      if(nIndex == 27) {
          uInt = 99; // For break point only
       }
 
