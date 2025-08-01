@@ -242,6 +242,16 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
 
     signing_key_psa = (psa_key_handle_t)signing_key.key.handle;
 
+    /* Determine signature size and validate against buffer size */
+    return_value = t_cose_crypto_sig_size(cose_algorithm_id, signing_key, &signature_len);
+    if (return_value != T_COSE_SUCCESS) {
+        goto Done;
+    } else if (signature_len > signature_buffer.len) {
+        /* Determined size too large for provided buffer */
+        return_value = T_COSE_ERR_SIG_BUFFER_SIZE;
+        goto Done;
+    }
+
     /* It is assumed that this call is checking the signature_buffer
      * length and won't write off the end of it.
      */
@@ -251,7 +261,7 @@ t_cose_crypto_sign(int32_t                cose_algorithm_id,
                                hash_to_sign.ptr,
                                hash_to_sign.len,
                                signature_buffer.ptr, /* Sig buf */
-                               signature_buffer.len, /* Sig buf size */
+                               signature_len,        /* Sig buf size */
                               &signature_len);       /* Sig length */
 
     return_value = psa_status_to_t_cose_error_signing(psa_result);
