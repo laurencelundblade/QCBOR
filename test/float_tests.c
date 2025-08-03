@@ -20,6 +20,9 @@
 #include "qcbor/qcbor_number_decode.h"
 #include <math.h> /* For INFINITY and NAN and isnan() */
 
+/* Tests that are not enabled by default because they are not reliable or complete yet */
+#define QCBOR_COMPARE_TO_HW_CONVERSION
+#define QCBOR_COMPARE_TO_CARSTEN
 
 
 /* Make a test results code that includes three components. Return code
@@ -37,8 +40,6 @@ MakeTestResultCode(uint32_t   uTestCase,
    return (int32_t)uCode;
 }
 
-
-//#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
 #include "half_to_double_from_rfc7049.h"
 
@@ -185,11 +186,110 @@ NaNExperiments(void)
 #endif /* NAN_EXPERIMENT */
 
 
+/* Return 0 if OK, 1 if not */
+static int32_t
+HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
+{
+#ifdef QCBOR_COMPARE_TO_HW_CONVERSION
+   if(uExpectedSingle) {
+      /* This test is off by default. It's purpose is to check
+       * QCBOR's mask-n-shift implementation against the HW/CPU
+       * instructions that do conversion between double and single.
+       * It is off because it is only used on occasion to verify
+       * QCBOR and because it is suspected that some HW/CPU does
+       * not implement this correctly. NaN payloads are an obscure
+       * feature. */
+      float    f;
+      double   d;
+      uint32_t uSingle;
+
+      d = UsefulBufUtil_CopyUint64ToDouble(uDoubleToConvert);
+
+      f = (float)d;
+
+      uSingle = UsefulBufUtil_CopyFloatToUint32(f);
+
+      if(isnan(d)) {
+         /* Some (all?) Intel CPUs always set the qNaN bit in conversion */
+         uExpectedSingle |= SINGLE_QNAN;
+      }
+
+      if(uSingle != uExpectedSingle) {
+         return 1;
+      }
+   }
+#endif /* QCBOR_COMPARE_TO_HW_CONVERSION */
+   return 0;
+}
+
+/* Return 0 if OK, 1 if not */
+static int32_t
+HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
+{
+#ifdef QCBOR_COMPARE_TO_HW_CONVERSION
+   if(uExpectedDouble) {
+      /* This test is off by default. It's purpose is to check
+       * QCBOR's mask-n-shift implementation against the HW/CPU
+       * instructions that do conversion between double and single.
+       * It is off because it is only used on occasion to verify
+       * QCBOR and because it is suspected that some HW/CPU does
+       * not implement this correctly. NaN payloads are an obscure
+       * feature. */
+      float    f;
+      double   d2;
+      uint64_t dd;
+
+      f = UsefulBufUtil_CopyUint32ToFloat(uSingleToConvert);
+
+      d2 = (double)f;
+
+      dd = UsefulBufUtil_CopyDoubleToUint64(d2);
+
+      if(isnan(f)) {
+         /* Some (all?) Intel CPUs always set the qNaN bit in conversion */
+         uExpectedDouble |= DOUBLE_QNAN;
+      }
+
+      if(dd != uExpectedDouble ) {
+         return 1;
+      }
+   }
+#endif /* QCBOR_COMPARE_TO_HW_CONVERSION */
+   return 0;
+}
+
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+/* Return 0 if OK, 1 if not */
+static int32_t
+CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const UsefulBufC Expected)
+{
+#ifdef QCBOR_COMPARE_TO_CARSTEN
+   if(Expected.len == 3) {
+      int xxx = try_float16_encode(uDouble);
+      uint8_t yy[3];
+      yy[0] = 0xf9;
+      yy[1] = (xxx & 0xff00) >> 8;
+      yy[2] = xxx & 0xff;
+
+      UsefulBufC zz;
+      zz.len = 3;
+      zz.ptr = yy;
+
+      if(UsefulBuf_Compare(TestOutput, zz)) {
+         return 1;
+      }
+   }
+#endif /* QCBOR_COMPARE_TO_CARSTEN */
+
+   return 0;
+}
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 struct FloatTestCase {
    double      dNumber;
-   float       fNumber;
+   float       fNumber; /* Only used when preferred is disabled  */
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
@@ -502,14 +602,14 @@ FloatValuesTests(void)
    uint64_t                     uDecoded;
 
    /* Test a variety of doubles and some singles */
-   for(uTestIndex = 0; /* DISABLES CODE */ (0) && FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
+   for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
       if(uTestIndex == 15) {
          uDecoded = 1;
       }
 
-      /* Number Encode of Preferred */
+      /* Preferred Encode */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
@@ -517,117 +617,134 @@ FloatValuesTests(void)
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 1, uErr);;
       }
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       if(UsefulBuf_Compare(TestOutput, pTestCase->Preferred)) {
-         return MakeTestResultCode(uTestIndex, 1, 200);
+         return MakeTestResultCode(uTestIndex, 2, 200);
       }
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+      if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
+         return MakeTestResultCode(uTestIndex, 3, 200);
+      }
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Number Encode of Not Preferred */
+      /* Non-Preferred Encode */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 2, uErr);;
+         return MakeTestResultCode(uTestIndex, 4, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
-         return MakeTestResultCode(uTestIndex, 2, 200);
+         return MakeTestResultCode(uTestIndex, 5, 200);
       }
 
-      /* Number Encode of CDE */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+      /* Deterministic Encode */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 20, uErr);;
+         return MakeTestResultCode(uTestIndex, 6, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
-         return MakeTestResultCode(uTestIndex, 21, 200);
+         return MakeTestResultCode(uTestIndex, 7, 200);
       }
 
-      /* Number Encode of dCBOR */
+      /* dCBOR Encode */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 22, uErr);;
+         return MakeTestResultCode(uTestIndex, 8, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
-         return MakeTestResultCode(uTestIndex, 23, 200);
+         return MakeTestResultCode(uTestIndex, 9, 200);
       }
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Number Decode of Preferred */
+      /* Decode Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
-      if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 3, uErr);;
-      }
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(uTestIndex, 10, uErr);
+      }
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-         return MakeTestResultCode(uTestIndex, 4, 0);
+         return MakeTestResultCode(uTestIndex, 11, 0);
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 5, 0);
+            return MakeTestResultCode(uTestIndex, 12, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 6, 0);
+            return MakeTestResultCode(uTestIndex, 13, 0);
          }
       }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-      /* When QCBOR_DISABLE_FLOAT_HW_USE is set, single-precision is not
-       * converted to double when decoding, so test differently. len == 5
-       * indicates single-precision in the encoded CBOR. */
-      if(pTestCase->Preferred.len == 5) {
+      if(pTestCase->Preferred.len == 3) {
+         if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+            return MakeTestResultCode(uTestIndex, 14, uErr);
+         }
+      } else if(pTestCase->Preferred.len == 5) {
+         /* When QCBOR_DISABLE_PREFERRED_FLOAT is set, single-precision is not
+          * converted to double when decoding, so test differently. len == 5
+          * indicates single-precision in the encoded CBOR. */    
+         if(uErr != QCBOR_SUCCESS) {
+            return MakeTestResultCode(uTestIndex, 15, uErr);
+         }
          if(Item.uDataType != QCBOR_TYPE_FLOAT) {
-            return MakeTestResultCode(uTestIndex, 41, 0);
+            return MakeTestResultCode(uTestIndex, 16, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.fnum)) {
-               return MakeTestResultCode(uTestIndex, 51, 0);
+               return MakeTestResultCode(uTestIndex, 17, 0);
             }
          } else {
             if(Item.val.fnum != pTestCase->fNumber) {
-               return MakeTestResultCode(uTestIndex, 61, 0);
+               return MakeTestResultCode(uTestIndex, 18, 0);
             }
          }
       } else {
+         if(uErr != QCBOR_SUCCESS) {
+            return MakeTestResultCode(uTestIndex, 19, uErr);
+         }
          if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-            return MakeTestResultCode(uTestIndex, 42, 0);
+            return MakeTestResultCode(uTestIndex, 20, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.dfnum)) {
-               return MakeTestResultCode(uTestIndex, 52, 0);
+               return MakeTestResultCode(uTestIndex, 21, 0);
             }
          } else {
             if(Item.val.dfnum != pTestCase->dNumber) {
-               return MakeTestResultCode(uTestIndex, 62, 0);
+               return MakeTestResultCode(uTestIndex, 22, 0);
             }
          }
       }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Number Decode of Not Preferred */
+      /* Decode Not Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 7, uErr);;
+         return MakeTestResultCode(uTestIndex, 23, uErr);;
       }
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-         return MakeTestResultCode(uTestIndex, 8, 0);
+         return MakeTestResultCode(uTestIndex, 24, 0);
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 9, 0);
+            return MakeTestResultCode(uTestIndex, 25, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 10, 0);
+            return MakeTestResultCode(uTestIndex, 26, 0);
          }
       }
    }
@@ -677,11 +794,23 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
+   /* double negative qNaN -- shortens to half */
+   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN,              0,
+    DOUBLE_SIGN_MASK| DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
+    {"\xF9\xFE\x00", 3},                         {"\xFB\xFF\xF8\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\xFE\x00", 3},                         {"\xF9\x7E\x00", 3}},
+
    /* double sNaN with payload of rightmost bit set -- no shorter encoding */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
     DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
     {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9},
     {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
+
+   /* double negative sNaN with payload of rightmost bit set -- no shorter encoding */
+   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
+    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
+    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
 
    /* double qNaN with 9 leftmost payload bits set -- shortens to half */
    {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000,  0,
@@ -700,6 +829,12 @@ static const struct NaNTestCase NaNTestCases[] =  {
     DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  SINGLE_NAN_BITS | 0x7fffff,
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
+
+   /* double negative qNaN with 22 leftmost payload bits set -- shortens to single */
+   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  0,
+    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
+    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xFB\xFF\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 23rd leftmost payload bit set -- shortens to single */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000,  0 ,
@@ -751,7 +886,7 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xFA\x7F\xFF\xF0\x00", 5},
     {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
 
-   /* single qNaN with 9 bit payload -- shortens to half */
+   /* single sNaN with 9 bit payload -- shortens to half */
    {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3fe000,
     DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3fe000ULL) << 29), 0,
     {"\xF9\x7D\xFF", 3},                         {"\xFA\x7F\xBF\xE0\x00", 5},
@@ -768,107 +903,7 @@ static const struct NaNTestCase NaNTestCases[] =  {
 };
 
 
-static int32_t
-CompareToHardware(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex)
-{
-#ifndef QCBOR_COMPARE_TO_HW_NAN_CONVERSION
-   if(pNaNTestCase->uExpectedSingle) {
-      /* This test is off by default. It's purpose is to check
-       * QCBOR's mask-n-shift implementation against the HW/CPU
-       * instructions that do conversion between double and single.
-       * It is off because it is only used on occasion to verify
-       * QCBOR and because it is suspected that some HW/CPU does
-       * not implement this correctly. NaN payloads are an obscure
-       * feature. */
-      float f;
-      double d;
-      uint32_t ufff;
-
-      d = UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble);
-
-      /* Cast the double to a single and then back to a double and
-       * see if they are equal. If so, then the NaN payload doesn't
-       * have any bits that are lost when converting to single and
-       * it can be safely converted.
-       *
-       * This test can't be done for half-precision because it is
-       * not widely supported.
-       */
-      f = (float)d;
-
-      ufff = UsefulBufUtil_CopyFloatToUint32(f);
-
-      if(ufff  != (pNaNTestCase->uExpectedSingle | SINGLE_QNAN)) { // TODO: document this
-         return MakeTestResultCode(uTestIndex, 14, 200);
-      }
-   }
-#endif /* ! QCBOR_COMPARE_TO_HW_NAN_CONVERSION */
-   return 0;
-}
-
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-static int32_t
-CompareToCarsten(const UsefulBufC TestOutput, const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex)
-{
-   if(pNaNTestCase->Preferred.len == 3) {
-      int xxx = try_float16_encode(pNaNTestCase->uDouble);
-      uint8_t yy[3];
-      yy[0] = 0xf9;
-      yy[1] = (xxx & 0xff00) >> 8;
-      yy[2] = xxx & 0xff;
-
-      UsefulBufC zz;
-      zz.len = 3;
-      zz.ptr = yy;
-
-      if(UsefulBuf_Compare(TestOutput, zz)) {
-         return MakeTestResultCode(uTestIndex+100, 12, 200);
-      }
-   }
-
-   return 0;
-}
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-static int32_t
-CompareToHW2(const struct NaNTestCase *pNaNTestCase, unsigned int uTestIndex) {
-#ifndef XXXXXQCBOR_COMPARE_TO_HW_NAN_CONVERSION
-   if(pNaNTestCase->uExpectedDouble) {
-      /* This test is off by default. It's purpose is to check
-       * QCBOR's mask-n-shift implementation against the HW/CPU
-       * instructions that do conversion between double and single.
-       * It is off because it is only used on occasion to verify
-       * QCBOR and because it is suspected that some HW/CPU does
-       * not implement this correctly. NaN payloads are an obscure
-       * feature. */
-      float f;
-      double d2;
-      uint64_t dd;
-
-      f = UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle);
-
-      /* Cast the double to a single and then back to a double and
-       * see if they are equal. If so, then the NaN payload doesn't
-       * have any bits that are lost when converting to single and
-       * it can be safely converted.
-       *
-       * This test can't be done for half-precision because it is
-       * not widely supported.
-       */
-      d2 = (double)f;
-
-      dd = UsefulBufUtil_CopyDoubleToUint64(d2);
-
-      if(dd != (pNaNTestCase->uExpectedDouble | DOUBLE_QNAN)) { // TODO: document this
-         return MakeTestResultCode(uTestIndex+100, 37, 200);
-      }
-   }
-#endif
-   return 0;
-}
-
-
-
+/* Public function. See float_tests.h */
 int32_t
 NaNPayloadsTest(void)
 {
@@ -881,14 +916,13 @@ NaNPayloadsTest(void)
    QCBORDecodeContext           DCtx;
    QCBORItem                    Item;
    uint64_t                     uDecoded;
-   int32_t                      nReturn;
 
    /* Test a variety of NaNs with payloads */
    for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pNaNTestCase = &NaNTestCases[uTestIndex];
 
-      if(uTestIndex == 9) {
-         uErr = 99; /* For setting break points for particular tests */
+      if(uTestIndex == 7) {
+         uErr = 99; /* For setting break points for a particular test */
       }
 
       if(pNaNTestCase->uDouble) {
@@ -904,19 +938,17 @@ NaNPayloadsTest(void)
          if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
             return MakeTestResultCode(uTestIndex+100, 11, 200);
          }
-         nReturn = CompareToCarsten(TestOutput, pNaNTestCase, uTestIndex);
-         if(nReturn) {
-            return nReturn;
+         if(CompareToCarsten(pNaNTestCase->uDouble, TestOutput, pNaNTestCase->Preferred)) {
+            return MakeTestResultCode(uTestIndex+100, 12, 200);
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 12, 200);
+            return MakeTestResultCode(uTestIndex+100, 122, 200);
          }
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         nReturn = CompareToHardware(pNaNTestCase, uTestIndex);
-         if(nReturn) {
-            return nReturn;
+         if(HWCheckFloatToDouble(pNaNTestCase->uDouble, pNaNTestCase->uSingle)) {
+            return MakeTestResultCode(uTestIndex+100, 121, 200);
          }
 
          /* NaN Encode of Not Preferred */
@@ -941,7 +973,7 @@ NaNPayloadsTest(void)
          }
          uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
          if(uDecoded != pNaNTestCase->uDouble) {
-            return MakeTestResultCode(uTestIndex+100, 15, 200);
+            return MakeTestResultCode(uTestIndex+100, 11, 200);
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          if(pNaNTestCase->Preferred.len == 9) {
@@ -993,7 +1025,7 @@ NaNPayloadsTest(void)
          }
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex+100, 24, 200);
+            return MakeTestResultCode(uTestIndex+100, 241, 200);
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
@@ -1097,9 +1129,8 @@ NaNPayloadsTest(void)
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         nReturn = CompareToHW2(pNaNTestCase, uTestIndex);
-         if(nReturn) {
-            return nReturn;
+         if(HWCheckDoubleToFloat(pNaNTestCase->uSingle, pNaNTestCase->uExpectedDouble)) {
+            return MakeTestResultCode(uTestIndex+100, 401, 200);
          }
 
          /* NaN Encode of CDE */
@@ -1140,7 +1171,7 @@ NaNPayloadsTest(void)
       }
    }
 
-   /* Special one-off for 100% coverage*/
+   /* Special one-off for 100% coverage */
    QCBOREncode_Init(&EnCtx, TestOutBuffer);
    QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
    QCBOREncode_AddFloat(&EnCtx, 0);
@@ -1368,12 +1399,12 @@ GeneralFloatEncodeTests(void)
 int32_t
 GeneralFloatDecodeTests(void)
 {
-   /* See FloatNumberTests() for tests that really cover lots of float values */
+   /* See FloatNumberTests() for tests that really covers the float values.
+    * This is retained to cover GetDouble() and decode of a single 0 */
 
    QCBORItem          Item;
    QCBORError         uErr;
    QCBORDecodeContext DC;
-
    UsefulBufC TestData = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedFloats);
    QCBORDecode_Init(&DC, TestData, 0);
 
@@ -1635,7 +1666,6 @@ GeneralFloatDecodeTests(void)
    }
 
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-
    return 0;
 }
 

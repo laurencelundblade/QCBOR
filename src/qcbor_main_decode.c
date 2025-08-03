@@ -848,7 +848,7 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
           */
          // TODO: see if passing uArgument as a uint32_t around is less code
 
-         pDecodedItem->val.dfnum = IEEE754_FloatToDouble(single);
+         pDecodedItem->val.dfnum = IEEE754_SingleToDouble(single);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */

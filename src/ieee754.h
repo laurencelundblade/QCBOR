@@ -35,18 +35,14 @@
  * conversions, just the encodings.
  *
  * This is complete, supporting +/- infinity, +/- zero, subnormals and
- * NaN payloads. NaN payloads are converted to smaller by dropping the
- * right most bits if they are zero and shifting to the right. If the
- * rightmost bits are not zero, the conversion is not performed. When
- * converting from smaller to larger, the payload is shifted left and
- * zero-padded. This is what is specified by CBOR preferred
- * serialization and what modern HW conversion instructions do.
- *
- * There is no special handling of silent and quiet NaNs. It probably
- * isn't necessary to transmit these special NaNs as their purpose is
- * more for propagating errors up through some calculation. In many
- * cases the handling of the NaN payload will work for silent and quiet
- * NaNs.
+ * NaN payloads. NaN significands, which contain the NaN payload, are
+ * shortened by dropping the right most bits if they are zero and
+ * shifting to the right. If the rightmost bits are not zero the
+ * shortening is not performed. When converting from smaller to
+ * larger, the significand is shifted left and zero-padded. This is
+ * what is specified by CBOR preferred serialization. There is no
+ * special handling of silent and quiet NaNs.  They are treated as
+ * part of the significand.
  *
  * A previous version of this was usable as a general library for
  * conversion. This version is reduced to what is needed for CBOR.
@@ -87,7 +83,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision);
  * This does.
  */
 double
-IEEE754_FloatToDouble(float f);
+IEEE754_SingleToDouble(float f);
 
 
 /** Holds a floating-point value that could be half, single or

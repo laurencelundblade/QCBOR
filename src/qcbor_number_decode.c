@@ -460,7 +460,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = IEEE754_FloatToDouble(pItem->val.fnum);
+               *pdValue = IEEE754_SingleToDouble(pItem->val.fnum);
             } else {
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }

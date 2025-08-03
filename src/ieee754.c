@@ -43,9 +43,6 @@
  *  https://stackoverflow.com/questions/46073295/implicit-type-promotion-rules
  *
  *  https://stackoverflow.com/questions/589575/what-does-the-c-standard-state-the-size-of-int-long-type-to-be
- *
- * IEEE754_FloatToDouble(uint32_t uFloat) was created but is not
- * needed. It can be retrieved from github history if needed.
  */
 
 
@@ -287,7 +284,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 
 /* Public function; see ieee754.h */
 double 
-IEEE754_FloatToDouble(const float f)
+IEEE754_SingleToDouble(const float f)
 {
    uint32_t uFloat = CopyFloatToUint32(f);
    int      nDoubleUnBiasedExponent;
@@ -449,7 +446,6 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
              * expecting an update to CDE. This code may need to be
              * updated for CDE.
              */
-            // 23 bits shifted by 10 leaves 13 bits that are to be dropped: 0x1fff
             uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
             if(uDroppedBits == 0) {
                /* --- IS CONVERTABLE NAN --- */
@@ -489,7 +485,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
           * signficand.
           *
           * This is more complicated because the number is not
-          * normalized.  The signficand must be shifted proprotionally
+          * normalized.  The signficand must be shifted proportionally
           * to the exponent and 1 must be added in.  See
           * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
           *
@@ -673,7 +669,7 @@ IEEE754_DoubleToSingle(const double d)
              *
              * This is more complicated because the number is not
              * normalized.  The signficand must be shifted
-             * proprotionally to the exponent and 1 must be added
+             * proportionally to the exponent and 1 must be added
              * in. See
              * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
              */
