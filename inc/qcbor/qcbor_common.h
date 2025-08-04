@@ -40,6 +40,7 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -520,14 +521,16 @@ typedef enum {
    QCBOR_ERR_CALLBACK_FAIL = 72,
 
    /** This error code is deprecated. Instead,
-    *  @ref QCBOR_ERR_HALF_PRECISION_DISABLED,
+    *  @ref QCBOR_ERR_PREFERRED_FLOAT_DISABLED,
     *  @ref QCBOR_ERR_HW_FLOAT_DISABLED or @ref QCBOR_ERR_ALL_FLOAT_DISABLED
     *  is returned depending on the specific floating-point functionality
     *  that is disabled and the type of floating-point input. */
    QCBOR_ERR_FLOAT_DATE_DISABLED = 73,
 
-   /** Support for half-precision float decoding is disabled. */
-   QCBOR_ERR_HALF_PRECISION_DISABLED = 74,
+   /** Support for preferred serialization is disabled (QCBOR
+    * was compiled with QCBOR_DISABLE_PREFERRED_FLOAT). */
+   QCBOR_ERR_PREFERRED_FLOAT_DISABLED = 74,
+   QCBOR_ERR_HALF_PRECISION_DISABLED = 74, /* Deprecated */
 
    /** Use of floating-point HW is disabled. This affects all type
     *  conversions to and from double and float types. */
