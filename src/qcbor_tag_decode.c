@@ -13,6 +13,7 @@
 #include "qcbor/qcbor_tag_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h" /* For MapSearch and exit bounded */
 #include "decode_nesting.h"
+#include "ieee754.h"
 
 #include <math.h> /* For isnan() */
 

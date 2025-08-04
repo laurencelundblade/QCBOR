@@ -1044,7 +1044,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | __Configuration errors__  ||
  * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
  * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label that is not a string on an integer |
- * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Half-precision input, but disabled in QCBOR library |
+ * | @ref QCBOR_ERR_PREFERRED_FLOAT_DISABLED    | Half-precision input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Indefinite-length input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Indefinite-length input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_ALL_FLOAT_DISABLED             | Library compiled with floating-point support turned off. |

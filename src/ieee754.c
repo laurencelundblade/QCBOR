@@ -140,7 +140,7 @@
  * size impact because these always optimze down to a simple assignment.
  */
 static inline uint32_t
-CopyFloatToUint32(float f)
+CopySingleToUint32(float f)
 {
    uint32_t u32;
    memcpy(&u32, &f, sizeof(uint32_t));
@@ -283,10 +283,10 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 
 
 /* Public function; see ieee754.h */
-double 
+double
 IEEE754_SingleToDouble(const float f)
 {
-   uint32_t uFloat = CopyFloatToUint32(f);
+   uint32_t uFloat = CopySingleToUint32(f);
    int      nDoubleUnBiasedExponent;
    uint64_t uDoubleSignificand;
    double   dResult;
@@ -400,7 +400,7 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
     * is done with uint32_t which helps avoid integer promotions and
     * static analyzer complaints.
     */
-   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int      nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
@@ -859,7 +859,7 @@ IEEE754_SingleToInt(const float f)
     * work is done with uint32_t which helps avoid integer promotions
     * and static analyzer complaints.
     */
-   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int      nSingleUnbiasedExponent = (int)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
@@ -1014,7 +1014,7 @@ IEEE754_DoubleHasNaNPayload(const double d)
 int
 IEEE754_SingleHasNaNPayload(const float f)
 {
-   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;

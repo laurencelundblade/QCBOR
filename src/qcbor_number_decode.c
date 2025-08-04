@@ -466,7 +466,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
             }
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         return QCBOR_ERR_HALF_PRECISION_DISABLED; // TODO: new error code for all of preferred
+         return QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
 
@@ -498,8 +498,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
       case QCBOR_TYPE_UINT64:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            // A simple cast seems to do the job with no worry of exceptions.
-            // There will be precision loss for some values.
+            /* IEEE754_UintToDouble() not used - it fails rather than round */
             *pdValue = (double)pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -511,7 +510,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
 
       case QCBOR_TYPE_65BIT_NEG_INT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-         // TODO: don't use float HW. We have the function to do it.
+         /* IEEE754_UintToDouble() not used - it fails rather than round */
          *pdValue = -(double)pItem->val.uint64 - 1;
          break;
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */

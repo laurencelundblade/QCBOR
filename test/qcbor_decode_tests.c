@@ -3547,7 +3547,7 @@ int32_t DateParseTest(void)
 
    /* 13. Epoch date with half-precision negative infinity */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
-   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
+   if(uError != FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -17;
    }
 
@@ -3709,7 +3709,7 @@ int32_t SpiffyDateDecodeTest(void)
    QCBORDecode_GetTEpochDateInMapN(&DC, 9, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                   &nEpochDate4);
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS)) {
+   if(uError != FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)) {
       return 106;
    }
    if(uError == QCBOR_SUCCESS) {
@@ -3869,7 +3869,7 @@ int32_t SpiffyDateDecodeTest(void)
    // Half-precision minus infinity
    QCBORDecode_GetTEpochDate(&DC, QCBOR_TAG_REQUIREMENT_TAG, &nEpochDateFail);
    uError = QCBORDecode_GetAndResetError(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
+   if(uError != FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return 2;
    }
 
@@ -8460,18 +8460,18 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       NAN,
-      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS), /* TODO: different in 2.0 (and 1.6) */
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS),
    },
    {
       "half-precision Floating point value -4",
       {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
       // Normal case with all enabled.
       -4,
-      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS),
       0,
-      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -4.0,
-      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
    },
    {
       "+inifinity single precision",
@@ -8481,8 +8481,11 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
-      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS), /* TODO: different in 2.0 (and 1.6) */
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS),
    },
+
+   /* In QCBOR 1.6 some decoding of single to double is available conidtional on DISABLE_PREFERRED_FLOAT rather than NO_FLOAT_HW.
+    * This is a small change in behavior so the version number is 1.6 instead of 1.5.4. QCBOR 2.0 is in alpha state, so no need for similar version numbers . */
 };
 
 
@@ -10608,12 +10611,12 @@ int32_t BoolTest(void)
 #define PREFERRED_ERR    QCBOR_ERR_PREFERRED_CONFORMANCE
 #define DCBOR_FLOAT_ERR  QCBOR_ERR_DCBOR_CONFORMANCE
 #define HALF_FLOAT_ERR   QCBOR_ERR_DCBOR_CONFORMANCE
-#else
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #define PREFERRED_ERR    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
 #define DCBOR_FLOAT_ERR  QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
-#define HALF_FLOAT_ERR   QCBOR_ERR_HALF_PRECISION_DISABLED
-#endif
-#else
+#define HALF_FLOAT_ERR   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#else /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 #define PREFERRED_ERR    QCBOR_ERR_ALL_FLOAT_DISABLED
 #define DCBOR_FLOAT_ERR  QCBOR_ERR_ALL_FLOAT_DISABLED
 #define HALF_FLOAT_ERR   QCBOR_ERR_ALL_FLOAT_DISABLED

@@ -21,6 +21,8 @@
 #include <math.h> /* For INFINITY and NAN and isnan() */
 
 /* Tests that are not enabled by default because they are not reliable or complete yet */
+// TODO: final configuration for these
+// TODO: use Carsten's more
 #define QCBOR_COMPARE_TO_HW_CONVERSION
 #define QCBOR_COMPARE_TO_CARSTEN
 
@@ -186,7 +188,7 @@ NaNExperiments(void)
 #endif /* NAN_EXPERIMENT */
 
 
-/* Return 0 if OK, 1 if not */
+/* Returns 0 if OK, 1 if not */
 static int32_t
 HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
 {
@@ -222,7 +224,7 @@ HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
    return 0;
 }
 
-/* Return 0 if OK, 1 if not */
+/* Returns 0 if OK, 1 if not */
 static int32_t
 HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
 {
@@ -260,7 +262,7 @@ HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
 
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-/* Return 0 if OK, 1 if not */
+/* Returns 0 if OK, 1 if not */
 static int32_t
 CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const UsefulBufC Expected)
 {
@@ -325,7 +327,7 @@ struct FloatTestCase {
  *
  * C string literals are used because they are the shortest
  * notation. They are used __with a length__ . Null termination
- * doesn't work because there are zero bytes.
+ * doesn't work because there are bytes with value zero.
  *
  * While the CDE and dCBOR standards are not complete as of mid-2025,
  * they are unlikely to change, so the tests here are likely correct.
@@ -688,13 +690,13 @@ FloatValuesTests(void)
       }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       if(pTestCase->Preferred.len == 3) {
-         if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+         if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
             return MakeTestResultCode(uTestIndex, 14, uErr);
          }
       } else if(pTestCase->Preferred.len == 5) {
          /* When QCBOR_DISABLE_PREFERRED_FLOAT is set, single-precision is not
           * converted to double when decoding, so test differently. len == 5
-          * indicates single-precision in the encoded CBOR. */    
+          * indicates single-precision in the encoded CBOR. */
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex, 15, uErr);
          }
@@ -1046,7 +1048,7 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex+100, 27, 200);
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+         if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
             return MakeTestResultCode(uTestIndex+100, 28, uErr);
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1102,7 +1104,7 @@ NaNPayloadsTest(void)
                return MakeTestResultCode(uTestIndex+100, 36, 200);
             }
          } else {
-            if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+            if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
                return MakeTestResultCode(uTestIndex+100, 37, 200);
             }
          }
@@ -1164,7 +1166,7 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex+100, 45, 200);
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+         if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
             return MakeTestResultCode(uTestIndex+100, 46, uErr);
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1184,7 +1186,7 @@ NaNPayloadsTest(void)
       return MakeTestResultCode(199, 101, 200);
    }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-   if(uErr != QCBOR_ERR_HALF_PRECISION_DISABLED) {
+   if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
       return MakeTestResultCode(uTestIndex+100, 261, uErr);
    }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1415,7 +1417,7 @@ GeneralFloatDecodeTests(void)
 
    /* 0.0 half-precision */
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 0.0
@@ -1480,7 +1482,7 @@ GeneralFloatDecodeTests(void)
 
    /* 0.0 half-precision (again) */
    uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 0.0
@@ -1575,7 +1577,7 @@ GeneralFloatDecodeTests(void)
    /* 0.0 half-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != 0.0
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1614,7 +1616,7 @@ GeneralFloatDecodeTests(void)
    /* 0.0 half-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != 0.0
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1625,7 +1627,7 @@ GeneralFloatDecodeTests(void)
    /* 3.140000104904175 single-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != 3.140000104904175
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1636,7 +1638,7 @@ GeneralFloatDecodeTests(void)
    /* 0.0 single-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != 0.0
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1646,7 +1648,7 @@ GeneralFloatDecodeTests(void)
 
    /* NaN single-precision */
    QCBORDecode_GetDouble(&DC, &d);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || !isnan(d)
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1657,7 +1659,7 @@ GeneralFloatDecodeTests(void)
    /* Infinity single-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
+   if(uErr != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS) /* Different in 2.0 and 1.6 */
 #ifndef QCBOR_DISABLQCBOR_DISABLE_PREFERRED_FLOATE_FLOAT_HW_USE
       || d != INFINITY
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */

@@ -498,7 +498,7 @@ QCBORDecode_GetTDateStringInMapSZ(QCBORDecodeContext    *pCtx,
  * If the input is a floating-point date and the QCBOR library is
  * compiled with some or all floating-point features disabled, the
  * following errors will be set.  If the input is half-precision and
- * half-precision is disabled @ref QCBOR_ERR_HALF_PRECISION_DISABLED
+ * preferred float is disabled @ref QCBOR_ERR_PREFERRED_FLOAT_DISABLED
  * is set. This function needs hardware floating-point to convert the
  * floating-point value to an integer so if HW floating point is
  * disabled @ref QCBOR_ERR_HW_FLOAT_DISABLED is set. If all
