@@ -139,13 +139,7 @@
  * here to avoid a dependency on UsefulBuf.h. There is no object code
  * size impact because these always optimze down to a simple assignment.
  */
-static inline uint32_t
-CopySingleToUint32(float f)
-{
-   uint32_t u32;
-   memcpy(&u32, &f, sizeof(uint32_t));
-   return u32;
-}
+
 
 static inline uint64_t
 CopyDoubleToUint64(double d)
@@ -166,13 +160,6 @@ CopyUint64ToDouble(uint64_t u64)
    return d;
 }
 
-static inline float
-CopyUint32ToSingle(uint32_t u32)
-{
-   float f;
-   memcpy(&f, &u32, sizeof(uint32_t));
-   return f;
-}
 
 
 
@@ -284,9 +271,8 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 
 /* Public function; see ieee754.h */
 double
-IEEE754_SingleToDouble(const float f)
+IEEE754_SingleToDouble(const uint32_t uSingle)
 {
-   uint32_t uFloat = CopySingleToUint32(f);
    int      nDoubleUnBiasedExponent;
    uint64_t uDoubleSignificand;
    double   dResult;
@@ -296,10 +282,10 @@ IEEE754_SingleToDouble(const float f)
     * is. It may give smaller code size and will keep static analyzers
     * happier.
     */
-   const uint64_t uSingleSignificand      = uFloat & SINGLE_SIGNIFICAND_MASK;
-   const uint64_t uSingleBiasedExponent   = (uFloat & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   const uint64_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint64_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int nSingleUnBiasedExponent      = (int)(uSingleBiasedExponent - SINGLE_EXPONENT_BIAS);
-   const int nIsNegative                  = (uFloat & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+   const int nIsNegative                  = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
 
    if(nSingleUnBiasedExponent == SINGLE_EXPONENT_ZERO) {
       /* 0 or subnormal */
@@ -388,7 +374,7 @@ IEEE754_AssembleHalf(int      nIsNegative,
 
 /*  Public function; see ieee754.h */
 IEEE754_union
-IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
+IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
 {
    IEEE754_union result;
    uint32_t      uDroppedBits;
@@ -400,7 +386,6 @@ IEEE754_SingleToHalf(const float f, const int bNoNaNPayload)
     * is done with uint32_t which helps avoid integer promotions and
     * static analyzer complaints.
     */
-   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int      nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
@@ -710,8 +695,7 @@ IEEE754_DoubleToSmaller(const double d,
    if(result.uSize == IEEE754_UNION_IS_SINGLE && bAllowHalfPrecision) {
       /* Cast to uint32_t is OK, because value was just successfully
        * converted to single. */
-      float uSingle = CopyUint32ToSingle((uint32_t)result.uValue);
-      result = IEEE754_SingleToHalf(uSingle, bNoNanPayload);
+      result = IEEE754_SingleToHalf((uint32_t)result.uValue, bNoNanPayload);
    }
 
    return result;
@@ -849,7 +833,7 @@ IEEE754_DoubleToInt(const double d)
 
 /* Public function; see ieee754.h */
 struct IEEE754_ToInt
-IEEE754_SingleToInt(const float f)
+IEEE754_SingleToInt(const uint32_t uSingle)
 {
    int                  nPrecisionBits;
    struct IEEE754_ToInt Result;
@@ -859,7 +843,6 @@ IEEE754_SingleToInt(const float f)
     * work is done with uint32_t which helps avoid integer promotions
     * and static analyzer complaints.
     */
-   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int      nSingleUnbiasedExponent = (int)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
@@ -1012,9 +995,8 @@ IEEE754_DoubleHasNaNPayload(const double d)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_SingleHasNaNPayload(const float f)
+IEEE754_SingleHasNaNPayload(const uint32_t uSingle)
 {
-   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;

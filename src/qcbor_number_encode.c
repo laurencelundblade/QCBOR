@@ -153,15 +153,16 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
    struct IEEE754_ToInt IntResult;
    uint64_t             uNegValue;
 
+    const uint32_t uSingle = UsefulBufUtil_CopyFloatToUint32(fNum);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_SingleHasNaNPayload(fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleHasNaNPayload(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
-      IntResult = IEEE754_SingleToInt(fNum);
+      IntResult = IEEE754_SingleToInt(uSingle);
       switch(IntResult.type) {
          case IEEE754_ToInt_IS_INT:
             QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
@@ -190,7 +191,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
       bNoNaNPayload = false;
    }
 
-   FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
+   FloatResult = IEEE754_SingleToHalf(uSingle, bNoNaNPayload);
 
    QCBOREncode_Private_AddType7(pMe,
                                 (uint8_t)FloatResult.uSize,

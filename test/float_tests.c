@@ -18,13 +18,15 @@
 #include "qcbor/qcbor_decode.h"
 #include "qcbor/qcbor_spiffy_decode.h"
 #include "qcbor/qcbor_number_decode.h"
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #include <math.h> /* For INFINITY and NAN and isnan() */
+#endif
 
-/* Tests that are not enabled by default because they are not reliable or complete yet */
-// TODO: final configuration for these
-// TODO: use Carsten's more
-#define QCBOR_COMPARE_TO_HW_CONVERSION
-#define QCBOR_COMPARE_TO_CARSTEN
+
+/* This is off because it is affected by varying behavior of CPUs,
+ * compilers and float libraries. Particularly the qNaN bit
+ */
+//#define QCBOR_COMPARE_TO_HW_CONVERSION
 
 
 /* Make a test results code that includes three components. Return code
@@ -266,23 +268,22 @@ HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
 static int32_t
 CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const UsefulBufC Expected)
 {
-#ifdef QCBOR_COMPARE_TO_CARSTEN
    if(Expected.len == 3) {
-      int xxx = try_float16_encode(uDouble);
-      uint8_t yy[3];
-      yy[0] = 0xf9;
-      yy[1] = (xxx & 0xff00) >> 8;
-      yy[2] = xxx & 0xff;
+      /* Just works for double to half now */
+      int uFloat16 = try_float16_encode(uDouble);
+      uint8_t CarstenEncoded[3];
+      CarstenEncoded[0] = 0xf9;
+      CarstenEncoded[1] = (uFloat16 & 0xff00) >> 8;
+      CarstenEncoded[2] = uFloat16 & 0xff;
 
-      UsefulBufC zz;
-      zz.len = 3;
-      zz.ptr = yy;
+      UsefulBufC CarstenEncodedUB;
+      CarstenEncodedUB.len = 3;
+      CarstenEncodedUB.ptr = CarstenEncoded;
 
-      if(UsefulBuf_Compare(TestOutput, zz)) {
+      if(UsefulBuf_Compare(TestOutput, CarstenEncodedUB)) {
          return 1;
       }
    }
-#endif /* QCBOR_COMPARE_TO_CARSTEN */
 
    return 0;
 }
@@ -607,7 +608,7 @@ FloatValuesTests(void)
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
-      if(uTestIndex == 15) {
+      if(uTestIndex == 16) {
          uDecoded = 1;
       }
 
@@ -622,6 +623,10 @@ FloatValuesTests(void)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       if(UsefulBuf_Compare(TestOutput, pTestCase->Preferred)) {
          return MakeTestResultCode(uTestIndex, 2, 200);
+      }
+
+      if(CompareToCarsten(UsefulBufUtil_CopyDoubleToUint64(pTestCase->dNumber), TestOutput, pTestCase->Preferred)) {
+         return MakeTestResultCode(uTestIndex, 202, 200);
       }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {

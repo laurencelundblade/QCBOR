@@ -460,7 +460,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = IEEE754_SingleToDouble(pItem->val.fnum);
+               *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
             } else {
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }
@@ -659,7 +659,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
          break;
 
       case QCBOR_TYPE_FLOAT:
-         ToInt = IEEE754_SingleToInt(Item.val.fnum);
+         ToInt = IEEE754_SingleToInt(UsefulBufUtil_CopyFloatToUint32(Item.val.fnum));
          if(ToInt.type == IEEE754_ToInt_IS_INT) {
             pNumber->uDataType = QCBOR_TYPE_INT64;
             pNumber->val.int64 = ToInt.integer.is_signed;

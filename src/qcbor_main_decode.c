@@ -701,27 +701,27 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uconfigFlags)
+QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uconfigFlags)
 {
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
    if(uconfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       /* See if it could have been encoded as an integer */
-      ToInt = IEEE754_SingleToInt(f);
+      ToInt = IEEE754_SingleToInt(uSingle);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
 
       /* Make sure there is no NaN payload */
-      if(IEEE754_SingleHasNaNPayload(f)) {
+      if(IEEE754_SingleHasNaNPayload(uSingle)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
 
    /* See if it could have been encoded shorter */
    if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
-      ToSmaller = IEEE754_SingleToHalf(f, true);
+      ToSmaller = IEEE754_SingleToHalf(uSingle, true);
       if(ToSmaller.uSize != sizeof(float)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
       }
@@ -809,9 +809,7 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
                           QCBORItem            *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
-   float      single;
-
-   (void)single; /* Avoid unused error from various #ifndefs */
+   uint32_t uSingle;
 
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
@@ -832,10 +830,10 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
-         /*  The cast to uint32_t is safe because the encoded value was
+         /* The cast to uint32_t is safe because the encoded value was
           * 32 bits. It was widened to 64 bits to be passed in here. */
-         single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-         uReturn = QCBORDecode_Private_SingleConformance(single, uConfigFlags);
+         uSingle = (uint32_t)uArgument;
+         uReturn = QCBORDecode_Private_SingleConformance(uSingle, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
@@ -844,23 +842,14 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
           * double is widely supported, there is no loss of precision,
           * it makes it easy for the caller and it can
           * be converted back to single with no loss of precision
-          *
-          * The cast to uint32_t is safe because the encoded value was
-          * 32 bits. It was widened to 64 bits to be passed in here.
           */
-         // TODO: see if passing uArgument as a uint32_t around is less code
-
-         pDecodedItem->val.dfnum = IEEE754_SingleToDouble(single);
+         pDecodedItem->val.dfnum = IEEE754_SingleToDouble(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          /* QCBOR's SW float conversion is disabled */
-         // TODO: document this
-         pDecodedItem->val.fnum  = single;
+         pDecodedItem->val.fnum  = UsefulBufUtil_CopyUint32ToFloat(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         // TODO: right errors for fannout?
          uReturn = QCBOR_SUCCESS;
          break;
 

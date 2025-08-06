@@ -189,6 +189,9 @@ enum QCBOREncodeConfig {
     * float numbers.  This reduction doesn't cover other number
     * representations like big numbers and big floats.
     *
+    * This also outputs all NaNs, regardless of the payload, as
+    * a half-precision quiet NaN.
+    *
     * See @ref QCBOR_ENCODE_CONFIG_DCBOR.
     */
    QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION = 0x04,
@@ -282,13 +285,8 @@ enum QCBOREncodeConfig {
     * integer, not a floating-point number.  0.000 will be encoded as
     * 0x00. Precision is never lost in this conversion.
     *
-    * dCBOR also disallows NaN payloads. QCBOR will allow NaN payloads
-    * if you pass a NaN to one of the floating-point encoding
-    * functions.  This mode forces all NaNs to the half-precision
-    * quiet NaN. TODO: rewrite the above
-    *
-    * TODO: confirm and test NaN payload behavior dCBOR reduces all
-    * NaN payloads to half-precision quiet NaN
+    * dCBOR requires all NaNs to be encoded as a half-precision
+    * quiet NaN. NaN payloads are discarded.
     *
     * dCBOR disallows use of any simple type other than true, false
     * and NULL. In particular it disallows use of "undef" produced by

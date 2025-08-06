@@ -622,11 +622,15 @@ typedef struct _QCBORItem {
        *  both definite and indefinite length maps and arrays. */
       uint16_t    uCount;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
+      /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. All floating-point
+       * values (double, single and half-precision) are returned as a double except when
+       * the library is built with QCBOR_DISABLE_PREFERRED_FLOAT, in which case
+       * double and single are returned as @c dfnum and @c fnum respectiively, and half-precision
+       * results in an error. */
       double      dfnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH, the
        *  number of seconds after or before Jan 1, 1970. This has a
        *  range of 500 billion years. Floating-point dates are
@@ -641,7 +645,7 @@ typedef struct _QCBORItem {
          int64_t  nSeconds;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
          double   fSecondsFraction;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
       } epochDate;
 
       /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
