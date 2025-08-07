@@ -222,7 +222,11 @@ HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
          return 1;
       }
    }
+#else
+   (void)uDoubleToConvert;
+   (void)uExpectedSingle;
 #endif /* QCBOR_COMPARE_TO_HW_CONVERSION */
+
    return 0;
 }
 
@@ -258,6 +262,9 @@ HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
          return 1;
       }
    }
+#else
+   (void)uSingleToConvert;
+   (void)uExpectedDouble;
 #endif /* QCBOR_COMPARE_TO_HW_CONVERSION */
    return 0;
 }

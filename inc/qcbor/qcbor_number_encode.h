@@ -77,7 +77,7 @@ extern "C" {
  * representation of the double or float that preserves precision. Zero,
  * and infinity are always encoded as a half-precision, each taking
  * just 2 bytes. This reduces the number of bytes needed to encode
- * double and single-precision, especially if zero  and infinity are
+ * double and single-precision, especially if zero and infinity are
  * frequently used. NaN is also shortened, usually to half-precision,
  * but only if no NaN payload bits would be dropped.
  *
@@ -90,6 +90,12 @@ extern "C" {
  * any floating-point library brought in by the compiler.
  * Instead, it relies solely on bit shifts and masks.
  *
+ * Several compile-time options can reduce the library size and
+ * dependencies. Internal dependencies are already minimized, so
+ * little floating-point code is linked unless explicitly used. During
+ * encoding, no floating-point code is linked unless called; during
+ * decoding, only a small amount is linked.
+ *
  * Defining QCBOR_DISABLE_PREFERRED_FLOAT can reduce
  * object code by as much a 2.5KB. The effect is:
  * - No preferred serialization encoding of float-point numbers
@@ -99,17 +105,13 @@ extern "C" {
  *   is disabled
  * - Floating-point decode conformance checks for dCBOR and others are disabled
  *
- * Even without QCBOR_DISABLE_PREFERRED_FLOAT, you can avoid all
- * floating-point encoding code by never calling functions that encode
- * double or float.  This reduces object code by about 500 bytes.
- *
  * On CPUs without floating-point hardware, define
  * QCBOR_DISABLE_FLOAT_HW_USE elimate the possibility of the compiler
  * adding large software emulation libraries.  On CPUs with
  * floating-point hardware, defining it can still save up to 1.5 KB of
  * object code and removes the need for <math.h>.
  *
- * When QCBOR_DISABLE_FLOAT_HW_USE is defined
+ * When QCBOR_DISABLE_FLOAT_HW_USE is defined:
  * - Decoding of floating-point dates is not possible
  * - Decode conversions involving floating-point are disabled
  *
@@ -119,7 +121,7 @@ extern "C" {
  *   as-is (no conversions between them).
  *
  * If USEFULBUF_DISABLE_ALL_FLOAT is defined, then floating-point
- * support is completely disabled.
+ * support is completely disabled:
  * - No double or float types are used anywhere
  * - Decoding functions return @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a
  *   floating-point value is encountered
