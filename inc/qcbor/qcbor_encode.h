@@ -297,11 +297,21 @@ extern "C" {
  * floating-point values are returned as a double.
  *
  * With CBOR preferred serialization, the encoder outputs the smallest
- * representation of the double or float that preserves precision. Zero,
- * NaN and infinity are always output as a half-precision, each taking
+ * representation of the double or float that preserves precision. Zero
+ * and infinity are always encoded as a half-precision, each taking
  * just 2 bytes. This reduces the number of bytes needed to encode
  * double and single-precision, especially if zero, NaN and infinity are
  * frequently used.
+ *
+ * Typically, a NaN is a "quiet NaN" with no payload. The @c NAN
+ * constant defined in <math.h> is the quiet NaN with no
+ * payload. Preferred serilization reduces this to half-precision. If
+ * your use case goes out of its way to set NaN payloads, they are
+ * encoded using a reduction that is the same as for numeric
+ * values. If the right most bits of the NaN's significand that are
+ * removed in a reduction are zero, the reduction is performed. For
+ * example, if the rightmost 29 bits of a double NaN significand are
+ * zero, then it will be reduced to a single.
  *
  * To avoid use of preferred serialization in the standard configuration
  * when encoding, use QCBOREncode_AddDoubleNoPreferred() or

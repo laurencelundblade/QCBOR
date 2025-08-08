@@ -1,7 +1,7 @@
 /* ==========================================================================
- * ieee754.c -- floating-point conversion between half, double & single-precision
+ * ieee754.c -- floating-point conversion for half, double & single-precision
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -49,9 +49,6 @@
  *  https://stackoverflow.com/questions/46073295/implicit-type-promotion-rules
  *
  *  https://stackoverflow.com/questions/589575/what-does-the-c-standard-state-the-size-of-int-long-type-to-be
- *
- * IEEE754_FloatToDouble(uint32_t uFloat) was created but is not
- * needed. It can be retrieved from github history if needed.
  */
 
 
@@ -149,7 +146,7 @@
  * size impact because these always optimze down to a simple assignment.
  */
 static inline uint32_t
-CopyFloatToUint32(float f)
+CopySingleToUint32(float f)
 {
    uint32_t u32;
    memcpy(&u32, &f, sizeof(uint32_t));
@@ -215,8 +212,8 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
    int64_t  nDoubleUnBiasedExponent;
    double   dResult;
 
-   /* Pull out the three parts of the half-precision float.  Do all
-    * the work in 64 bits because that is what the end result is.  It
+   /* Pull out the three parts of the half-precision float. Do most of
+    * the work in 64 bits because that is what the end result is. It
     * may give smaller code size and will keep static analyzers
     * happier.
     */
@@ -287,6 +284,83 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 }
 
 
+/* Public function; see ieee754.h */
+double
+IEEE754_SingleToDouble(const uint32_t uSingle)
+{
+   int      nDoubleUnBiasedExponent;
+   uint64_t uDoubleSignificand;
+   double   dResult;
+
+   /* Pull out the three parts of the single-precision float. Do most
+    * of the work in 64 bits because that is what the end result
+    * is. It may give smaller code size and will keep static analyzers
+    * happier.
+    */
+   const uint64_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint64_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   const int nSingleUnBiasedExponent      = (int)(uSingleBiasedExponent - SINGLE_EXPONENT_BIAS);
+   const int nIsNegative                  = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+
+   if(nSingleUnBiasedExponent == SINGLE_EXPONENT_ZERO) {
+      /* 0 or subnormal */
+      if(uSingleSignificand) {
+         /* --- SUBNORMAL --- */
+         /* A single-precision subnormal can always be converted to a
+          * normal double-precision float because the ranges line up.
+          * The exponent of a subnormal starts out at the min exponent
+          * for a normal. As the sub normal significand bits are
+          * shifted, left to normalize, the exponent is
+          * decremented. Shifting continues until fully normalized.
+          */
+         nDoubleUnBiasedExponent = SINGLE_EXPONENT_MIN;
+         uDoubleSignificand = uSingleSignificand;
+         do {
+            uDoubleSignificand <<= 1;
+            nDoubleUnBiasedExponent--;
+         } while((uDoubleSignificand & (1ULL << SINGLE_NUM_SIGNIFICAND_BITS)) == 0);
+         /* A normal has an implied 1 in the most significant position
+          * that a subnormal doesn't. */
+         uDoubleSignificand -= 1ULL << SINGLE_NUM_SIGNIFICAND_BITS;
+         uDoubleSignificand <<= (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                          uDoubleSignificand,
+                                          nDoubleUnBiasedExponent);
+      } else {
+         /* --- ZERO --- */
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative, 0, DOUBLE_EXPONENT_ZERO);
+      }
+   } else if(nSingleUnBiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
+      /* NaN or Inifinity */
+      if(uSingleSignificand) {
+         /* --- NaN --- */
+         /* Single-precision payloads always fit into double precision
+          * payloads. They are shifted left the same as a normal
+          * number significand.
+          */
+         uDoubleSignificand = uSingleSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                          uDoubleSignificand,
+                                          DOUBLE_EXPONENT_INF_OR_NAN);
+      } else {
+         /* --- INFINITY --- */
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                          0,
+                                          DOUBLE_EXPONENT_INF_OR_NAN);
+      }
+   } else {
+      /* --- NORMAL NUMBER --- */
+      uDoubleSignificand = uSingleSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+      dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                       uDoubleSignificand,
+                                       nSingleUnBiasedExponent);
+   }
+
+   return dResult;
+}
+
+
 /**
  * @brief Assemble sign, significand and exponent into single precision float.
  *
@@ -327,7 +401,7 @@ IEEE754_SingleToHalf(float f)
     * is done with uint32_t which helps avoid integer promotions and
     * static analyzer complaints.
     */
-   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
@@ -404,7 +478,7 @@ IEEE754_SingleToHalf(float f)
           * signficand.
           *
           * This is more complicated because the number is not
-          * normalized.  The signficand must be shifted proprotionally
+          * normalized.  The signficand must be shifted proportionally
           * to the exponent and 1 must be added in.  See
           * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
           *

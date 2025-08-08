@@ -7986,7 +7986,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       NAN,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS),
    },
    {
       "half-precision Floating point value -4",
@@ -8007,7 +8007,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
    },
 
    {
@@ -8018,7 +8018,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       -INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
    },
 };
 
@@ -8060,7 +8060,7 @@ int32_t IntegerConvertTest(void)
 
       int64_t nInt;
 
-      if(nIndex == 27) {
+      if(nIndex == 24) {
          nInt = 9;
       }
 
