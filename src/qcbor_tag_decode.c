@@ -1114,7 +1114,7 @@ QCBORDecode_DateEpochTagCB(QCBORDecodeContext *pDecodeCtx,
       }
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
-         uReturn = QCBOR_ERR_HW_FLOAT_DISABLED;
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
          goto Done;
 
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */

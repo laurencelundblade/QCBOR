@@ -14,7 +14,6 @@
 #ifndef ieee754_h
 #define ieee754_h
 
-
 #include <stdint.h>
 
 
@@ -71,7 +70,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision);
 /**
  * @brief Convert single-precision float to double-precision float.
  *
- * @param[in] f   Single-precision number to convert.
+ * @param[in] uSingle   float bits copied to a uint32_t.
  *
  * @returns double-precision value.
  *
