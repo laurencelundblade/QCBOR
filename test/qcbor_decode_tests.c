@@ -3498,7 +3498,7 @@ int32_t DateParseTest(void)
          Item.val.epochDate.nSeconds != 1
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          || CHECK_EXPECTED_DOUBLE(Item.val.epochDate.fSecondsFraction, 0.1)
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
         ) {
          return -11;
       }

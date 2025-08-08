@@ -481,7 +481,11 @@ typedef struct _QCBORItem {
        *  both definite and indefinite length maps and arrays. */
       uint16_t    uCount;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
+      /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. All floating-point
+       * values (double, single and half-precision) are returned as a double except when
+       * the library is built with QCBOR_DISABLE_PREFERRED_FLOAT, in which case
+       * double and single are returned as @c dfnum and @c fnum respectiively, and half-precision
+       * results in an error. */
       double      dfnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;

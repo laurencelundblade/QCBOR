@@ -2223,7 +2223,7 @@ QCBOR_Private_DecodeDateEpoch(QCBORItem *pDecodedItem)
       }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-         uReturn = QCBOR_ERR_HW_FLOAT_DISABLED;
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
          goto Done;
 
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -5522,7 +5522,7 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
       case QCBOR_TYPE_FLOAT:
       case QCBOR_TYPE_DOUBLE:
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -5931,7 +5931,7 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
