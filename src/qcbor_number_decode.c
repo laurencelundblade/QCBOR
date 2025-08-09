@@ -2,7 +2,7 @@
  * qcbor_number_decode.c -- Number decoding beyond the basic ints and floats
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -128,7 +128,7 @@ QCBOR_Private_ConvertInt64(const QCBORItem                    *pItem,
             return  QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -313,10 +313,10 @@ QCBOR_Private_ConvertUInt64(const QCBORItem                    *pItem,
             }
 
          } else {
-            return QCBOR_ERR_UNEXPECTED_TYPE;
+            return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
          }
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -457,18 +457,17 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
 {
    switch(pItem->uDataType) {
       case QCBOR_TYPE_FLOAT:
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               // Simple cast does the job.
-               *pdValue = (double)pItem->val.fnum;
+               *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
             } else {
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }
          }
-#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         return QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
 
       case QCBOR_TYPE_DOUBLE:
@@ -499,24 +498,23 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
       case QCBOR_TYPE_UINT64:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            // A simple cast seems to do the job with no worry of exceptions.
-            // There will be precision loss for some values.
+            /* IEEE754_UintToDouble() not used - it fails rather than round */
             *pdValue = (double)pItem->val.uint64;
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
       case QCBOR_TYPE_65BIT_NEG_INT:
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
-         // TODO: don't use float HW. We have the function to do it.
+         /* IEEE754_UintToDouble() not used - it fails rather than round */
          *pdValue = -(double)pItem->val.uint64 - 1;
          break;
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
       default:
@@ -661,7 +659,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
          break;
 
       case QCBOR_TYPE_FLOAT:
-         ToInt = IEEE754_SingleToInt(Item.val.fnum);
+         ToInt = IEEE754_SingleToInt(UsefulBufUtil_CopyFloatToUint32(Item.val.fnum));
          if(ToInt.type == IEEE754_ToInt_IS_INT) {
             pNumber->uDataType = QCBOR_TYPE_INT64;
             pNumber->val.int64 = ToInt.integer.is_signed;
@@ -1711,7 +1709,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
    (void)pItem;
    (void)uConvertTypes;
    (void)pdValue;
-   return QCBOR_ERR_HW_FLOAT_DISABLED;
+   return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
 }

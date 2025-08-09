@@ -75,67 +75,58 @@ extern "C" {
  *
  * With CBOR preferred serialization, the encoder outputs the smallest
  * representation of the double or float that preserves precision. Zero,
- * NaN and infinity are always output as a half-precision, each taking
+ * and infinity are always encoded as a half-precision, each taking
  * just 2 bytes. This reduces the number of bytes needed to encode
- * double and single-precision, especially if zero, NaN and infinity are
- * frequently used.
+ * double and single-precision, especially if zero and infinity are
+ * frequently used. NaN is also shortened, usually to half-precision,
+ * but only if no NaN payload bits would be dropped.
  *
  * To avoid use of preferred serialization in the standard configuration
  * when encoding, use QCBOREncode_AddDoubleNoPreferred() or
  * QCBOREncode_AddFloatNoPreferred().
  *
- * This implementation of preferred floating-point serialization and
- * half-precision does not depend on the CPU having floating-point HW or
- * the compiler bringing in a (sometimes large) library to compensate
- * for lack of CPU support. This implementation uses shifts and masks
- * rather than floating-point functions.
+ * This implementation of floating-point preferred serialization and
+ * half-precision is independent of the CPU floating-point hardware or
+ * any floating-point library brought in by the compiler.
+ * Instead, it relies solely on bit shifts and masks.
  *
- * To reduce overall object code by about 900 bytes, define
- * QCBOR_DISABLE_PREFERRED_FLOAT. This will eliminate all support for
- * preferred serialization and half-precision. An error will be returned
- * when attempting to decode half-precision. A float will always be
- * encoded and decoded as 32-bits and a double will always be encoded
- * and decoded as 64 bits.
+ * Several compile-time options can reduce the library size and
+ * dependencies. Internal dependencies are already minimized, so
+ * little floating-point code is linked unless explicitly used. During
+ * encoding, no floating-point code is linked unless called; during
+ * decoding, only a small amount is linked.
  *
- * Note that even if QCBOR_DISABLE_PREFERRED_FLOAT is not defined all
- * the float-point encoding object code can be avoided by never calling
- * any functions that encode double or float. Just not calling
- * floating-point functions will reduce object code by about 500 bytes.
+ * Defining QCBOR_DISABLE_PREFERRED_FLOAT can reduce
+ * object code by as much a 2.5KB. The effect is:
+ * - No preferred serialization encoding of float-point numbers
+ * - Half-precision decoding is disabled (decoding attempts will fail)
+ * - Single-precision values are not converted to double during decoding
+ * - dCBOR number processing via QCBORDecode_GetNumberConvertPrecisely()
+ *   is disabled
+ * - Floating-point decode conformance checks for dCBOR and others are disabled
  *
- * On CPUs that have no floating-point hardware,
- * QCBOR_DISABLE_FLOAT_HW_USE should be defined in most cases. If it is
- * not, then the compiler will bring in possibly large software
- * libraries to compensate. Defining QCBOR_DISABLE_FLOAT_HW_USE reduces
- * object code size on CPUs with floating-point hardware by a tiny
- * amount and eliminates the need for <math.h>
+ * On CPUs without floating-point hardware, define
+ * QCBOR_DISABLE_FLOAT_HW_USE elimate the possibility of the compiler
+ * adding large software emulation libraries.  On CPUs with
+ * floating-point hardware, defining it can still save up to 1.5 KB of
+ * object code and removes the need for <math.h>.
  *
- * When QCBOR_DISABLE_FLOAT_HW_USE is defined, trying to decoding
- * floating-point dates will give error
- * @ref QCBOR_ERR_FLOAT_DATE_DISABLED and decoded single-precision
- * numbers will be returned as @ref QCBOR_TYPE_FLOAT instead of
- * converting them to double as usual.
+ * When QCBOR_DISABLE_FLOAT_HW_USE is defined:
+ * - Decoding of floating-point dates is not possible
+ * - Decode conversions involving floating-point are disabled
  *
  * If both QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
- * are defined, then the only thing QCBOR can do is encode/decode a C
- * float type as 32-bits and a C double type as 64-bits. Floating-point
- * epoch dates will be unsupported.
+ * are defined:
+ * - Single-precision and double-precision values can only be encoded/decoded
+ *   as-is (no conversions between them).
  *
- * If USEFULBUF_DISABLE_ALL_FLOAT is defined, then floating point
- * support is completely disabled. Decoding functions return
- * @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a floating point value is
- * encountered during decoding. Functions that are encoding floating
- * point values are not available.
+ * If USEFULBUF_DISABLE_ALL_FLOAT is defined, then floating-point
+ * support is completely disabled:
+ * - No double or float types are used anywhere
+ * - Decoding functions return @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a
+ *   floating-point value is encountered
+ * - Encoding functions for floating-point values are unavailable
  */
-
-
-/**
- * The size of the buffer to be passed to QCBOREncode_EncodeHead(). It
- * is one byte larger than sizeof(uint64_t) + 1, the actual maximum
- * size of the head of a CBOR data item because
- * QCBOREncode_EncodeHead() needs one extra byte to work.
- */
-#define QCBOR_HEAD_BUFFER_SIZE  (sizeof(uint64_t) + 2)
-
 
 
 
@@ -274,16 +265,25 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  *
  * This encodes using preferred serialization, selectively encoding
  * the input floating-point number as either double-precision,
- * single-precision or half-precision. Infinity, NaN and 0 are always
+ * single-precision or half-precision. Infinity and 0 are always
  * encoded as half-precision. The reduction to single-precision or
  * half-precision is only performed if there is no loss or precision.
+ *
+ * Typically, a NaN is a "quiet NaN" with no payload. The @c NAN
+ * constant defined in <math.h> is the quiet NaN with no payload. Preferred
+ * serilization reduces this to half-precision. If your use case goes
+ * out of its way to set NaN payloads, they are encoded using
+ * a reduction that is the same as for numeric values. If the right
+ * most bits of the NaN's significand that are removed in a reduction are zero, the reduction
+ * is performed. For example, if the rightmost 29 bits of a double NaN
+ * significand are zero, then it will be reduced to a single.
  *
  * Half-precision floating-point numbers take up 2 bytes, half that of
  * single-precision, one quarter of double-precision. This can reduce
  * the size of encoded output a lot, especially if the values 0,
  * infinity and NaN occur frequently.
  *
- * QCBOR decoding returns double-precision reversing this reduction.
+ * QCBOR decoding returns double-precision, reversing this reduction.
  *
  * Normally this outputs only CBOR major type 7.  If
  * QCBOREncode_SerializationdCBOR() is called to enter dCBOR mode,
@@ -399,96 +399,6 @@ static void
 QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum);
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
-
-
-/**
- * @brief Add a byte string to the encoded output.
- *
- * @param[in] pCtx   The encoding context to add the bytes to.
- * @param[in] Bytes  Pointer and length of the input data.
- *
- * Simply adds the bytes to the encoded output as CBOR major type 2.
- *
- * If called with @c Bytes.len equal to 0, an empty string will be
- * added. When @c Bytes.len is 0, @c Bytes.ptr may be @c NULL.
- *
- * Error handling is the same as QCBOREncode_AddInt64().
- */
-static void
-QCBOREncode_AddBytes(QCBOREncodeContext *pCtx, UsefulBufC Bytes);
-
-/** See QCBOREncode_AddBytes(). */
-static void
-QCBOREncode_AddBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
-
-/** See QCBOREncode_AddBytes(). */
-static void
-QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
-
-
-/**
- * @brief Set up to write a byte string value directly to encoded output.
- *
- * @param[in] pCtx     The encoding context to add the bytes to.
- * @param[out] pPlace  Pointer and length of place to write byte string value.
- *
- * QCBOREncode_AddBytes() is the normal way to encode a byte string.
- * This is for special cases and by passes some of the pointer safety.
- *
- * The purpose of this is to output the bytes that make up a byte
- * string value directly to the QCBOR output buffer so you don't need
- * to have a copy of it in memory. This is particularly useful if the
- * byte string is large, for example, the encrypted payload of a
- * COSE_Encrypt message. The payload encryption algorithm can output
- * directly to the encoded CBOR buffer, perhaps by making it the
- * output buffer for some function (e.g. symmetric encryption) or by
- * multiple writes.
- *
- * The pointer in @c pPlace is where to start writing. Writing is just
- * copying bytes to the location by the pointer in @c pPlace.  Writing
- * past the length in @c pPlace will be writing off the end of the
- * output buffer.
- *
- * If there is no room in the output buffer @ref NULLUsefulBuf will be
- * returned and there is no need to call QCBOREncode_CloseBytes().
- *
- * The byte string must be closed by calling QCBOREncode_CloseBytes().
- *
- * Warning: this bypasses some of the usual checks provided by QCBOR
- * against writing off the end of the encoded output buffer.
- */
-void
-QCBOREncode_OpenBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
-
-/** See QCBOREncode_OpenBytes(). */
-static void
-QCBOREncode_OpenBytesInMapSZ(QCBOREncodeContext *pCtx,
-                             const char         *szLabel,
-                             UsefulBuf          *pPlace);
-
-/** See QCBOREncode_OpenBytes(). */
-static void
-QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pCtx,
-                            int64_t             nLabel,
-                            UsefulBuf          *pPlace);
-
-
-/**
- *  @brief Close out a byte string written directly to encoded output.
- *
- *  @param[in] pCtx      The encoding context to add the bytes to.
- *  @param[out] uAmount  The number of bytes written, the length of the
- *                       byte string.
- *
- * This closes out a call to QCBOREncode_OpenBytes().  This inserts a
- * CBOR header at the front of the byte string value to make it a
- * well-formed byte string.
- *
- * If there was no call to QCBOREncode_OpenBytes() then @ref
- * QCBOR_ERR_TOO_MANY_CLOSES is set.
- */
-void
-QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
 
 /**
@@ -1382,6 +1292,10 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
+      pMe->uError = QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
+      return;
+   }
    QCBOREncode_Private_AddDoubleRaw(pMe, dNum);
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }
@@ -1441,6 +1355,10 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
+      pMe->uError = QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
+      return;
+   }
    QCBOREncode_Private_AddFloatRaw(pMe, fNum);
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 }

@@ -16,6 +16,7 @@
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 double decode_half(const unsigned char *halfp);
+int try_float16_encode(unsigned long b64);
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 #endif /* half_to_double_from_rfc7049_h */

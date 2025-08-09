@@ -1,14 +1,14 @@
-/*==============================================================================
- float_tests.h -- tests for floats and conversion to/from half-precision
-
- Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
-
- SPDX-License-Identifier: BSD-3-Clause
-
- See BSD-3-Clause license in file named "LICENSE"
-
- Created on 9/19/18
- =============================================================================*/
+/* ===========================================================================
+ * float_tests.h -- tests for floats and conversion to/from half-precision
+ *
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * See BSD-3-Clause license in file named "LICENSE"
+ *
+ * Created on 9/19/18
+ * ==========================================================================*/
 
 #ifndef float_tests_h
 #define float_tests_h
@@ -33,6 +33,12 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void);
  * not the encode/decode functions.
  */
 int32_t FloatValuesTests(void);
+
+
+/*
+ * This tests encoding and decoding of floating-point NaNs.
+ */
+int32_t NaNPayloadsTest(void);
 
 
 /*

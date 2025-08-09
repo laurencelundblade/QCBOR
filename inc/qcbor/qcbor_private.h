@@ -59,7 +59,7 @@ extern "C" {
 #define QCBOR_DISABLE_EXP_AND_MANTISSA
 #endif
 
-/* If USEFULBUF_DISABLE_ALL_FLOATis defined then define
+/* If USEFULBUF_DISABLE_ALL_FLOAT is defined then define
  * QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
@@ -85,42 +85,42 @@ extern "C" {
  *  The below macros always return QCBOR_ERR_ALL_FLOAT_DISABLED when all
  *  floating point is disabled.
  *
- *  FLOAT_ERR_CODE_NO_HALF_PREC(x) Can be used when disabled preferred float
- *                                 results in error, and all other cases should
- *                                 return 'x'.
+ *  FLOAT_ERR_CODE_NO_PREF_FLOAT(x) Can be used when disabled preferred float
+ *                                  results in error, and all other cases should
+ *                                  return 'x'.
  *  FLOAT_ERR_CODE_NO_FLOAT_HW(x) Can be used when disabled hardware floating
  *                                point results in error, and all other cases
  *                                should return 'x'.
- *  FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) Can be used when either disabled
- *                                             preferred float or disabling
- *                                             hardware floating point results
- *                                             in error, and all other cases
- *                                             should return 'x'.
+ *  FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) Can be used when either disabled
+ *                                              preferred float or disabling
+ *                                              hardware floating point results
+ *                                              in error, and all other cases
+ *                                              should return 'x'.
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
-   #define FLOAT_ERR_CODE_NO_FLOAT(x)                 QCBOR_ERR_ALL_FLOAT_DISABLED
-   #define FLOAT_ERR_CODE_NO_HALF_PREC(x)             QCBOR_ERR_ALL_FLOAT_DISABLED
-   #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)              QCBOR_ERR_ALL_FLOAT_DISABLED
-   #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_FLOAT(x)                  QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x)             QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)               QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_ALL_FLOAT_DISABLED
 #else /* USEFULBUF_DISABLE_ALL_FLOAT*/
    #define FLOAT_ERR_CODE_NO_FLOAT(x)     x
    #ifdef QCBOR_DISABLE_PREFERRED_FLOAT
-      #define FLOAT_ERR_CODE_NO_HALF_PREC(x) QCBOR_ERR_HALF_PRECISION_DISABLED
-      #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) QCBOR_ERR_HALF_PRECISION_DISABLED
-   #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-      #define FLOAT_ERR_CODE_NO_HALF_PREC(x) x
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x) QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+   #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x) x
       #ifdef QCBOR_DISABLE_FLOAT_HW_USE
-         #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) QCBOR_ERR_HW_FLOAT_DISABLED
+         #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_HW_FLOAT_DISABLED
       #else
-         #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) x
+         #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) x
       #endif
-   #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
    #ifdef QCBOR_DISABLE_FLOAT_HW_USE
       #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  QCBOR_ERR_HW_FLOAT_DISABLED
-   #else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
       #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  x
    #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#endif /*USEFULBUF_DISABLE_ALL_FLOAT*/
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT*/
 
 
 /*

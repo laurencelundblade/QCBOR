@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.h -- Conversion between half, double & single-precision floats
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -13,7 +13,6 @@
 
 #ifndef ieee754_h
 #define ieee754_h
-
 
 #include <stdint.h>
 
@@ -35,18 +34,14 @@
  * conversions, just the encodings.
  *
  * This is complete, supporting +/- infinity, +/- zero, subnormals and
- * NaN payloads. NaN payloads are converted to smaller by dropping the
- * right most bits if they are zero and shifting to the right. If the
- * rightmost bits are not zero, the conversion is not performed. When
- * converting from smaller to larger, the payload is shifted left and
- * zero-padded. This is what is specified by CBOR preferred
- * serialization and what modern HW conversion instructions do.
- *
- * There is no special handling of silent and quiet NaNs. It probably
- * isn't necessary to transmit these special NaNs as their purpose is
- * more for propagating errors up through some calculation. In many
- * cases the handling of the NaN payload will work for silent and quiet
- * NaNs.
+ * NaN payloads. NaN significands, which contain the NaN payload, are
+ * shortened by dropping the right most bits if they are zero and
+ * shifting to the right. If the rightmost bits are not zero the
+ * shortening is not performed. When converting from smaller to
+ * larger, the significand is shifted left and zero-padded. This is
+ * what is specified by CBOR preferred serialization. There is no
+ * special handling of silent and quiet NaNs.  They are treated as
+ * part of the significand.
  *
  * A previous version of this was usable as a general library for
  * conversion. This version is reduced to what is needed for CBOR.
@@ -70,6 +65,24 @@
  */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision);
+
+
+/**
+ * @brief Convert single-precision float to double-precision float.
+ *
+ * @param[in] uSingle   float bits copied to a uint32_t.
+ *
+ * @returns double-precision value.
+ *
+ * This is a lossless conversion because every single-precision value
+ * can be represented as a double. There is no error condition.
+ *
+ * This is in lieu of a cast that usually results in CPU instructions
+ * that convert. These instructions don't reliably handle NaN payloads.
+ * This does.
+ */
+double
+IEEE754_SingleToDouble(uint32_t uSingle);
 
 
 /** Holds a floating-point value that could be half, single or
@@ -127,7 +140,7 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
 /**
  * @brief Convert a single-precision float to half-precision.
  *
- * @param[in] f  The value to convert.
+ * @param[in] uSingle  type @c float bits copied to a uint32_t.
  *
  * @returns Either unconverted value or value converted to half-precision.
  *
@@ -137,7 +150,7 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_SingleToHalf(float f, int bNoNanPayloads);
+IEEE754_SingleToHalf(uint32_t uSingle, int bNoNanPayloads);
 
 
 /**
@@ -165,7 +178,7 @@ IEEE754_DoubleToInt(double d);
 /**
  * @brief Convert a single-precision float to an integer if whole number
  *
- * @param[in] f  The value to convert.
+ * @param[in] uSingle  Type @c float bits copied to a uint32_t.
  *
  * @returns Either converted number or conversion status.
  *
@@ -181,7 +194,7 @@ IEEE754_DoubleToInt(double d);
  * This never fails because of precision, but may fail because of range.
  */
 struct IEEE754_ToInt
-IEEE754_SingleToInt(float f);
+IEEE754_SingleToInt(uint32_t uSingle);
 
 
 /**
@@ -229,7 +242,7 @@ IEEE754_DoubleHasNaNPayload(double dNum);
 /**
  * @brief Tests whether NaN is "quiet" vs having a payload.
  *
- * @param[in] fNum   Float number to test.
+ * @param[in] uSingle  type @c float bits copied to a uint32_t.
  *
  * @returns 0 if a quiet NaN, 1 if it has a payload.
  *
@@ -237,7 +250,7 @@ IEEE754_DoubleHasNaNPayload(double dNum);
  * is 0x7fc00000.
  */
 int
-IEEE754_SingleHasNaNPayload(float fNum);
+IEEE754_SingleHasNaNPayload(uint32_t uSingle);
 
 
 #endif /* ieee754_h */

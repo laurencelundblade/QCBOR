@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -701,27 +701,27 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uconfigFlags)
+QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uconfigFlags)
 {
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
    if(uconfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       /* See if it could have been encoded as an integer */
-      ToInt = IEEE754_SingleToInt(f);
+      ToInt = IEEE754_SingleToInt(uSingle);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
 
       /* Make sure there is no NaN payload */
-      if(IEEE754_SingleHasNaNPayload(f)) {
+      if(IEEE754_SingleHasNaNPayload(uSingle)) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
    }
 
    /* See if it could have been encoded shorter */
    if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
-      ToSmaller = IEEE754_SingleToHalf(f, true);
+      ToSmaller = IEEE754_SingleToHalf(uSingle, true);
       if(ToSmaller.uSize != sizeof(float)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
       }
@@ -808,73 +808,53 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
                           const uint64_t        uArgument,
                           QCBORItem            *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
-   float      single;
-
-   (void)single; /* Avoid unused error from various #ifndefs */
+   QCBORError uReturn;
+   uint32_t   uSingle;
 
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          /* Half-precision is returned as a double. The cast to
           * uint16_t is safe because the encoded value was 16 bits. It
-          * was widened to 64 bits to be passed in here.
-          */
+          * was widened to 64 bits to be passed in here. */
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-
          uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
+         uReturn = FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS);
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
-         /* Single precision is normally returned as a double since
+         /* The cast to uint32_t is safe because the encoded value was
+          * 32 bits. It was widened to 64 bits to be passed in here. */
+         uSingle = (uint32_t)uArgument;
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         /* Single precision is normally returned as a double. Since
           * double is widely supported, there is no loss of precision,
-          * it makes it easy for the caller in most cases and it can
-          * be converted back to single with no loss of precision
-          *
-          * The cast to uint32_t is safe because the encoded value was
-          * 32 bits. It was widened to 64 bits to be passed in here.
-          */
-         single = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-         uReturn = QCBORDecode_Private_SingleConformance(single, uConfigFlags);
-         if(uReturn != QCBOR_SUCCESS) {
-            break;
-         }
-
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-         /* In the normal case, use HW to convert float to
-          * double. */
-         pDecodedItem->val.dfnum = (double)single;
+          * it makes it easy for the caller and it can be converted
+          * back to single with no loss of precision. */
+         pDecodedItem->val.dfnum = IEEE754_SingleToDouble(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         /* Use of float HW is disabled, return as a float. */
-         pDecodedItem->val.fnum  = single;
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         /* QCBOR's SW float conversion is disabled */
+         pDecodedItem->val.fnum  = UsefulBufUtil_CopyUint32ToFloat(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
-
-         /* IEEE754_FloatToDouble() could be used here to return as
-          * a double, but it adds object code and most likely
-          * anyone disabling FLOAT HW use doesn't care about floats
-          * and wants to save object code.
-          */
-#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         uReturn = QCBORDecode_Private_SingleConformance(uSingle, uConfigFlags);
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-
          uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uConfigFlags);
-         if(uReturn != QCBOR_SUCCESS) {
-            break;
-         }
-         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
+
+      default:
+         /* Never happens, but the compiler complains so this is required. */
+         uReturn = QCBOR_SUCCESS;
    }
 
    return uReturn;
@@ -919,8 +899,8 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
  * @param[in] uArgument         The argument from the head.
  * @param[out] pDecodedItem     The filled in decoded item.
  *
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
- *                                           of half-precision disabled
+ * @retval QCBOR_ERR_PREFERRED_FLOAT_DISABLED Half-precision in input, but decode
+ *                                           of half-precision disabled.
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all float
  *                                           decode is disabled.
  * @retval QCBOR_ERR_BAD_TYPE_7              Not-allowed representation of simple
@@ -1021,7 +1001,7 @@ Done:
  * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
  * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
  * @retval QCBOR_ERR_NO_STRING_ALLOCATOR     Allocation requested, but no allocator
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ * @retval QCBOR_ERR_PREFERRED_FLOAT_DISABLED Half-precision in input, but decode
  *                                           of half-precision disabled
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
  *                                           float decode is disabled.
@@ -1118,7 +1098,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
  * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
  * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
  * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ * @retval QCBOR_ERR_PREFERRED_FLOAT_DISABLED Half-precision in input, but decode
  *                                           of half-precision disabled
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
  *                                           float decode is disabled.
@@ -1393,7 +1373,7 @@ QCBORDecode_Private_LookUpTagDecoder(const struct QCBORTagDecoderEntry *pTagCont
  * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
  * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
  * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ * @retval QCBOR_ERR_PREFERRED_FLOAT_DISABLED Half-precision in input, but decode
  *                                           of half-precision disabled
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
  *                                           float decode is disabled.
@@ -1498,7 +1478,7 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
  * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
  * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
  * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ * @retval QCBOR_ERR_PREFERRED_FLOAT_DISABLED Half-precision in input, but decode
  *                                           of half-precision disabled
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
  *                                           float decode is disabled.
@@ -1774,7 +1754,7 @@ Done:
  * @retval QCBOR_ERR_INT_OVERFLOW            Too-large negative encountered
  * @retval QCBOR_ERR_STRING_ALLOCATE         Out of memory.
  * @retval QCBOR_ERR_STRING_TOO_LONG         String longer than SIZE_MAX - 4.
- * @retval QCBOR_ERR_HALF_PRECISION_DISABLED Half-precision in input, but decode
+ * @retval QCBOR_ERR_PREFERRED_FLOAT_DISABLED Half-precision in input, but decode
  *                                           of half-precision disabled
  * @retval QCBOR_ERR_ALL_FLOAT_DISABLED      Float-point in input, but all
  *                                           float decode is disabled.
