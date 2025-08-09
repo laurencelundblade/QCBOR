@@ -808,19 +808,17 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
                           const uint64_t        uArgument,
                           QCBORItem            *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
-   uint32_t uSingle;
+   QCBORError uReturn;
+   uint32_t   uSingle;
 
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          /* Half-precision is returned as a double. The cast to
           * uint16_t is safe because the encoded value was 16 bits. It
-          * was widened to 64 bits to be passed in here.
-          */
+          * was widened to 64 bits to be passed in here. */
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-
          uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uConfigFlags);
          if(uReturn != QCBOR_SUCCESS) {
             break;
@@ -833,16 +831,11 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          /* The cast to uint32_t is safe because the encoded value was
           * 32 bits. It was widened to 64 bits to be passed in here. */
          uSingle = (uint32_t)uArgument;
-         uReturn = QCBORDecode_Private_SingleConformance(uSingle, uConfigFlags);
-         if(uReturn != QCBOR_SUCCESS) {
-            break;
-         }
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         /* Single precision is normally returned as a double since
+         /* Single precision is normally returned as a double. Since
           * double is widely supported, there is no loss of precision,
-          * it makes it easy for the caller and it can
-          * be converted back to single with no loss of precision
-          */
+          * it makes it easy for the caller and it can be converted
+          * back to single with no loss of precision. */
          pDecodedItem->val.dfnum = IEEE754_SingleToDouble(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -850,19 +843,18 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          pDecodedItem->val.fnum  = UsefulBufUtil_CopyUint32ToFloat(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         uReturn = QCBOR_SUCCESS;
+         uReturn = QCBORDecode_Private_SingleConformance(uSingle, uConfigFlags);
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-
          uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uConfigFlags);
-         if(uReturn != QCBOR_SUCCESS) {
-            break;
-         }
-         uReturn = QCBOR_SUCCESS;
          break;
+
+      default:
+         /* Never happens, but the compiler complains so this is required. */
+         uReturn = QCBOR_SUCCESS;
    }
 
    return uReturn;
