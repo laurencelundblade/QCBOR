@@ -1221,7 +1221,7 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
-         uReturn = QCBOR_SUCCESS;
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
