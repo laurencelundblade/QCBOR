@@ -1,7 +1,7 @@
 /* ==========================================================================
  * float_tests.c -- tests for float and conversion to/from half-precision
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -320,7 +320,7 @@ FloatValuesTests(void)
    QCBORDecodeContext           DCtx;
    QCBORItem                    Item;
    uint64_t                     uDecoded;
-#ifdef QCBOR_DISABLE_FLOAT_HW_USE
+#ifdef QCBOR_DISABLE_PREFERRED_FLOAT
    uint32_t                     uDecoded2;
 #endif
 
@@ -329,7 +329,7 @@ FloatValuesTests(void)
       pTestCase = &DoubleTestCases[uTestIndex];
 
      // if(pTestCase->dNumber == 1.1754943508222874E-38) {
-         if(uTestIndex == 19) {
+         if(uTestIndex == 16) {
          uErr = 99; /* For setting break points for particular tests */
       }
 
@@ -363,7 +363,7 @@ FloatValuesTests(void)
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 3, uErr);;
       }
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
          return MakeTestResultCode(uTestIndex, 4, 0);
       }
@@ -376,7 +376,7 @@ FloatValuesTests(void)
             return MakeTestResultCode(uTestIndex, 6, 0);
          }
       }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
       /* When QCBOR_DISABLE_FLOAT_HW_USE is set, single-precision is not
        * converted to double when decoding, so test differently. len == 5
        * indicates single-precision in the encoded CBOR. */
@@ -407,7 +407,7 @@ FloatValuesTests(void)
             }
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
       /* Number Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
@@ -505,13 +505,13 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex+100, 12, uErr);
       }
 
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 
       uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
       if(uDecoded != pNaNTestCase->uDouble) {
          return MakeTestResultCode(uTestIndex+100, 12, 200);
       }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
       if(pNaNTestCase->Preferred.len == 5) {
          if(Item.uDataType != QCBOR_TYPE_FLOAT) {
             return MakeTestResultCode(uTestIndex, 4, 0);
@@ -531,7 +531,7 @@ FloatValuesTests(void)
             return MakeTestResultCode(uTestIndex+100, 12, 200);
          }
       }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
       /* NaN Decode of Not Preferred */
       QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
@@ -852,13 +852,13 @@ GeneralFloatDecodeTests(void)
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || 3.1400001049041748 != Item.val.dfnum
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || 3.140000f != Item.val.fnum
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #else /* USEFULBUF_DISABLE_ALL_FLOAT */
       || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
@@ -870,13 +870,13 @@ GeneralFloatDecodeTests(void)
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != 0.0
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* QCBOR_DISABLE_PREFERRED_FLOAT */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || Item.val.fnum != 0.0f
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #else /* USEFULBUF_DISABLE_ALL_FLOAT */
       || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
@@ -888,13 +888,13 @@ GeneralFloatDecodeTests(void)
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || !isnan(Item.val.dfnum)
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || !isnan(Item.val.fnum)
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #else /* USEFULBUF_DISABLE_ALL_FLOAT */
       || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
@@ -906,13 +906,13 @@ GeneralFloatDecodeTests(void)
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || Item.uDataType != QCBOR_TYPE_DOUBLE
       || Item.val.dfnum != INFINITY
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       || Item.uDataType != QCBOR_TYPE_FLOAT
       || Item.val.fnum != INFINITY
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #else /* USEFULBUF_DISABLE_ALL_FLOAT */
       || Item.uDataType != QCBOR_TYPE_NONE
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
@@ -982,10 +982,10 @@ GeneralFloatDecodeTests(void)
    /* 3.140000104904175 single-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != 3.140000104904175
-#endif
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       ) {
       return MakeTestResultCode(1, 7, uErr);
    }
@@ -993,8 +993,8 @@ GeneralFloatDecodeTests(void)
    /* 0.0 single-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != 0.0
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
       ) {
@@ -1003,8 +1003,8 @@ GeneralFloatDecodeTests(void)
 
    /* NaN single-precision */
    QCBORDecode_GetDouble(&DC, &d);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || !isnan(d)
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
       ) {
@@ -1014,8 +1014,8 @@ GeneralFloatDecodeTests(void)
    /* Infinity single-precision */
    QCBORDecode_GetDouble(&DC, &d);
    uErr = QCBORDecode_GetAndResetError(&DC);
-   if(uErr != FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+   if(uErr != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       || d != INFINITY
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
       ) {

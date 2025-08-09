@@ -1200,35 +1200,26 @@ QCBOR_Private_DecodeType7(const int      nAdditionalInfo,
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS);
          break;
+
       case SINGLE_PREC_FLOAT: /* 26 */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
          /* Single precision is normally returned as a double since
           * double is widely supported, there is no loss of precision,
-          * it makes it easy for the caller in most cases and it can
-          * be converted back to single with no loss of precision
+          * it makes it easy for the caller and it can be converted
+          * back to single with no loss of precision
           *
           * The cast to uint32_t is safe because the encoded value was
           * 32 bits. It was widened to 64 bits to be passed in here.
           */
-         {
-            const float f = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
-            /* In the normal case, use HW to convert float to
-             * double. */
-            pDecodedItem->val.dfnum = (double)f;
-            pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-            /* Use of float HW is disabled, return as a float. */
-            pDecodedItem->val.fnum = f;
-            pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
-
-            /* IEEE754_FloatToDouble() could be used here to return as
-             * a double, but it adds object code and most likely
-             * anyone disabling FLOAT HW use doesn't care about floats
-             * and wants to save object code.
-             */
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-         }
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         /* In the normal case, use our SW to convert float to double. */
+         pDecodedItem->val.dfnum = IEEE754_SingleToDouble((uint32_t)uArgument);
+         pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         /* QCBOR's SW float conversion is disabled */
+         pDecodedItem->val.fnum = UsefulBufUtil_CopyUint32ToFloat((uint32_t)uArgument);;
+         pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
          uReturn = FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS);
          break;
@@ -2232,7 +2223,7 @@ QCBOR_Private_DecodeDateEpoch(QCBORItem *pDecodedItem)
       }
 #else /* QCBOR_DISABLE_FLOAT_HW_USE */
 
-         uReturn = QCBOR_ERR_HW_FLOAT_DISABLED;
+         uReturn = FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
          goto Done;
 
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -5531,7 +5522,7 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
       case QCBOR_TYPE_FLOAT:
       case QCBOR_TYPE_DOUBLE:
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -5939,9 +5930,9 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
-#else
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_INT64:
@@ -6290,18 +6281,17 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 {
    switch(pItem->uDataType) {
       case QCBOR_TYPE_FLOAT:
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
             if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               // Simple cast does the job.
-               *pdValue = (double)pItem->val.fnum;
+               *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
             } else {
                return QCBOR_ERR_UNEXPECTED_TYPE;
             }
          }
-#else /* QCBOR_DISABLE_FLOAT_HW_USE */
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         return QCBOR_ERR_HALF_PRECISION_DISABLED;
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
 
       case QCBOR_TYPE_DOUBLE:
@@ -6325,7 +6315,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -6340,7 +6330,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
          }
          break;
 #else
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       default:
@@ -6582,7 +6572,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
    (void)pItem;
    (void)uConvertTypes;
    (void)pdValue;
-   return QCBOR_ERR_HW_FLOAT_DISABLED;
+   return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 }

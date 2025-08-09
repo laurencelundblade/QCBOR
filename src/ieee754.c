@@ -1,7 +1,7 @@
 /* ==========================================================================
- * ieee754.c -- floating-point conversion between half, double & single-precision
+ * ieee754.c -- floating-point conversion for half, double & single-precision
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -49,9 +49,6 @@
  *  https://stackoverflow.com/questions/46073295/implicit-type-promotion-rules
  *
  *  https://stackoverflow.com/questions/589575/what-does-the-c-standard-state-the-size-of-int-long-type-to-be
- *
- * IEEE754_FloatToDouble(uint32_t uFloat) was created but is not
- * needed. It can be retrieved from github history if needed.
  */
 
 
@@ -149,7 +146,7 @@
  * size impact because these always optimze down to a simple assignment.
  */
 static inline uint32_t
-CopyFloatToUint32(float f)
+CopySingleToUint32(float f)
 {
    uint32_t u32;
    memcpy(&u32, &f, sizeof(uint32_t));
@@ -208,6 +205,7 @@ IEEE754_AssembleDouble(uint64_t uDoubleSign,
 }
 
 
+/* Public function; see ieee754.h */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 {
@@ -215,8 +213,8 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
    int64_t  nDoubleUnBiasedExponent;
    double   dResult;
 
-   /* Pull out the three parts of the half-precision float.  Do all
-    * the work in 64 bits because that is what the end result is.  It
+   /* Pull out the three parts of the half-precision float. Do most of
+    * the work in 64 bits because that is what the end result is. It
     * may give smaller code size and will keep static analyzers
     * happier.
     */
@@ -287,6 +285,83 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
 }
 
 
+/* Public function; see ieee754.h */
+double
+IEEE754_SingleToDouble(const uint32_t uSingle)
+{
+   int      nDoubleUnBiasedExponent;
+   uint64_t uDoubleSignificand;
+   double   dResult;
+
+   /* Pull out the three parts of the single-precision float. Do most
+    * of the work in 64 bits because that is what the end result
+    * is. It may give smaller code size and will keep static analyzers
+    * happier.
+    */
+   const uint64_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint64_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
+   const int nSingleUnBiasedExponent      = (int)(uSingleBiasedExponent - SINGLE_EXPONENT_BIAS);
+   const int nIsNegative                  = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+
+   if(nSingleUnBiasedExponent == SINGLE_EXPONENT_ZERO) {
+      /* 0 or subnormal */
+      if(uSingleSignificand) {
+         /* --- SUBNORMAL --- */
+         /* A single-precision subnormal can always be converted to a
+          * normal double-precision float because the ranges line up.
+          * The exponent of a subnormal starts out at the min exponent
+          * for a normal. As the sub normal significand bits are
+          * shifted, left to normalize, the exponent is
+          * decremented. Shifting continues until fully normalized.
+          */
+         nDoubleUnBiasedExponent = SINGLE_EXPONENT_MIN;
+         uDoubleSignificand = uSingleSignificand;
+         do {
+            uDoubleSignificand <<= 1;
+            nDoubleUnBiasedExponent--;
+         } while((uDoubleSignificand & (1ULL << SINGLE_NUM_SIGNIFICAND_BITS)) == 0);
+         /* A normal has an implied 1 in the most significant position
+          * that a subnormal doesn't. */
+         uDoubleSignificand -= 1ULL << SINGLE_NUM_SIGNIFICAND_BITS;
+         uDoubleSignificand <<= (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                          uDoubleSignificand,
+                                          nDoubleUnBiasedExponent);
+      } else {
+         /* --- ZERO --- */
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative, 0, DOUBLE_EXPONENT_ZERO);
+      }
+   } else if(nSingleUnBiasedExponent == SINGLE_EXPONENT_INF_OR_NAN) {
+      /* NaN or Inifinity */
+      if(uSingleSignificand) {
+         /* --- NaN --- */
+         /* Single-precision payloads always fit into double precision
+          * payloads. They are shifted left the same as a normal
+          * number significand.
+          */
+         uDoubleSignificand = uSingleSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                          uDoubleSignificand,
+                                          DOUBLE_EXPONENT_INF_OR_NAN);
+      } else {
+         /* --- INFINITY --- */
+         dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                          0,
+                                          DOUBLE_EXPONENT_INF_OR_NAN);
+      }
+   } else {
+      /* --- NORMAL NUMBER --- */
+      uDoubleSignificand = uSingleSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+      dResult = IEEE754_AssembleDouble((uint64_t)nIsNegative,
+                                       uDoubleSignificand,
+                                       nSingleUnBiasedExponent);
+   }
+
+   return dResult;
+}
+
+
 /**
  * @brief Assemble sign, significand and exponent into single precision float.
  *
@@ -327,7 +402,7 @@ IEEE754_SingleToHalf(float f)
     * is done with uint32_t which helps avoid integer promotions and
     * static analyzer complaints.
     */
-   const uint32_t uSingle                 = CopyFloatToUint32(f);
+   const uint32_t uSingle                 = CopySingleToUint32(f);
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
@@ -404,7 +479,7 @@ IEEE754_SingleToHalf(float f)
           * signficand.
           *
           * This is more complicated because the number is not
-          * normalized.  The signficand must be shifted proprotionally
+          * normalized.  The signficand must be shifted proportionally
           * to the exponent and 1 must be added in.  See
           * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
           *
@@ -503,7 +578,6 @@ IEEE754_DoubleToSingle(double d)
    uint64_t      uSingleSignificand;
    uint64_t      uDroppedBits;
 
-
    /* Pull the three parts out of the double-precision float. Most
     * work is done with uint64_t which helps avoid integer promotions
     * and static analyzer complaints.
@@ -514,106 +588,100 @@ IEEE754_DoubleToSingle(double d)
    const uint64_t uDoubleSign             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
-
-    if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
-        if(uDoubleSignificand == 0) {
-            /* --- IS ZERO --- */
-            Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
-                                                   0,
-                                                   SINGLE_EXPONENT_ZERO);
-        } else {
-            /* --- IS DOUBLE SUBNORMAL --- */
-            /* The largest double subnormal is slightly less than the
-             * largest double normal which is 2^-1022 or
-             * 2.2250738585072014e-308.  The smallest single subnormal
-             * is 2^-149 or 1.401298464324817e-45.  There is no
-             * overlap so double subnormals can't be converted to
-             * singles of any sort.
-             */
-            Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-            Result.uValue  = uDouble;
-         }
-    } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
-         if(uDoubleSignificand == 0) {
-             /* ---- IS INFINITY ---- */
-             Result.uSize  = IEEE754_UNION_IS_SINGLE;
-             Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
-                                                    0,
-                                                    SINGLE_EXPONENT_INF_OR_NAN);
-         } else {
-             /* The NaN can only be converted if no payload bits are
-              * lost per RFC 8949 section 4.1 that defines Preferred
-              * Serializaton. Note that Deterministically Encode CBOR
-              * in section 4.2 allows for some variation of this rule,
-              * but at the moment this implementation is of Preferred
-              * Serialization, not CDE. As of December 2023, we are
-              * also expecting an update to CDE. This code may need to
-              * be updated for CDE.
-              */
-             uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
-             if(uDroppedBits == 0) {
-                /* --- IS CONVERTABLE NAN --- */
-                uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
-                Result.uSize  = IEEE754_UNION_IS_SINGLE;
-                Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
-                                                       uSingleSignificand,
-                                                       SINGLE_EXPONENT_INF_OR_NAN);
-            } else {
-               /* --- IS UNCONVERTABLE NAN --- */
-               Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-               Result.uValue  = uDouble;
-            }
-         }
-    } else {
-        /* ---- REGULAR NUMBER ---- */
-        /* A regular double can be converted to a regular single if
-         * the double's exponent is in the smaller range of a single
-         * and if no precision is lost in the significand.
-         */
-        uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
-        if(nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN &&
-           nDoubleUnbiasedExponent <= SINGLE_EXPONENT_MAX &&
-           uDroppedBits == 0) {
-            /* --- IS CONVERTABLE TO SINGLE --- */
+   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
+      if(uDoubleSignificand == 0) {
+         /* --- IS ZERO --- */
+         Result.uSize  = IEEE754_UNION_IS_SINGLE;
+         Result.uValue = IEEE754_AssembleSingle(uDoubleSign, 0, SINGLE_EXPONENT_ZERO);
+      } else {
+         /* --- IS DOUBLE SUBNORMAL --- */
+         /* The largest double subnormal is slightly less than the
+          * largest double normal which is 2^-1022 or
+          * 2.2250738585072014e-308.  The smallest single subnormal
+          * is 2^-149 or 1.401298464324817e-45.  There is no
+          * overlap so double subnormals can't be converted to
+          * singles of any sort.
+          */
+         Result.uSize   = IEEE754_UNION_IS_DOUBLE;
+         Result.uValue  = uDouble;
+      }
+   } else if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN) {
+      if(uDoubleSignificand == 0) {
+         /* ---- IS INFINITY ---- */
+         Result.uSize  = IEEE754_UNION_IS_SINGLE;
+         Result.uValue = IEEE754_AssembleSingle(uDoubleSign, 0, SINGLE_EXPONENT_INF_OR_NAN);
+      } else {
+         /* The NaN can only be converted if no payload bits are lost
+          * per RFC 8949 section 4.1 that defines Preferred
+          * Serializaton. Note that Deterministically Encode CBOR in
+          * section 4.2 allows for some variation of this rule, but at
+          * the moment this implementation is of Preferred
+          * Serialization, not CDE. As of December 2023, we are also
+          * expecting an update to CDE. This code may need to be
+          * updated for CDE.
+          */
+         uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
+         if(uDroppedBits == 0) {
+            /* --- IS CONVERTABLE NAN --- */
             uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
             Result.uSize  = IEEE754_UNION_IS_SINGLE;
             Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
                                                    uSingleSignificand,
-                                                   nDoubleUnbiasedExponent);
-        } else {
-            /* Unable to convert to a single normal. See if it can be
-             * converted to a single subnormal. To do that, the
-             * exponent must be in range and no precision can be lost
-             * in the signficand.
-             *
-             * This is more complicated because the number is not
-             * normalized.  The signficand must be shifted
-             * proprotionally to the exponent and 1 must be added
-             * in. See
-             * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
-             */
-            nExponentDifference = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
-            nShiftAmount        = nExponentDifference + (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
-            uSingleSignificand  = (uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
+                                                   SINGLE_EXPONENT_INF_OR_NAN);
+         } else {
+            /* --- IS UNCONVERTABLE NAN --- */
+            Result.uSize   = IEEE754_UNION_IS_DOUBLE;
+            Result.uValue  = uDouble;
+         }
+      }
+   } else {
+      /* ---- REGULAR NUMBER ---- */
+      /* A regular double can be converted to a regular single if the
+       * double's exponent is in the smaller range of a single and if
+       * no precision is lost in the significand.
+       */
+      uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
+      if(nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN &&
+         nDoubleUnbiasedExponent <= SINGLE_EXPONENT_MAX &&
+         uDroppedBits == 0) {
+         /* --- IS CONVERTABLE TO SINGLE --- */
+         uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+         Result.uSize  = IEEE754_UNION_IS_SINGLE;
+         Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+                                                uSingleSignificand,
+                                                nDoubleUnbiasedExponent);
+      } else {
+         /* Unable to convert to a single normal. See if it can be
+          * converted to a single subnormal. To do that, the exponent
+          * must be in range and no precision can be lost in the
+          * signficand.
+          *
+          * This is more complicated because the number is not
+          * normalized.  The signficand must be shifted proprotionally
+          * to the exponent and 1 must be added in. See
+          * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
+          */
+         nExponentDifference = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
+         nShiftAmount        = nExponentDifference + (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+         uSingleSignificand  = (uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
 
-            if(nDoubleUnbiasedExponent < SINGLE_EXPONENT_MIN &&
-               nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS &&
-               uSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
-               /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
-               Result.uSize  = IEEE754_UNION_IS_SINGLE;
-               Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
-                                                      uSingleSignificand,
-                                                      SINGLE_EXPONENT_ZERO);
-            } else {
-               /* --- CAN NOT BE CONVERTED --- */
-               Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-               Result.uValue  = uDouble;
-            }
-        }
-    }
+         if(nDoubleUnbiasedExponent < SINGLE_EXPONENT_MIN &&
+            nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS &&
+            uSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
+            /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
+            Result.uSize  = IEEE754_UNION_IS_SINGLE;
+            Result.uValue = IEEE754_AssembleSingle(uDoubleSign,
+                                                   uSingleSignificand,
+                                                   SINGLE_EXPONENT_ZERO);
+         } else {
+            /* --- CAN NOT BE CONVERTED --- */
+            Result.uSize   = IEEE754_UNION_IS_DOUBLE;
+            Result.uValue  = uDouble;
+         }
+      }
+   }
 
-    return Result;
+   return Result;
 }
 
 

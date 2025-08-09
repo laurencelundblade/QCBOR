@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.h -- Conversion between half, double & single-precision floats
  *
- * Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -21,7 +21,7 @@
 /** @file ieee754.h
  *
  * This implements floating-point conversion between half, single and
- * double precision floating-point numbers, in particular convesion to
+ * double precision floating-point numbers, in particular conversion to
  * smaller representation (e.g., double to single) that does not lose
  * precision for CBOR preferred serialization.
  *
@@ -32,20 +32,14 @@
  * conversions, just the encodings.
  *
  * This is complete, supporting +/- infinity, +/- zero, subnormals and
- * NaN payloads. NaN payloads are converted to smaller by dropping the
- * right most bits if they are zero and shifting to the right. If the
- * rightmost bits are not zero the conversion is not performed. When
- * converting from smaller to larger, the payload is shifted left and
- * zero-padded. This is what is specified by CBOR preferred
- * serialization and what modern HW conversion instructions do. CBOR
- * CDE handling for NaN is not clearly specified, but upcoming
- * documents may clarify this.
- *
- * There is no special handling of silent and quiet NaNs. It probably
- * isn't necessary to transmit these special NaNs as there purpose is
- * more for propgating errors up through some calculation. In many
- * cases the handlng of the NaN payload will work for silent and quiet
- * NaNs.
+ * NaN payloads. NaN significands, which contain the NaN payload, are
+ * shortened by dropping the right most bits if they are zero and
+ * shifting to the right. If the rightmost bits are not zero the
+ * shortening is not performed. When converting from smaller to
+ * larger, the significand is shifted left and zero-padded. This is
+ * what is specified by CBOR preferred serialization. There is no
+ * special handling of silent and quiet NaNs.  They are treated as
+ * part of the significand.
  *
  * A previous version of this was usable as a general library for
  * conversion. This version is reduced to what is needed for CBOR.
@@ -55,9 +49,9 @@
 /**
  * @brief Convert half-precision float to double-precision float.
  *
- * @param[in] uHalfPrecision   Half-prevision number to convert.
+ * @param[in] uHalfPrecision   Half-precision number to convert.
  *
- * @returns double-presion value.
+ * @returns double-precision value.
  *
  * This is a lossless conversion because every half-precision value
  * can be represented as a double. There is no error condition.
@@ -68,6 +62,24 @@
  */
 double
 IEEE754_HalfToDouble(uint16_t uHalfPrecision);
+
+
+/**
+ * @brief Convert single-precision float to double-precision float.
+ *
+ * @param[in] uSingle   float bits copied to a uint32_t.
+ *
+ * @returns double-precision value.
+ *
+ * This is a lossless conversion because every single-precision value
+ * can be represented as a double. There is no error condition.
+ *
+ * This is in lieu of a cast that usually results in CPU instructions
+ * that convert. These instructions don't reliably handle NaN payloads.
+ * This does.
+ */
+double
+IEEE754_SingleToDouble(uint32_t uSingle);
 
 
 /** Holds a floating-point value that could be half, single or
