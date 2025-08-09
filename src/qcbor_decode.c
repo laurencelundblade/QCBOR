@@ -5930,9 +5930,9 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
          } else {
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
-#else
+#else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
       case QCBOR_TYPE_INT64:
@@ -6315,7 +6315,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
             return QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
          break;
 
@@ -6330,7 +6330,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
          }
          break;
 #else
-         return QCBOR_ERR_HW_FLOAT_DISABLED;
+         return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
       default:
@@ -6572,7 +6572,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem *pItem,
    (void)pItem;
    (void)uConvertTypes;
    (void)pdValue;
-   return QCBOR_ERR_HW_FLOAT_DISABLED;
+   return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
 }
