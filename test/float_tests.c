@@ -809,8 +809,8 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* double negative qNaN -- shortens to half */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN,              0,
-    DOUBLE_SIGN_MASK| DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
+   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
+    DOUBLE_SIGN_MASK| DOUBLE_NAN_BITS | DOUBLE_QNAN,  0,
     {"\xF9\xFE\x00", 3},                         {"\xFB\xFF\xF8\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\xFE\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
@@ -851,13 +851,13 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 23rd leftmost payload bit set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000,  0 ,
+   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000,  0,
     DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000,  SINGLE_NAN_BITS | 0x01,
     {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
     {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with randomly chosen bit pattern -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000,  0   ,
+   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000,  0,
     DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000,  SINGLE_NAN_BITS | 0x21ebe2,
     {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
     {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
