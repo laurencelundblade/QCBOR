@@ -4088,14 +4088,6 @@ SortMapTest(void)
       return 116;
    }
 
-
-   /* TODO: finish this or get rid of it */
-   QCBOREncode_Init(&EC, TestBuf);
-   QCBOREncode_OpenMap(&EC);
-   QCBOREncode_AddEncoded(&EC, UsefulBuf_FromSZ("\xf8\x02"));
-   QCBOREncode_AddSZString(&EC, "xxx");
-   QCBOREncode_CloseAndSortMap(&EC);
-
    return 0;
 }
 
