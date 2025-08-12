@@ -98,12 +98,15 @@ QCBORItem_IsMapOrArray(const QCBORItem Item)
           uDataType == QCBOR_TYPE_ARRAY;
 }
 
+/* This must be called on a map or array */
 static bool
 QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
 {
+   /* This check is disabled because this is always called on map or array
    if(!QCBORItem_IsMapOrArray(Item)){
       return false;
-   }
+   } */
+
 
    if(Item.val.uCount != 0) {
       return false;
@@ -111,13 +114,15 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
    return true;
 }
 
+/* This must be called on a map or array */
 static bool
 QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem Item)
 {
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   /* This check is disabled because this is always called on map or array
    if(!QCBORItem_IsMapOrArray(Item)){
       return false;
-   }
+   } */
 
    if(Item.val.uCount != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       return false;
@@ -808,7 +813,7 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
                           const uint64_t        uArgument,
                           QCBORItem            *pDecodedItem)
 {
-   QCBORError uReturn;
+   QCBORError uReturn = QCBOR_ERR_UNSUPPORTED; /* when nAdditionalInfo doesn't match case in switch */
    uint32_t   uSingle;
 
    switch(nAdditionalInfo) {
@@ -851,10 +856,6 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uConfigFlags);
          break;
-
-      default:
-         /* Never happens, but the compiler complains so this is required. */
-         uReturn = QCBOR_SUCCESS;
    }
 
    return uReturn;
@@ -1053,36 +1054,33 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
     * is easier to read with them all being similar functions, even if
     * some functions don't do much.
     */
+   uReturn = QCBOR_ERR_UNSUPPORTED; /* When no case matches, which never happens, but need to avoid compiler warnings */
    switch (nMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
-         return QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         uReturn = QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: /* Major type 2 */
       case CBOR_MAJOR_TYPE_TEXT_STRING: /* Major type 3 */
-         return QCBOR_Private_DecodeString(pMe, bAllocateStrings, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         uReturn = QCBOR_Private_DecodeString(pMe, bAllocateStrings, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
       case CBOR_MAJOR_TYPE_MAP:   /* Major type 5 */
-         return QCBOR_Private_DecodeArrayOrMap(pMe->uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         uReturn = QCBOR_Private_DecodeArrayOrMap(pMe->uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_TAG: /* Major type 6, tag numbers */
-         return QCBOR_Private_DecodeTagNumber(uArgument, nAdditionalInfo, pDecodedItem);
+         uReturn = QCBOR_Private_DecodeTagNumber(uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_SIMPLE:
          /* Major type 7: float, double, true, false, null... */
-         return QCBOR_Private_DecodeType7(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
-         break;
-
-      default:
-         /* Never happens because DecodeHead() should never return > 7 */
-         return QCBOR_ERR_UNSUPPORTED;
+         uReturn = QCBOR_Private_DecodeType7(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
          break;
    }
+   return uReturn;
 }
 
 
@@ -2038,7 +2036,7 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
    uint8_t    uLevel;
    uint32_t   uLabelOffset;
 
-   /* Get the label and consume it should it be complex */
+   /* Get the label and consume it, should it be complex */
    *puLabelStart = UsefulInputBuf_Tell(&(pMe->InBuf));
 
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &Item, &uLabelOffset);
@@ -2116,8 +2114,8 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
 }
 
 
-/* This does sort order and duplicate detection on a map. The and all
- * it's members must be in preferred serialization so the comparisons
+/* This does sort order and duplicate detection on a map. The map and all
+ * its members must be in preferred serialization so the comparisons
  * work correctly.
  */
 static QCBORError
@@ -2142,9 +2140,6 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
    while(1) {
       uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uNestLevel, &offset1, &length1);
       if(uErr != QCBOR_SUCCESS) {
-         if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
-            uErr = QCBOR_SUCCESS; /* Successful exit from loop */
-         }
          break;
       }
 
