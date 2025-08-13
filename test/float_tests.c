@@ -299,7 +299,7 @@ CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const Usef
 
 struct FloatTestCase {
    double      dNumber;
-   float       fNumber; /* Only used when preferred is disabled  */
+   float       fNumber;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
    UsefulBufC  CDE;
@@ -615,11 +615,11 @@ FloatValuesTests(void)
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
-      if(uTestIndex == 16) {
+      if(uTestIndex == 2) {
          uDecoded = 1;
       }
 
-      /* Preferred Encode */
+      /* Preferred encode of double precision */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
@@ -633,132 +633,171 @@ FloatValuesTests(void)
       }
 
       if(CompareToCarsten(UsefulBufUtil_CopyDoubleToUint64(pTestCase->dNumber), TestOutput, pTestCase->Preferred)) {
-         return MakeTestResultCode(uTestIndex, 202, 200);
+         return MakeTestResultCode(uTestIndex, 3, 200);
       }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
-         return MakeTestResultCode(uTestIndex, 3, 200);
+         return MakeTestResultCode(uTestIndex, 4, 200);
       }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Non-Preferred Encode */
+
+      /* Preferred encode of single precision */
+      if(pTestCase->fNumber != 0.0) {
+         QCBOREncode_Init(&EnCtx, TestOutBuffer);
+         QCBOREncode_AddFloat(&EnCtx, pTestCase->fNumber);
+         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+         if(uErr != QCBOR_SUCCESS) {
+            return MakeTestResultCode(uTestIndex, 10, uErr);;
+         }
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         if(UsefulBuf_Compare(TestOutput, pTestCase->Preferred)) {
+            return MakeTestResultCode(uTestIndex, 11, 200);
+         }
+
+         if(CompareToCarsten(UsefulBufUtil_CopyDoubleToUint64(pTestCase->dNumber), TestOutput, pTestCase->Preferred)) {
+            return MakeTestResultCode(uTestIndex, 12, 200);
+         }
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+         /* no non-preferred serialization for singles to check against */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+      }
+
+
+      /* Non-preferred encode of double */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 4, uErr);;
+         return MakeTestResultCode(uTestIndex, 20, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
-         return MakeTestResultCode(uTestIndex, 5, 200);
+         return MakeTestResultCode(uTestIndex, 21, 200);
       }
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-      /* Deterministic Encode */
+      /* Deterministic encode */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 6, uErr);;
+         return MakeTestResultCode(uTestIndex, 30, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
-         return MakeTestResultCode(uTestIndex, 7, 200);
+         return MakeTestResultCode(uTestIndex, 31, 200);
       }
 
-      /* dCBOR Encode */
+      /* dCBOR encode of double */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 8, uErr);;
+         return MakeTestResultCode(uTestIndex, 40, uErr);;
       }
       if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
-         return MakeTestResultCode(uTestIndex, 9, 200);
+         return MakeTestResultCode(uTestIndex, 41, 200);
       }
+
+      /* dCBOR encode of single */
+      if(pTestCase->fNumber != 0.0) {
+         QCBOREncode_Init(&EnCtx, TestOutBuffer);
+         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
+         QCBOREncode_AddFloat(&EnCtx, pTestCase->fNumber);
+         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
+
+         if(uErr != QCBOR_SUCCESS) {
+            return MakeTestResultCode(uTestIndex, 50, uErr);;
+         }
+         if(UsefulBuf_Compare(TestOutput, pTestCase->DCBOR)) {
+            return MakeTestResultCode(uTestIndex, 51, 200);
+         }
+      }
+
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Decode Preferred */
+      /* Decode preferred decode */
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 10, uErr);
+         return MakeTestResultCode(uTestIndex, 60, uErr);
       }
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-         return MakeTestResultCode(uTestIndex, 11, 0);
+         return MakeTestResultCode(uTestIndex, 61, 0);
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 12, 0);
+            return MakeTestResultCode(uTestIndex, 62, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 13, 0);
+            return MakeTestResultCode(uTestIndex, 63, 0);
          }
       }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       if(pTestCase->Preferred.len == 3) {
          if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
-            return MakeTestResultCode(uTestIndex, 14, uErr);
+            return MakeTestResultCode(uTestIndex, 64, uErr);
          }
       } else if(pTestCase->Preferred.len == 5) {
          /* When QCBOR_DISABLE_PREFERRED_FLOAT is set, single-precision is not
           * converted to double when decoding, so test differently. len == 5
           * indicates single-precision in the encoded CBOR. */
          if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex, 15, uErr);
+            return MakeTestResultCode(uTestIndex, 65, uErr);
          }
          if(Item.uDataType != QCBOR_TYPE_FLOAT) {
-            return MakeTestResultCode(uTestIndex, 16, 0);
+            return MakeTestResultCode(uTestIndex, 66, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.fnum)) {
-               return MakeTestResultCode(uTestIndex, 17, 0);
+               return MakeTestResultCode(uTestIndex, 67, 0);
             }
          } else {
             if(Item.val.fnum != pTestCase->fNumber) {
-               return MakeTestResultCode(uTestIndex, 18, 0);
+               return MakeTestResultCode(uTestIndex, 68, 0);
             }
          }
       } else {
          if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex, 19, uErr);
+            return MakeTestResultCode(uTestIndex, 69, uErr);
          }
          if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-            return MakeTestResultCode(uTestIndex, 20, 0);
+            return MakeTestResultCode(uTestIndex, 70, 0);
          }
          if(isnan(pTestCase->dNumber)) {
             if(!isnan(Item.val.dfnum)) {
-               return MakeTestResultCode(uTestIndex, 21, 0);
+               return MakeTestResultCode(uTestIndex, 71, 0);
             }
          } else {
             if(Item.val.dfnum != pTestCase->dNumber) {
-               return MakeTestResultCode(uTestIndex, 22, 0);
+               return MakeTestResultCode(uTestIndex, 72, 0);
             }
          }
       }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Decode Not Preferred */
+      /* Decode not preferred */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(uTestIndex, 23, uErr);;
+         return MakeTestResultCode(uTestIndex, 80, uErr);;
       }
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
-         return MakeTestResultCode(uTestIndex, 24, 0);
+         return MakeTestResultCode(uTestIndex, 81, 0);
       }
       if(isnan(pTestCase->dNumber)) {
          if(!isnan(Item.val.dfnum)) {
-            return MakeTestResultCode(uTestIndex, 25, 0);
+            return MakeTestResultCode(uTestIndex, 82, 0);
          }
       } else {
          if(Item.val.dfnum != pTestCase->dNumber) {
-            return MakeTestResultCode(uTestIndex, 26, 0);
+            return MakeTestResultCode(uTestIndex, 83, 0);
          }
       }
    }
