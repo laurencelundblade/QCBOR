@@ -98,12 +98,15 @@ QCBORItem_IsMapOrArray(const QCBORItem Item)
           uDataType == QCBOR_TYPE_ARRAY;
 }
 
+/* This must be called on a map or array */
 static bool
 QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
 {
+   /* This check is disabled because this is always called on map or array
    if(!QCBORItem_IsMapOrArray(Item)){
       return false;
-   }
+   } */
+
 
    if(Item.val.uCount != 0) {
       return false;
@@ -111,13 +114,15 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
    return true;
 }
 
+/* This must be called on a map or array */
 static bool
 QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem Item)
 {
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   /* This check is disabled because this is always called on map or array
    if(!QCBORItem_IsMapOrArray(Item)){
       return false;
-   }
+   } */
 
    if(Item.val.uCount != QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH) {
       return false;
@@ -759,7 +764,7 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
 
    return QCBOR_SUCCESS;
 }
-#else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#else /* !QCBOR_DISABLE_DECODE_CONFORMANCE && !QCBOR_DISABLE_PREFERRED_FLOAT */
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 static QCBORError
@@ -796,7 +801,7 @@ QCBORDecode_Private_DoubleConformance(const double d, const QCBORDecodeMode uCon
       return QCBOR_SUCCESS;
    }
 }
-#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE && ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE && !QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 /*
@@ -808,8 +813,13 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
                           const uint64_t        uArgument,
                           QCBORItem            *pDecodedItem)
 {
-   QCBORError uReturn;
+   QCBORError uErr;
    uint32_t   uSingle;
+
+   /* Set error code for when no case in the switch matches. This
+    * never actually happens because, but the compiler and the code
+    * coverage tool don't know this. */
+   uErr = QCBOR_ERR_UNSUPPORTED;
 
    switch(nAdditionalInfo) {
       case HALF_PREC_FLOAT: /* 25 */
@@ -819,12 +829,13 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
           * was widened to 64 bits to be passed in here. */
          pDecodedItem->val.dfnum = IEEE754_HalfToDouble((uint16_t)uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-         uReturn = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum, uConfigFlags);
-         if(uReturn != QCBOR_SUCCESS) {
+         uErr = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum,
+                                                    uConfigFlags);
+         if(uErr != QCBOR_SUCCESS) {
             break;
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         uReturn = FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS);
+         uErr = FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS);
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
@@ -843,21 +854,18 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          pDecodedItem->val.fnum  = UsefulBufUtil_CopyUint32ToFloat(uSingle);
          pDecodedItem->uDataType = QCBOR_TYPE_FLOAT;
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         uReturn = QCBORDecode_Private_SingleConformance(uSingle, uConfigFlags);
+         uErr = QCBORDecode_Private_SingleConformance(uSingle, uConfigFlags);
          break;
 
       case DOUBLE_PREC_FLOAT: /* 27 */
          pDecodedItem->val.dfnum = UsefulBufUtil_CopyUint64ToDouble(uArgument);
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
-         uReturn = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum, uConfigFlags);
+         uErr = QCBORDecode_Private_DoubleConformance(pDecodedItem->val.dfnum,
+                                                      uConfigFlags);
          break;
-
-      default:
-         /* Never happens, but the compiler complains so this is required. */
-         uReturn = QCBOR_SUCCESS;
    }
 
-   return uReturn;
+   return uErr;
 }
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
@@ -1022,7 +1030,7 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
                                    const bool           bAllocateStrings,
                                    QCBORItem           *pDecodedItem)
 {
-   QCBORError uReturn;
+   QCBORError uErr;
    int        nMajorType = 0;
    uint64_t   uArgument = 0;
    int        nAdditionalInfo = 0;
@@ -1039,15 +1047,21 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    /* Decode the "head" that every CBOR item has into the major type,
     * argument and the additional info.
     */
-   uReturn = QCBOR_Private_DecodeHead(&(pMe->InBuf),
+   uErr = QCBOR_Private_DecodeHead(&(pMe->InBuf),
                                       uDecodeMode,
                                       &nMajorType,
                                       &uArgument,
                                       &nAdditionalInfo);
 
-   if(uReturn != QCBOR_SUCCESS) {
-      return uReturn;
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
    }
+
+   /* Set error code for when no case in the switch matches. This
+    * never actually happens because nMajorType is masked to 3 bits
+    * before calling, but the compiler and the code coverage tools
+    * don't know this. */
+   uErr = QCBOR_ERR_UNSUPPORTED;
 
    /* All the functions below get inlined by the optimizer. This code
     * is easier to read with them all being similar functions, even if
@@ -1056,33 +1070,28 @@ QCBOR_Private_DecodeAtomicDataItem(QCBORDecodeContext  *pMe,
    switch (nMajorType) {
       case CBOR_MAJOR_TYPE_POSITIVE_INT: /* Major type 0 */
       case CBOR_MAJOR_TYPE_NEGATIVE_INT: /* Major type 1 */
-         return QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         uErr = QCBOR_Private_DecodeInteger(nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_BYTE_STRING: /* Major type 2 */
       case CBOR_MAJOR_TYPE_TEXT_STRING: /* Major type 3 */
-         return QCBOR_Private_DecodeString(pMe, bAllocateStrings, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         uErr = QCBOR_Private_DecodeString(pMe, bAllocateStrings, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_ARRAY: /* Major type 4 */
       case CBOR_MAJOR_TYPE_MAP:   /* Major type 5 */
-         return QCBOR_Private_DecodeArrayOrMap(pMe->uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
+         uErr = QCBOR_Private_DecodeArrayOrMap(pMe->uDecodeMode, nMajorType, uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
       case CBOR_MAJOR_TYPE_TAG: /* Major type 6, tag numbers */
-         return QCBOR_Private_DecodeTagNumber(uArgument, nAdditionalInfo, pDecodedItem);
+         uErr = QCBOR_Private_DecodeTagNumber(uArgument, nAdditionalInfo, pDecodedItem);
          break;
 
-      case CBOR_MAJOR_TYPE_SIMPLE:
-         /* Major type 7: float, double, true, false, null... */
-         return QCBOR_Private_DecodeType7(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
-         break;
-
-      default:
-         /* Never happens because DecodeHead() should never return > 7 */
-         return QCBOR_ERR_UNSUPPORTED;
+      case CBOR_MAJOR_TYPE_SIMPLE: /* Major type 7: float, double, true, false, null... */
+         uErr = QCBOR_Private_DecodeType7(uDecodeMode, nAdditionalInfo, uArgument, pDecodedItem);
          break;
    }
+   return uErr;
 }
 
 
@@ -2038,7 +2047,7 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
    uint8_t    uLevel;
    uint32_t   uLabelOffset;
 
-   /* Get the label and consume it should it be complex */
+   /* Get the label and consume it, should it be complex */
    *puLabelStart = UsefulInputBuf_Tell(&(pMe->InBuf));
 
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, &Item, &uLabelOffset);
@@ -2077,7 +2086,10 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
    const UsefulInputBuf     Save        = pMe->InBuf;
 
    do {
-      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uLevel, &uLabelStart, &uLabelLen);
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe,
+                                                    &uLevel,
+                                                    &uLabelStart,
+                                                    &uLabelLen);
       if(uErr != QCBOR_SUCCESS) {
          if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
             uErr = QCBOR_SUCCESS; /* Successful end */
@@ -2116,8 +2128,8 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
 }
 
 
-/* This does sort order and duplicate detection on a map. The and all
- * it's members must be in preferred serialization so the comparisons
+/* This does sort order and duplicate detection on a map. The map and all
+ * its members must be in preferred serialization so the comparisons
  * work correctly.
  */
 static QCBORError
@@ -2140,11 +2152,11 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
    offset2 = SIZE_MAX;
    length2 = SIZE_MAX; // To avoid uninitialized warning
    while(1) {
-      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe, &uNestLevel, &offset1, &length1);
+      uErr = QCBORDecode_Private_GetLabelAndConsume(pMe,
+                                                    &uNestLevel,
+                                                    &offset1,
+                                                    &length1);
       if(uErr != QCBOR_SUCCESS) {
-         if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
-            uErr = QCBOR_SUCCESS; /* Successful exit from loop */
-         }
          break;
       }
 
@@ -2165,7 +2177,10 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
          }
       }
 
-      uErr = QCBORDecode_Private_CheckDups(pMe, pMapToCheck->uNextNestLevel, offset1, length1);
+      uErr = QCBORDecode_Private_CheckDups(pMe,
+                                           pMapToCheck->uNextNestLevel,
+                                           offset1,
+                                           length1);
       if(uErr != QCBOR_SUCCESS) {
          break;
       }
@@ -2329,12 +2344,18 @@ QCBORDecode_Finish(QCBORDecodeContext *pMe)
 void
 QCBORDecode_VGetNextConsume(QCBORDecodeContext *pMe, QCBORItem *pDecodedItem)
 {
-   QCBORDecode_VGetNext(pMe, pDecodedItem);
+   QCBORError uErr;
 
-   if(pMe->uLastError == QCBOR_SUCCESS) {
-      pMe->uLastError = (uint8_t)QCBORDecode_Private_ConsumeItem(pMe, pDecodedItem, NULL,
-         &pDecodedItem->uNextNestLevel);
+   QCBORDecode_VGetNext(pMe, pDecodedItem);
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
    }
+   uErr = QCBORDecode_Private_ConsumeItem(pMe,
+                                          pDecodedItem,
+                                          NULL,
+                                         &pDecodedItem->uNextNestLevel);
+
+   pMe->uLastError = (uint8_t)uErr;
 }
 
 

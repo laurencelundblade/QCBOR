@@ -252,7 +252,7 @@ QCBORDecode_EnterArray(QCBORDecodeContext *pCtx, QCBORItem *pItem);
 
 /** See QCBORDecode_EnterArray(). */
 void
-QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t uLabel);
+QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel);
 
 /** See QCBORDecode_EnterArray(). */
 void

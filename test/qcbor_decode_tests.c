@@ -2615,7 +2615,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
          uCBORError = 9; /* For setting break points */
       }
 
-      if(strncmp("map with map label with non-preferred part", pF->szDescription, 25) == 0) {
+      if(strncmp("map without enough", pF->szDescription, 17) == 0) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -5817,25 +5817,49 @@ int32_t IndefiniteLengthStringTest(void)
 
 int32_t AllocAllStringsTest(void)
 {
-   QCBORDecodeContext DC;
-   QCBORError nCBORError;
+   QCBORDecodeContext DCtx;
+   QCBORError         uErr;
+   QCBORItem          Item;
+   UsefulBuf          BadPool;
+   UsefulBuf_MAKE_STACK_UB(Pool, sizeof(spCSRInput) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
 
 
-   // First test, use the "CSRMap" as easy input and checking
-   QCBORDecode_Init(&DC,
+   /* First test, use the "CSRMap" as easy input and checking */
+   QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput),
                     QCBOR_DECODE_MODE_NORMAL);
 
-   UsefulBuf_MAKE_STACK_UB(Pool, sizeof(spCSRInput) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
 
-   nCBORError = QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
-   if(nCBORError) {
+   uErr = QCBORDecode_SetMemPool(&DCtx, Pool, 1); /* Turn on copying. */
+   if(uErr) {
       return -1;
    }
 
-   if(CheckCSRMaps(&DC)) {
+   if(CheckCSRMaps(&DCtx)) {
       return -2;
    }
+
+
+   /* Test with request all strings be allocated, but provide no allocator */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FromSZ("\x41\x40"),
+                    QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_SetUpAllocator(&DCtx, NULL, NULL, true);
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_STRING_ALLOCATOR) {
+      return 55;
+   }
+
+   /* Test with a mempool that is too big */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRInput),
+                    QCBOR_DECODE_MODE_NORMAL);
+   BadPool = Pool;
+   BadPool.len = UINT64_MAX;
+   uErr = QCBORDecode_SetMemPool(&DCtx, BadPool, 1);
+   if(uErr != QCBOR_ERR_MEM_POOL_SIZE) {
+      return 66;
+   }
+
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    // Next parse, save pointers to a few strings, destroy original and
@@ -5843,24 +5867,24 @@ int32_t AllocAllStringsTest(void)
    UsefulBuf_MAKE_STACK_UB(CopyOfStorage, sizeof(pValidMapEncoded) + QCBOR_DECODE_MIN_MEM_POOL_SIZE);
    const UsefulBufC CopyOf = UsefulBuf_Copy(CopyOfStorage, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded));
 
-   QCBORDecode_Init(&DC, CopyOf, QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_Init(&DCtx, CopyOf, QCBOR_DECODE_MODE_NORMAL);
    UsefulBuf_Set(Pool, '/');
-   QCBORDecode_SetMemPool(&DC, Pool, 1); // Turn on copying.
+   QCBORDecode_SetMemPool(&DCtx, Pool, 1); // Turn on copying.
 
    QCBORItem Item1, Item2, Item3, Item4;
-   if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item1)))
+      return (int32_t)uErr;
    if(Item1.uDataType != QCBOR_TYPE_MAP ||
       Item1.val.uCount != 3)
       return -3;
-   if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
-      return (int32_t)nCBORError;
-   if((nCBORError = QCBORDecode_GetNext(&DC, &Item2)))
-      return (int32_t)nCBORError;
-   if((nCBORError = QCBORDecode_GetNext(&DC, &Item3)))
-      return (int32_t)nCBORError;
-   if((nCBORError = QCBORDecode_GetNext(&DC, &Item4)))
-      return (int32_t)nCBORError;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item1)))
+      return (int32_t)uErr;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item2)))
+      return (int32_t)uErr;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item3)))
+      return (int32_t)uErr;
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item4)))
+      return (int32_t)uErr;
 
    UsefulBuf_Set(CopyOfStorage, '_');
 
@@ -5900,24 +5924,24 @@ int32_t AllocAllStringsTest(void)
 
    // Next parse with a pool that is too small
    UsefulBuf_MAKE_STACK_UB(SmallPool, QCBOR_DECODE_MIN_MEM_POOL_SIZE + 1);
-   QCBORDecode_Init(&DC,
+   QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
                     QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_SetMemPool(&DC, SmallPool, 1); // Turn on copying.
-   if((nCBORError = QCBORDecode_GetNext(&DC, &Item1)))
+   QCBORDecode_SetMemPool(&DCtx, SmallPool, 1); // Turn on copying.
+   if((uErr = QCBORDecode_GetNext(&DCtx, &Item1)))
       return -8;
    if(Item1.uDataType != QCBOR_TYPE_MAP ||
       Item1.val.uCount != 3) {
       return -9;
    }
-   if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item1))){
-      if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item2))) {
-         if(!(nCBORError = QCBORDecode_GetNext(&DC, &Item3))) {
-            nCBORError = QCBORDecode_GetNext(&DC, &Item4);
+   if(!(uErr = QCBORDecode_GetNext(&DCtx, &Item1))){
+      if(!(uErr = QCBORDecode_GetNext(&DCtx, &Item2))) {
+         if(!(uErr = QCBORDecode_GetNext(&DCtx, &Item3))) {
+            uErr = QCBORDecode_GetNext(&DCtx, &Item4);
          }
       }
    }
-   if(nCBORError != QCBOR_ERR_STRING_ALLOCATE) {
+   if(uErr != QCBOR_ERR_STRING_ALLOCATE) {
       return -10;
    }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
@@ -7525,6 +7549,60 @@ QCBORError CBTest2(void *pCallbackCtx, const QCBORItem *pItem)
 }
 
 
+static int32_t Uint64BitMapLabelsTest(void)
+{
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   QCBOREncodeContext   ECtx;
+   QCBORDecodeContext   DCtx;
+   MakeUsefulBufOnStack(OutputBuf, 100);
+   UsefulBufC           Output;
+   QCBORItem            Item;
+   QCBORItem            Search[2];
+
+   /* Make a map with a uint64_t labels */
+   QCBOREncode_Init(&ECtx, OutputBuf);
+   QCBOREncode_OpenMap(&ECtx);
+   QCBOREncode_AddUInt64(&ECtx, UINT64_MAX);
+   QCBOREncode_AddSZString(&ECtx, "biggest uint64 label");
+   QCBOREncode_AddUInt64(&ECtx, ((uint64_t)INT64_MAX)+1);
+   QCBOREncode_AddSZString(&ECtx, "smallest uint64 label");
+   QCBOREncode_CloseMap(&ECtx);
+   if(QCBOREncode_Finish(&ECtx, &Output) != QCBOR_SUCCESS) {
+      return 80000;
+   }
+
+   /* Decode it into items */
+   QCBORDecode_Init(&DCtx, Output, 0);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_UINT64 &&
+      Item.label.uint64 != UINT64_MAX) {
+      return 80001;
+   }
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_UINT64 &&
+      Item.label.uint64 != ((uint64_t)INT64_MAX)+1) {
+      return 80002;
+   }
+
+   /* Search map for uint64_t labels*/
+   Search[0].label.uint64 = UINT64_MAX;
+   Search[0].uLabelType   = QCBOR_TYPE_UINT64;
+   Search[0].uDataType    = QCBOR_TYPE_ANY;
+   Search[1].uLabelType   = QCBOR_TYPE_NONE;
+
+   QCBORDecode_Init(&DCtx, Output, 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_GetItemsInMap(&DCtx, Search);
+   if(Search[0].uDataType != QCBOR_TYPE_TEXT_STRING ||
+      UsefulBufCompareToSZ(Search[0].val.string, "biggest uint64 label")) {
+      return 80003;
+   }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+   return 0;
+}
+
+
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
@@ -8054,6 +8132,11 @@ int32_t EnterMapTest(void)
 
 
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
+
+   nReturn = Uint64BitMapLabelsTest();
+   if(nReturn) {
+      return nReturn;
+   }
 
    nReturn = EnterMapCursorTest();
 
@@ -10953,6 +11036,16 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       QCBOR_DECODE_MODE_CDE,
       {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
       QCBOR_ERR_PREFERRED_CONFORMANCE
+   },
+   { "map without enough entries",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa2\x00\x00", 3},
+      QCBOR_ERR_NO_MORE_ITEMS
+   },
+   { "map without enough entries II",
+      QCBOR_DECODE_MODE_CDE,
+      {"\xa1\x00", 2},
+      QCBOR_ERR_HIT_END
    }
 };
 
@@ -10994,6 +11087,7 @@ DecodeConformanceTests(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
       return -5000;
    }
+
 
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
@@ -11336,6 +11430,12 @@ static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
 #endif
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+
+static const uint8_t spInvalid[] = {0xf8, 0x01};
+
+static const uint8_t spArrayWithNotWellFormed[] = {0x81, 0xff, 0xff};
+
+
 int32_t GetMapAndArrayTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -11601,7 +11701,7 @@ int32_t GetMapAndArrayTest(void)
    }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-   /* ------ */
+   /* Try to get map by label and fail */
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap),
                     0);
@@ -11610,6 +11710,32 @@ int32_t GetMapAndArrayTest(void)
 
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_LABEL_NOT_FOUND) {
       return 106;
+   }
+
+   /* Trying to get an array when CBOR is invalid */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spInvalid),
+                    0);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_TYPE_7) {
+      return 107;
+   }
+
+   /* Trying to get an array and it's not an array */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap),
+                    0);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 108;
+   }
+
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayWithNotWellFormed),
+                    0);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_BREAK) {
+      return 109;
    }
 
    return 0;
