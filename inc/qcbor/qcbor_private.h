@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
  * Copyright (c) 2018-2025, Laurence Lundblade.
- * Copyright (c) 2021, Arm Limited.
+ * Copyright (c) 2021-2024, Arm Limited.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -159,7 +159,10 @@ extern "C" {
 #define CBOR_SIMPLEV_RESERVED_START  CBOR_SIMPLEV_ONEBYTE
 #define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
-
+/* The largest number of external references at the start of an array or map.
+ * The limit comes from uExternalStart in QCBORTrackNesting being uint8_t.
+ */
+#define QCBOR_MAX_EXTERNAL_POSITION  (UINT8_MAX)
 
 /* The number of tags that are 16-bit or larger that can be handled
  * in a decode.
@@ -183,9 +186,14 @@ extern "C" {
  * struct down so it can be on the stack without any concern.  It
  * would be about double if size_t was used instead.
  *
+ * uExternalStart stores the position of the first external reference in the
+ * encoding that is after the start of the array. If this was a pointer into the
+ * linked list, lookup would be faster, but the structure size would increase
+ * significantly.
+ *
  * Size approximation (varies with CPU/compiler):
- *    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 8 = 136 bytes
- *   32-bit machine: (15 + 1) * (4 + 2 + 1 + 1 pad) + 4 = 132 bytes
+ *    64-bit machine: (15 + 1) * (4 + 2 + 1 + 1) + 8 = 136 bytes
+ *   32-bit machine: (15 + 1) * (4 + 2 + 1 + 1) + 4 = 132 bytes
  */
 typedef struct __QCBORTrackNesting {
   /* PRIVATE DATA STRUCTURE */
@@ -195,20 +203,46 @@ typedef struct __QCBORTrackNesting {
       uint16_t  uCount;   /* Number of items in the arrary or map; counts items
                            * in a map, not pairs of items */
       uint8_t   uMajorType; /* Indicates if item is a map or an array */
+      uint8_t   uExternalStart; /* Indicates the position of the first external
+                                 * after the array start */
    } pArrays[QCBOR_MAX_ARRAY_NESTING+1], /* stored state for nesting levels */
    *pCurrentNesting; /* the current nesting level */
 } QCBORTrackNesting;
 
+/*
+ * PRIVATE DATA STRUCTURE
+ *
+ * Used to insert external buffer in an encoding
+ *
+ * When external buffers are added to a CBOR encoding, then a linked list of
+ * _QCBORExternalBuffer structures are built. The pNextExternalBuffer member
+ * in _QCBOREncodeContext points to the first element in the list, and the
+ * member of the same name in _QCBORExternalBuffer points to the next element in
+ * the list.
+ * The Bytes member contains the reference to the external buffer that is
+ * inserted in the encoded CBOR.
+ * uEncodedOffset contains the index in the encoding context's OutBuf where the
+ * content of Bytes will be inserted, once the CBOR object is copied by
+ * QCBOREncode_CopyResult
+ */
+struct _QCBORExternalBuffer{
+   /* PRIVATE DATA STRUCTURE */
+   struct _QCBORExternalBuffer *pNextExternalBuffer; /* The next such structure in the
+                                                      * linked list */
+   size_t uEncodedOffset; /* The offset in the encoding context's OutBuf where
+                           * this buffer must be inserted. */
+   UsefulBufC    Bytes;   /* The bytes to be inserted */
+};
 
 /*
  * PRIVATE DATA STRUCTURE
  *
  * Context / data object for encoding some CBOR. Used by all encode
- * functions to form a public "object" that does the job of encdoing.
+ * functions to form a public "object" that does the job of encoding.
  *
  * Size approximation (varies with CPU/compiler):
- *  64-bit machine: 27 + 1 (+ 4 padding) + 136 = 32 + 136 = 168 bytes
- *  32-bit machine: 15 + 1 + 132 = 148 bytes
+ *  64-bit machine: 8 + 27 + 1 (+ 4 padding) + 136 = 40 + 136 = 176 bytes
+ *  32-bit machine: 4 + 15 + 1 + 132 = 152 bytes
  */
 typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
 
@@ -218,6 +252,8 @@ typedef struct _QCBOREncodeContext QCBORPrivateEncodeContext;
 
 struct _QCBOREncodeContext {
    /* PRIVATE DATA STRUCTURE */
+   struct _QCBORExternalBuffer *pNextExternalBuffer; /* The first such structure
+                                                      * in the linked list */
    UsefulOutBuf      OutBuf;  /* Pointer to output buffer, its length and
                                * position in it. */
    uint8_t           uError;  /* Error state, always from QCBORError enum */
@@ -227,6 +263,34 @@ struct _QCBOREncodeContext {
                                * pointer explained in QCBOREncode_Config() */
    QCBORTrackNesting nesting; /* Keep track of array and map nesting */
 };
+
+
+/*
+ * PRIVATE DATA STRUCTURE
+ *
+ * Context / data object for copying output data including external buffers.
+ *
+ * uEncodeBuffOffset contains the offset of the next byte to be copied to the
+ * target buffer. Note, that if pNextExternalBuffer is not null, and the
+ * uEncodedOffset value is the same in the pointed _QCBORExternalBuffer
+ * structure, then the content of the external buffer will be next emitted by
+ * QCBOREncode_CopyResult. If all the bytes from the external buffer are
+ * emitted, then pNextExternalBuffer is updated to the next _QCBORExternalBuffer
+ * in the list. After this QCBOREncode_CopyResult will emit bytes form context's
+ * OutBuf, until uEncodeBuffOffset reaches pNextExternalBuffer's
+ * uEncodeBuffOffset (In theory this means that if uEncodeBuffOffset of the
+ * previous and the current _QCBORExternalBuffer structure is the same, then no
+ * bytes are emitted from the encoding context's OutBuf between the two).
+ * uExternalOffset contains the offset of the next byte to be emitted from the
+ * external buffer. When pNextExternalBuffer is updated, this field is set to 0.
+ */
+struct _QCBOREncodeCopyContext {
+   size_t            uEncodeBuffOffset; /* The offset in the encoded buffer during copy */
+   size_t            uExternalOffset; /* The offset in the current external buffer during copy */
+   struct _QCBORExternalBuffer *pNextExternalBuffer; /* The next such structure
+                                                      * in the linked list */
+};
+
 
 
 /*

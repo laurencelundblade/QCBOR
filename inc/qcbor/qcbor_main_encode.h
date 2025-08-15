@@ -61,6 +61,25 @@ extern "C" {
  *
  * ## Encoding
  *
+ * QCBOR provides two modes for adding/storing data that is added to the
+ * encoded CBOR. Methods QCBOREncode_Add[DATA_TYPE](...) copy the data to
+ * the output buffer. QCBOREncode_AddExternal[DATA_TYPE](...) however
+ * doesn't write anything in the encoding buffer, but instead stores a
+ * reference to the data in the encoding context. These methods expect the
+ * data to be added wrapped in a @ref QCBORExternalBuffer structure. The
+ * address of this structure is saved in the Encoding context. Before
+ * calling the QCBOREncode_AddExternal[DATA_TYPE](...) method, the provided
+ * @ref QCBORExternalBuffer must be initialised with
+ * @ref QCBOREncode_InitExternalBuffer. If external data is added, then the
+ * encoding buffer doesn't contain a valid CBOR, so @ref QCBOREncode_Finish
+ * cannot be used to close the encoding, only @ref QCBOREncode_FinishGetSize.
+ * In this case the encoded CBOR can be obtained using the
+ * @ref QCBOREncode_CopyResult method.
+ *
+ * Note that the ...Add... and ...AddExternal... APIs for adding data to the
+ * CBOR can be used interleaved. This doesn't limit the scope of the CBOR
+ * structures that is possible to be encoded.
+ *
  * A common encoding usage mode is to invoke the encoding twice. First
  * with the output buffer as @ref SizeCalculateUsefulBuf to compute the
  * length of the needed output buffer. The correct sized output buffer
@@ -93,11 +112,11 @@ extern "C" {
  * valid during the @c QCBOREncode_AddXxx() calls as the data is copied
  * into the output buffer.
  *
- * There are three `Add` functions for each data type. The first / main
- * one for the type is for adding the data item to an array.  The second
- * one's name ends in `ToMap`, is used for adding data items to maps and
- * takes a string argument that is its label in the map. The third one
- * ends in `ToMapN`, is also used for adding data items to maps, and
+ * There are three `Add`/`AddExternal` functions for each data type. The
+ * first / main one for the type is for adding the data item to an array.
+ * The second one's name ends in `ToMap`, is used for adding data items to
+ * maps and takes a string argument that is its label in the map. The third
+ * one ends in `ToMapN`, is also used for adding data items to maps, and
  * takes an integer argument that is its label in the map.
  *
  * The simplest aggregate type is an array, which is a simple ordered
@@ -314,6 +333,25 @@ enum QCBOREncodeConfig {
  */
 typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
+/**
+ * QCBOREncodeContext is the data type that holds reference to an external
+ * buffer. It is 16 bytes on 32 bit systems, 32 bytes on 64 bit systems, so it
+ * can go on the stack. The contents are opaque, and the caller should not
+ * access internal members. A pointer to this context is stored in the encoding
+ * context, so this structure can only be reused after the corresponding
+ * encoding context is not used anymore.
+ */
+typedef struct _QCBORExternalBuffer QCBORExternalBuffer;
+
+/**
+ * QCBOREncodeCopyContext is the data type that holds the context data for
+ * copying the encoded CBOR with external data. Multiple QCBOREncodeCopyContext
+ * might be used simultaneously for the same QCBOREncodeContext. A
+ * QCBOREncodeCopyContext contains a reference to the corresponding
+ * QCBOREncodeContext. the structure is 12 bytes on 32 bit systems, and 24 bytes
+ * on 64 bit systems.
+ */
+typedef struct _QCBOREncodeCopyContext QCBOREncodeCopyContext;
 
 /**
  * Initialize the encoder.
@@ -464,6 +502,16 @@ QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Useful
 static void
 QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
 
+static void
+QCBOREncode_AddExternalText(QCBOREncodeContext *pCtx, QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel,
+                                   QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
+                                  QCBORExternalBuffer *pExternalBuffer);
 
 /**
  * @brief  Add a UTF-8 text string to the encoded output.
@@ -484,6 +532,16 @@ QCBOREncode_AddSZStringToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, co
 static void
 QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const char *szString);
 
+static void
+QCBOREncode_AddExternalSZString(QCBOREncodeContext *pCtx, QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalSZStringToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel,
+                                       QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
+                                      QCBORExternalBuffer *pExternalBuffer);
 
 /**
  * @brief Add a byte string to the encoded output.
@@ -509,6 +567,18 @@ QCBOREncode_AddBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
 static void
 QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
+static void
+QCBOREncode_AddExternalBytes(QCBOREncodeContext *pCtx, QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalBytesToMapSZ(QCBOREncodeContext *pCtx,
+                                    const char *szLabel,
+                                    QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalBytesToMapN(QCBOREncodeContext *pCtx,
+                                   int64_t nLabel,
+                                   QCBORExternalBuffer *pExternalBuffer);
 
 /**
  * @brief Set up to write a byte string value directly to encoded output.
@@ -1059,6 +1129,16 @@ QCBOREncode_AddEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Use
 static void
 QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded);
 
+void
+QCBOREncode_AddExternalEncoded(QCBOREncodeContext *pCtx, QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel,
+                                      QCBORExternalBuffer *pExternalBuffer);
+
+static void
+QCBOREncode_AddExternalEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel,
+                                     QCBORExternalBuffer *pExternalBuffer);
 
 /**
  * @brief Get the encoded result.
@@ -1067,21 +1147,23 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf
  * @param[out] pEncodedCBOR  Structure in which the pointer and length of
  *                           the encoded CBOR is returned.
  *
- * @retval QCBOR_SUCCESS                     Encoded CBOR is returned.
+ * @retval QCBOR_SUCCESS                          Encoded CBOR is returned.
  *
- * @retval QCBOR_ERR_TOO_MANY_CLOSES         Nesting error
+ * @retval QCBOR_ERR_TOO_MANY_CLOSES              Nesting error
  *
- * @retval QCBOR_ERR_CLOSE_MISMATCH          Nesting error
+ * @retval QCBOR_ERR_CLOSE_MISMATCH               Nesting error
  *
- * @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN Nesting error
+ * @retval QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN      Nesting error
  *
- * @retval QCBOR_ERR_BUFFER_TOO_LARGE        Encoded output buffer size
+ * @retval QCBOR_ERR_BUFFER_TOO_LARGE             Encoded output buffer size
  *
- * @retval QCBOR_ERR_BUFFER_TOO_SMALL        Encoded output buffer size
+ * @retval QCBOR_ERR_BUFFER_TOO_SMALL             Encoded output buffer size
  *
- * @retval QCBOR_ERR_ARRAY_NESTING_TOO_DEEP  Implementation limit
+ * @retval QCBOR_ERR_ARRAY_NESTING_TOO_DEEP       Implementation limit
  *
- * @retval QCBOR_ERR_ARRAY_TOO_LONG          Implementation limit
+ * @retval QCBOR_ERR_ARRAY_TOO_LONG               Implementation limit
+ *
+ * @retval QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL External bytes were added to the CBOR
  *
  * On success, the pointer and length of the encoded CBOR are returned
  * in @c *pEncodedCBOR. The pointer is the same pointer that was passed
@@ -1129,26 +1211,85 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf
  * QCBOREncode_GetErrorState() can be called to get the current
  * error state in order to abort encoding early as an optimization, but
  * calling it is is never required.
+ *
+ * If external bytes were added to the CBOR during encoding, this function
+ * returns an error as the data in the buffer is not a well formed CBOR.
+ * QCBOREncode_FinishGetSize and QCBOREncode_CopyResult should be used instead.
  */
 QCBORError
 QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 
 /**
- * @brief Get the encoded CBOR and error status.
+ * @brief Get the encoded CBOR length and error status.
  *
  * @param[in] pCtx          The context to finish encoding with.
  * @param[out] uEncodedLen  The length of the encoded or potentially
  *                          encoded CBOR in bytes.
  *
- * @return The same errors as QCBOREncode_Finish().
+ * @return The same errors as QCBOREncode_Finish() except
+ * @ref QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL is never returned.
  *
- * This functions the same as QCBOREncode_Finish(), but only returns the
- * size of the encoded output.
+ * This function is the same as QCBOREncode_Finish(), but only returns the size
+ * of the encoded CBOR including the sizes of the external buffers, if any.
  */
 QCBORError
 QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
 
+/**
+ * @brief Initialise an QCBORExternalBuffer structure
+ *
+ * @param[in] pExternalBuffer  the buffer structure to be initialised
+ * @param[in] Bytes            the buffer that is to be added to the encoded CBOR
+ *
+ * @retval QCBOR_SUCCESS
+ */
+QCBORError
+QCBOREncode_InitExternalBuffer(QCBORExternalBuffer *pExternalBuffer,
+                               const UsefulBufC Bytes);
+
+/**
+ * @brief Initialise an QCBOREncodeCopyContext structure
+ *
+ * @param[in]  pCopyContext   the context to be initialised
+ * @param[out] pEncodeContext the encoding context to associate pCopyContext with
+ *
+ * @retval QCBOR_SUCCESS
+ *
+ * The initialised QCBOREncodeCopyContext contains a reference to the
+ * QCBOREncodeContext, and becomes invalid once the content of
+ * QCBOREncodeContext is invalidated.
+ */
+QCBORError
+QCBOREncode_InitCopyResultContext(QCBOREncodeCopyContext *pCopyContext,
+                                  QCBOREncodeContext *pEncodeContext);
+
+
+/**
+ * @brief Copy the resulting cbor from the encoding context
+ *
+ * @param[in]  pMe              the encoding context that this buffer is used with
+ * @param[in]  pCopyContext     an initialised copy context
+ * @param[in]  TargetBuf        the target buffer to copy to
+ * @param[out] Result           the result of the copy
+ * @param[out] pBytesLeft       whether any bytes left to copy.
+ *
+ * @return The same errors as QCBOREncode_Finish() except
+ * @ref QCBOR_ERR_CANNOT_BE_USED_WITH_EXTERNAL is never returned.
+ *
+ * This function also copies the external bytes. The function always try to fill
+ * the target buffer. Subsequent calls to this function with the same copy
+ * context continue where the previous call finished.
+ *
+ * pBytesLeft can be used to decide whether a subsequent call is necessary to
+ * QCBOREncode_CopyResult or not.
+ */
+QCBORError
+QCBOREncode_CopyResult(QCBOREncodeContext *pMe,
+                       QCBOREncodeCopyContext *pCopyContext,
+                       UsefulBuf TargetBuf,
+                       UsefulBufC *Result,
+                       bool *pBytesLeft);
 
 /**
  * @brief Indicate whether the output storage buffer is NULL.
@@ -1250,7 +1391,7 @@ QCBOREncode_Tell(QCBOREncodeContext *pCtx);
  *
  * This will return @c NULLUsefulBufC if the encoder is in the error
  * state or if @c uStart is beyond the end of the thus-far encoded
- * data items.
+ * data items, or external bytes were added to the CBOR during encoding.
  *
  * If @c uStart is 0, all the thus-far-encoded CBOR will be returned.
  * Unlike QCBOREncode_Finish(), this will succeed even if some arrays
@@ -1393,6 +1534,12 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pCtx,
                               uint8_t             uMajorType,
                               UsefulBufC          Bytes);
 
+/* Semi-private funcion used by public inline functions. See qcbor_encode.c */
+void
+QCBOREncode_Private_AddExternalBuffer(QCBOREncodeContext  *pMe,
+                                      uint8_t              uMajorType,
+                                      QCBORExternalBuffer *pExternalBuffer);
+
 /** @private See qcbor_main_encode.c */
 void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pCtx,
@@ -1507,6 +1654,29 @@ QCBOREncode_AddTextToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddText(pMe, Text);
 }
 
+static inline void
+QCBOREncode_AddExternalText(QCBOREncodeContext *pMe, QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_Private_AddExternalBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalTextToMapSZ(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddExternalText(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalTextToMapN(QCBOREncodeContext *pMe,
+                                  const int64_t       nLabel,
+                                  QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddExternalText(pMe, pExternalBuffer);
+}
 
 inline static void
 QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString)
@@ -1538,6 +1708,30 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddSZString(pMe, szString);
 }
 
+inline static void
+QCBOREncode_AddExternalSZString(QCBOREncodeContext *pMe, QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddExternalText(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalSZStringToMapSZ(QCBOREncodeContext *pMe,
+                               const char          *szLabel,
+                               QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddExternalSZString(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalSZStringToMapN(QCBOREncodeContext *pMe,
+                              const int64_t        nLabel,
+                              QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddExternalSZString(pMe, pExternalBuffer);
+}
+
 
 
 
@@ -1546,6 +1740,13 @@ QCBOREncode_AddBytes(QCBOREncodeContext *pMe,
                      const UsefulBufC    Bytes)
 {
    QCBOREncode_Private_AddBuffer(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, Bytes);
+}
+
+static inline void
+QCBOREncode_AddExternalBytes(QCBOREncodeContext *pMe,
+                             QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_Private_AddExternalBuffer(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, pExternalBuffer);
 }
 
 static inline void
@@ -1570,6 +1771,32 @@ QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddBytes(pMe, Bytes);
+}
+
+static inline void
+QCBOREncode_AddExternalBytesToMapSZ(QCBOREncodeContext *pMe,
+                            const char         *szLabel,
+                            QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddExternalBytes(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalBytesToMap(QCBOREncodeContext *pMe,
+                                  const char *szLabel,
+                                  QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddExternalBytesToMapSZ(pMe, szLabel, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalBytesToMapN(QCBOREncodeContext *pMe,
+                                   const int64_t       nLabel,
+                                   QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddExternalBytes(pMe, pExternalBuffer);
 }
 
 static inline void
@@ -1920,6 +2147,23 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddEncoded(pMe, Encoded);
 }
 
+static inline void
+QCBOREncode_AddExternalEncodedToMapSZ(QCBOREncodeContext *pMe,
+                            const char         *szLabel,
+                            QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddExternalEncoded(pMe, pExternalBuffer);
+}
+
+static inline void
+QCBOREncode_AddExternalEncodedToMapN(QCBOREncodeContext *pMe,
+                             const int64_t       nLabel,
+                             QCBORExternalBuffer *pExternalBuffer)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddExternalEncoded(pMe, pExternalBuffer);
+}
 
 static inline int
 QCBOREncode_IsBufferNULL(QCBOREncodeContext *pMe)
