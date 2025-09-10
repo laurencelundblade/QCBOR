@@ -1346,7 +1346,7 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
 
 
 static const struct QCBORTagDecoderEntry *
-QCBORDecode_Private_LookUpTagDecoder(const struct QCBORTagDecoderEntry *pTagContentTable,
+QCBORDecode_Private_GetTagContentDecoder(const struct QCBORTagDecoderEntry *pTagContentTable,
                                      const uint64_t                     uTagNumber)
 {
    const struct QCBORTagDecoderEntry *pTE;
@@ -1909,7 +1909,7 @@ Done:
 
 
 /**
- * @brief Decode tag content for select tags (decoding layer 1).
+ * @brief Invoke tag content decoder callbacks (decoding layer 1).
  *
  * @param[in] pMe            The decode context.
  * @param[out] pDecodedItem  The decoded item.
@@ -1920,6 +1920,8 @@ Done:
  * but the whole tag was not decoded. Here, the whole tags (tag number
  * and tag content) are decoded. This is a
  * quick pass through for items that are not tags.
+ * TODO: check above documentation
+ * TODO: is this really layer 1 still?
  */
 QCBORError
 QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
@@ -1946,12 +1948,10 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
       }
 
       /* See if there's a content decoder for it */
-      uTagNumber  = QCBORDecode_Private_UnMapTagNumber(pMe,
-                                                       pDecodedItem->auTagNumbers[nTagIndex]);
-      pTagDecoder = QCBORDecode_Private_LookUpTagDecoder(pMe->pTagDecoderTable,
-                                                         uTagNumber);
+      uTagNumber  = QCBORDecode_Private_UnMapTagNumber(pMe, pDecodedItem->auTagNumbers[nTagIndex]);
+      pTagDecoder = QCBORDecode_Private_GetTagContentDecoder(pMe->pTagDecoderTable, uTagNumber);
       if(pTagDecoder == NULL) {
-         break; /* Successful exist -- a tag that we can't decode */
+         break; /* Successful exist -- a tag with no callback  */
       }
 
       /* Call the content decoder */
@@ -2203,7 +2203,7 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
                                   const size_t        uOffset,
                                   QCBORItem          *pDecodedItem)
 {
-   (void)pMe; /* Avoid warning for next two ifdefs */
+   (void)pMe; /* Avoid warning for next two ifndefs */
    (void)uOffset;
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
@@ -2219,8 +2219,8 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
    if(uErr == QCBOR_SUCCESS &&
       !(pMe->uDecodeMode & QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS) &&
       pDecodedItem->auTagNumbers[0] != CBOR_TAG_INVALID16) {
-      /*  Not QCBOR v1; there are tag numbers -- check they were consumed */
-      if(uOffset != pMe->uTagNumberCheckOffset || pMe->uTagNumberIndex != 255) {
+      /*  Not QCBOR v1 mode; there are tag numbers -- check they were consumed */
+      if(uOffset != pMe->uTagNumberCheckOffset || pMe->uTagNumberIndex != QCBOR_ALL_TAGS_PROCESSED) {
          uErr = QCBOR_ERR_UNPROCESSED_TAG_NUMBER;
       }
    }

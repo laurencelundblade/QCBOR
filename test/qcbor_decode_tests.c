@@ -4738,7 +4738,7 @@ int32_t TagNumberDecodeTest(void)
       return 303;
    }
    // tagged date string with a byte string
-   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &DateString);
+   QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
    if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_BAD_TAG_CONTENT) { // TODO: make sure this is the right error
       return 304;
    }
@@ -9126,16 +9126,24 @@ static const uint8_t spBreakInByteString[] = {
    0x41, 0xff
 };
 
+static const uint8_t spPrecedingTag[] = {
+   0xd8, 0x64, 0xd8, 0x18, 0x40
+};
+
+
 
 int32_t EnterBstrTest(void)
 {
-   UsefulBuf_MAKE_STACK_UB(OutputBuffer, 100);
+   QCBORDecodeContext        DC;
+   UsefulBuf_MAKE_STACK_UB(  OutputBuffer, 100);
+   int64_t                   n1, n2, n3, n4, n5, n6, n7, n8;
+   UsefulBufC                TheBstr;
+   QCBORError                uErr;
+   QCBORItem                 Item;
 
-   QCBORDecodeContext DC;
 
    QCBORDecode_Init(&DC, EncodeBstrWrapTestData(OutputBuffer), 0);
 
-   int64_t n1, n2, n3, n4, n5, n6, n7, n8;
 
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_TAG, NULL);
@@ -9162,8 +9170,8 @@ int32_t EnterBstrTest(void)
      QCBORDecode_GetInt64(&DC, &n8);
    QCBORDecode_ExitArray(&DC);
 
-   QCBORError uErr = QCBORDecode_Finish(&DC);
-   if(uErr) {
+   uErr = QCBORDecode_Finish(&DC);
+   if(uErr != QCBOR_SUCCESS) {
       return (int32_t)uErr;
    }
 
@@ -9174,15 +9182,18 @@ int32_t EnterBstrTest(void)
    QCBORDecode_Init(&DC,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBreakInByteString),
                     0);
-   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &TheBstr);
    uErr = QCBORDecode_GetError(&DC);
-   if(uErr) {
+   if(uErr != QCBOR_SUCCESS) {
       return 100 + (int32_t)uErr;
+   }
+   if(TheBstr.len != 1 || UsefulBufC_NTH_BYTE(TheBstr, 0) != 0xff) {
+      return 199;
    }
 
    QCBORDecode_ExitBstrWrapped(&DC);
    uErr = QCBORDecode_GetError(&DC);
-   if(uErr) {
+   if(uErr != QCBOR_SUCCESS) {
       return 200 + (int32_t)uErr;
    }
 
@@ -9193,31 +9204,47 @@ int32_t EnterBstrTest(void)
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBreakInByteString),
                     0);
    QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
-   QCBORItem Item;
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_ERR_BAD_BREAK) {
       return 300 + (int32_t)uErr;
    }
 
    /* Try to enter some thing that is not a bstr */
-   QCBORDecode_Init(&DC,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty),
-                    0);
-   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spArrayOfEmpty), 0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, &TheBstr);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 400 + (int32_t)uErr;
    }
+   if(TheBstr.len != 0 || TheBstr.ptr != NULL) {
+      return 499;
+   }
 
    /* Try to enter some thing else that is not a bstr */
-   QCBORDecode_Init(&DC,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap),
-                    0);
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
    QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
       return 500 + (int32_t)uErr;
    }
+
+   /* Try to enter something with a preceding tag number and fail */
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spPrecedingTag), 0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_UNEXPECTED_TAG_NUMBER) {
+      return 600 + (int32_t)uErr;
+   }
+
+   /* Try to enter something with a preceding tag number and succeed */
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spPrecedingTag), 0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG | QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 700 + (int32_t)uErr;
+   }
+   /* Try to enter something, the content of which is a tag */
+
 
    return 0;
 }

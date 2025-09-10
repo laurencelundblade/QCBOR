@@ -112,7 +112,7 @@ have to be explicitly consumed.
 
 QCBOR also provides APIs for directly encoding and decoding all the
 tags standardized in [RFC 8949](https://tools.ietf.org/html/rfc8949)
-for dates, big numbers and such. For encoding their names start with
+(dates, big numbers and such). For encoding their names start with
 "QCBOREncode_AddT" and for decoding they start with "QCBOREncode_GetT"
 
 These APIs and structures support both the full tag form and the
@@ -137,6 +137,32 @@ QCBORDecode_VGetNext().
 A set of callbacks called @ref QCBORDecode_TagDecoderTablev1 is
 provided for all the standard tags from RFC 8949. These are not
 automatically installed in QCBOR v2. These were built into QCBOR v1.
+
+Three ways of decoding a tag are described here.
+
+First, tag numbers can be fetched with QCBORDecode_VGetNextTagNumber().
+This is the base primitive for tag decoding. It's like GetNext(), but
+for tag numbers. It only consumed tag numbers. GetNext() only consumes
+things without tag numbers. That means all tag numbers must be consumed
+before GetNext is called. This is new in QCBOR v2 and not the same
+as QCBOR v1.
+
+Second, a tag content decoder call back may be created and installed via 
+QCBORDecode_InstallTagDecoders(). It will fire when a tag number
+is encountered. With this there is no need to consume the tag
+numbers with QCBORDecode_VGetNextTagNumber(). The decoded tag
+will show up as a QCBORItem of a different type when GetNext()
+is called.
+
+Third, QCBOR provides APIs for the standard types. For example
+GetEpochDate(). (These APIs additionally provide a way to 
+decode the following CBOR as the tag content even though there
+is no tag number present).
+
+Additionally, QCBOR provides a set of standard callbacks
+for standard types that can be installed with QCBORDecode_InstallTagDecoders().
+These were installed by default in QCBOR v1, but aren't in v2.
+
 
 
 ## Nested Tags

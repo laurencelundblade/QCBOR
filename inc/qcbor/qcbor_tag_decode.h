@@ -297,17 +297,14 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * the constant can be increased and the library recompiled. It will
  * use more memory).
  *
- * Deep tag nesting is rare, so this implementation limits nesting to
- * @ref QCBOR_MAX_TAGS_PER_ITEM.  If this limit is exceeded,
- * @ref QCBOR_ERR_TOO_MANY_TAGS is returned. This constraint is
- * specific to this implementation, not CBOR itself .
- *
  * See also @ref TagDecoding @ref CBORTags.
  *
  * If an error occurs when retrieving the item, or if the item has no
  * tags or no tag at @c uIndex, this function returns @ref
  * CBOR_TAG_INVALID64.
  */
+// TODO: rename this to QCBORDecode_ItemTagNumber() or such; "Get" implies consumption and this doesn't consume.
+// TODO: make uIndex int or unsigned?
 uint64_t
 QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint8_t uIndex);
 
@@ -364,7 +361,7 @@ QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
  * The @ref QCBORDecodeTagReq discussion on the tag requirement applies here
  * just the same as any other tag.
  *
- * In other cases, CBOR is wrapped in a byte string, but it is
+ * In other cases, CBOR is wrapped in a byte string, but the byte string content is
  * identified as CBOR by other means. The contents of a COSE payload
  * are one example of that. They can be identified by the COSE content
  * type, or they can be identified as CBOR indirectly by the protocol
@@ -858,11 +855,13 @@ QCBORDecode_GetTBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * This is one of two main facilities for processing CBOR tags. This
  * allows callbacks to be installed that fire when a particular tag
  * number is encountered. The callback consumes the tag content and
- * turns it into a @ref QCBORItem of a new type. The new QCBORItem is
+ * turns it into a @ref QCBORItem of a new type. The new @ref QCBORItem is
  * returned in normal decoding with QCBORDecode_VGetNext() and
  * related.
  *
- * The other facility is QCBORDecode_GetNextTagNumber(). Note that
+ * The other facility is QCBORDecode_GetNextTagNumber(). 
+ *
+ * Note that
  * tag processing is substantially changed in QCBOR v2.
  *
  * A CBOR tag consists of a tag number and tag content. The tag
@@ -871,7 +870,7 @@ QCBORDecode_GetTBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * simple tag content as the output of it must be fit into a
  * @ref QCBORItem.
  *
- * When called, the contents of pItem is the first item in the tag
+ * When called, the contents of @c pItem is the first item in the tag
  * content. If it is an array or map then the items in it can be
  * fetched by calling QCBORDecode_GetNext() and such.  All the items
  * in the tag content must be consumed.
@@ -890,12 +889,22 @@ QCBORDecode_GetTBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * QCBORDecode_InstallTagDecoders().
  *
  * A callback context may given when the callback is installed.  It
- * will be passed in here as pTagDecodesrContext. There is only one
- * context for all tag content decoders. None of the standard tag
+ * will be passed in here as @c pTagDecodesrContext. There is only one
+ * context for all tag content decoders. None of the QCBOR-supplied tag
  * decoders here use it. The callback context can be used to make a
  * very elaborite tag content decoder.
  *
- * Tags can nest. Callbacks fire first on then inner most tag.  They
+ * Many tag content decoders are very simple. They check the QCBORType
+ * of the item passed in, perhaps checks the value, and then set the
+ * type to a new type for the decoded tag. For example, the epoch date
+ * content decoder just checks that the type is a number on input
+ * and sets they type to date on output. It doesn't use the uTagNumber
+ * parameter because it is to be called only on epoch date tags. It
+ * also doesn't need the decode context because it doesn't need to decode
+ * any further and it doesn't need the tag decode context because
+ * it is so simple.
+ *
+ * Tags can nest. Callbacks fire first on the inner most tag.  They
  * are called until all tags are processed or a tag number for which
  * there is no processor is encountered.
  *
@@ -1033,7 +1042,7 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
  * @brief Process standard CBOR tags whose content is a string.
  *
  * @param[in] pDecodeCtx           Decode context.
- * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] pTagDecodersContext  Not used (pass NULL).
  * @param[in] uTagNumber           The tag number indicated for the content.
  * @param[in,out]  pDecodedItem    The data item to convert.
  *
@@ -1041,10 +1050,10 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
  *           @ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
  *           @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
  *
- * Process the standard CBOR tags  whose content is a byte string or a text
- * string and for which the string is just passed on to the caller.
+ * Process the IETF-defined standard CBOR tags whose content is a byte string 
+ * or a text string and for which the string is just passed on to the caller.
  *
- * This works for :
+ * This is for :
  *    @ref CBOR_TAG_DATE_STRING,
  *    @ref CBOR_TAG_POS_BIGNUM,
  *    @ref CBOR_TAG_NEG_BIGNUM,
@@ -1429,23 +1438,15 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext    *pMe,
 
 /** @private  Semi-private used by public inline functions. See qcbor_tag_decode.c */
 void
-QCBORDecode_Private_ProcessTagItemMulti(QCBORDecodeContext      *pMe,
-                                        QCBORItem               *pItem,
-                                        enum QCBORDecodeTagReq   uTagRequirement,
-                                        const uint8_t            uQCBORTypes[],
-                                        const uint64_t           uTagNumbers[],
-                                        QCBORTagContentCallBack *pfCB,
-                                        size_t                   uOffset);
-
-/** @private  Semi-private used by public inline functions. See qcbor_tag_decode.c */
-void
 QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
                                    QCBORItem               *pItem,
                                    enum QCBORDecodeTagReq   uTagRequirement,
                                    const uint8_t            uQCBORTypes[],
-                                   const uint64_t           uTagNumber,
+                                   const uint64_t           uTagNumbers[],
                                    QCBORTagContentCallBack *pfCB,
+                                   void                    *pCBCtx,
                                    size_t                   uOffset);
+
 
 
 #ifndef QCBOR_DISABLE_TAGS

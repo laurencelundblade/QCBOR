@@ -56,7 +56,7 @@ erroring out on unprocessed tag numbers by calling
 QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
 
 QCBOR v2 requires tag numbers to be consumed in one of three ways.
-It may be consumed explicitly with QCBORDecode_GetNextTagNumber().
+It may be consumed explicitly with QCBORDecode_VGetNextTagNumber().
 It may be consumed by a tag content process or like QCBORDecode_DateEpochTagCB()
 installed with QCBORDecode_InstallTagDecoders(). It may be
 consumed with a spiffy decode function like QCBORDecode_GetTBigNumber().
