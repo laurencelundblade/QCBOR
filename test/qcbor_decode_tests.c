@@ -4572,7 +4572,7 @@ int32_t TagNumberDecodeTest(void)
    }
    // tagged regex
    QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_MISSING_TAG_NUMBER) {
       return 102;
    }
    // tagged date string with a byte string
@@ -4724,12 +4724,12 @@ int32_t TagNumberDecodeTest(void)
    }
    // untagged date string
    QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_MISSING_TAG_NUMBER) {
       return 301;
    }
    // untagged byte string
    QCBORDecode_GetTDateString(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &DateString);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_MISSING_TAG_NUMBER) {
       return 302;
    }
    // tagged regex
@@ -6171,20 +6171,20 @@ static const struct EaMTest pEaMTests[] = {
       0UL,
       {(const uint8_t []){0x00}, 1},
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetDecimalFraction */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetTDecimalFractionBigMantissa */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetTDecimalFractionBigMantissa */
       0,
       {(const uint8_t []){0x00}, 1},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetBigFloat */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetTBigFloatBigMantissa */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetTBigFloatBigMantissa */
       0,
       {(const uint8_t []){0x00}, 1},
       false
@@ -6275,11 +6275,11 @@ static const struct EaMTest pEaMTests[] = {
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
       false,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetBigFloat */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetBigFloat */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetTBigFloatBigMantissa */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetTBigFloatBigMantissa */
       0,
       {(const uint8_t []){0x00}, 0},
       false
@@ -6330,11 +6330,11 @@ static const struct EaMTest pEaMTests[] = {
       0UL,
       {(const uint8_t []){0xff, 0xff, 0xff, 0xff}, 4},
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetDecimalFraction */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetDecimalFraction */
       0,
       0,
 
-      QCBOR_ERR_UNEXPECTED_TYPE, /* for GetTDecimalFractionBigMantissa */
+      QCBOR_ERR_MISSING_TAG_NUMBER, /* for GetTDecimalFractionBigMantissa */
       -20,
       {(const uint8_t []){0x00}, 1},
       false,
@@ -9127,7 +9127,7 @@ static const uint8_t spBreakInByteString[] = {
 };
 
 static const uint8_t spPrecedingTag[] = {
-   0xd8, 0x64, 0xd8, 0x18, 0x40
+   0xd8, 0x64, 0xd8, 0x18, 0x41, 0x00
 };
 
 
@@ -9140,6 +9140,7 @@ int32_t EnterBstrTest(void)
    UsefulBufC                TheBstr;
    QCBORError                uErr;
    QCBORItem                 Item;
+   uint64_t                  uTagNumber;
 
 
    QCBORDecode_Init(&DC, EncodeBstrWrapTestData(OutputBuffer), 0);
@@ -9238,12 +9239,17 @@ int32_t EnterBstrTest(void)
 
    /* Try to enter something with a preceding tag number and succeed */
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spPrecedingTag), 0);
-   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG | QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS, NULL);
+   QCBORDecode_GetNextTagNumber(&DC, &uTagNumber);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_SUCCESS) {
       return 700 + (int32_t)uErr;
    }
-   /* Try to enter something, the content of which is a tag */
+
+
+   /* TODO: Try to enter something, the content of which is a tag */
+
+   // TODO: test for entering empty string
 
 
    return 0;
@@ -9361,7 +9367,7 @@ int32_t DecodeTaggedTypeTests(void)
       return 2;
    }
    QCBORDecode_GetTDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_TAG, &String);
-   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_UNEXPECTED_TYPE) {
+   if(QCBORDecode_GetAndResetError(&DC) != QCBOR_ERR_MISSING_TAG_NUMBER) {
       return 3;
    }
    QCBORDecode_GetTDateStringInMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, &String);
@@ -12217,6 +12223,103 @@ int32_t TellTests(void)
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+
+   return 0;
+}
+
+
+
+
+struct TagTestCase {
+   const char *szDescription;
+   UsefulBufC  Input;
+
+   QCBORError  v1[2][3]; /* Expected error or success in v1 mode */
+   QCBORError  v2[2][3]; /* Expected error or success in v2 mode */
+};
+
+// Tag of interest is tag number 1; the value encoded is always 3
+// The extra tag is always 255
+
+struct TagTestCase TagFanOutTestCases[] = {
+   { "1. With tag of interest",
+      {"\xc1\x03", 2},
+      {{QCBOR_SUCCESS, QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS}, {QCBOR_SUCCESS, QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS}},
+      {{QCBOR_SUCCESS, QCBOR_ERR_UNEXPECTED_TAG_NUMBER, QCBOR_SUCCESS}, {QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED}},
+     },
+   { "2. Untagged",
+      {"\x03", 1},
+      {{QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS, QCBOR_SUCCESS}, {QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS, QCBOR_SUCCESS}},
+      {{QCBOR_ERR_MISSING_TAG_NUMBER, QCBOR_SUCCESS, QCBOR_SUCCESS}, {QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED}},
+     },
+   { "3. With tag NOT of interest",
+      {"\xd8\xff\x03", 3},
+      {{QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_ERR_UNEXPECTED_TYPE}, {QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS, QCBOR_SUCCESS}},
+      {{QCBOR_ERR_UNEXPECTED_TAG_NUMBER, QCBOR_ERR_UNEXPECTED_TAG_NUMBER, QCBOR_ERR_UNEXPECTED_TAG_NUMBER}, {QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED}},
+     },
+   { "4. Two tags, inner is NOT of interest",
+      {"\xc1\xd8\xff\x03", 4},
+      {{QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_ERR_UNEXPECTED_TYPE}, {QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS, QCBOR_SUCCESS}},
+      {{QCBOR_ERR_UNPROCESSED_TAG_NUMBER, QCBOR_ERR_UNEXPECTED_TAG_NUMBER, QCBOR_ERR_UNPROCESSED_TAG_NUMBER}, {QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED}},
+     },
+   { "5. Two tags, outer is NOT of interest",
+      {"\xd8\xff\xc1\x03", 4},
+      {{QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_ERR_UNEXPECTED_TYPE}, {QCBOR_SUCCESS, QCBOR_ERR_UNEXPECTED_TYPE, QCBOR_SUCCESS}},
+      {{QCBOR_ERR_UNEXPECTED_TAG_NUMBER, QCBOR_ERR_UNEXPECTED_TAG_NUMBER, QCBOR_ERR_UNEXPECTED_TAG_NUMBER}, {QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED, QCBOR_ERR_NOT_ALLOWED}},
+     },
+};
+
+static const enum QCBORDecodeTagReq TRs[]  = {QCBOR_TAG_REQUIREMENT_TAG, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG};
+static const enum QCBORDecodeTagReq TAAs[] = {0, QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS};
+
+int32_t TagModesFanOutTest(void)
+{
+   unsigned            uTestCount = (int)C_ARRAY_COUNT(TagFanOutTestCases, struct TagTestCase);
+   unsigned            uTestIndex;
+   struct TagTestCase *pTest;
+   QCBORDecodeContext  DCtx;
+   int64_t             nTime;
+   QCBORError          uExpectedErr;
+   QCBORError          uActualErr;
+   enum QCBORDecodeTagReq uTagReq;
+
+   for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
+      pTest = &TagFanOutTestCases[uTestIndex];
+
+      if(uTestIndex == 2) {
+         uActualErr = 99; /* Just a line to set a break point on */
+      }
+
+      for(unsigned i = 0; i < 2; i++) {
+         for(unsigned j = 0; j < 3; j++) {
+            uTagReq = TRs[j] | TAAs[i];
+
+            QCBORDecode_Init(&DCtx, pTest->Input, 0);
+
+            QCBORDecode_GetEpochDate(&DCtx, uTagReq, &nTime);
+
+            uExpectedErr = pTest->v2[i][j];
+            uActualErr = QCBORDecode_GetError(&DCtx);
+            if(uActualErr != uExpectedErr) {
+               return MakeTestResultCode(uTestIndex, i+10*j, uActualErr);
+            }
+
+            QCBORDecode_Init(&DCtx, pTest->Input, 0);
+            QCBORDecode_CompatibilityV1(&DCtx);
+
+            QCBORDecode_GetEpochDate(&DCtx, uTagReq, &nTime);
+
+            uExpectedErr = pTest->v1[i][j];
+            uActualErr = QCBORDecode_GetError(&DCtx);
+            if(uActualErr) {
+               uActualErr = QCBOR_ERR_UNEXPECTED_TYPE;
+            }
+            if(uActualErr != uExpectedErr) {
+               return MakeTestResultCode(uTestIndex, i + 10 * j + 100, uActualErr);
+            }
+         }
+      }
+   }
 
    return 0;
 }

@@ -22,27 +22,6 @@
  *    Core/base Tag Number Decoding                                                    *
  * ========================================================================= */
 
-#if 0
-static uint64_t
-QCBORDecode_Private_PeekInnerTagNumber(QCBORDecodeContext *pMe, const QCBORItem *pItem, const size_t uOffset, int n)
-{
-   uint8_t uNextTagNumber;
-
-   if(uOffset == pMe->uTagNumberCheckOffset) {
-      uNextTagNumber = pMe->uTagNumberIndex;
-      if(uNextTagNumber != QCBOR_ALL_TAGS_PROCESSED) {
-         uNextTagNumber += n + 1;
-      }
-   } else {
-      uNextTagNumber = 0;
-   }
-
-   /* QCBORDecode_GetNthTagNumber() on QCBOR_ALL_TAGS_PROCESSED returns CBOR_TAG_INVALID64 */
-   return QCBORDecode_GetNthTagNumber(pMe,  pItem, uNextTagNumber);
-}
-#endif
-
-
 /**
  * @brief Get the next tag number per the tag number cursor.
  *
@@ -320,7 +299,6 @@ QCBORDecode_Private_CheckItemTagNumbers(QCBORDecodeContext          *pMe,
 }
 
 
-
 /* When extra tag numbers are not allowed, this checks that there
  * are not any. Only used in QCBOR v1 mode. */
 static QCBORError
@@ -328,9 +306,9 @@ QCBORDecode_Private_CheckForExtraTagNumbers(QCBORDecodeContext *pMe,
                                             const QCBORItem    *pItem,
                                             const uint64_t     *uTagNumbers)
 {
-   const uint64_t *pTNum;
-   uint64_t        uTagNum;
-   uint8_t         n;
+   const uint64_t  *pTNum;
+   uint64_t         uTagNum;
+   uint8_t          n;
 
    if(pItem->auTagNumbers[0] == CBOR_TAG_INVALID16) {
       /* Item has no tag numbers, so definitely no extras */
@@ -361,6 +339,7 @@ QCBORDecode_Private_CheckForExtraTagNumbers(QCBORDecodeContext *pMe,
    return QCBOR_SUCCESS;
 }
 
+
 static QCBORError
 QCBORDecode_Private_CheckTagAndType(QCBORDecodeContext          *pMe,
                                     const QCBORItem             *pItem,
@@ -370,9 +349,9 @@ QCBORDecode_Private_CheckTagAndType(QCBORDecodeContext          *pMe,
                                     const enum QCBORDecodeTagReq uTagReqArg,
                                     bool                        *pbTypeMatched)
 {
-   QCBORError uErr;
-   uint64_t   uTagNumber;
-   enum QCBORDecodeTagReq uTagReq;
+   QCBORError              uErr;
+   uint64_t                uTagNumber;
+   enum QCBORDecodeTagReq  uTagReq;
 
    const bool bModeQCBORv1 = pMe->uDecodeMode & QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
 
@@ -380,7 +359,7 @@ QCBORDecode_Private_CheckTagAndType(QCBORDecodeContext          *pMe,
       uTagReq = (enum QCBORDecodeTagReq)((int)uTagReqArg & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS);
    } else {
       if(uTagReqArg & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) {
-         uErr = 99;
+         uErr = QCBOR_ERR_NOT_ALLOWED;
          goto Done;
       }
       uTagReq = uTagReqArg;
@@ -401,7 +380,7 @@ QCBORDecode_Private_CheckTagAndType(QCBORDecodeContext          *pMe,
       /* The tag content has not been decoded. */
 
       if(bModeQCBORv1) {
-         /* Use QCBORDecode_GetNthTag() not xxx to get inner tag. */
+         /* Use QCBORDecode_GetNthTag() not xxx to get *inner* tag. */
          uTagNumber = QCBORDecode_GetNthTag(pMe, pItem, 0);
       } else {
          QCBORDecode_Private_TagNumberCursor(pMe, pItem, uOffset, &uTagNumber);
@@ -412,18 +391,34 @@ QCBORDecode_Private_CheckTagAndType(QCBORDecodeContext          *pMe,
          bool bOfInterest = QCBORDecode_Private_CheckItemTagNumbers(pMe, uTagNumber, uTagNumbers);
          if(bOfInterest) {
             if(uTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-               uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
+               uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER;
+               goto Done;
+            }
+            if(uOffset == pMe->uTagNumberCheckOffset &&
+               pMe->uTagNumberIndex != QCBOR_ALL_TAGS_PROCESSED) {
+               uErr = QCBOR_ERR_UNPROCESSED_TAG_NUMBER;
                goto Done;
             }
          } else {
-            /* Not the one expected */
-            uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER; // TODO: error code
-            goto Done;
+            /* Tag number is not of interest */
+            if(bModeQCBORv1) {
+               if(uTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
+                  uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER;
+                  goto Done;
+               } else if(!(uTagReqArg & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) {
+                  uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER;
+                  goto Done;
+               }
+            } else {
+               /* A tag number not of interest is always an error in v2 */
+               uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER;
+               goto Done;
+            }
          }
       } else {
          /* There is no tag number. It could be "borrowed" tag content. */
          if(uTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-            uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
+            uErr = QCBOR_ERR_MISSING_TAG_NUMBER;
             goto Done;
          }
       }
@@ -441,223 +436,6 @@ Done:
    return uErr;
 }
 
-/*
- * If the tag number is used to identify the type, it is consumed. Otherwise
- * this consumes no tag numbers.
- */
- QCBORError
-QCBORDecode_Private_CheckTagAndTypeOld(QCBORDecodeContext          *pMe,
-                                    const QCBORItem             *pItem,
-                                    const size_t                 uOffset,
-                                    const uint8_t               *uQCBORTypes,
-                                    const uint64_t              *uTagNumbers,
-                                    const enum QCBORDecodeTagReq uTagReq,
-                                    bool                        *pbTypeMatched)
-{
-   QCBORError uErr;
-   uint64_t   uTagNumber;
-
-   /* Make this for v2 behavior; error out on QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS*/
-   if(uTagReq & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS) {
-      uErr = 99;
-      goto Done;
-   }
-#ifndef QCBOR_DISABLE_TAGS // This isn't right
-
-   *pbTypeMatched = QCBORDecode_Private_CheckItemType(pItem, uQCBORTypes);
-
-   if(*pbTypeMatched) {
-      /* The tag content was already decoded to a type of interest. */
-      *pbTypeMatched = true;
-      if(uTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-         /* If the requirement is to be not a tag (borrowed), then it couldn't have been decoded by an installed decoder */
-         uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-         goto Done;
-      }
-
-   } else {
-      /* The tag content has not been decoded. */
-
-      QCBORDecode_Private_TagNumberCursor(pMe, pItem, uOffset, &uTagNumber);
-
-      if(uTagNumber != CBOR_TAG_INVALID64) {
-         /* There was a tag number. */
-         bool bOfInterest = QCBORDecode_Private_CheckItemTagNumbers(pMe, uTagNumber, uTagNumbers);
-         if(bOfInterest) {
-            if(uTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-               uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-               goto Done;
-            }
-         } else {
-            /* Not the one expected */
-            uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER; // TODO: error code
-            goto Done;
-         }
-      } else {
-         /* There is no tag number. It could be "borrowed" tag content. */
-         if(uTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-            uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-            goto Done;
-         }
-      }
-   }
-
-#if 0
-
-      /* The tag was not already decoded. It may or may not have a tag number. */
-
-      /* Get the next tag number
-         If there is one and it is not of interest error out.
-         If there is one and it is of interest continue.
-         If there isn't one, continue
-
-       Decode the tag content.
-
-       */
-
-      /* First find out if it has a tag number.
-       * If it does, then see if it is one of interest and if so consume it.
-       * If it is not of interest or is not allowed, error out.*/
-
-      /* then in all cases call the tag content callback to decode the
-       * content. (This will check the data type of the tag content) */
-
-
-      *pbTypeMatched = false;
-
-      bool bInnerTagOfInterest;
-
-      const uint64_t uInnerTag = QCBORDecode_Private_PeekInnerTagNumber(pMe, pItem, uOffset, 0);
-
-      if(QCBORDecode_Private_CheckItemTagNumbers(pMe, uInnerTag, uTagNumbers)) {
-         if(uTagReq2 == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-            uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-            goto Done;
-         }
-      } else {
-         if(uTagReq2 == QCBOR_TAG_REQUIREMENT_TAG) {
-            uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-            goto Done;
-         }
-      }
-
-      if(uInnerTag != CBOR_TAG_INVALID16) {
-         /* Tag number checks out. Consume it. */
-         (void)QCBORDecode_Private_TagNumberCursor(pMe, pItem, uOffset, &uTagNumber); // TODO: optimize this, can use internal API and use less stack...
-      }
-      /* else, no tag numbers present, just let the content decoder work */
-
-   }
-
-   /* What to do about case were there extra tags allowed. Are they consumed? I think so because
-    * the caller explicitly took an action to allow them and not consuming them would be
-    * an awkward design. The caller must look in last tags as they are not returned by the get structures.
-    * Or should we just do away with QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS?
-    * The caller has to consume them. That seems clean and good for v2 behavior. Also, simpler code.
-    *
-    * What about backwards compatibility? Could just break compatibility. Seems unlikely it was used.
-    */
-
-   /* Whether or not tag was already decode, check for extra tag numbers */
-   if(!(uTagReq & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) {
-      uErr = (uint8_t)QCBORDecode_Private_CheckForExtraTagNumbers(pMe, pItem, uOffset, uTagNumbers);
-      if(uErr != QCBOR_SUCCESS) {
-         goto Done;
-      }
-   }
-#endif
-
-   uErr = QCBOR_SUCCESS;
-
-Done:
-   return uErr;
-
-
-#else /* ! QCBOR_DISABLE_TAGS */
-   (void)pMe;
-   (void)uOffset;
-   (void)uTagNumbers;
-
-   if(nTagReq != QCBOR_TAG_REQUIREMENT_TAG && bTypeMatched) {
-      return QCBOR_SUCCESS;
-   } else {
-      return QCBOR_ERR_UNEXPECTED_TYPE;
-   }
-
-#endif /* ! QCBOR_DISABLE_TAGS */
-
-}
-
- QCBORError
-QCBORDecode_Private_CheckTagAndTypev1(QCBORDecodeContext          *pMe,
-                                    const QCBORItem             *pItem,
-                                    const uint8_t               *uQCBORTypes,
-                                    const uint64_t              *uTagNumbers,
-                                    const enum QCBORDecodeTagReq uTagReq,
-                                    bool                        *pbTypeMatched)
-{
-   QCBORError uErr;
-   uint64_t   uInnerTagNumber;
-
-   // TODO: pull out the allowed flag from uTagreq
-
-   *pbTypeMatched = QCBORDecode_Private_CheckItemType(pItem, uQCBORTypes);
-
-   if(*pbTypeMatched) {
-      /* The tag content was already decoded to a type of interest. */
-      *pbTypeMatched = true;
-      if(uTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-         /* If the requirement is to be not a tag (borrowed), then it couldn't have been decoded by an installed decoder */
-         uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-         goto Done;
-      }
-   } else {
-      /* Look at the inner tag on the item */
-
-      /* Use QCBORDecode_GetNthTag() not xxx to get inner tag. */
-      uInnerTagNumber = QCBORDecode_GetNthTag(pMe, pItem, 0);
-
-      if(uInnerTagNumber != CBOR_TAG_INVALID64) {
-         /* There was a tag number. */
-         bool bOfInterest = QCBORDecode_Private_CheckItemTagNumbers(pMe, uInnerTagNumber, uTagNumbers);
-         if(bOfInterest) {
-            if(uTagReq == QCBOR_TAG_REQUIREMENT_NOT_A_TAG) {
-               uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-               goto Done;
-            }
-         }  else {
-            /* Not the one expected */
-            uErr = QCBOR_ERR_UNEXPECTED_TAG_NUMBER; // TODO: error code
-            goto Done;
-         }
-      } else {
-         /* There is no tag number. It could be "borrowed" tag content. */
-         if(uTagReq == QCBOR_TAG_REQUIREMENT_TAG) {
-            uErr = QCBOR_ERR_UNEXPECTED_TYPE; // TODO: error code
-            goto Done;
-         }
-      }
-
-      if(!(uTagReq & QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS)) {
-         uErr = (uint8_t)QCBORDecode_Private_CheckForExtraTagNumbers(pMe, pItem, uTagNumbers);
-         if(uErr != QCBOR_SUCCESS) {
-            goto Done;
-         }
-      }
-
-      /* See if there are any extra tags */
-
-      /* There's no tag consumption here. */
-
-   }
-
-   uErr = QCBOR_SUCCESS;
-
-
-Done:
-   return uErr;
-}
-
 
 /* Is this used only for internally processed tags? Seems like it might be.*/
 void
@@ -670,8 +448,8 @@ QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
                                    void                    *pCBCtx,
                                    size_t                   uOffset)
 {
-   QCBORError uErr;
-   bool       bTypeMatched;
+   QCBORError  uErr;
+   bool        bTypeMatched;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -702,8 +480,6 @@ Done:
 }
 
 
-
-
 /*
  * @param [in] pMe   The decode context.
  * @param [in, out] pItem
@@ -722,8 +498,8 @@ QCBORDecode_Private_ProcessTagOne(QCBORDecodeContext      *pMe,
                                   QCBORTagContentCallBack *pfCB,
                                   const size_t             uOffset)
 {
-   uint8_t  auQCBORType[2];
-   uint64_t auTagNumbers[2];
+   uint8_t   auQCBORType[2];
+   uint64_t  auTagNumbers[2];
 
    auQCBORType[0] = uQCBORType;
    auQCBORType[1] = QCBOR_TYPE_NONE;
@@ -788,7 +564,6 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext    *pMe,
       *pStr = NULLUsefulBufC;
    }
 }
-
 
 
 /**

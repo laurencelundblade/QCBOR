@@ -579,6 +579,10 @@ typedef enum {
     * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 
+   /** A tag number is expected, but missing.
+    * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
+   QCBOR_ERR_MISSING_TAG_NUMBER = 91,
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
