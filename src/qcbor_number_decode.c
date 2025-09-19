@@ -2048,13 +2048,13 @@ QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext          *pMe,
                                      size_t                       uOffset)
 {
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagRequirement,
                                       QCBORDecode_Private_BigNumberTypesNoPreferred,
                                       QCBORDecode_Private_BigNumberTagNumbers,
                                       QCBORDecode_StringsTagCB,
                                       NULL,
-                                      uOffset);
+                                      uOffset,
+                                      pItem);
    if(pMe->uLastError) {
       return;
    }
@@ -2078,13 +2078,13 @@ QCBORDecode_Private_BigNumberNoPreferredMain(QCBORDecodeContext          *pMe,
                                              bool                       *pbIsNegative)
 {
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagRequirement,
                                       QCBORDecode_Private_BigNumberTypesNoPreferred,
                                       QCBORDecode_Private_BigNumberTagNumbers,
                                       QCBORDecode_StringsTagCB,
                                       NULL,
-                                      uOffset);
+                                      uOffset,
+                                      pItem);
    if(pMe->uLastError) {
       return;
    }
@@ -2103,13 +2103,13 @@ QCBORDecode_Private_BigNumberMain(QCBORDecodeContext          *pMe,
                                   bool                       *pbIsNegative)
 {
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagRequirement,
                                       QCBORDecode_Private_BigNumberTypes,
                                       QCBORDecode_Private_BigNumberTagNumbers,
                                       QCBORDecode_StringsTagCB,
                                       NULL,
-                                      uOffset);
+                                      uOffset,
+                                      pItem);
    if(pMe->uLastError) {
       return;
    }
@@ -2378,13 +2378,13 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
    auTagNumbers[1] = CBOR_TAG_INVALID64;
 
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagReq,
                                       qTypes,
                                       auTagNumbers,
                                       QCBORDecode_ExpMantissaTagCB,
                                       NULL,
-                                      uOffset);
+                                      uOffset,
+                                      pItem);
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -2460,13 +2460,13 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
    auTagNumbers[0] = uTagNumber;
    auTagNumbers[1] = CBOR_TAG_INVALID64;
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagReq,
                                       qTypes,
                                       auTagNumbers,
                                       QCBORDecode_ExpMantissaTagCB,
                                       NULL,
-                                      uOffset);
+                                      uOffset,
+                                      pItem);
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -2573,13 +2573,13 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
    auTagNumbers[1] = CBOR_TAG_INVALID64;
 
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagReq,
                                       qTypes,
                                       auTagNumbers,
                                       QCBORDecode_ExpMantissaTagCB,
                                       NULL,
-                                      uOffset);
+                                      uOffset,
+                                      pItem);
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;

@@ -1439,13 +1439,13 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext    *pMe,
 /** @private  Semi-private used by public inline functions. See qcbor_tag_decode.c */
 void
 QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
-                                   QCBORItem               *pItem,
                                    enum QCBORDecodeTagReq   uTagRequirement,
                                    const uint8_t            uQCBORTypes[],
                                    const uint64_t           uTagNumbers[],
                                    QCBORTagContentCallBack *pfCB,
                                    void                    *pCBCtx,
-                                   size_t                   uOffset);
+                                   size_t                   uOffset,
+                                   QCBORItem               *pItem);
 
 
 
