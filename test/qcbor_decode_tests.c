@@ -4372,7 +4372,7 @@ int32_t TagNumberDecodeTest(void)
    if(Item.uDataType != QCBOR_TYPE_ARRAY || Item.val.uCount != 1) {
       return -1003;
    }
-   if(QCBORDecode_GetNthTagNumber(&DCtx, &Item, 0) != CBOR_TAG_CBOR_MAGIC) {
+   if(QCBORDecode_NthTagNumber(&DCtx, &Item, 0) != CBOR_TAG_CBOR_MAGIC) {
       return -500;
    }
 
@@ -4428,10 +4428,10 @@ int32_t TagNumberDecodeTest(void)
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
-      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 3) != 65534ULL ||
-      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 2) != 2442302357ULL ||
-      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 1) != 10489608748473423768ULL ||
-      QCBORDecode_GetNthTagNumber(&DCtx, &Item, 0) != 21590ULL) {
+      QCBORDecode_NthTagNumber(&DCtx, &Item, 3) != 65534ULL ||
+      QCBORDecode_NthTagNumber(&DCtx, &Item, 2) != 2442302357ULL ||
+      QCBORDecode_NthTagNumber(&DCtx, &Item, 1) != 10489608748473423768ULL ||
+      QCBORDecode_NthTagNumber(&DCtx, &Item, 0) != 21590ULL) {
       return -8;
    }
 
@@ -4493,7 +4493,7 @@ int32_t TagNumberDecodeTest(void)
       return 6000;
    }
    QCBORDecode_EnterMap(&DCtx, NULL);
-   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 0);
+   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 0);
    if(uTagNumber != 55799) {
       return 6000;
    }
@@ -4504,7 +4504,7 @@ int32_t TagNumberDecodeTest(void)
    }
    QCBORDecode_GetItemInMapN(&DCtx, -22, QCBOR_TYPE_ANY, &Item);
 
-   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 0);
+   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 0);
    if(uTagNumber != 23) {
       return 6000;
    }
@@ -4522,7 +4522,7 @@ int32_t TagNumberDecodeTest(void)
 
    QCBORDecode_EnterMapFromMapN(&DCtx, -23);
 
-   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 1);
+   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 1);
    if(uTagNumber != 7) {
       return 6000;
    }

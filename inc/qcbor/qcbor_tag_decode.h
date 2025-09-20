@@ -99,6 +99,10 @@ extern "C" {
  * QCBOR v1.5 and what came before it, not for QCBOR v2.
  * QCBOR v2 in compatibility mode behaves like QCBOR v1.5.
  *
+ * When using QCBOR v2 in v1 compatibiity mode, some of the
+ * error codes are different, but successes and failures on
+ * inputs and with configurations are the same.
+ *
  * @anchor Disabilng-Tag-Decoding
  * ## Disabling Tag Decoding
  *
@@ -106,7 +110,7 @@ extern "C" {
  * will be omitted reducing the core decoder, QCBORDecode_VGetNext(),
  * by about 500 bytes. If a tag number is encountered in the decoder
  * input the unrecoverable error @ref QCBOR_ERR_TAGS_DISABLED will be
- * returned.  No input with tags can be decoded.
+ * returned.  No input with tag numbers can be decoded.
  *
  * Decode functions like QCBORDecode_GetEpochDate() and
  * QCBORDecode_GetDecimalFraction() are still available, but only work
@@ -116,59 +120,16 @@ extern "C" {
  */
 
 
-/*
-This describes the fan out of use cases for spiffy style tag decoding
- in detail.
-
-TODO:  make sure this full fan out is tested
-TODO: perhaps incorporate some of this into documentation
-
-When asking for specific tag decode, for example GetDateEpoch()
-
-Tag required
- - No tag gives error xxxx
- - The epoch date tag by itself succeeds
- - The epoch date tag with wrong content gives error yyy
- - The epoch date tag with additional
- - The additional have been consumed -- suceeds
- - The aditional tags have not been consumed -- gives error aaa
- - Another tag gives --- error zzz
-
- Tag not required
- - No tags, correct tag content -- success
- - No tags, incorrect tag content type error yyy
- - Another tag, not consumed ---  error aaa
- - Another tag consumed -- success
- - Another tag consumed and made into another type --- error xxxx
-
- Tag optional
- - No tags, correct content -- success
- - No tags, incorrect content -- error yyy
- - Expected tag -- success
- - Another tag, consumed -- success
- - Another tag, not consumed tag content correct -- error, probably aaa
- - Another tag, consumed and made into another type -- error xxx
- - Expected tag + another tag, not consumed -- error aaa
-
-
- Now fan out for ALLOW_EXTRA --- yuckkkkk
-
- Ignore ALLOW_EXTRA in v2?
-
- Fan out for v1
-*/
-
 
 /**
  * This enum indicates how decode functions for specific tag types
- * behave in relation to the tag numbers.
+ * such as QCBORDecode_GetEpochDate() behave in relation to  tag numbers.
  */
 enum QCBORDecodeTagReq {
 
    /** The data item must be a tag of the expected type. It is an error
     *  if it is not. For example when calling QCBORDecode_GetEpochDate(),
-    *  the data item must be an @ref CBOR_TAG_DATE_EPOCH tag.
-    */
+    *  the data item must be an @ref CBOR_TAG_DATE_EPOCH tag. */
    QCBOR_TAG_REQUIREMENT_TAG = 0,
 
    /** The data item must be of the type expected for content data type
@@ -179,13 +140,14 @@ enum QCBORDecodeTagReq {
 
    /** Either of the above two are allowed. This allows implementation of
     *  being liberal in what you receive, but it is better if CBOR-based
-    *  protocols pick one and stick to and not required the reciever to
+    *  protocols pick one and stick to it and not allow the reciever to
     *  take either. See
     * https://tools.ietf.org/id/draft-thomson-postel-was-wrong-03.html. */
    QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG = 2,
 
    /** Add this into the above value if other tags not processed by QCBOR
-    *  are to be allowed to surround the data item. */
+    *  are to be allowed to surround the data item. This is only for
+    *  v1 compatibility mode. In v2 it errors with @ref QCBOR_ERR_NOT_ALLOWED. */
    QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS = 0x80
 };
 
@@ -303,10 +265,9 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * tags or no tag at @c uIndex, this function returns @ref
  * CBOR_TAG_INVALID64.
  */
-// TODO: rename this to QCBORDecode_ItemTagNumber() or such; "Get" implies consumption and this doesn't consume.
-// TODO: make uIndex int or unsigned?
+// TODO: uIndex should not be uint8_t; see GetNthTag()
 uint64_t
-QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint8_t uIndex);
+QCBORDecode_NthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint8_t uIndex);
 
 
 /**
@@ -337,7 +298,7 @@ QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pIt
  * If a decoding error is set, then this returns @ref CBOR_TAG_INVALID64.
  */
 uint64_t
-QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
+QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
 
 #endif /* ! QCBOR_DISABLE_TAGS */
 
@@ -476,7 +437,7 @@ QCBORDecode_GetTDateStringInMapSZ(QCBORDecodeContext    *pCtx,
  * @brief Decode the next item as an epoch date.
  *
  * @param[in] pCtx             The decode context.
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
  * @param[out] pnTime          The decoded epoch date.
  *
  * This decodes the standard CBOR epoch date/time tag, integer tag

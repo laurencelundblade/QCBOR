@@ -2030,7 +2030,7 @@ static const uint8_t QCBORDecode_Private_BigNumberTypes[] = {
 /**
  * @brief Common processing for a big number tag.
  *
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
  * @param[in] pItem            The item expected to be a big number.
  * @param[out] pBignumber          The returned big number
  * @param[out] pbIsNegative  The returned sign of the big number.
@@ -2529,7 +2529,7 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
  * @brief Decode exponent and mantissa into a big number with negative offset of 1.
  *
  * @param[in] pMe                The decode context.
- * @param[in] uTagRequirement  Whether a tag number must be present or not.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
  * @param[in] pItem              Item to decode and convert.
  * @param[in] BufferForMantissa  Buffer to output mantissa into.
  * @param[out] pMantissa         The output mantissa.

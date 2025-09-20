@@ -49,9 +49,9 @@ QCBORDecode_Private_TagNumberCursor(QCBORDecodeContext *pMe,
 
    /* QCBORDecode_GetNthTagNumber() on QCBOR_ALL_TAGS_PROCESSED
     * returns CBOR_TAG_INVALID64 */
-   *puTagNumber = QCBORDecode_GetNthTagNumber(pMe,  pItem, pMe->uTagNumberIndex);
+   *puTagNumber = QCBORDecode_NthTagNumber(pMe,  pItem, pMe->uTagNumberIndex);
    if(*puTagNumber == CBOR_TAG_INVALID64 ||
-      QCBORDecode_GetNthTagNumber(pMe, pItem, pMe->uTagNumberIndex + 1) == CBOR_TAG_INVALID64) {
+      QCBORDecode_NthTagNumber(pMe, pItem, pMe->uTagNumberIndex + 1) == CBOR_TAG_INVALID64) {
       pMe->uTagNumberIndex = QCBOR_ALL_TAGS_PROCESSED;
    }
    pMe->uTagNumberCheckOffset = uOffset;
@@ -153,7 +153,7 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 uint64_t
-QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pMe,
+QCBORDecode_NthTagNumber(const QCBORDecodeContext *pMe,
                             const QCBORItem          *pItem,
                             uint8_t                   uIndex)
 {
@@ -170,7 +170,7 @@ QCBORDecode_GetNthTagNumber(const QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 uint64_t
-QCBORDecode_GetNthTagNumberOfLast(QCBORDecodeContext *pMe, uint8_t uIndex)
+QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pMe, uint8_t uIndex)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return CBOR_TAG_INVALID64;
@@ -296,7 +296,7 @@ QCBORDecode_Private_CheckForExtraTagNumbers(QCBORDecodeContext *pMe,
     * error out.
     */
    for(n = 0; ; n++) {
-      uTagNum = QCBORDecode_GetNthTagNumber(pMe, pItem, n);
+      uTagNum = QCBORDecode_NthTagNumber(pMe, pItem, n);
       if(uTagNum == CBOR_TAG_INVALID64) {
          break;
       }
@@ -562,9 +562,7 @@ QCBORDecode_Private_GetTaggedString(QCBORDecodeContext    *pMe,
  *
  * @param[in] pMe              The decode context.
  * @param[in] nLabel           Label to search map for.
- * @param[in] uTagRequirement  Whether or not tag number is required.
- *                             See @ref QCBOR_TAG_REQUIREMENT_TAG.
- *       TODO: be very precise and uniform for this definition everywhere
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
  * @param[in] uQCBOR_Type      QCBOR type to search for.
  * @param[in] uTagNumber       Tag number to match.
  * @param[out] pString         The string found.
@@ -608,8 +606,7 @@ QCBORDecode_Private_GetTaggedStringInMapN(QCBORDecodeContext          *pMe,
  *
  * @param[in] pMe              The decode context.
  * @param[in] szLabel           Label to search map for.
- * @param[in] uTagRequirement  Whether or not tag number is required.
- *                             See @ref QCBOR_TAG_REQUIREMENT_TAG.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
  * @param[in] uQCBOR_Type      QCBOR type to search for.
  * @param[in] uTagNumber       Tag number to match.
  * @param[out] pString         The string found.
@@ -731,7 +728,7 @@ Done:
  *
  * @param[in] pMe             The decode context.
  * @param[in] pItem           The byte string item.
- * @param[in] uTagRequirement One of @c QCBOR_TAG_REQUIREMENT_XXX
+ * @param[in] uTagRequirement See @ref QCBORDecodeTagReq.
  * @param[out] pBstr          Pointer and length of byte string entered.
  *
  * This is called once the byte string item has been decoded to do all

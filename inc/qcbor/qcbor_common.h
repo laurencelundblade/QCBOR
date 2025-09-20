@@ -40,7 +40,6 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_TAGS
 
 #ifdef __cplusplus
 extern "C" {
@@ -573,15 +572,15 @@ typedef enum {
    /** Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
-   /** An unconsumed tag number was encountered. */
-   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89, // TODO: rid of this in favor of below?
+   /** A tag number was not expected such as one is encountered with 
+    * @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG. */
+   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89,
 
    /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber().
     * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 
-   /** A tag number is expected, but missing.
-    * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
+   /** A tag number is expected, but missing. */
    QCBOR_ERR_MISSING_TAG_NUMBER = 91,
 
    /** A range of error codes that can be made use of by the
