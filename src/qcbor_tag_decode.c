@@ -154,8 +154,8 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pMe,
 /* Public function; see qcbor_tag_decode.h */
 uint64_t
 QCBORDecode_NthTagNumber(const QCBORDecodeContext *pMe,
-                            const QCBORItem          *pItem,
-                            uint8_t                   uIndex)
+                         const QCBORItem          *pItem,
+                         const size_t              uIndex)
 {
    if(pItem->uDataType == QCBOR_TYPE_NONE) {
       return CBOR_TAG_INVALID64;
@@ -170,7 +170,7 @@ QCBORDecode_NthTagNumber(const QCBORDecodeContext *pMe,
 
 /* Public function; see qcbor_tag_decode.h */
 uint64_t
-QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pMe, uint8_t uIndex)
+QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pMe, const size_t uIndex)
 {
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return CBOR_TAG_INVALID64;
@@ -186,9 +186,9 @@ QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pMe, uint8_t uIndex)
 static uint64_t
 QCBORDecode_Private_GetNthTagNumberReverse(const QCBORDecodeContext *pMe,
                                            const uint16_t            puTagNumbers[],
-                                           const uint32_t            uIndex)
+                                           const size_t              uIndex)
 {
-   uint32_t uArrayIndex;
+   size_t uArrayIndex;
 
    /* Find number of tag numbers */
    for(uArrayIndex = QCBOR_MAX_TAGS_PER_ITEM-1; uArrayIndex > 0; uArrayIndex--) {

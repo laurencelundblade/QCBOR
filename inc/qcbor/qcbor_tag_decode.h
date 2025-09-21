@@ -265,9 +265,8 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * tags or no tag at @c uIndex, this function returns @ref
  * CBOR_TAG_INVALID64.
  */
-// TODO: uIndex should not be uint8_t; see GetNthTag()
 uint64_t
-QCBORDecode_NthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem, uint8_t uIndex);
+QCBORDecode_NthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem, size_t uIndex);
 
 
 /**
@@ -298,7 +297,7 @@ QCBORDecode_NthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem,
  * If a decoding error is set, then this returns @ref CBOR_TAG_INVALID64.
  */
 uint64_t
-QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pCtx, uint8_t uIndex);
+QCBORDecode_NthTagNumberOfLast(QCBORDecodeContext *pCtx, size_t uIndex);
 
 #endif /* ! QCBOR_DISABLE_TAGS */
 
@@ -1011,7 +1010,7 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
  *           @ref QCBOR_ERR_UNSUPPORTED if the tag was not processed and
  *           @ref QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT if the content type was wrong for the tag.
  *
- * Process the IETF-defined standard CBOR tags whose content is a byte string 
+ * Processing for tags whose content is a byte string
  * or a text string and for which the string is just passed on to the caller.
  *
  * This is for :

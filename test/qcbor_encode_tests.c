@@ -717,7 +717,6 @@ int32_t AllAddMethodsTest(void)
    UsefulBufC         Enc;
    size_t             size;
    int                nReturn;
-   QCBORError         uExpectedErr;
 
    nReturn = 0;
 
@@ -753,6 +752,9 @@ int32_t AllAddMethodsTest(void)
       goto Done;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+   QCBORError         uExpectedErr;
+
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    uExpectedErr = QCBOR_ERR_NOT_ALLOWED;
 #else
@@ -766,7 +768,6 @@ int32_t AllAddMethodsTest(void)
    uExpectedErr = QCBOR_SUCCESS;
 #endif
 
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    /* 0x7ff8000000000001ULL is a NaN with a payload. */
    QCBOREncode_AddDouble(&ECtx, UsefulBufUtil_CopyUint64ToDouble(0x7ff8000000000001ULL));

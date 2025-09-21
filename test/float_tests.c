@@ -609,14 +609,13 @@ FloatValuesTests(void)
    QCBORError                   uErr;
    QCBORDecodeContext           DCtx;
    QCBORItem                    Item;
-   uint64_t                     uDecoded;
 
    /* Test a variety of doubles and some singles */
    for(uTestIndex = 0; FloatTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pTestCase = &FloatTestCases[uTestIndex];
 
       if(uTestIndex == 2) {
-         uDecoded = 1;
+         uErr = 0;
       }
 
       /* Preferred encode of double precision */

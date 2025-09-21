@@ -1289,8 +1289,9 @@ QCBORDecode_Private_MapTagNumber(QCBORDecodeContext *pMe,
                                  const uint64_t      uUnMappedTag,
                                  uint16_t           *puMappedTagNumber)
 {
+   size_t uTagMapIndex;
+
    if(uUnMappedTag > QCBOR_LAST_UNMAPPED_TAG) {
-      unsigned uTagMapIndex;
       /* Is there room in the tag map, or is it in it already? */
       for(uTagMapIndex = 0; uTagMapIndex < QCBOR_NUM_MAPPED_TAGS; uTagMapIndex++) {
          if(pMe->auMappedTagNumbers[uTagMapIndex] == CBOR_TAG_INVALID64) {
@@ -1339,7 +1340,7 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
       /* This won't be negative because of code below in
        * MapTagNumber()
        */
-      const unsigned uIndex = uMappedTagNumber - (QCBOR_LAST_UNMAPPED_TAG + 1);
+      const size_t uIndex = uMappedTagNumber - (QCBOR_LAST_UNMAPPED_TAG + 1);
       return pMe->auMappedTagNumbers[uIndex];
    }
 }
@@ -1347,7 +1348,7 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
 
 static const struct QCBORTagDecoderEntry *
 QCBORDecode_Private_GetTagContentDecoder(const struct QCBORTagDecoderEntry *pTagContentTable,
-                                     const uint64_t                     uTagNumber)
+                                         const uint64_t                     uTagNumber)
 {
    const struct QCBORTagDecoderEntry *pTE;
 
@@ -1408,7 +1409,7 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
                                      QCBORItem          *pDecodedItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   int         nIndex;
+   size_t      uIndex;
    QCBORError  uErr;
    uint16_t    uMappedTagNumber;
    QCBORError  uReturn;
@@ -1427,7 +1428,7 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
 
    /* Loop fetching data items until the item fetched is not a tag number */
    uReturn = QCBOR_SUCCESS;
-   for(nIndex = 0; ; nIndex++) {
+   for(uIndex = 0; ; uIndex++) {
       uErr = QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
       if(uErr != QCBOR_SUCCESS) {
          uReturn = uErr;
@@ -1440,7 +1441,7 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
          break;
       }
 
-      if(nIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
+      if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
          /* No room in the item's tag number array */
          uReturn = QCBOR_ERR_TOO_MANY_TAGS;
          /* Continue on to get all tag numbers wrapping this item even
@@ -1462,7 +1463,7 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
        * continue to error.
        */
 
-      auTagNumbers[nIndex] = uMappedTagNumber;
+      auTagNumbers[uIndex] = uMappedTagNumber;
    }
 
    return uReturn;
@@ -2219,8 +2220,9 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
    if(uErr == QCBOR_SUCCESS &&
       !(pMe->uDecodeMode & QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS) &&
       pDecodedItem->auTagNumbers[0] != CBOR_TAG_INVALID16) {
-      /*  Not QCBOR v1 mode; there are tag numbers -- check they were consumed */
-      if(uOffset != pMe->uTagNumberCheckOffset || pMe->uTagNumberIndex != QCBOR_ALL_TAGS_PROCESSED) {
+      /* Not QCBOR v1 mode; there are tag numbers -- check they were consumed */
+      if(uOffset != pMe->uTagNumberCheckOffset ||
+         pMe->uTagNumberIndex != QCBOR_ALL_TAGS_PROCESSED) {
          uErr = QCBOR_ERR_UNPROCESSED_TAG_NUMBER;
       }
    }
