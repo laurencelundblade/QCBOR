@@ -182,7 +182,8 @@ static test_entry s_tests[] = {
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(ParseEmptyMapInMapTest),
     TEST_ENTRY(SubStringTest),
-    TEST_ENTRY(BoolTest)
+    TEST_ENTRY(BoolTest),
+   TEST_ENTRY(TagModesFanOutTest)
 };
 
 

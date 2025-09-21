@@ -336,5 +336,8 @@ int32_t GetMapAndArrayTest(void);
 
 int32_t TellTests(void);
 
+int32_t TagModesFanOutTest(void);
+
+
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

@@ -385,6 +385,7 @@ struct _QCBORDecodeContext {
    const struct QCBORTagDecoderEntry *pTagDecoderTable;
    void       *pTagDecodersContext;
 
+   /* Tag number cursor. See QCBORDecode_Private_TagNumberCursor(). */
    size_t      uTagNumberCheckOffset;
    uint8_t     uTagNumberIndex;
 #define QCBOR_ALL_TAGS_PROCESSED UINT8_MAX

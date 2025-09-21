@@ -2030,8 +2030,8 @@ static const uint8_t QCBORDecode_Private_BigNumberTypes[] = {
 /**
  * @brief Common processing for a big number tag.
  *
- * @param[in] uTagRequirement  One of @c QCBOR_TAG_REQUIREMENT_XXX.
- * @param[in] pItem            The item with the date.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
+ * @param[in] pItem            The item expected to be a big number.
  * @param[out] pBignumber          The returned big number
  * @param[out] pbIsNegative  The returned sign of the big number.
  *
@@ -2047,13 +2047,14 @@ QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext          *pMe,
                                      bool                        *pbIsNegative,
                                      size_t                       uOffset)
 {
-   QCBORDecode_Private_ProcessTagItemMulti(pMe,
-                                           pItem,
-                                           uTagRequirement,
-                                           QCBORDecode_Private_BigNumberTypesNoPreferred,
-                                           QCBORDecode_Private_BigNumberTagNumbers,
-                                           QCBORDecode_StringsTagCB,
-                                           uOffset);
+   QCBORDecode_Private_ProcessTagItem(pMe,
+                                      uTagRequirement,
+                                      QCBORDecode_Private_BigNumberTypesNoPreferred,
+                                      QCBORDecode_Private_BigNumberTagNumbers,
+                                      QCBORDecode_StringsTagCB,
+                                      NULL,
+                                      uOffset,
+                                      pItem);
    if(pMe->uLastError) {
       return;
    }
@@ -2076,13 +2077,14 @@ QCBORDecode_Private_BigNumberNoPreferredMain(QCBORDecodeContext          *pMe,
                                              UsefulBufC                 *pBigNumber,
                                              bool                       *pbIsNegative)
 {
-   QCBORDecode_Private_ProcessTagItemMulti(pMe,
-                                           pItem,
-                                           uTagRequirement,
-                                           QCBORDecode_Private_BigNumberTypesNoPreferred,
-                                           QCBORDecode_Private_BigNumberTagNumbers,
-                                           QCBORDecode_StringsTagCB,
-                                           uOffset);
+   QCBORDecode_Private_ProcessTagItem(pMe,
+                                      uTagRequirement,
+                                      QCBORDecode_Private_BigNumberTypesNoPreferred,
+                                      QCBORDecode_Private_BigNumberTagNumbers,
+                                      QCBORDecode_StringsTagCB,
+                                      NULL,
+                                      uOffset,
+                                      pItem);
    if(pMe->uLastError) {
       return;
    }
@@ -2100,13 +2102,14 @@ QCBORDecode_Private_BigNumberMain(QCBORDecodeContext          *pMe,
                                   UsefulBufC                 *pBigNumber,
                                   bool                       *pbIsNegative)
 {
-   QCBORDecode_Private_ProcessTagItemMulti(pMe,
-                                           pItem,
-                                           uTagRequirement,
-                                           QCBORDecode_Private_BigNumberTypes,
-                                           QCBORDecode_Private_BigNumberTagNumbers,
-                                           QCBORDecode_StringsTagCB,
-                                           uOffset);
+   QCBORDecode_Private_ProcessTagItem(pMe,
+                                      uTagRequirement,
+                                      QCBORDecode_Private_BigNumberTypes,
+                                      QCBORDecode_Private_BigNumberTagNumbers,
+                                      QCBORDecode_StringsTagCB,
+                                      NULL,
+                                      uOffset,
+                                      pItem);
    if(pMe->uLastError) {
       return;
    }
@@ -2359,6 +2362,7 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
 {
    QCBORError     uErr;
    const uint8_t *qTypes;
+   uint64_t       auTagNumbers[2];
 
    if(pMe->uLastError) {
       return;
@@ -2370,13 +2374,17 @@ QCBORDecode_Private_ExpIntMantissaMain(QCBORDecodeContext          *pMe,
       qTypes = QCBORDecode_Private_DecimalFractionTypes;
    }
 
+   auTagNumbers[0] = uTagNumber;
+   auTagNumbers[1] = CBOR_TAG_INVALID64;
+
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagReq,
                                       qTypes,
-                                      uTagNumber,
+                                      auTagNumbers,
                                       QCBORDecode_ExpMantissaTagCB,
-                                      uOffset);
+                                      NULL,
+                                      uOffset,
+                                      pItem);
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -2434,6 +2442,9 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
    QCBORError     uErr;
    uint64_t       uMantissa;
    const uint8_t *qTypes;
+   uint64_t       auTagNumbers[2];
+
+
 
    if(pMe->uLastError) {
       return;
@@ -2445,13 +2456,17 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
       qTypes = QCBORDecode_Private_DecimalFractionTypes;
    }
 
+
+   auTagNumbers[0] = uTagNumber;
+   auTagNumbers[1] = CBOR_TAG_INVALID64;
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagReq,
                                       qTypes,
-                                      uTagNumber,
+                                      auTagNumbers,
                                       QCBORDecode_ExpMantissaTagCB,
-                                      uOffset);
+                                      NULL,
+                                      uOffset,
+                                      pItem);
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
@@ -2514,7 +2529,7 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
  * @brief Decode exponent and mantissa into a big number with negative offset of 1.
  *
  * @param[in] pMe                The decode context.
- * @param[in] uTagRequirement  Whether a tag number must be present or not.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
  * @param[in] pItem              Item to decode and convert.
  * @param[in] BufferForMantissa  Buffer to output mantissa into.
  * @param[out] pMantissa         The output mantissa.
@@ -2542,6 +2557,7 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
    QCBORError     uErr;
    QCBORItem      TempMantissa;
    const uint8_t *qTypes;
+   uint64_t       auTagNumbers[2];
 
    if(pMe->uLastError) {
       return;
@@ -2553,13 +2569,17 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
       qTypes = QCBORDecode_Private_DecimalFractionTypes;
    }
 
+   auTagNumbers[0] = uTagNumber;
+   auTagNumbers[1] = CBOR_TAG_INVALID64;
+
    QCBORDecode_Private_ProcessTagItem(pMe,
-                                      pItem,
                                       uTagReq,
                                       qTypes,
-                                      uTagNumber,
+                                      auTagNumbers,
                                       QCBORDecode_ExpMantissaTagCB,
-                                      uOffset);
+                                      NULL,
+                                      uOffset,
+                                      pItem);
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
