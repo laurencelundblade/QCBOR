@@ -9126,10 +9126,21 @@ static const uint8_t spBreakInByteString[] = {
    0x41, 0xff
 };
 
+
+static const uint8_t spEmptyBstr[] = {
+   0x40, 0x00
+};
+
+static const uint8_t spEmptyBstrAtEnd[] = {
+   0x40
+};
+
 #ifndef QCBOR_DISABLE_TAGS
 static const uint8_t spPrecedingTag[] = {
    0xd8, 0x64, 0xd8, 0x18, 0x41, 0x00
 };
+
+
 #endif
 
 
@@ -9253,7 +9264,39 @@ int32_t EnterBstrTest(void)
 
    /* TODO: Try to enter something, the content of which is a tag */
 
-   // TODO: test for entering empty string
+   /* Enter and exit an empty bstr. */
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyBstr), 0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 700 + (int32_t)uErr;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 701 + (int32_t)uErr;
+   }
+   QCBORDecode_ExitBstrWrapped(&DC);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 702 + (int32_t)uErr;
+   }
+
+   /* Enter and exit an empty bstr at the end of the input. */
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyBstrAtEnd), 0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 800 + (int32_t)uErr;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 801 + (int32_t)uErr;
+   }
+   QCBORDecode_ExitBstrWrapped(&DC);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 802 + (int32_t)uErr;
+   }
 
 
    return 0;

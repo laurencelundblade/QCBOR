@@ -666,8 +666,10 @@ QCBORDecode_EnterBstrTagCB(QCBORDecodeContext *pMe,
                            QCBORItem          *pItem)
 {
    (void)uTagNumber; /* Not used, but required for QCBORTagContentCallBack */
-
    QCBORError uErr;
+   size_t     uStartOfBstr;
+   size_t     uEndOfBstr;
+   size_t     uPreviousLength;
 
    if(pItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -693,24 +695,35 @@ QCBORDecode_EnterBstrTagCB(QCBORDecodeContext *pMe,
     * amount to much code.
     */
 
-   const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
+   uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
    /* This check makes the cast of uPreviousLength to uint32_t below safe. */
    if(uPreviousLength >= QCBOR_MAX_SIZE) {
       uErr = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
 
-   const size_t uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf), pItem->val.string.ptr);
+   uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf), pItem->val.string.ptr);
    /* This check makes the cast of uStartOfBstr to uint32_t below safe. */
-   if(uStartOfBstr == SIZE_MAX || uStartOfBstr > QCBOR_MAX_SIZE) {
-      /* This should never happen because pItem->val.string.ptr should
-       * always be valid since it was just returned.
+   if(uStartOfBstr == SIZE_MAX && pItem->val.string.len == 0) {
+      /* When the bstr is zero-length, uStartOfBstr is the start
+       * of the next item. It is never used because the bstr
+       * is zero-length. When the zero-length bstr is
+       * at the end of the input uStartOfBstr, there is no next item
+       * so UsefulInputBuf_PointerToOffset() returns SIZE_MAX.
+       * It is still a legitimate input that must be handled,
+       * so this points uStartOfBstr to the current position.
        */
-      uErr = QCBOR_ERR_INPUT_TOO_LARGE;
-      goto Done;
+      uStartOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
+   } else {
+      /* SIZE_MAX > QCBOR_MAX_DECODE_INPUT_SIZE so this catch
+       * case where pItem->val.string.len != 0 */
+      if(uStartOfBstr > QCBOR_MAX_DECODE_INPUT_SIZE) {
+         uErr = QCBOR_ERR_INPUT_TOO_LARGE;
+         goto Done;
+      }
    }
 
-   const size_t uEndOfBstr = uStartOfBstr + pItem->val.string.len;
+   uEndOfBstr = uStartOfBstr + pItem->val.string.len;
 
    UsefulInputBuf_Seek(&(pMe->InBuf), uStartOfBstr);
    UsefulInputBuf_SetBufferLength(&(pMe->InBuf), uEndOfBstr);
