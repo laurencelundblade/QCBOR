@@ -4325,6 +4325,18 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
                                      const uint8_t       uTagRequirement,
                                      UsefulBufC         *pBstr)
 {
+   QCBORError uErr;
+   size_t     uStartOfBstr;
+   size_t     uEndOfBstr;
+   size_t     uPreviousLength;
+
+   const QCBOR_Private_TagSpec TagSpec =
+      {
+         uTagRequirement,
+         {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE},
+         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
+      };
+
    if(pBstr) {
       *pBstr = NULLUsefulBufC;
    }
@@ -4334,17 +4346,8 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
       return pMe->uLastError;
    }
 
-   QCBORError uError;
-
-   const QCBOR_Private_TagSpec TagSpec =
-      {
-         uTagRequirement,
-         {QBCOR_TYPE_WRAPPED_CBOR, QBCOR_TYPE_WRAPPED_CBOR_SEQUENCE, QCBOR_TYPE_NONE},
-         {QCBOR_TYPE_BYTE_STRING, QCBOR_TYPE_NONE, QCBOR_TYPE_NONE}
-      };
-
-   uError = QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
-   if(uError != QCBOR_SUCCESS) {
+   uErr = QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
+   if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
 
@@ -4368,34 +4371,44 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
     * amount to much code.
     */
 
-   const size_t uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
+   uPreviousLength = UsefulInputBuf_GetBufferLength(&(pMe->InBuf));
    /* This check makes the cast of uPreviousLength to uint32_t below safe. */
    if(uPreviousLength >= QCBOR_MAX_DECODE_INPUT_SIZE) {
-      uError = QCBOR_ERR_INPUT_TOO_LARGE;
+      uErr = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
 
-   const size_t uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf),
-                                                              pItem->val.string.ptr);
-   /* This check makes the cast of uStartOfBstr to uint32_t below safe. */
-   if(uStartOfBstr == SIZE_MAX || uStartOfBstr > QCBOR_MAX_DECODE_INPUT_SIZE) {
-      /* This should never happen because pItem->val.string.ptr should
-       * always be valid since it was just returned.
+   uStartOfBstr = UsefulInputBuf_PointerToOffset(&(pMe->InBuf), pItem->val.string.ptr);
+
+   if(uStartOfBstr == SIZE_MAX && pItem->val.string.len == 0) {
+      /* When the bstr is zero-length, uStartOfBstr is the start
+       * of the next item. It is never used because the bstr
+       * is zero-length. When the zero-length bstr is
+       * at the end of the input uStartOfBstr, there is no next item
+       * so UsefulInputBuf_PointerToOffset() returns SIZE_MAX.
+       * It is still a legitimate input that must be handled,
+       * so this points uStartOfBstr to the current position.
        */
-      uError = QCBOR_ERR_INPUT_TOO_LARGE;
-      goto Done;
+      uStartOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
+   } else {
+      /* SIZE_MAX > QCBOR_MAX_DECODE_INPUT_SIZE so this catch
+       * case where pItem->val.string.len != 0 */
+      if(uStartOfBstr > QCBOR_MAX_DECODE_INPUT_SIZE) {
+         uErr = QCBOR_ERR_INPUT_TOO_LARGE;
+         goto Done;
+      }
    }
 
-   const size_t uEndOfBstr = uStartOfBstr + pItem->val.string.len;
+   uEndOfBstr = uStartOfBstr + pItem->val.string.len;
 
    UsefulInputBuf_Seek(&(pMe->InBuf), uStartOfBstr);
    UsefulInputBuf_SetBufferLength(&(pMe->InBuf), uEndOfBstr);
 
-   uError = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
+   uErr = DecodeNesting_DescendIntoBstrWrapped(&(pMe->nesting),
                                                  (uint32_t)uPreviousLength,
                                                  (uint32_t)uStartOfBstr);
 Done:
-   return uError;
+   return uErr;
 }
 
 
