@@ -619,17 +619,9 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
    QCBORItem            Item;
    struct IEEE754_ToInt ToInt;
    double               dNum;
-   QCBORError           uError;
 
+   QCBORDecode_VGetNext(pMe, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   // TODO:VGetNext?
-   uError = QCBORDecode_GetNext(pMe, &Item);
-   if(uError != QCBOR_SUCCESS) {
-      *pNumber = Item;
-      pMe->uLastError = (uint8_t)uError;
       return;
    }
 
@@ -641,25 +633,6 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
 
       case QCBOR_TYPE_DOUBLE:
          ToInt = IEEE754_DoubleToInt(Item.val.dfnum);
-         if(ToInt.type == IEEE754_ToInt_IS_INT) {
-            pNumber->uDataType = QCBOR_TYPE_INT64;
-            pNumber->val.int64 = ToInt.integer.is_signed;
-         } else if(ToInt.type == IEEE754_ToInt_IS_UINT) {
-            if(ToInt.integer.un_signed <= INT64_MAX) {
-               /* Do the same as base QCBOR integer decoding */
-               pNumber->uDataType = QCBOR_TYPE_INT64;
-               pNumber->val.int64 = (int64_t)ToInt.integer.un_signed;
-            } else {
-               pNumber->uDataType = QCBOR_TYPE_UINT64;
-               pNumber->val.uint64 = ToInt.integer.un_signed;
-            }
-         } else {
-            *pNumber = Item;
-         }
-         break;
-
-      case QCBOR_TYPE_FLOAT:
-         ToInt = IEEE754_SingleToInt(UsefulBufUtil_CopyFloatToUint32(Item.val.fnum));
          if(ToInt.type == IEEE754_ToInt_IS_INT) {
             pNumber->uDataType = QCBOR_TYPE_INT64;
             pNumber->val.int64 = ToInt.integer.is_signed;
@@ -698,6 +671,12 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
             }
          }
          break;
+
+         /* QCBOR_TYPE_FLOAT never occurs because all encoded floats are
+          * converted to double. When QCBOR_DISABLE_PREFERRED_FLOAT is
+          * defined floats are not converted, but this function is
+          * also disabled. If some how a QCBOR_TYPE_FLOAT ends up
+          * here, it will just error out in the default case. */
 
       default:
          pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;

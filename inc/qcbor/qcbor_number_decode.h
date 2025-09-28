@@ -482,28 +482,28 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
  * to-be-decoded CBOR and the decoded types.
  *
  * The CBOR input can be integers (major type 0 or 1) or floats (major
- * type 7).  If not these, \ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
+ * type 7).  If not these, @ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
  *
  * The conversion is as follows.
  *
- * Whole numbers from \c INT64_MIN to \c INT64_MAX will be returned as
- * int64_t indicated as \ref QCBOR_TYPE_INT64. This includes
+ * Whole numbers from @c INT64_MIN to @c INT64_MAX will be returned as
+ * int64_t indicated as @ref QCBOR_TYPE_INT64. This includes
  * conversion of floating-point values that are whole numbers.
  *
- * Whole numbers from \c INT64_MAX +1 to \c UINT64_MAX will be
- * returned as uint64_t indicated as \ref QCBOR_TYPE_UINT64, again
+ * Whole numbers from @c INT64_MAX +1 to @c UINT64_MAX will be
+ * returned as uint64_t indicated as @ref QCBOR_TYPE_UINT64, again
  * including conversion of floating-point values that are whole
  * numbers.
  *
  * Most other numbers are returned as a double as indicated by
- * \ref QCBOR_TYPE_DOUBLE floating point with one set of exceptions.
+ * @ref QCBOR_TYPE_DOUBLE floating point with one set of exceptions.
  *
  * The exception is negative whole numbers in the range of -(2^63 + 1)
  * to -(2^64) that have too much precision to be represented as a
  * double. Doubles have only 52 bits of precision, so they can't
  * precisely represent every whole integer in this range. CBOR can
  * represent these values with 64-bits of precision and when this
- * function encounters them they are returned as \ref
+ * function encounters them they are returned as @ref
  * QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
  * instructions to gets its value.  Also see
  * QCBORDecode_ProcessBigNumber().
@@ -512,15 +512,13 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
  * represented by an int64_t or uint64_t, but can be represented by a
  * double so it is returned by this function as a double. The value
  * -18446744073709551617 however can't be represented by a double
- * because it has too much precision, so it is returned as \ref
+ * because it has too much precision, so it is returned as @ref
  * QCBOR_TYPE_65BIT_NEG_INT.
  *
  * This is useful for DCBOR which essentially combines floats and
  * integers into one number space.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
- *
- * See also QCBORDecode_GetNumberConvertPreciselyBig().
  */
 void
 QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,

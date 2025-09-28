@@ -11174,14 +11174,14 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
    },
    {
       "NaN payload",
-      {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+      {"\xfb\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, NAN}
    },
    {
       "65536.0 single",
-      {"\xFA\x47\x80\x00\x00", 5},
+      {"\xfa\x47\x80\x00\x00", 5},
       QCBOR_SUCCESS,
       QCBOR_TYPE_INT64,
       {65536, 0, 0}
@@ -11202,35 +11202,35 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
    },
    {
       "UINT64_MAX",
-      {"\x1B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      {"\x1b\xff\xff\xff\xff\xff\xff\xff\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_UINT64,
       {0, UINT64_MAX, 0}
    },
    {
       "Largest float that is also representable as int64_t",
-      {"\x3B\x7f\xff\xff\xff\xff\xff\xfb\xff", 9},
+      {"\x3b\x7f\xff\xff\xff\xff\xff\xfb\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_INT64,
       {-9223372036854774784, 0, 0}
    },
    {
       "-9223372036854775807",
-      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xfe", 9},
+      {"\x3b\x7f\xff\xff\xff\xff\xff\xff\xfe", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_INT64,
       {-9223372036854775807, 0, 0}
    },
    {
       "Largest representable in int64_t (INT64_MIN)",
-      {"\x3B\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
+      {"\x3b\x7f\xff\xff\xff\xff\xff\xff\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_INT64,
       {INT64_MIN, 0, 0}
    },
    {
       "-9223372036854775809 First encoded as 65-bit neg",
-      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+      {"\x3b\x80\x00\x00\x00\x00\x00\x00\x00", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_65BIT_NEG_INT,
       {0, 0, 0}
@@ -11238,7 +11238,7 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 
    {
       "-9223372036854777856 First float not representable as int64_t",
-      {"\x3B\x80\x00\x00\x00\x00\x00\x07\xFF", 9},
+      {"\x3b\x80\x00\x00\x00\x00\x00\x07\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, -9223372036854777856.0}
@@ -11246,7 +11246,7 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 
    {
       "18446742974197923840",
-      {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
+      {"\xfb\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_UINT64,
       {0, 18446742974197923840ULL, 0}
@@ -11254,7 +11254,7 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 
    {
       "-18446744073709547522 65-bit neg lots of precision",
-      {"\x3B\xff\xff\xff\xff\xff\xff\xef\xff", 9},
+      {"\x3b\xff\xff\xff\xff\xff\xff\xef\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, -18446744073709547522.0}
@@ -11262,7 +11262,7 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 
    {
       "-18446744073709549568 Next to largest float encodable as 65-bit neg",
-      {"\x3B\xff\xff\xff\xff\xff\xff\xf7\xff", 9},
+      {"\x3b\xff\xff\xff\xff\xff\xff\xf7\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, -18446744073709549568.0}
@@ -11270,14 +11270,14 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
 
    {
       "-18446744073709551616 Largest possible encoded 65-bit neg",
-      {"\x3B\xff\xff\xff\xff\xff\xff\xff\xff", 9},
+      {"\x3b\xff\xff\xff\xff\xff\xff\xff\xff", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, -18446744073709551616.0}
    },
    {
       "-18446744073709551617 First value representable only as a tag 3 big num",
-      {"\xC3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xc3\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00", 11},
 #ifndef QCBOR_DISABLE_TAGS
       QCBOR_ERR_UNEXPECTED_TYPE,
 #else
@@ -11287,30 +11287,38 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       {0, 0, -0}
    },
    {
+      "-1 as half-precision",
+      {"\xf9\xbc\x00", 3},
+      QCBOR_SUCCESS,
+      QCBOR_TYPE_INT64,
+      {-1, 0, 0}
+   },
+
+   {
       "-18446744073709555712 First whole integer that must be encoded as float in DCBOR",
-      {"\xFB\xC3\xF0\x00\x00\x00\x00\x00\x01", 9},
+      {"\xfb\xc3\xf0\x00\x00\x00\x00\x00\x01", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, -18446744073709555712.0}
    },
-   
+
    {
       "65-bit neg very precise",
-      {"\x3B\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
+      {"\x3b\xff\xff\xff\xff\xff\xff\xf8\x00", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_65BIT_NEG_INT,
       {0, 18446744073709549568ULL, 0.0}
    },
    {
       "65-bit neg too precise",
-      {"\x3B\xff\xff\xff\xff\xff\xff\xfc\x00", 9},
+      {"\x3b\xff\xff\xff\xff\xff\xff\xfc\x00", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_65BIT_NEG_INT,
       {0, 18446744073709550592ULL, 0.0}
    },
    {
       "65-bit neg, power of two",
-      {"\x3B\x80\x00\x00\x00\x00\x00\x00\x00", 9},
+      {"\x3b\x80\x00\x00\x00\x00\x00\x00\x00", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_65BIT_NEG_INT,
       {0, 9223372036854775808ULL, 0.0}
@@ -11324,7 +11332,7 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
    },
    {
       "Pi",
-      {"\xFB\x40\x09\x2A\xDB\x40\x2D\x16\xB9", 9},
+      {"\xfb\x40\x09\x2a\xdb\x40\x2d\x16\xb9", 9},
       QCBOR_SUCCESS,
       QCBOR_TYPE_DOUBLE,
       {0, 0, 3.145926}
@@ -11333,6 +11341,13 @@ static const struct PreciseNumberConversion PreciseNumberConversions[] = {
       "String",
       {"\x60", 1},
       QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_TYPE_NONE,
+      {0, 0, 0}
+   },
+   {
+      "Not well formed integer",
+      {"\x18", 1},
+      QCBOR_ERR_HIT_END,
       QCBOR_TYPE_NONE,
       {0, 0, 0}
    }
@@ -11353,7 +11368,7 @@ PreciseNumbersDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &PreciseNumberConversions[uTestIndex];
 
-      if(uTestIndex == 16) {
+      if(uTestIndex == 18) {
          uErr = 99; // For break point only
       }
 

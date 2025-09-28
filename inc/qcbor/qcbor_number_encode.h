@@ -99,17 +99,17 @@ extern "C" {
  * Defining QCBOR_DISABLE_PREFERRED_FLOAT can reduce
  * object code by as much a 2.5KB. The effect is:
  * - No preferred serialization encoding of float-point numbers
- * - Half-precision decoding is disabled (decoding attempts will fail)
+ * - Half-precision decoding is disabled -- decoding attempts will fail
  * - Single-precision values are not converted to double during decoding
  * - dCBOR number processing via QCBORDecode_GetNumberConvertPrecisely()
  *   is disabled
  * - Floating-point decode conformance checks for dCBOR and others are disabled
  *
  * On CPUs without floating-point hardware, define
- * QCBOR_DISABLE_FLOAT_HW_USE elimate the possibility of the compiler
+ * QCBOR_DISABLE_FLOAT_HW_USE to elimate the possibility of the compiler
  * adding large software emulation libraries.  On CPUs with
  * floating-point hardware, defining it can still save up to 1.5 KB of
- * object code and removes the need for <math.h>.
+ * object code and removes the dependency on <math.h>.
  *
  * When QCBOR_DISABLE_FLOAT_HW_USE is defined:
  * - Decoding of floating-point dates is not possible
