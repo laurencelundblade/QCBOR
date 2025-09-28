@@ -622,6 +622,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pMe,
 
    QCBORDecode_VGetNext(pMe, &Item);
    if(pMe->uLastError != QCBOR_SUCCESS) {
+      pNumber->uDataType = QCBOR_TYPE_NONE;
       return;
    }
 
