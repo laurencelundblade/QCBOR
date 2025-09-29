@@ -750,7 +750,7 @@ Done:
  *
  * See QCBORDecode_EnterBstrWrapped() for details on uTagRequirement.
  */
-static QCBORError
+static void
 QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
                                      QCBORItem                   *pItem,
                                      const enum QCBORDecodeTagReq uTagReq,
@@ -769,15 +769,15 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
    }
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      return pMe->uLastError;
+      return;
    }
 
    if(pItem->uDataAlloc) {
-      return QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
+      pMe->uLastError = QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
+      return;
    }
 
    QCBORDecode_Private_ProcessTagItem(pMe,
-
                                       uTagReq,
                                       uTypes,
                                       uTagNumbers,
@@ -785,8 +785,6 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext          *pMe,
                                       pBstr,
                                       uOffset,
                                       pItem);
-
-   return pMe->uLastError;
 }
 
 
@@ -800,11 +798,7 @@ QCBORDecode_EnterBstrWrapped(QCBORDecodeContext          *pMe,
    size_t    uOffset;
 
    QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
-                                                                  &Item,
-                                                                   uTagReq,
-                                                                   uOffset,
-                                                                   pBstr);
+   QCBORDecode_Private_EnterBstrWrapped(pMe, &Item, uTagReq, uOffset, pBstr);
 }
 
 
@@ -823,11 +817,7 @@ QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext          *pMe,
                                             QCBOR_TYPE_BYTE_STRING,
                                            &Item,
                                             &uOffset);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
-                                                                  &Item,
-                                                                   uTagReq,
-                                                                   uOffset,
-                                                                   pBstr);
+   QCBORDecode_Private_EnterBstrWrapped(pMe, &Item, uTagReq, uOffset, pBstr);
 }
 
 
@@ -846,11 +836,7 @@ QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext          *pMe,
                                              QCBOR_TYPE_BYTE_STRING,
                                              &Item,
                                              &uOffset);
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
-                                                                  &Item,
-                                                                   uTagReq,
-                                                                   uOffset,
-                                                                   pBstr);
+   QCBORDecode_Private_EnterBstrWrapped(pMe, &Item, uTagReq, uOffset, pBstr);
 }
 
 

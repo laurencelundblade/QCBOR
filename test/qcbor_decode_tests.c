@@ -9135,6 +9135,12 @@ static const uint8_t spEmptyBstrAtEnd[] = {
    0x40
 };
 
+
+static const uint8_t spMapWithBstrs[] = {
+   0xa4, 0x00, 0x40, 0x61, 0x61, 0x40, 0x01, 0x60, 0x61, 0x62, 0x04
+};
+
+
 #ifndef QCBOR_DISABLE_TAGS
 static const uint8_t spPrecedingTag[] = {
    0xd8, 0x64, 0xd8, 0x18, 0x41, 0x00
@@ -9298,6 +9304,39 @@ int32_t EnterBstrTest(void)
       return 802 + (int32_t)uErr;
    }
 
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithBstrs), 0);
+   QCBORDecode_EnterMap(&DC, NULL);
+   QCBORDecode_EnterBstrWrappedFromMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 900 + (int32_t)uErr;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 902 + (int32_t)uErr;
+   }
+   QCBORDecode_ExitBstrWrapped(&DC);
+   QCBORDecode_EnterBstrWrappedFromMapSZ(&DC, "a", QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 900 + (int32_t)uErr;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 902 + (int32_t)uErr;
+   }
+   QCBORDecode_ExitBstrWrapped(&DC);
+   QCBORDecode_EnterBstrWrappedFromMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   uErr = QCBORDecode_GetAndResetError(&DC);
+   if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return 900 + (int32_t)uErr;
+   }
+
+   QCBORDecode_ExitBstrWrapped(&DC); /* It's the map that is to be exited */
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_ERR_EXIT_MISMATCH) {
+      return 900 + (int32_t)uErr;
+   }
 
    return 0;
 }
