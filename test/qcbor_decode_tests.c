@@ -9267,29 +9267,10 @@ int32_t EnterBstrTest(void)
    if(uErr != QCBOR_SUCCESS) {
       return 700 + (int32_t)uErr;
    }
-#endif
-
-   /* TODO: Try to enter something, the content of which is a tag */
+#endif /* ! QCBOR_DISABLE_TAGS */
 
    /* Enter and exit an empty bstr. */
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyBstr), 0);
-   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
-   uErr = QCBORDecode_GetError(&DC);
-   if(uErr != QCBOR_SUCCESS) {
-      return 700 + (int32_t)uErr;
-   }
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
-      return 701 + (int32_t)uErr;
-   }
-   QCBORDecode_ExitBstrWrapped(&DC);
-   uErr = QCBORDecode_GetNext(&DC, &Item);
-   if(uErr != QCBOR_SUCCESS) {
-      return 702 + (int32_t)uErr;
-   }
-
-   /* Enter and exit an empty bstr at the end of the input. */
-   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyBstrAtEnd), 0);
    QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_SUCCESS) {
@@ -9297,12 +9278,29 @@ int32_t EnterBstrTest(void)
    }
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
-      return 801 + (int32_t)uErr;
+      return 900 + (int32_t)uErr;
+   }
+   QCBORDecode_ExitBstrWrapped(&DC);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1000 + (int32_t)uErr;
+   }
+
+   /* Enter and exit an empty bstr at the end of the input. */
+   QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyBstrAtEnd), 0);
+   QCBORDecode_EnterBstrWrapped(&DC, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG, NULL);
+   uErr = QCBORDecode_GetError(&DC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1100 + (int32_t)uErr;
+   }
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 1200 + (int32_t)uErr;
    }
    QCBORDecode_ExitBstrWrapped(&DC);
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
-      return 802 + (int32_t)uErr;
+      return 1300 + (int32_t)uErr;
    }
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
@@ -9311,35 +9309,35 @@ int32_t EnterBstrTest(void)
    QCBORDecode_EnterBstrWrappedFromMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_SUCCESS) {
-      return 900 + (int32_t)uErr;
+      return 1400 + (int32_t)uErr;
    }
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
-      return 902 + (int32_t)uErr;
+      return 1500 + (int32_t)uErr;
    }
    QCBORDecode_ExitBstrWrapped(&DC);
    QCBORDecode_EnterBstrWrappedFromMapSZ(&DC, "a", QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_SUCCESS) {
-      return 900 + (int32_t)uErr;
+      return 1600 + (int32_t)uErr;
    }
    uErr = QCBORDecode_GetNext(&DC, &Item);
    if(uErr != QCBOR_ERR_NO_MORE_ITEMS) {
-      return 902 + (int32_t)uErr;
+      return 1700 + (int32_t)uErr;
    }
    QCBORDecode_ExitBstrWrapped(&DC);
    QCBORDecode_EnterBstrWrappedFromMapN(&DC, 1, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
    uErr = QCBORDecode_GetAndResetError(&DC);
    if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
-      return 900 + (int32_t)uErr;
+      return 1800 + (int32_t)uErr;
    }
 
    QCBORDecode_ExitBstrWrapped(&DC); /* It's the map that is to be exited */
    uErr = QCBORDecode_GetError(&DC);
    if(uErr != QCBOR_ERR_EXIT_MISMATCH) {
-      return 900 + (int32_t)uErr;
+      return 1900 + (int32_t)uErr;
    }
-#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    return 0;
 }
