@@ -4314,12 +4314,12 @@ Done:
  * @param[out] pBstr          Pointer and length of byte string entered.
  *
  * This is called once the byte string item has been decoded to do all
- * the book keeping work for descending a nesting level into the
- * nested CBOR.
+ * the book keeping for descending one nesting level into the
+ * wrapped CBOR.
  *
  * See QCBORDecode_EnterBstrWrapped() for details on uTagRequirement.
  */
-static QCBORError
+static void
 QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
                                      const QCBORItem    *pItem,
                                      const uint8_t       uTagRequirement,
@@ -4342,8 +4342,12 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
    }
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state; do nothing. */
-      return pMe->uLastError;
+      return;
+   }
+
+   if(pItem->uDataAlloc) {
+      uErr = QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
+      goto Done;
    }
 
    uErr = QCBOR_Private_CheckTagRequirement(TagSpec, pItem);
@@ -4391,7 +4395,7 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
        */
       uStartOfBstr = UsefulInputBuf_Tell(&(pMe->InBuf));
    } else {
-      /* SIZE_MAX > QCBOR_MAX_DECODE_INPUT_SIZE so this catch
+      /* SIZE_MAX > QCBOR_MAX_DECODE_INPUT_SIZE so this catches the
        * case where pItem->val.string.len != 0 */
       if(uStartOfBstr > QCBOR_MAX_DECODE_INPUT_SIZE) {
          uErr = QCBOR_ERR_INPUT_TOO_LARGE;
@@ -4408,7 +4412,7 @@ QCBORDecode_Private_EnterBstrWrapped(QCBORDecodeContext *pMe,
                                                  (uint32_t)uPreviousLength,
                                                  (uint32_t)uStartOfBstr);
 Done:
-   return uErr;
+   pMe->uLastError = (uint8_t) uErr;
 }
 
 
@@ -4420,27 +4424,11 @@ QCBORDecode_EnterBstrWrapped(QCBORDecodeContext *pMe,
                              const uint8_t       uTagRequirement,
                              UsefulBufC         *pBstr)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      // Already in error state; do nothing.
-      return;
-   }
+   QCBORItem Item;
 
    /* Get the data item that is the byte string being entered */
-   QCBORItem Item;
-   pMe->uLastError = (uint8_t)QCBORDecode_GetNext(pMe, &Item);
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      return;
-   }
-
-   if(Item.uDataAlloc) {
-      pMe->uLastError = QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING;
-      return;
-   }
-
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
-                                                                  &Item,
-                                                                   uTagRequirement,
-                                                                   pBstr);
+   QCBORDecode_VGetNext(pMe, &Item);
+   QCBORDecode_Private_EnterBstrWrapped(pMe, &Item, uTagRequirement, pBstr);
 }
 
 
@@ -4454,12 +4442,9 @@ QCBORDecode_EnterBstrWrappedFromMapN(QCBORDecodeContext *pMe,
                                      UsefulBufC         *pBstr)
 {
    QCBORItem Item;
-   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
-                                                                  &Item,
-                                                                   uTagRequirement,
-                                                                   pBstr);
+   QCBORDecode_GetItemInMapN(pMe, nLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_Private_EnterBstrWrapped(pMe, &Item, uTagRequirement, pBstr);
 }
 
 
@@ -4473,12 +4458,9 @@ QCBORDecode_EnterBstrWrappedFromMapSZ(QCBORDecodeContext *pMe,
                                       UsefulBufC         *pBstr)
 {
    QCBORItem Item;
-   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
 
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_EnterBstrWrapped(pMe,
-                                                                  &Item,
-                                                                   uTagRequirement,
-                                                                   pBstr);
+   QCBORDecode_GetItemInMapSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item);
+   QCBORDecode_Private_EnterBstrWrapped(pMe, &Item, uTagRequirement, pBstr);
 }
 
 
