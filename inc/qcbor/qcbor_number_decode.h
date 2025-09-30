@@ -470,42 +470,43 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 /**
- * @brief dCBOR Decode next as a number with precision-preserving conversions.
+ * @brief For dCBOR, decode next number with precision-preserving conversions.
  *
  * @param[in] pCtx           The decode context.
  * @param[out] pNumber       The returned number.
  *
  * This gets the next item as a number and returns it as a C data type
- * such that no precision is lost.
+ * without any loss of precision. It serves as the decode-side
+ * counterpart to @ref QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION, and is
+ * useful for dCBOR, which merges floats and integers into a single
+ * number space.
  *
- * This is primarily works with integers and floats for both the
- * to-be-decoded CBOR and the decoded types.
+ * The input must be either an integer (major type 0 or 1) or a
+ * float-poing value (major type 7). If the item is of any other type,
+ * @ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
  *
- * The CBOR input can be integers (major type 0 or 1) or floats (major
- * type 7).  If not these, @ref QCBOR_ERR_UNEXPECTED_TYPE will be set.
+ * The conversion is as follows:
  *
- * The conversion is as follows.
+ * Signed 64-bit integers -- Whole numbers from @c INT64_MIN to
+ * @c INT64_MAX are returned as int64_t indicated as
+ * @ref QCBOR_TYPE_INT64. This includes floating-point values that
+ * represent exact integers within this range.
  *
- * Whole numbers from @c INT64_MIN to @c INT64_MAX will be returned as
- * int64_t indicated as @ref QCBOR_TYPE_INT64. This includes
- * conversion of floating-point values that are whole numbers.
+ * Unsigned 64-bit integers -- Whole numbers from @c INT64_MAX + 1 to
+ * @c UINT64_MAX will be returned as uint64_t indicated as
+ * @ref QCBOR_TYPE_UINT64, again including conversion of floating-point
+ * values that are whole numbers.
  *
- * Whole numbers from @c INT64_MAX +1 to @c UINT64_MAX will be
- * returned as uint64_t indicated as @ref QCBOR_TYPE_UINT64, again
- * including conversion of floating-point values that are whole
- * numbers.
+ * Doubles -- All other numbers are returned as double with type
+ * @ref QCBOR_TYPE_DOUBLE, except for a special class of large negative
+ * integers described below.
  *
- * Most other numbers are returned as a double as indicated by
- * @ref QCBOR_TYPE_DOUBLE floating point with one set of exceptions.
- *
- * The exception is negative whole numbers in the range of -(2^63 + 1)
- * to -(2^64) that have too much precision to be represented as a
- * double. Doubles have only 52 bits of precision, so they can't
- * precisely represent every whole integer in this range. CBOR can
- * represent these values with 64-bits of precision and when this
- * function encounters them they are returned as @ref
- * QCBOR_TYPE_65BIT_NEG_INT.  See the description of this type for
- * instructions to gets its value.  Also see
+ * 65-bit negative integers -- Negative integers in the range -(2^63 + 1)
+ * down to -(2^64) may exceed the 52-bit precision of IEEE 754
+ * doubles. CBOR can encode these values with full 64-bit precision,
+ * so they are returned with type @ref QCBOR_TYPE_65BIT_NEG_INT. Note
+ * that the type @ref QCBOR_TYPE_65BIT_NEG_INT needs additional
+ * processing before use, such as that provided by
  * QCBORDecode_ProcessBigNumber().
  *
  * To give an example, the value -18446744073709551616 can't be
@@ -514,9 +515,6 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
  * -18446744073709551617 however can't be represented by a double
  * because it has too much precision, so it is returned as @ref
  * QCBOR_TYPE_65BIT_NEG_INT.
- *
- * This is useful for DCBOR which essentially combines floats and
- * integers into one number space.
  *
  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  */
