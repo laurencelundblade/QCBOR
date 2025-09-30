@@ -9135,10 +9135,11 @@ static const uint8_t spEmptyBstrAtEnd[] = {
    0x40
 };
 
-
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 static const uint8_t spMapWithBstrs[] = {
    0xa4, 0x00, 0x40, 0x61, 0x61, 0x40, 0x01, 0x60, 0x61, 0x62, 0x04
 };
+#endif /* ! #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
 #ifndef QCBOR_DISABLE_TAGS
@@ -9304,6 +9305,7 @@ int32_t EnterBstrTest(void)
       return 802 + (int32_t)uErr;
    }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DC, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapWithBstrs), 0);
    QCBORDecode_EnterMap(&DC, NULL);
    QCBORDecode_EnterBstrWrappedFromMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
@@ -9337,6 +9339,7 @@ int32_t EnterBstrTest(void)
    if(uErr != QCBOR_ERR_EXIT_MISMATCH) {
       return 900 + (int32_t)uErr;
    }
+#endif /* !QCBOR_DISABLE_NON_INTEGER_LABELS */
 
    return 0;
 }
