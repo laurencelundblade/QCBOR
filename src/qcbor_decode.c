@@ -3171,11 +3171,8 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
 
    } else {
       /* pItemToConsume is not a map or array. Just pass the nesting
-       * level through.  Ensure pbBreak is false. */
+       * level through. */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
-      if(pbBreak) {
-         *pbBreak = false;
-      }
 
       uReturn = QCBOR_SUCCESS;
    }
@@ -3626,7 +3623,7 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    size_t     uTempSaveCursor;
    bool       bInMap;
    QCBORItem  LabelItem;
-   bool       EndedByBreak;
+   bool       EndedByBreak = false;
 
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
