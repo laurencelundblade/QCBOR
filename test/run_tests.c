@@ -183,7 +183,8 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseEmptyMapInMapTest),
     TEST_ENTRY(SubStringTest),
     TEST_ENTRY(BoolTest),
-   TEST_ENTRY(TagModesFanOutTest)
+   TEST_ENTRY(TagModesFanOutTest),
+   TEST_ENTRY(StreamTest)
 };
 
 

@@ -188,6 +188,7 @@ UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte)
 void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
 {
     pMe->magic  = USEFUL_OUT_BUF_MAGIC;
+   pMe->pfFlush = NULL;
     UsefulOutBuf_Reset(pMe);
     pMe->UB     = Storage;
 
@@ -207,6 +208,27 @@ void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
         me->err = 1;
 #endif
 }
+
+
+/* Streaming....
+
+ Provide a flush function that can be called.
+
+ Register a callback function to flush data
+
+ Configure a minimum size reserve; if reserve is less, then flush.
+ You can always write the minimum reserve.
+
+Reserve could be the buffer size. That gaurantee a flush after
+ every output
+
+ After every insert call flush
+
+ void
+
+
+
+ */
 
 
 
@@ -318,6 +340,20 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 
    pMe->data_len += NewData.len;
+
+   if(pMe->pfFlush != NULL && pMe->data_len > pMe->threshold) {
+      UsefulOutBuf_Flush(pMe);
+   }
+}
+
+void
+UsefulOutBuf_Flush(UsefulOutBuf *pMe)
+{
+   UsefulBufC BytesToFlush = (UsefulBufC){pMe->UB.ptr, pMe->data_len};
+   pMe->err = (uint8_t)(*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush); // TODO: sort out this cast
+   if(pMe->err == 0) {
+      pMe->data_len = 0;
+   }
 }
 
 

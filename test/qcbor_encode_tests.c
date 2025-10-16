@@ -4317,3 +4317,38 @@ int32_t SubStringTest(void)
 
    return 0;
 }
+
+
+
+
+static int StreamTestFlushCB(void *pMe, UsefulBufC Bytes)
+{
+   return 0;
+}
+
+
+
+
+int32_t StreamTest(void)
+{
+   QCBOREncodeContext EC;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_SetStream(&EC, 1, StreamTestFlushCB, &EC);
+
+   QCBOREncode_OpenArrayIndefiniteLength(&EC);
+
+   QCBOREncode_AddInt64(&EC, 4);
+
+   QCBOREncode_CloseArrayIndefiniteLength(&EC);
+
+   QCBOREncode_Flush(&EC);
+
+   // TODO: what to do with finish?
+   // Finish for a stream is check errors and flush
+   // Nothing is returned
+
+
+   return 0;
+}
