@@ -874,6 +874,11 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *   - 32 bytes (27 bytes plus alignment padding) on a 64-bit CPU
  *   - 16 bytes (15 bytes plus alignment padding) on a 32-bit CPU
  */
+
+
+typedef int (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
+
+
 typedef struct useful_out_buf {
    /** @private Memory that is being output to */
    UsefulBuf  UB;
@@ -883,7 +888,18 @@ typedef struct useful_out_buf {
    uint16_t   magic;
    /** @private Used to detect corruption and lack of initialization */
    uint8_t    err;
+
+   size_t     threshold;
+   void      *pFlushCtx;
+   UsefulOutBuf_FlushCallBack *pfFlush;
 } UsefulOutBuf;
+
+enum UBErr {
+   UBO_Err_Bad_State = 1,
+   UBO_Err_Full = 2,
+   UBO_Err_FlushWrite = 3,
+};
+
 
 
 /**
@@ -920,6 +936,20 @@ typedef struct useful_out_buf {
  * This must be called before the @ref UsefulOutBuf is used.
  */
 void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
+
+
+static void UsefulOutBuf_ConfigFlush(UsefulOutBuf *pUOutBuf, size_t uThreshold, UsefulOutBuf_FlushCallBack *pF, void *pCtx);
+
+static inline void UsefulOutBuf_ConfigFlush(UsefulOutBuf *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pF, void *pCtx)
+{
+   pMe->threshold = uThreshold;
+   pMe->pFlushCtx = pCtx;
+   pMe->pfFlush = pF;
+}
+
+
+
+
 
 
 /**
@@ -1383,6 +1413,11 @@ UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
  */
 void
 UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
+
+
+
+void
+UsefulOutBuf_Flush(UsefulOutBuf *pUOutBuf);
 
 
 /**

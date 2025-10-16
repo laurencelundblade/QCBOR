@@ -631,6 +631,12 @@ void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
                                    const uint8_t       uMajorType)
 {
+   if(pMe->uConfigFlags & 0x800) { // TODO: flags
+      /* In streaming mode, can't open definite length without knowing length */
+      pMe->uError = 103; // TODO: error code
+      return;
+   }
+
    /* Add one item to the nesting level we are in for the new map or array */
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 
@@ -688,6 +694,34 @@ QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
     */
    QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
 }
+
+/**
+ * @brief Semi-private method to open a map, array with indefinite length
+ *
+ * @param[in] pMe        The context to add to.
+ * @param[in] uMajorType  The major CBOR type to close
+ *
+ * Call QCBOREncode_OpenArrayIndefiniteLength() or
+ * QCBOREncode_OpenMapIndefiniteLength() instead of this.
+ */
+void
+QCBOREncode_Private_OpenMapOrArrayStreamedLength(QCBOREncodeContext *pMe,
+                                                   const uint8_t       uMajorType,
+                                                 const size_t uLength)
+{
+   /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
+   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uLength, 0);
+   if(pMe->uError) {
+      return;
+   }
+
+   /* Call the definite-length opener just to do the bookkeeping for
+    * nesting.  It will record the position of the opening item in the
+    * encoded output but this is not used when closing this open.
+    */
+   QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
+}
+
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 

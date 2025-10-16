@@ -207,4 +207,7 @@ int32_t DCBORTest(void);
 int32_t SubStringTest(void);
 
 
+int32_t StreamTest(void);
+
+
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

@@ -380,7 +380,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * @param[in] pCtx   The encoding context for mode set.
  * @param[in] uConfig  See @ref QCBOREncodeConfig.
  *
- * QCBOR usually as needed without configuration.
+ * QCBOR usually works as needed without configuration.
  *
  * QCBOR encodes with preferred serialization by default
  * but provides some explicit functions that don't. This
@@ -411,6 +411,18 @@ QCBOREncode_Config(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
  */
 static void
 QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
+
+
+
+static void
+QCBOREncode_SetStream(QCBOREncodeContext *pCtx, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx);
+
+static inline void
+QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
+{
+   UsefulOutBuf_ConfigFlush(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
+}
+
 
 
 
@@ -820,6 +832,11 @@ static void
 QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
 
+
+/* If uLenght is SIZE_MAX, the array is indefinite */
+ void
+QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pCtx, size_t uLength);
+
 /**
  * @brief Indicates that the next items added are in an indefinite length array.
  *
@@ -1058,6 +1075,16 @@ QCBOREncode_AddEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Use
 /** See QCBOREncode_AddEncoded(). */
 static void
 QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded);
+
+
+static void
+QCBOREncode_Flush(QCBOREncodeContext *pCtx);
+
+static inline void
+QCBOREncode_Flush(QCBOREncodeContext *pMe)
+{
+   UsefulOutBuf_Flush(&(pMe->OutBuf));
+}
 
 
 /**
@@ -1453,7 +1480,7 @@ static inline void
 QCBOREncode_Config(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfig)
 {
    /* The close function is made a function pointer as a way to avoid
-    * linking the proportionately large chunk of code for sorting
+    * linking the comparatively large chunk of code for sorting
     * maps unless explicitly requested. QCBOREncode_CloseAndSortMap()
     * doesn't get linked unless this function is called. */
    if(uConfig & QCBOR_ENCODE_CONFIG_SORT) {
