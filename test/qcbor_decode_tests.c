@@ -10827,7 +10827,7 @@ int32_t BoolTest(void)
 
 
 /* These are all well-formed and valid CBOR, but fail
- * conformance with preferred, CDE or dCBOR.
+ * conformance with preferred, deterministic or dCBOR.
  */
 static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Major type 0 and 1 not shortest-form --- */
@@ -11088,36 +11088,36 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Unsorted maps --- */
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    { "simple unsorted map with text labels",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa2\x61\x62\x00\x61\x61\x01", 7},
       QCBOR_ERR_UNSORTED
    },
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    { "reverse sorted map with integer labels",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa5\x19\x03\xE8\xf6\x18\x64\xf6\x00\xf6\x29\xf6\x3A\x00\x01\x86\x9f\xf6", 18},
       QCBOR_ERR_UNSORTED
    },
    {"map with out-of-order labels that are arrays",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xA3\x83\x00\x01\x02\x61\x63\x83\x00\x01\x00\x61\x61\x83\x00\x01\x01\x61\x62", 19},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
 #if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "unsorted map with labels of all types including arrays and maps",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
          "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
    { "unsorted map with labels of all non-aggregate types",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xA6\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01"
          "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 29},
       QCBOR_ERR_UNSORTED
    },
    {"map with out-of-order labels that have tags",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xA3\xC1\x18\x63\x61\x61\xD9\x07\xD0\x18\x63\x61\x63\xD8\x30\x18\x63\x61\x62", 19},
       QCBOR_ERR_UNSORTED
    },
@@ -11125,45 +11125,45 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
 
    /* --- Maps with dup labels --- */
    { "simple map with dup integer labels",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa2\x00\x00\x00\x00", 5},
       QCBOR_ERR_DUPLICATE_LABEL
    },
    {"map with dup map labels",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xA3\xA1\x03\x03\x61\x61\xA1\x02\x02\x61\x62\xA1\x03\x03\x61\x63", 16},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
 
    /* --- Maps with bad labels --- */
    { "map with invalid label",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\x1c\x01", 3},
       QCBOR_ERR_UNSUPPORTED
    },
 
    { "map with array label with invalid parts",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\x81\x1c\x01", 4},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
    { "map with map label ",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\xa1\x00\x01\x02", 5},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
    { "map with map label with non-preferred part",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
       QCBOR_ERR_PREFERRED_CONFORMANCE
    },
    { "map without enough entries",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa2\x00\x00", 3},
       QCBOR_ERR_NO_MORE_ITEMS
    },
    { "map without enough entries II",
-      QCBOR_DECODE_MODE_CDE,
+      QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\x00", 2},
       QCBOR_ERR_HIT_END
    }
@@ -11193,7 +11193,7 @@ DecodeConformanceTests(void)
    uint32_t           uTestIndex;
 
    for(uTestIndex = 0; UsefulBuf_IsNULLC(CorrectlySorted[uTestIndex]); uTestIndex++) {
-      QCBORDecode_Init(&DCtx, CorrectlySorted[uTestIndex], QCBOR_DECODE_MODE_CDE);
+      QCBORDecode_Init(&DCtx, CorrectlySorted[uTestIndex], QCBOR_DECODE_MODE_DETERMINISTIC);
 
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
@@ -11202,7 +11202,7 @@ DecodeConformanceTests(void)
    }
 
    /* Make sure EnterMap is handling errors */
-   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_CDE);
+   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_DETERMINISTIC);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
       return -5000;

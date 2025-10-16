@@ -24,9 +24,9 @@ work with.
 
 * Sort maps and check for duplicate labels when encoding.
 
-* Encode modes for dCBOR, CDE and Preferred Serialization.
+* Encode modes for dCBOR, deterministic and preferred serialization.
 
-* Decode modes that check for conformance with dCBOR, CDE and Preferred Serialization.
+* Decode modes that check for conformance with dCBOR, deterministic and preferred serialization.
 
 * Full support for preferred serialization of big numbers, decimal fractions and big numbers.
 

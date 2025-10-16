@@ -177,7 +177,7 @@ static test_entry s_tests[] = {
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
    TEST_ENTRY(SortMapTest),
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-   TEST_ENTRY(CDETest),
+   TEST_ENTRY(DeterministicEncodingTest),
    TEST_ENTRY(DCBORTest),
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(ParseEmptyMapInMapTest),

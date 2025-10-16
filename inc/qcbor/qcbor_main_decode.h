@@ -279,12 +279,12 @@ typedef enum {
     *
     * This also performs all the checks that
     * @ref QCBOR_DECODE_MODE_PREFERRED does. */
-   QCBOR_DECODE_MODE_CDE = QCBOR_DECODE_MODE_PREFERRED |
-                           QCBOR_DECODE_ONLY_SORTED_MAPS,
+   QCBOR_DECODE_MODE_DETERMINISTIC = QCBOR_DECODE_MODE_PREFERRED |
+                                     QCBOR_DECODE_ONLY_SORTED_MAPS,
 
    /** This requires integer-float unification. It performs all the checks that
-    * @ref QCBOR_DECODE_MODE_CDE does. */
-   QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_CDE |
+    * @ref QCBOR_DECODE_MODE_DETERMINISTIC does. */
+   QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_DETERMINISTIC |
                              QCBOR_DECODE_ONLY_REDUCED_FLOATS |
                              QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES,
 

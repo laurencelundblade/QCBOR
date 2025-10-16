@@ -302,7 +302,7 @@ struct FloatTestCase {
    float       fNumber;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
-   UsefulBufC  CDE;
+   UsefulBufC  Deterministic;
    UsefulBufC  DCBOR;
 };
 
@@ -337,7 +337,7 @@ struct FloatTestCase {
  * notation. They are used __with a length__ . Null termination
  * doesn't work because there are bytes with value zero.
  *
- * While the CDE and dCBOR standards are not complete as of mid-2025,
+ * While the Deterministic and dCBOR standards are not complete as of mid-2025,
  * they are unlikely to change, so the tests here are likely correct.
  */
 static const struct FloatTestCase FloatTestCases[] =  {
@@ -678,14 +678,14 @@ FloatValuesTests(void)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
       /* Deterministic encode */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE);
+      QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
 
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 30, uErr);;
       }
-      if(UsefulBuf_Compare(TestOutput, pTestCase->CDE)) {
+      if(UsefulBuf_Compare(TestOutput, pTestCase->Deterministic)) {
          return MakeTestResultCode(uTestIndex, 31, 200);
       }
 
@@ -810,7 +810,7 @@ FloatValuesTests(void)
 
  * The tests: encode the double in the 4 different ways and see the result is as expected
  *            encode the single in the 4 different ways and see the result is as expected
- *            decode the preferred and non-preferred (CDE is always the same as preferred; DCBOR is not reversable)
+ *            decode the preferred and non-preferred (deterministic is always the same as preferred; DCBOR is not reversable)
  */
 struct NaNTestCase {
    uint64_t    uDouble; /* Converted to double in test */
@@ -819,7 +819,7 @@ struct NaNTestCase {
    uint32_t    uExpectedSingle;
    UsefulBufC  Preferred;
    UsefulBufC  NotPreferred;
-   UsefulBufC  CDE;
+   UsefulBufC  Deterministic;
    UsefulBufC  DCBOR;
 };
 
@@ -830,7 +830,7 @@ struct NaNTestCase {
  * notation. They are used __with a length__ . Null termination
  * doesn't work because there are bytes with value zero.
  *
- * While the CDE and dCBOR standards are not complete as of mid-2025,
+ * While the deterministic and dCBOR standards are not complete as of mid-2025,
  * they are unlikely to change, so the tests here are likely correct.
  */
 /* This assumes that the signficand of a float is made up of the qNaN bit and
@@ -1067,9 +1067,9 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex+100, 23, 200);
          }
 
-         /* NaN Encode of CDE */
+         /* Deterministic NaN Encode */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
          uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
          if(uErr != QCBOR_SUCCESS) {
@@ -1185,16 +1185,16 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex+100, 401, 200);
          }
 
-         /* NaN Encode of CDE */
+         /* Deterministic NaN Encode */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_CDE| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddFloat(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
          uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex+100, 41, uErr);;
          }
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->CDE)) {
+         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Deterministic)) {
             return MakeTestResultCode(uTestIndex+100, 42, 200);
          }
 #else /* ! #ifndef QCBOR_DISABLE_PREFERRED_FLOAT */
