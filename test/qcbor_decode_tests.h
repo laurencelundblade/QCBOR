@@ -320,7 +320,7 @@ int32_t CBORTestIssue134(void);
 
 
 /*
- * Test the decode checking features for dCBOR, CDE and preferred.
+ * Test the decode checking features for dCBOR, deterministic and preferred.
  */
 int32_t DecodeConformanceTests(void);
 

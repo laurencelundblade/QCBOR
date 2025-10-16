@@ -252,9 +252,9 @@ enum QCBOREncodeConfig {
        QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS,
 
    /**
-    * This causes QCBOR to produce CBOR Deterministic Encoding (CDE).
-    * With CDE, two distant unrelated CBOR encoders will produce
-    * exactly the same encoded CBOR for a given input.
+    * This causes QCBOR to produce deterministic encoding.  With
+    * deterministi encoding, two distant unrelated CBOR encoders will
+    * produce exactly the same encoded CBOR for a given input.
     *
     * In addition to doing everything
     * @ref QCBOR_ENCODE_CONFIG_PREFERRED does (including exclusion of
@@ -264,19 +264,19 @@ enum QCBOREncodeConfig {
     *
     * See @ref Serialization. It is usually not necessary to set this
     * mode as determinism is very rarely needed. However it will
-    * usually work with most protocols. CDE is defined in
-    * draft-ietf-cbor-cde and/or RFC 8949 section 4.2.
+    * usually work with most protocols. Deterministic encoding is defined in
+    * RFC 8949 section 4.2.1. (TODO: reference new document).
     */
-   QCBOR_ENCODE_CONFIG_CDE = QCBOR_ENCODE_CONFIG_PREFERRED |
-                             QCBOR_ENCODE_CONFIG_SORT,
+   QCBOR_ENCODE_CONFIG_DETERMINISTIC = QCBOR_ENCODE_CONFIG_PREFERRED |
+                                       QCBOR_ENCODE_CONFIG_SORT,
 
    /**
     * See draft-mcnally-deterministic-cbor.
     *
-    * This is a superset of CDE. This  does everything
-    * QCBOR_ENCODE_CONFIG_CDE does. Also, it is a super set of
-    * preferred serialization and does everything
-    * QCBOR_ENCODE_CONFIG_PREFERRED does.
+    * This is a superset of deterministic encoding. This does
+    * everything @ref QCBOR_ENCODE_CONFIG_DETERMINISTIC does. Also, it
+    * is a super set of preferred serialization and does everything
+    * @ref QCBOR_ENCODE_CONFIG_PREFERRED does.
     *
     * The main feature of dCBOR is that there is only one way to
     * serialize a particular numeric value. This changes the behavior
@@ -297,7 +297,7 @@ enum QCBOREncodeConfig {
     * compatible with protocols that don't use dCBOR. dCBOR is defined
     * in draft-mcnally-deterministic-cbor.
     */
-   QCBOR_ENCODE_CONFIG_DCBOR = QCBOR_ENCODE_CONFIG_CDE |
+   QCBOR_ENCODE_CONFIG_DCBOR = QCBOR_ENCODE_CONFIG_DETERMINISTIC |
                                QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION |
                                QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE
 };
@@ -380,19 +380,20 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  * @param[in] pCtx   The encoding context for mode set.
  * @param[in] uConfig  See @ref QCBOREncodeConfig.
  *
- * QCBOR usually as needed without configuration.
+ * QCBOR usually functions as needed without configuration.
  *
  * QCBOR encodes with preferred serialization by default
  * but provides some explicit functions that don't. This
- * can configure QCBOR to error if they are used. This can
- * also be used to encode dCBOR.
+ * can configure QCBOR to error if they are used.
  *
- * See @ref QCBOR_ENCODE_CONFIG_PREFERRED, @ref
- * QCBOR_ENCODE_CONFIG_DCBOR, @ref QCBOR_ENCODE_CONFIG_SORT
- * and such.
+ * This is also used to configure so that deterministic encoding
+ * or dCBOR encoding is produced.
  *
- * Also see QCBOREncode_ConfigReduced() if you are concerned
- * about the amount of linked.
+ * See @ref QCBOREncodeConfig for the list of configurations
+ * possible and what they do.
+ *
+ * See QCBOREncode_ConfigReduced() if you are concerned
+ * about the amount of object code linked.
  */
 static void
 QCBOREncode_Config(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
@@ -404,10 +405,12 @@ QCBOREncode_Config(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
  * @param[in] pCtx   The encoding context for mode set.
  * @param[in] uConfig  Bit flags for configuration options.
  *
- * This is the same as QCBOREncode_Config() except it can't
- * configure anything to do with map sorting. That includes
- * both @ref CDE and @ref dCBOR. @ref QCBOR_ERR_NOT_ALLOWED
- * is returned if trying to configure map sorting.
+ * This is the same as QCBOREncode_Config() except it can't configure
+ * anything to do with map sorting.  That includes both
+ * @ref QCBOR_ENCODE_CONFIG_DETERMINISTIC and
+ * @ref QCBOR_ENCODE_CONFIG_DCBOR. @ref QCBOR_ERR_NOT_ALLOWED is set if
+ * trying to configure map sorting. This links in a lot less object
+ * code than QCBOREncode_Config().
  */
 static void
 QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
