@@ -2110,7 +2110,7 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
        * maps because the order of items in a map that is a label
        * doesn't matter when checking that is is the duplicate of
        * another map that is a label. QCBOR so far only turns on this
-       * dup checking as part of CDE checking which requires preferred
+       * dup checking as part of deterministic checking which requires preferred
        * serialization.  See 5.6 in RFC 8949.
        */
       nCompare = UsefulInputBuf_Compare(&(pMe->InBuf),
