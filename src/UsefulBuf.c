@@ -188,7 +188,9 @@ UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte)
 void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
 {
     pMe->magic  = USEFUL_OUT_BUF_MAGIC;
+#ifndef USEFULBUF_DISABLE_STREAMING
    pMe->pfFlush = NULL;
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
     UsefulOutBuf_Reset(pMe);
     pMe->UB     = Storage;
 
@@ -231,6 +233,34 @@ Reserve could be the buffer size. That gaurantee a flush after
  */
 
 
+static int Checks2(const size_t NewDataLen, UsefulOutBuf *pMe)
+{
+   if((pMe)->magic != USEFUL_OUT_BUF_MAGIC) {
+      return 1; /* Magic number is wrong due to uninitalization or corrption */
+   }
+
+
+   /* Make sure valid data is less than buffer size. This would only occur
+    * if there was corruption of me, but it is also part of the checks to
+    * be sure there is no pointer arithmatic under/overflow.
+    */
+   if((pMe)->data_len > (pMe)->UB.len) {
+      return 1; /* Check #1 */
+      /* Offset of valid data is off the end of the UsefulOutBuf due to
+       * uninitialization or corruption
+       */
+   }
+
+   /* 1. Will it fit?
+    * WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
+    * Check #1 makes sure subtraction in RoomLeft will not wrap around
+    */
+   if(! UsefulOutBuf_WillItFit(pMe, NewDataLen)) { /* Check #2 */
+      /* The new data will not fit into the the buffer. */
+      return 1;
+   }
+   return 0;
+}
 
 /*
  * Public function -- see UsefulBuf.h
@@ -271,41 +301,17 @@ Reserve could be the buffer size. That gaurantee a flush after
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t uInsertionPos)
 {
-   /* 0. Sanity check the UsefulOutBuf structure
-    * A "counter measure". If magic number is not the right number it
-    * probably means pMe was not initialized or it was corrupted. Attackers
-    * can defeat this, but it is a hurdle and does good with very
-    * little code.
-    */
-   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = 1;
-      return;  /* Magic number is wrong due to uninitalization or corrption */
-   }
+
 
    if(pMe->err) {
       /* Already in error state. */
       return;
    }
 
-   /* Make sure valid data is less than buffer size. This would only occur
-    * if there was corruption of me, but it is also part of the checks to
-    * be sure there is no pointer arithmatic under/overflow.
-    */
-   if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
-      pMe->err = 1;
-      /* Offset of valid data is off the end of the UsefulOutBuf due to
-       * uninitialization or corruption
-       */
-      return;
-   }
+   pMe->err = (uint8_t)Checks2(NewData.len, pMe);
 
-   /* 1. Will it fit?
-    * WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
-    * Check #1 makes sure subtraction in RoomLeft will not wrap around
-    */
-   if(! UsefulOutBuf_WillItFit(pMe, NewData.len)) { /* Check #2 */
-      /* The new data will not fit into the the buffer. */
-      pMe->err = 1;
+   if(pMe->err) {
+      /* Already in error state. */
       return;
    }
 
@@ -340,12 +346,11 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 
    pMe->data_len += NewData.len;
-
-   if(pMe->pfFlush != NULL && pMe->data_len > pMe->threshold) {
-      UsefulOutBuf_Flush(pMe);
-   }
 }
 
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
 void
 UsefulOutBuf_Flush(UsefulOutBuf *pMe)
 {
@@ -356,6 +361,120 @@ UsefulOutBuf_Flush(UsefulOutBuf *pMe)
    }
 }
 
+void
+UsefulOutBuf_DirectOut(UsefulOutBuf *pMe, UsefulBufC Bytes)
+{
+   UsefulOutBuf_Flush(pMe);
+   if(!pMe->err) {
+      (*(pMe->pfFlush))(pMe->pFlushCtx, Bytes);
+   }
+}
+
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
+
+
+ void Checks(const UsefulBufC *NewData, UsefulOutBuf **pMe) {
+   if((*pMe)->magic != USEFUL_OUT_BUF_MAGIC) {
+      (*pMe)->err = 1;
+      return;  /* Magic number is wrong due to uninitalization or corrption */
+   }
+   
+   if((*pMe)->err) {
+      /* Already in error state. */
+      return;
+   }
+   
+   /* Make sure valid data is less than buffer size. This would only occur
+    * if there was corruption of me, but it is also part of the checks to
+    * be sure there is no pointer arithmatic under/overflow.
+    */
+   if((*pMe)->data_len > (*pMe)->UB.len) {  /* Check #1 */
+      (*pMe)->err = 1;
+      /* Offset of valid data is off the end of the UsefulOutBuf due to
+       * uninitialization or corruption
+       */
+      return;
+   }
+   
+   /* 1. Will it fit?
+    * WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
+    * Check #1 makes sure subtraction in RoomLeft will not wrap around
+    */
+   if(! UsefulOutBuf_WillItFit(*pMe, NewData->len)) { /* Check #2 */
+      /* The new data will not fit into the the buffer. */
+      (*pMe)->err = 1;
+      return;
+   }
+}
+
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+// Has to work for streaming and not-streaming mode
+void
+UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
+{
+   size_t uNewDataOffset;
+   size_t uAmountToAppend;
+   size_t uRoomLeft;
+   void  *pNewDataCopyPosition;
+   void  *pAppendPosition;
+
+   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      pMe->err = 1;
+      return; /* Magic number is wrong due to uninitalization or corrption */
+   }
+
+
+   /* Make sure valid data is less than buffer size. This would only occur
+    * if there was corruption of me, but it is also part of the checks to
+    * be sure there is no pointer arithmatic under/overflow.
+    */
+   if(pMe->data_len > pMe->UB.len) {
+      pMe->err = 1;
+      return; /* Check #1 */
+      /* Offset of valid data is off the end of the UsefulOutBuf due to
+       * uninitialization or corruption
+       */
+   }
+
+
+   for(uNewDataOffset = 0; uNewDataOffset < NewData.len;) {
+      uRoomLeft = UsefulOutBuf_RoomLeft(pMe);
+
+      if(NewData.len <= uRoomLeft) {
+         /* All the new data will fit in space in buffer */
+         uAmountToAppend = NewData.len;
+      } else {   
+         /* The new data won't fit in the buffer */
+         if(pMe->pfFlush != NULL) {
+            /* In streaming mode, just copy what will fit. */
+            uAmountToAppend = uRoomLeft;
+         } else {
+            /* Non-streaming mode this is an error */
+            pMe->err = 1;
+            return;
+         }
+      }
+      pNewDataCopyPosition = (uint8_t *)NewData.ptr + uNewDataOffset;
+
+      if (!UsefulOutBuf_IsBufferNULL(pMe) && NewData.ptr != NULL) {
+         pAppendPosition = (uint8_t *)pMe->UB.ptr + pMe->data_len;
+         /* could use memcpy here, but afraid it is a banned function for some */
+         memmove(pAppendPosition, pNewDataCopyPosition, uAmountToAppend);
+      }
+
+      pMe->data_len  += uAmountToAppend;
+      uNewDataOffset += uAmountToAppend;
+
+      if(pMe->pfFlush != NULL && pMe->data_len > pMe->threshold) {
+         UsefulOutBuf_Flush(pMe);
+         pMe->data_len = 0;
+      }
+   }
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 /*
  * Rationale that describes why the above pointer math is safe

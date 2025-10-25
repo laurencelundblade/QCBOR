@@ -184,7 +184,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(SubStringTest),
     TEST_ENTRY(BoolTest),
    TEST_ENTRY(TagModesFanOutTest),
+#ifndef USEFULBUF_DISABLE_STREAMING
    TEST_ENTRY(StreamTest)
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 };
 
 

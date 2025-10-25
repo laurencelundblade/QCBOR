@@ -89,6 +89,7 @@
 #ifndef _UsefulBuf_h
 #define _UsefulBuf_h
 
+//#define USEFULBUF_DISABLE_STREAMING
 
 /*
  * Endianness Configuration
@@ -889,9 +890,11 @@ typedef struct useful_out_buf {
    /** @private Used to detect corruption and lack of initialization */
    uint8_t    err;
 
+#ifndef USEFULBUF_DISABLE_STREAMING
    size_t     threshold;
    void      *pFlushCtx;
    UsefulOutBuf_FlushCallBack *pfFlush;
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 } UsefulOutBuf;
 
 enum UBErr {
@@ -937,7 +940,7 @@ enum UBErr {
  */
 void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 static void UsefulOutBuf_ConfigFlush(UsefulOutBuf *pUOutBuf, size_t uThreshold, UsefulOutBuf_FlushCallBack *pF, void *pCtx);
 
 static inline void UsefulOutBuf_ConfigFlush(UsefulOutBuf *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pF, void *pCtx)
@@ -946,6 +949,8 @@ static inline void UsefulOutBuf_ConfigFlush(UsefulOutBuf *pMe, size_t uThreshold
    pMe->pFlushCtx = pCtx;
    pMe->pfFlush = pF;
 }
+
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 
@@ -1186,7 +1191,10 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
  * See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  * with the insertion point at the end of the valid data.
  */
-static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
+#ifdef USEFULBUF_DISABLE_STREAMING
+static inline
+#endif /* USEFULBUT_DISABLE_STREAMING */
+void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
                                                 UsefulBufC NewData);
 
 
@@ -1419,6 +1427,10 @@ UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
 void
 UsefulOutBuf_Flush(UsefulOutBuf *pUOutBuf);
 
+
+
+void
+UsefulOutBuf_DirectOut(UsefulOutBuf *pMe, UsefulBufC Bytes);
 
 /**
  *  @brief Returns the data put into a @ref UsefulOutBuf.
@@ -2359,13 +2371,14 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pMe,
 }
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
-
+#ifdef USEFULBUF_DISABLE_STREAMING
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
                                                 UsefulBufC NewData)
 {
    /* An append is just a insert at the end */
    UsefulOutBuf_InsertUsefulBuf(pMe, NewData, UsefulOutBuf_GetEndPosition(pMe));
 }
+#endif /* USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pMe,

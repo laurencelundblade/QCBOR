@@ -137,6 +137,47 @@ extern "C" {
  * disable these checks. Bounds checking that prevents security issues
  * in the code is still enforced. This define reduces the size of
  * encoding object code by about 150 bytes.
+ *
+ * @anchor Streaming
+ *
+ * In streaming mode, the output doesn't have to fit in one buffer. Instead
+ * the encoder output buffer is a temporary buffer. When it is too full, a flush function
+ * is called to send the so-far encoded CBOR.
+ *
+ * Encoding in streaming mode is the same as non-streaming with a three exceptions:
+ *
+ * 1) QCBOREncode_SetStream() is called to set the streaming mode.
+ * Pass the flush function and call back context to it.
+ *
+ * 2) Arrays and maps must be opened with OpenStreamedArray()
+ * and OpenStreamedMap() instead of OpenArray() and OpenMap().
+ * Similary they must be closed by xxxx(). Note that these can
+ * output definte-length arrays and maps by giving the length
+ * when the array or map is opened.
+ *
+ * 3) QCBOREncode_FinishStream() must be closed instead of QCBOREncode_Finish().
+ *
+ * In streaming mode, the minimum size for the encoding output buffer is
+ * @ref QCBOR_HEAD_BUFFER_SIZE. However, this is quite small and
+ * will result in many calls to the flush function. For example, if the encoding
+ * output buffer is ten bytes and QCBOREncode_AddBytes() is called to encode 1,000 bytes,
+ * the flush function will be called 101 times, once for the CBOR head and 100
+ * times for the 1,000 bytes.
+ *
+ * You may wish to call QCBOREncode_AddStreamedText() and QCBOREncode_AddStreamedBytes()
+ * instead of QCBOREncode_AddText() and QCBOREncode_AddBytes(). These function will pass the text
+ * or bytes straight to one call of flush function with no intermediate copying
+ * or buffering. The encode output buffer will be used only for the
+ * CBOR head.
+ *
+ * To count the number of bytes that would be output in streaming mode,
+ * supply a flush function that does nothing but count the bytes
+ * output instead of one that actually outputs the encoded CBOR.
+ *
+ * If the non-streaming QCBOREncode_OpenArray() and QCOREncode_OpenMap() are never called, the internal linking
+ * is such that the object code that goes back to write the length into
+ * the beginning will not be linked, keeping object code for streaming-only use cases
+ * smaller.
  */
 
 
@@ -413,7 +454,7 @@ static void
 QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConfig);
 
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 static void
 QCBOREncode_SetStream(QCBOREncodeContext *pCtx, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx);
 
@@ -422,6 +463,7 @@ QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_F
 {
    UsefulOutBuf_ConfigFlush(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 
@@ -834,8 +876,10 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
 
 /* If uLenght is SIZE_MAX, the array is indefinite */
- void
+static void
 QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pCtx, size_t uLength);
+
+
 
 /**
  * @brief Indicates that the next items added are in an indefinite length array.
@@ -1076,7 +1120,7 @@ QCBOREncode_AddEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Use
 static void
 QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded);
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 static void
 QCBOREncode_Flush(QCBOREncodeContext *pCtx);
 
@@ -1085,6 +1129,7 @@ QCBOREncode_Flush(QCBOREncodeContext *pMe)
 {
    UsefulOutBuf_Flush(&(pMe->OutBuf));
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1159,6 +1204,12 @@ QCBOREncode_Flush(QCBOREncodeContext *pMe)
  */
 QCBORError
 QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+QCBORError
+QCBOREncode_FinishStream(QCBOREncodeContext *pCtx);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1420,6 +1471,11 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pCtx,
                               uint8_t             uMajorType,
                               UsefulBufC          Bytes);
 
+void
+QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
+                                      const uint8_t       uMajorType,
+                                      const UsefulBufC    Bytes);
+
 /** @private See qcbor_main_encode.c */
 void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pCtx,
@@ -1430,6 +1486,13 @@ void
 QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
                                                    uint8_t             uMajorType);
 
+
+/** @private See qcbor_main_encode.c */
+void
+QCBOREncode_Private_OpenStreamedArrayOrMap(QCBOREncodeContext *pMe,
+                                           const uint8_t       uMajorType,
+                                           const size_t        uLength);
+
 /** @private See qcbor_main_encode.c */
 void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pCtx,
@@ -1437,8 +1500,8 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pCtx,
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
-                                                    uint8_t             uMajorType);
+QCBOREncode_Private_CloseStreamedArrayOrMap(QCBOREncodeContext *pCtx,
+                                            uint8_t             uMajorType);
 
 /** @private See qcbor_main_encode.c */
 void
@@ -1508,6 +1571,13 @@ static inline void
 QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
    QCBOREncode_Private_AddBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
+}
+
+
+static inline void
+QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
+{
+   QCBOREncode_Private_AddStreamedBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
 }
 
 static inline void
@@ -1820,8 +1890,24 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
 static inline void
 QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {
+#if 0
    QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+#else
+   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, 0);
+#endif
 }
+
+
+static inline void
+QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pMe, size_t uLength)
+{
+   uint8_t uMajorType;
+
+   uMajorType = uLength == SIZE_MAX ? CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN : CBOR_MAJOR_TYPE_ARRAY;
+
+   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, uLength);
+}
+
 
 static inline void
 QCBOREncode_OpenArrayIndefiniteLengthInMapSZ(QCBOREncodeContext *pMe,
@@ -1849,7 +1935,13 @@ QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+}
+
+static inline void
+QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 
 
@@ -1885,7 +1977,7 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 
 

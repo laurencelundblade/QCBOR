@@ -4320,6 +4320,7 @@ int32_t SubStringTest(void)
 
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 
 static int StreamTestFlushCB(void *pMe, UsefulBufC Bytes)
 {
@@ -4328,10 +4329,10 @@ static int StreamTestFlushCB(void *pMe, UsefulBufC Bytes)
 
 
 
-
 int32_t StreamTest(void)
 {
    QCBOREncodeContext EC;
+   QCBORError uErr;
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
@@ -4343,7 +4344,10 @@ int32_t StreamTest(void)
 
    QCBOREncode_CloseArrayIndefiniteLength(&EC);
 
-   QCBOREncode_Flush(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1;
+   }
 
    // TODO: what to do with finish?
    // Finish for a stream is check errors and flush
@@ -4352,3 +4356,4 @@ int32_t StreamTest(void)
 
    return 0;
 }
+#endif

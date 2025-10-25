@@ -538,6 +538,8 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
  * This formats the CBOR "head" and appends it to the output.
  *
  * This also increments the array/map item counter in most cases.
+ *
+ * uArgument is ignored if uMajorType has QCBOR_INDEFINITE_LEN_TYPE_MODIFIER or'd in.
  */
 void
 QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext *pMe,
@@ -604,10 +606,18 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
+void
+QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
+                                      const uint8_t       uMajorType,
+                                      const UsefulBufC    Bytes)
+{
+   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
+   UsefulOutBuf_DirectOut(&(pMe->OutBuf), Bytes);
+}
 
-/*
- * Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h
- */
+
+
+/* Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h */
 void
 QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 {
@@ -615,6 +625,13 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
 
+/* Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h */
+void
+QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
+{
+   UsefulOutBuf_DirectOut(&(pMe->OutBuf), Encoded);
+   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+}
 
 
 
@@ -682,8 +699,31 @@ void
 QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
                                                    const uint8_t       uMajorType)
 {
+#if 0
    /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
+   if(pMe->uError) {
+      return;
+   }
+
+   /* Call the definite-length opener just to do the bookkeeping for
+    * nesting.  It will record the position of the opening item in the
+    * encoded output but this is not used when closing this open.
+    */
+   QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
+#else
+   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, 0);
+#endif
+}
+
+
+void
+QCBOREncode_Private_OpenStreamedArrayOrMap(QCBOREncodeContext *pMe,
+                                           const uint8_t       uMajorType,
+                                           const size_t        uLength)
+{
+   /* TODO: fix comment -- insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
+   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uLength, 0);
    if(pMe->uError) {
       return;
    }
@@ -1194,7 +1234,7 @@ QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncode_Private_SortMap(pMe, uStart);
 
-   QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
@@ -1319,15 +1359,17 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
  * QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
 void
-QCBOREncode_Private_CloseMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
+QCBOREncode_Private_CloseStreamedArrayOrMap(QCBOREncodeContext *pMe,
                                                     const uint8_t       uMajorType)
 {
    if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
       return;
    }
 
-   /* Append the break marker (0xff for both arrays and maps) */
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+   if(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
+      /* Append the break marker (0xff for both arrays and maps) */
+      QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+   }
    Nesting_Decrease(&(pMe->nesting));
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
@@ -1355,6 +1397,29 @@ QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
 Done:
    return pMe->uError;
 }
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+QCBORError
+QCBOREncode_FinishStream(QCBOREncodeContext *pMe)
+{
+   if(QCBOREncode_GetErrorState(pMe) != QCBOR_SUCCESS) {
+      goto Done;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(Nesting_IsInNest(&(pMe->nesting))) {
+      pMe->uError = QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN;
+      goto Done;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_Flush(pMe);
+
+Done:
+   return pMe->uError;
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /*
