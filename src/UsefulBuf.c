@@ -354,6 +354,9 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
 void
 UsefulOutBuf_Flush(UsefulOutBuf *pMe)
 {
+   if(pMe->pfFlush == NULL) {
+      return;
+   }
    UsefulBufC BytesToFlush = (UsefulBufC){pMe->UB.ptr, pMe->data_len};
    pMe->err = (uint8_t)(*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush); // TODO: sort out this cast
    if(pMe->err == 0) {

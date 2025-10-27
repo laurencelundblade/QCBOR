@@ -1399,6 +1399,24 @@ Done:
 }
 
 
+/*
+ * Public function to get size of the encoded result. See qcbor/qcbor_encode.h
+ */
+QCBORError
+QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
+{
+   UsefulBufC Enc;
+
+   QCBORError nReturn = QCBOREncode_Finish(pMe, &Enc);
+
+   if(nReturn == QCBOR_SUCCESS) {
+      *puEncodedLen = Enc.len;
+   }
+
+   return nReturn;
+}
+
+
 #ifndef USEFULBUF_DISABLE_STREAMING
 QCBORError
 QCBOREncode_FinishStream(QCBOREncodeContext *pMe)
@@ -1420,24 +1438,6 @@ Done:
    return pMe->uError;
 }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
-
-
-/*
- * Public function to get size of the encoded result. See qcbor/qcbor_encode.h
- */
-QCBORError
-QCBOREncode_FinishGetSize(QCBOREncodeContext *pMe, size_t *puEncodedLen)
-{
-   UsefulBufC Enc;
-
-   QCBORError nReturn = QCBOREncode_Finish(pMe, &Enc);
-
-   if(nReturn == QCBOR_SUCCESS) {
-      *puEncodedLen = Enc.len;
-   }
-
-   return nReturn;
-}
 
 
 /*

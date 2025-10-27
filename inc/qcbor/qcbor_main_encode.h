@@ -165,10 +165,10 @@ extern "C" {
  * times for the 1,000 bytes.
  *
  * You may wish to call QCBOREncode_AddStreamedText() and QCBOREncode_AddStreamedBytes()
- * instead of QCBOREncode_AddText() and QCBOREncode_AddBytes(). These function will pass the text
+ * instead of QCBOREncode_AddText() and QCBOREncode_AddBytes(). These functions will pass the text
  * or bytes straight to one call of flush function with no intermediate copying
  * or buffering. The encode output buffer will be used only for the
- * CBOR head.
+ * CBOR head and label.
  *
  * To count the number of bytes that would be output in streaming mode,
  * supply a flush function that does nothing but count the bytes
@@ -456,15 +456,12 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConf
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 static void
-QCBOREncode_SetStream(QCBOREncodeContext *pCtx, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx);
+QCBOREncode_SetStream(QCBOREncodeContext         *pCtx,
+                      size_t                      uThreshold,
+                      UsefulOutBuf_FlushCallBack *pfCallback,
+                      void                       *pCBCtx);
 
-static inline void
-QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
-{
-   UsefulOutBuf_ConfigFlush(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
-}
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
-
 
 
 
@@ -520,6 +517,30 @@ QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC T
 
 
 /**
+ * @brief  Add a UTF-8 text string to the encoded stream directly.
+ *
+ * @param[in] pCtx      The encoding context to add the text to.
+ * @param[in] szString  Null-terminated text to add.
+ *
+ * This works the same as QCBOREncode_AddText(), except in streaming mode
+ * this passes the text direclty to the flush function by passing any buffering. Any
+ * buffered encoded CBOR not yet flushed is flushed before the text is output.
+ *
+ * See additional discussion in @ref Streaming.
+ */
+static void
+QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text);
+
+/** See QCBOREncode_AddText(). */
+static void
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Text);
+
+/** See QCBOREncode_AddText(). */
+static void
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
+
+
+/**
  * @brief  Add a UTF-8 text string to the encoded output.
  *
  * @param[in] pCtx      The encoding context to add the text to.
@@ -562,6 +583,30 @@ QCBOREncode_AddBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
 /** See QCBOREncode_AddBytesToMap(). */
 static void
 QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+
+
+/**
+ * @brief  Add a UTF-8 text string to the encoded stream directly.
+ *
+ * @param[in] pCtx      The encoding context to add the text to.
+ * @param[in] szString  Null-terminated text to add.
+ *
+ * This works the same as QCBOREncode_AddBytes(), except in streaming mode
+ * this passes the bytes direclty to the flush function by passing any buffering. Any
+ * buffered encoded CBOR not yet flushed is flushed before the text is output.
+ *
+ * See additional discussion in @ref Streaming.
+ */
+static void
+QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, const UsefulBufC Bytes);
+
+/** See QCBOREncode_AddText(). */
+static void
+QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
+
+/** See QCBOREncode_AddText(). */
+static void
+QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
 
 /**
@@ -875,34 +920,18 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
 
 
+// TODO: streamed array/map documentation
 /* If uLenght is SIZE_MAX, the array is indefinite */
 static void
 QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pCtx, size_t uLength);
 
-
-
-/**
- * @brief Indicates that the next items added are in an indefinite length array.
- *
- * @param[in] pCtx The encoding context to open the array in.
- *
- * This is the same as QCBOREncode_OpenArray() except the array is
- * indefinite length.
- *
- * This must be closed with QCBOREncode_CloseArrayIndefiniteLength().
- */
+/** See QCBOREncode_OpenArray(). */
 static void
-QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx);
+QCBOREncode_OpenStreamedArrayInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel);
 
-/** See QCBOREncode_OpenArrayIndefiniteLength(). */
+/** See QCBOREncode_OpenArray(). */
 static void
-QCBOREncode_OpenArrayIndefiniteLengthInMapSZ(QCBOREncodeContext *pCtx,
-                                             const char         *szLabel);
-
-/** See QCBOREncode_OpenArrayIndefiniteLength(). */
-static void
-QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
-                                            int64_t            nLabel);
+QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel);
 
 
 /**
@@ -914,7 +943,9 @@ QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  * that is being close must be of indefinite length.
  */
 static void
-QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
+QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pCtx);
+
+
 
 
 /**
@@ -928,17 +959,19 @@ QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
  * This must be closed with QCBOREncode_CloseMapIndefiniteLength().
  */
 static void
-QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx);
+QCBOREncode_OpenStreamedMap(QCBOREncodeContext *pCtx, size_t uLength);
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
 static void
-QCBOREncode_OpenMapIndefiniteLengthInMapSZ(QCBOREncodeContext *pCtx,
-                                           const char         *szLabel);
+QCBOREncode_OpenStreamedMapInMapSZ(QCBOREncodeContext *pCtx,
+                                   const char         *szLabel,
+                                   size_t              uLength);
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
 static void
-QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
-                                         int64_t              nLabel);
+QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pCtx,
+                                int64_t             nLabel,
+                                size_t              uLength);
 
 
 
@@ -949,10 +982,10 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx The encoding context to close the map in.
  *
  * This is the same as QCBOREncode_CloseMap(), but the open map that
- * is being close must be of indefinite length.
+ * is being closed must be of indefinite length. TODO: not true, it could be streamed.
  */
 static void
-QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
+QCBOREncode_CloseStreamed(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -970,15 +1003,22 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
  * is also increases the object code size of the encoder by about 30%
  * (500-1000 bytes).
  *
- * Bubble sort was selected so as to not need require configuration of
+ * Bubble sort was selected so as to not require configuration of
  * a buffer to track map item offsets. Bubble sort works well even
  * though map items are not all the same size because it always swaps
  * adjacent items.
+ *
+ * An alternative to this is to encode the map items in order
+ * per RFC 8949 section 4.2.1.
  */
 void
 QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
 
 /** See QCBOREncode_CloseAndSortMapIndef(). */
+// TODO: should this be retained?
+// It sort of doesn't make sense, but it can work
+// sometimes. Have to know whether the starting position
+// is valid or not.
 void
 QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
 
@@ -990,7 +1030,7 @@ QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
  *
  * All added encoded items between this call and a call to
  * QCBOREncode_CloseBstrWrap2() will be wrapped in a bstr. They will
- * appear in the final output as a byte string.  That byte string will
+ * appear in the final output as a byte string. That byte string will
  * contain encoded CBOR. This increases nesting level by one.
  *
  * The typical use case is for encoded CBOR that is to be
@@ -1013,7 +1053,13 @@ QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
  * perhaps because the CBOR is large and deeply nested. Perhaps APIs
  * for handling one defined CBOR message that is being embedded in
  * another only take input as a byte string. Perhaps the desire is to
- * be able to decode the out layer even in the wrapped has errors.
+ * be able to decode the outer layer even in the wrapped has errors.
+ *
+ * There is no streaming version of this yet. The close function
+ * for it would not be able to return the bytes from the bstr because
+ * they never exist in a contiguous buffer. However, if that is
+ * not needed and the encoded length were known on open,
+ * this could be streamed.
  */
 static void
 QCBOREncode_BstrWrap(QCBOREncodeContext *pCtx);
@@ -1111,7 +1157,6 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pCtx);
 void
 QCBOREncode_AddEncoded(QCBOREncodeContext *pCtx, UsefulBufC Encoded);
 
-
 /** See QCBOREncode_AddEncoded(). */
 static void
 QCBOREncode_AddEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Encoded);
@@ -1120,15 +1165,37 @@ QCBOREncode_AddEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Use
 static void
 QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded);
 
+
+void
+QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded);
+
+/** See QCBOREncode_AddStreamedEncoded(). */
+static void
+QCBOREncode_AddStreamEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Encoded);
+
+/** See QCBOREncode_AddStreamedEncoded(). */
+static void
+QCBOREncode_AddStreamEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded);
+
+
+
+
+
 #ifndef USEFULBUF_DISABLE_STREAMING
+/**
+ * @brief  In streaming mode, flush all buffered encoded bytes
+ *
+ * @param[in] pCtx     The encoding context to add the already-encode CBOR to.
+ *
+ * This is usually not needed because QCBOREncode_FinishStream() does
+ * the only flush needed, the one at the end of the encoding.
+ * See QCBOREncode_SetStream() and UsefulOutBuf_Flush().
+ *
+ *  This does nothing (and may be called safely) when not in stream mode.
+ */
 static void
 QCBOREncode_Flush(QCBOREncodeContext *pCtx);
 
-static inline void
-QCBOREncode_Flush(QCBOREncodeContext *pMe)
-{
-   UsefulOutBuf_Flush(&(pMe->OutBuf));
-}
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
@@ -1206,12 +1273,6 @@ QCBORError
 QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 
-#ifndef USEFULBUF_DISABLE_STREAMING
-QCBORError
-QCBOREncode_FinishStream(QCBOREncodeContext *pCtx);
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
-
-
 /**
  * @brief Get the encoded CBOR and error status.
  *
@@ -1226,6 +1287,31 @@ QCBOREncode_FinishStream(QCBOREncodeContext *pCtx);
  */
 QCBORError
 QCBOREncode_FinishGetSize(QCBOREncodeContext *pCtx, size_t *uEncodedLen);
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+/**
+ * @brief For streaming mode, flush buffered encoded byte and check status.
+ *
+ * @param[in] pCtx          The context to finish encoding with.
+ *
+ * @return The same errors as QCBOREncode_Finish().
+ *
+ * This must be called instead of QCBOREncode_Finish() when
+ * streaming mode was set with QCBOREncode_SetStream(). It
+ * checks that all encoding completed with no errors such as
+ * arrays left unclosed. It then flushes any encoded bytes
+ * not yet output with the @ref UsefulOutBuf_FlushCallBack configured
+ * with QCBOREncode_SetStream().
+ *
+ * Note that there is no QCBOREncode_FinishGetSize() for streaming
+ * mode. Usually, it is unneccesary to get the size because the
+ * output is being streamed, but to do so, create and use a
+ * @ref UsefulOutBuf_FlushCallBack that just counts bytes.
+ */
+QCBORError
+QCBOREncode_FinishStream(QCBOREncodeContext *pCtx);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1439,6 +1525,11 @@ static void
 QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
                                          const char         *szLabel);
 
+/** @deprecated Use QCBOREncode_OpenArrayIndefiniteLengthInMapSZ() instead. */
+static void
+QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pCtx);
+
+
 /** @deprecated Use QCBOREncode_BstrWrapInMapSZ() instead. */
 static void
 QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel);
@@ -1446,6 +1537,74 @@ QCBOREncode_BstrWrapInMap(QCBOREncodeContext *pCtx, const char *szLabel);
 /** @deprecated Use QCBOREncode_AddEncodedToMapSZ() instead. */
 static void
 QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Encoded);
+
+
+
+/** @deprecated use QCBOREncode_OpenStreamedArray() instead. */
+/**
+ * @brief Indicates that the next items added are in an indefinite length array.
+ *
+ * @param[in] pCtx The encoding context to open the array in.
+ *
+ * This is the same as QCBOREncode_OpenArray() except the array is
+ * indefinite length.
+ *
+ * This must be closed with QCBOREncode_CloseArrayIndefiniteLength().
+ */
+static void
+QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx);
+
+/** @deprecated use QCBOREncode_OpenStreamedArrayInMapSZ() instead. */
+static void
+QCBOREncode_OpenArrayIndefiniteLengthInMapSZ(QCBOREncodeContext *pCtx,
+                                             const char         *szLabel);
+
+/** @deprecated use QCBOREncode_OpenStreamedArrayInMapN() instead. */
+static void
+QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
+                                            int64_t            nLabel);
+
+/** @deprecated use QCBOREncode_CloseStreamedArray() instead. */
+static void
+QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief Indicates that the next items added are in an indefinite length map.
+ *
+ * @param[in] pCtx The encoding context to open the map in.
+ *
+ * This is the same as QCBOREncode_OpenMap() except the array is
+ * indefinite length.
+ *
+ * This must be closed with QCBOREncode_CloseMapIndefiniteLength().
+ */
+static void
+QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx);
+
+/** See QCBOREncode_OpenMapIndefiniteLength(). */
+static void
+QCBOREncode_OpenMapIndefiniteLengthInMapSZ(QCBOREncodeContext *pCtx,
+                                           const char         *szLabel);
+
+/** See QCBOREncode_OpenMapIndefiniteLength(). */
+static void
+QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
+                                         int64_t              nLabel);
+
+
+
+
+/**
+ * @brief Close an open indefinite length map.
+ *
+ * @param[in] pCtx The encoding context to close the map in.
+ *
+ * This is the same as QCBOREncode_CloseMap(), but the open map that
+ * is being close must be of indefinite length.
+ */
+static void
+QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
 
 
 /* ========================================================================= *
@@ -1566,6 +1725,13 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfi
 }
 
 
+static inline void
+QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
+{
+   UsefulOutBuf_ConfigFlush(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
+}
+
+
 
 static inline void
 QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
@@ -1577,6 +1743,7 @@ QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 static inline void
 QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
+   // TODO: make this work in not streamed mode???
    QCBOREncode_Private_AddStreamedBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
 }
 
@@ -1946,6 +2113,16 @@ QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pMe)
 
 
 static inline void
+QCBOREncode_OpenStreamedMap(QCBOREncodeContext *pMe, size_t uLength)
+{
+   uint8_t uMajorType;
+
+   uMajorType = uLength == SIZE_MAX ? CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN : CBOR_MAJOR_TYPE_MAP;
+
+   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, uLength);
+}
+
+static inline void
 QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
@@ -1979,6 +2156,13 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
+
+static inline void
+QCBOREncode_CloseStreamedMap(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+}
+
 
 
 static inline void
@@ -2037,6 +2221,34 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddEncoded(pMe, Encoded);
+}
+
+
+static inline void
+QCBOREncode_AddStreamEncodedToMapSZ(QCBOREncodeContext *pMe,
+                            const char         *szLabel,
+                            const UsefulBufC    Encoded)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddStreamedEncoded(pMe, Encoded);
+}
+
+
+static inline void
+QCBOREncode_AddStreamEncodedToMapN(QCBOREncodeContext *pMe,
+                             const int64_t       nLabel,
+                             const UsefulBufC    Encoded)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddStreamedEncoded(pMe, Encoded);
+}
+
+
+
+static inline void
+QCBOREncode_Flush(QCBOREncodeContext *pMe)
+{
+   UsefulOutBuf_Flush(&(pMe->OutBuf));
 }
 
 
