@@ -927,11 +927,11 @@ QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pCtx, size_t uLength);
 
 /** See QCBOREncode_OpenArray(). */
 static void
-QCBOREncode_OpenStreamedArrayInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel);
+QCBOREncode_OpenStreamedArrayInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, size_t uLength);
 
 /** See QCBOREncode_OpenArray(). */
 static void
-QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel);
+QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel, size_t uLength);
 
 
 /**
@@ -985,7 +985,7 @@ QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pCtx,
  * is being closed must be of indefinite length. TODO: not true, it could be streamed.
  */
 static void
-QCBOREncode_CloseStreamed(QCBOREncodeContext *pCtx);
+QCBOREncode_CloseStreamedMap(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -1728,7 +1728,7 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfi
 static inline void
 QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
 {
-   UsefulOutBuf_ConfigFlush(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
+   UsefulOutBuf_SetStream(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
 }
 
 
@@ -1746,6 +1746,22 @@ QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
    // TODO: make this work in not streamed mode???
    QCBOREncode_Private_AddStreamedBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
 }
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddStreamedText(pMe, Text);
+}
+
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddStreamedText(pMe, Text);
+}
+
 
 static inline void
 QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pMe,
@@ -1835,6 +1851,31 @@ QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddBytes(pMe, Bytes);
 }
+
+
+static inline void
+QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, UsefulBufC Bytes)
+{
+   QCBOREncode_Private_AddStreamedBuffer(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, Bytes);
+}
+/** See QCBOREncode_AddText(). */
+
+static inline void
+QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Bytes)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddStreamedBytes(pMe, Bytes);
+}
+
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Bytes)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddStreamedBytes(pMe, Bytes);
+}
+
+
 
 static inline void
 QCBOREncode_OpenBytesInMapSZ(QCBOREncodeContext *pMe,
@@ -2075,6 +2116,24 @@ QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pMe, size_t uLength)
    QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, uLength);
 }
 
+/** See QCBOREncode_OpenArray(). */
+static inline void
+QCBOREncode_OpenStreamedArrayInMapSZ(QCBOREncodeContext *pMe, const char *szLabel, size_t uLength)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenStreamedArray(pMe, uLength);
+}
+
+/** See QCBOREncode_OpenArray(). */
+static inline void
+QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pMe, int64_t nLabel, size_t uLength)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenStreamedArray(pMe, uLength);
+}
+
+
+
 
 static inline void
 QCBOREncode_OpenArrayIndefiniteLengthInMapSZ(QCBOREncodeContext *pMe,
@@ -2121,6 +2180,28 @@ QCBOREncode_OpenStreamedMap(QCBOREncodeContext *pMe, size_t uLength)
 
    QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, uLength);
 }
+
+/** See QCBOREncode_OpenMapIndefiniteLength(). */
+static inline void
+QCBOREncode_OpenStreamedMapInMapSZ(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   size_t              uLength)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenStreamedMap(pMe, uLength);
+}
+
+
+/** See QCBOREncode_OpenMapIndefiniteLength(). */
+static inline void
+QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pMe,
+                                int64_t             nLabel,
+                                size_t              uLength)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenStreamedMap(pMe, uLength);
+}
+
 
 static inline void
 QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pMe)

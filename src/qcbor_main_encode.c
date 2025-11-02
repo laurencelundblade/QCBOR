@@ -612,7 +612,7 @@ QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
                                       const UsefulBufC    Bytes)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
-   UsefulOutBuf_DirectOut(&(pMe->OutBuf), Bytes);
+   UsefulOutBuf_AppendDirect(&(pMe->OutBuf), Bytes);
 }
 
 
@@ -629,7 +629,7 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 void
 QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 {
-   UsefulOutBuf_DirectOut(&(pMe->OutBuf), Encoded);
+   UsefulOutBuf_AppendDirect(&(pMe->OutBuf), Encoded);
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
 
