@@ -275,6 +275,18 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
+   /* Make sure valid data is less than buffer size. This would only occur
+    * if there was corruption of me, but it is also part of the checks to
+    * be sure there is no pointer arithmatic under/overflow.
+    */
+   if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
+      pMe->err = UBO_Err_Bad_State;
+      /* Offset of valid data is off the end of the UsefulOutBuf due to
+       * uninitialization or corruption
+       */
+      return;
+   }
+
    /* 1. Will it fit?
     * WillItFit() is the same as: NewData.len <= (me->UB.len - me->data_len)
     * Check #1 makes sure subtraction in RoomLeft will not wrap around
@@ -414,11 +426,11 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
 void
 UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
 {
-   size_t uNewDataOffset;
-   size_t uAmountToAppend;
-   size_t uRoomLeft;
-   void  *pNewDataCopyPosition;
-   void  *pAppendPosition;
+   size_t       uNewDataOffset;
+   size_t       uAmountToAppend;
+   size_t       uRoomLeft;
+   const void  *pNewDataCopyPosition;
+   void        *pAppendPosition;
 
    if(pMe->err) {
       /* Already in error state. */
@@ -470,7 +482,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
             return;
          }
       }
-      pNewDataCopyPosition = (uint8_t *)NewData.ptr + uNewDataOffset;
+      pNewDataCopyPosition = (const uint8_t *)NewData.ptr + uNewDataOffset;
 
       if( ! UsefulOutBuf_IsBufferNULL(pMe) && NewData.ptr != NULL) {
          pAppendPosition = (uint8_t *)pMe->UB.ptr + pMe->data_len;

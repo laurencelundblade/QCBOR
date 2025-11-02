@@ -939,6 +939,7 @@ typedef struct useful_out_buf {
    /** @private Function called to flush buffered data in streaming mode. NULL if not. */
    UsefulOutBuf_FlushCallBack *pfFlush;
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
+
 } UsefulOutBuf;
 
 
@@ -1239,8 +1240,9 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
 #ifdef USEFULBUF_DISABLE_STREAMING
 static inline
 #endif /* USEFULBUT_DISABLE_STREAMING */
-void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
-                                                UsefulBufC NewData);
+void 
+UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
+                             UsefulBufC    NewData);
 
 
 /**
@@ -2258,7 +2260,7 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
 UsefulOutBuf_SetStream(UsefulOutBuf              *pMe,
                          const size_t               uThreshold,
@@ -2269,6 +2271,7 @@ UsefulOutBuf_SetStream(UsefulOutBuf              *pMe,
    pMe->pFlushCtx       = pCallBackCtx;
    pMe->pfFlush         = pF;
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void UsefulOutBuf_Reset(UsefulOutBuf *pMe)
@@ -2470,6 +2473,8 @@ static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
    /* An append is just a insert at the end */
    UsefulOutBuf_InsertUsefulBuf(pMe, NewData, UsefulOutBuf_GetEndPosition(pMe));
 }
+#else
+   /* With streaming enabled, this is in UsefulBuf.c and not inline */
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 

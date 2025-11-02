@@ -370,6 +370,7 @@ const char *UOBTest_BoundaryConditionsTest(void)
    return NULL;
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 
 static int FlushCallback(void *pMe, UsefulBufC Bytes)
 {
@@ -401,7 +402,6 @@ static int FlushCallbackFail(void *pMe, UsefulBufC Bytes)
 
    return 0;
 }
-
 
 const char *UOBTest_Streaming(void)
 {
@@ -508,6 +508,7 @@ const char *UOBTest_Streaming(void)
 
    return NULL;
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 

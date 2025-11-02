@@ -515,7 +515,7 @@ QCBOREncode_AddTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Useful
 static void
 QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 /**
  * @brief  Add a UTF-8 text string to the encoded stream directly.
  *
@@ -538,7 +538,7 @@ QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel
 /** See QCBOREncode_AddText(). */
 static void
 QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
-
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 /**
  * @brief  Add a UTF-8 text string to the encoded output.
@@ -584,7 +584,7 @@ QCBOREncode_AddBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
 static void
 QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 /**
  * @brief  Add a UTF-8 text string to the encoded stream directly.
  *
@@ -607,6 +607,7 @@ QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabe
 /** See QCBOREncode_AddText(). */
 static void
 QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -921,6 +922,7 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
 
 // TODO: streamed array/map documentation
+#ifndef USEFULBUF_DISABLE_STREAMING
 /* If uLenght is SIZE_MAX, the array is indefinite */
 static void
 QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pCtx, size_t uLength);
@@ -986,6 +988,7 @@ QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pCtx,
  */
 static void
 QCBOREncode_CloseStreamedMap(QCBOREncodeContext *pCtx);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1515,6 +1518,8 @@ QCBOREncode_OpenArrayInMap(QCBOREncodeContext *pCtx, const char *szLabel);
 static void
 QCBOREncode_OpenMapInMap(QCBOREncodeContext *pCtx, const char *szLabel);
 
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /** @deprecated Use QCBOREncode_OpenArrayIndefiniteLengthInMapSZ() instead. */
 static void
 QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
@@ -1524,10 +1529,14 @@ QCBOREncode_OpenArrayIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
 static void
 QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
                                          const char         *szLabel);
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+#ifndef USEFULBUF_DISABLE_STREAMING
 
 /** @deprecated Use QCBOREncode_OpenArrayIndefiniteLengthInMapSZ() instead. */
 static void
 QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pCtx);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /** @deprecated Use QCBOREncode_BstrWrapInMapSZ() instead. */
@@ -1539,7 +1548,7 @@ static void
 QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Encoded);
 
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /** @deprecated use QCBOREncode_OpenStreamedArray() instead. */
 /**
  * @brief Indicates that the next items added are in an indefinite length array.
@@ -1593,8 +1602,6 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
                                          int64_t              nLabel);
 
 
-
-
 /**
  * @brief Close an open indefinite length map.
  *
@@ -1605,6 +1612,8 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
  */
 static void
 QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
+
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /* ========================================================================= *
@@ -1630,10 +1639,12 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pCtx,
                               uint8_t             uMajorType,
                               UsefulBufC          Bytes);
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 void
 QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
                                       const uint8_t       uMajorType,
                                       const UsefulBufC    Bytes);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 /** @private See qcbor_main_encode.c */
 void
@@ -1724,12 +1735,13 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfi
    }
 }
 
-
+#ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
 QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
 {
    UsefulOutBuf_SetStream(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 
@@ -1740,6 +1752,7 @@ QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 }
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
 QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
@@ -1761,6 +1774,7 @@ QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Usefu
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddStreamedText(pMe, Text);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void
@@ -1852,6 +1866,7 @@ QCBOREncode_AddBytesToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddBytes(pMe, Bytes);
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 
 static inline void
 QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, UsefulBufC Bytes)
@@ -1874,6 +1889,7 @@ QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Usef
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddStreamedBytes(pMe, Bytes);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 
@@ -2134,10 +2150,10 @@ QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pMe, int64_t nLabel, siz
 
 
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static inline void
 QCBOREncode_OpenArrayIndefiniteLengthInMapSZ(QCBOREncodeContext *pMe,
-                                           const char         *szLabel)
+                                             const char         *szLabel)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_OpenArrayIndefiniteLength(pMe);
@@ -2163,10 +2179,15 @@ QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
 
 static inline void
 QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pMe)
 {
+   // TODO: This closes definite and indefinite length arrays; disable check??
    QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 
@@ -2201,8 +2222,10 @@ QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_OpenStreamedMap(pMe, uLength);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static inline void
 QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
@@ -2237,13 +2260,16 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+
+#ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
 QCBOREncode_CloseStreamedMap(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
-
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void

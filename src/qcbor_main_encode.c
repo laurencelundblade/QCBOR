@@ -606,6 +606,7 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 void
 QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
                                       const uint8_t       uMajorType,
@@ -614,6 +615,8 @@ QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
    UsefulOutBuf_AppendDirect(&(pMe->OutBuf), Bytes);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
 
 
 
@@ -625,6 +628,7 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 /* Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h */
 void
 QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
@@ -632,6 +636,7 @@ QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded
    UsefulOutBuf_AppendDirect(&(pMe->OutBuf), Encoded);
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 
@@ -685,7 +690,7 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
 }
 
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#ifndef USEFULBUF_DISABLE_STREAMING
 /**
  * @brief Semi-private method to open a map, array with indefinite length
  *
@@ -762,7 +767,7 @@ QCBOREncode_Private_OpenMapOrArrayStreamedLength(QCBOREncodeContext *pMe,
    QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
 }
 
-#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1348,7 +1353,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 }
 
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#ifndef USEFULBUF_DISABLE_STREAMING
 /**
  * @brief Semi-private method to close a map, array with indefinite length
  *
@@ -1360,19 +1365,26 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
  */
 void
 QCBOREncode_Private_CloseStreamedArrayOrMap(QCBOREncodeContext *pMe,
-                                                    const uint8_t       uMajorType)
+                                            const uint8_t       uMajorType)
 {
    if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
       return;
    }
 
    if(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
       /* Append the break marker (0xff for both arrays and maps) */
       QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+#else
+      pMe->uError = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+      return;
+#endif
    }
+
+
    Nesting_Decrease(&(pMe->nesting));
 }
-#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /*
