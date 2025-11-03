@@ -3665,7 +3665,7 @@ SortMapTest(void)
        * but it needs to be tested for code safety.
        */
       UsefulOutBuf_AppendUsefulBuf(&(EC.OutBuf), pTest->ToBeSorted);
-      QCBOREncode_CloseAndSortMapIndef(&EC);
+      QCBOREncode_CloseAndSortFlowedMap(&EC);
       uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
       if(uErr != pTest->uError) {
          return MakeTestResultCode((uint32_t)nIndex, 0, uErr);
@@ -4035,7 +4035,7 @@ SortMapTest(void)
    QCBOREncode_OpenMapIndefiniteLengthInMap(&EC, "bb");
    QCBOREncode_CloseMapIndefiniteLength(&EC);
 
-   QCBOREncode_CloseAndSortMapIndef(&EC);
+   QCBOREncode_CloseAndSortFlowedMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
    if(uErr) {
       return 101;
@@ -4338,9 +4338,9 @@ int32_t StreamTest(void)
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
-   QCBOREncode_SetStream(&EC, 1, StreamTestFlushCB, &EC);
+   QCBOREncode_SetStream(&EC, StreamTestFlushCB, &EC);
 
-   QCBOREncode_OpenStreamedArray(&EC, 1); // TODO: test indef lengths too
+   QCBOREncode_OpenFlowedArray(&EC, 1); // TODO: test indef lengths too
 
    QCBOREncode_AddInt64(&EC, 4);
 #if 0

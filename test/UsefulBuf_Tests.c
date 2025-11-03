@@ -423,7 +423,7 @@ const char *UOBTest_Streaming(void)
 
    /* Output 25 bytes with a 6 byte buffer */
    UsefulOutBuf_Init(&UOB, OutputBuffer);
-   UsefulOutBuf_SetStream(&UOB, 4, FlushCallback, foo);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, foo);
    memset(foo, 0, sizeof(foo));
    UsefulOutBuf_AppendUsefulBuf(&UOB, TestDataUBC);
    UsefulOutBuf_Flush(&UOB);
@@ -438,7 +438,7 @@ const char *UOBTest_Streaming(void)
 
    // Output a uint64_t with a 6 byte buffer
    UsefulOutBuf_Init(&UOB, OutputBuffer);
-   UsefulOutBuf_SetStream(&UOB, 4, FlushCallback, foo);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, foo);
    memset(foo, 0, sizeof(foo));
    UsefulOutBuf_AppendUint64(&UOB, 0xfffef1);
    UsefulOutBuf_Flush(&UOB);
@@ -453,7 +453,7 @@ const char *UOBTest_Streaming(void)
 
    // Output a 32-bit integer, then 20 bytes directly
    UsefulOutBuf_Init(&UOB, OutputBuffer);
-   UsefulOutBuf_SetStream(&UOB, 4, FlushCallback, foo);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, foo);
    memset(foo, 0, sizeof(foo));
    UsefulOutBuf_AppendUint64(&UOB, 0xfffef1);
    UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
@@ -471,7 +471,7 @@ const char *UOBTest_Streaming(void)
 
    /* Test flush function failure */
    UsefulOutBuf_Init(&UOB, OutputBuffer);
-   UsefulOutBuf_SetStream(&UOB, 4, FlushCallbackFail, foo);
+   UsefulOutBuf_SetStream(&UOB, FlushCallbackFail, foo);
    memset(foo, 0, sizeof(foo));
    UsefulOutBuf_AppendUsefulBuf(&UOB, TestDataUBC);
    UsefulOutBuf_Flush(&UOB);
@@ -498,7 +498,7 @@ const char *UOBTest_Streaming(void)
    }
 
    UsefulOutBuf_Init(&UOB, OutputBuffer);
-   UsefulOutBuf_SetStream(&UOB, 4, FlushCallback, foo);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, foo);
    UsefulOutBuf_AppendByte(&UOB, 0x83);
    UsefulOutBuf_InsertByte(&UOB, 0x97, 0);
    nErr = UsefulOutBuf_GetError(&UOB);
