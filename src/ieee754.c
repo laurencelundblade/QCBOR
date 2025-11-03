@@ -418,9 +418,9 @@ IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
              * Serializaton. Note that Deterministically Encode CBOR in
              * section 4.2 allows for some variation of this rule, but at
              * the moment this implementation is of Preferred
-             * Serialization, not CDE. As of December 2023, we are also
-             * expecting an update to CDE. This code may need to be
-             * updated for CDE.
+             * Serialization, not deterministic encoding. As of December 2023, we are also
+             * expecting an update to deterministic encoding. This code may need to be
+             * updated.
              */
             uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
             if(uDroppedBits == 0) {
@@ -603,9 +603,9 @@ IEEE754_DoubleToSingle(const double d)
           * Serializaton. Note that Deterministically Encode CBOR in
           * section 4.2 allows for some variation of this rule, but at
           * the moment this implementation is of Preferred
-          * Serialization, not CDE. As of December 2023, we are also
-          * expecting an update to CDE. This code may need to be
-          * updated for CDE.
+          * Serialization, not deterministic encoding. As of December 2023, we are also
+          * expecting an update to deterministic encoding. This code may need to be
+          * updated.
           */
          uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
          if(uDroppedBits == 0) {

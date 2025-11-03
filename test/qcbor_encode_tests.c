@@ -3095,7 +3095,7 @@ struct EAMEncodeTest {
    UsefulBufC  BigNumMantissa;
    int64_t     nMantissa;
    bool        bSign;
-   enum {EAM_Any, EAM_Pref, EAM_CDE} eSerialization;
+   enum {EAM_Any, EAM_Pref, EAM_Deterministic} eSerialization;
    // TODO: add tag requirement
 
    /* Only testing successes (right?) */
@@ -3146,8 +3146,8 @@ EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
       case EAM_Pref:
          QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED );
          break;
-      case EAM_CDE:
-         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_CDE);
+      case EAM_Deterministic:
+         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
          break;
 
       default:
@@ -4099,7 +4099,7 @@ SortMapTest(void)
 
 
 /* Public function. See qcbor_encode_tests.h */
-int32_t CDETest(void)
+int32_t DeterministicEncodingTest(void)
 {
    QCBOREncodeContext EC;
    UsefulBufC         Encoded;
@@ -4107,7 +4107,7 @@ int32_t CDETest(void)
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
-   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_CDE);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
 
 
    /* Items added to test sorting and preferred encoding of numbers and floats */
@@ -4126,13 +4126,13 @@ int32_t CDETest(void)
       return 2;
    }
 
-   static const uint8_t spExpectedCDE[] = {
+   static const uint8_t spExpectedDeterministic[] = {
       0xA6, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
       0x00, 0x61, 0x6B, 0xF9, 0x3C, 0x00, 0x61, 0x72,
       0xFA, 0x7F, 0x7F, 0xFF, 0xFF, 0x61, 0x74, 0xF7,
       0x61, 0x78, 0xF9, 0x40, 0x00};
 
-   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedCDE),
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeterministic),
                         Encoded)) {
       return 1;
    }
@@ -4145,9 +4145,9 @@ int32_t CDETest(void)
 #endif
 
 #ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   /* Next, make sure methods that encode non-CDE error out */
+   /* Next, make sure methods that encode non-deterministic error out */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_CDE);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
    QCBOREncode_OpenMapIndefiniteLength(&EC);
    QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
@@ -4199,7 +4199,7 @@ int32_t DCBORTest(void)
    uExpectedErr = QCBOR_SUCCESS;
 #endif
 
-   /* Next, make sure methods that encode of non-CDE error out */
+   /* Next, make sure methods that encode of non-deterministic error out */
 
 #ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Indefinite-length map */
