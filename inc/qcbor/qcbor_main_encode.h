@@ -149,11 +149,12 @@ extern "C" {
  * 1) QCBOREncode_SetStream() is called to set the streaming mode.
  * Pass the flush function and call back context to it.
  *
- * 2) Arrays and maps must be opened with OpenStreamedArray()
- * and OpenStreamedMap() instead of OpenArray() and OpenMap().
+ * 2) Arrays and maps must be opened with OpenFlowededArray()
+ * and OpenFlowededMap() instead of OpenArray() and OpenMap().
  * Similary they must be closed by xxxx(). Note that these can
  * output definte-length arrays and maps by giving the length
- * when the array or map is opened.
+ * when the array or map is opened. Also, maps cannot be sorted
+ * in streaming mode.
  *
  * 3) QCBOREncode_FinishStream() must be closed instead of QCBOREncode_Finish().
  *
@@ -168,11 +169,21 @@ extern "C" {
  * instead of QCBOREncode_AddText() and QCBOREncode_AddBytes(). These functions will pass the text
  * or bytes straight to one call of flush function with no intermediate copying
  * or buffering. The encode output buffer will be used only for the
- * CBOR head and label.
+ * CBOR head and label. These functions can only be called in streaming mode.
  *
  * To count the number of bytes that would be output in streaming mode,
  * supply a flush function that does nothing but count the bytes
  * output instead of one that actually outputs the encoded CBOR.
+ *
+ * OpenFlowededArray() and OpenFlowededMap() can be used when not
+ * in streaming mode for indefinte length and definite-length arrays whose
+ * length is known.  This is why they don't have "Stream" in their name.
+ * The amount they output is just limited to the output buffer
+ * size.
+ *
+ * The size of the data to be handled by the flush callback is never
+ * larger than the output buffer size, except when functions like QCBOREncode_AddStreamedText() that
+ * directly call flush are used.
  *
  * If the non-streaming QCBOREncode_OpenArray() and QCOREncode_OpenMap() are never called, the internal linking
  * is such that the object code that goes back to write the length into
@@ -455,9 +466,9 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConf
 
 
 #ifndef USEFULBUF_DISABLE_STREAMING
+// TODO: document this
 static void
 QCBOREncode_SetStream(QCBOREncodeContext         *pCtx,
-                      size_t                      uThreshold,
                       UsefulOutBuf_FlushCallBack *pfCallback,
                       void                       *pCBCtx);
 
@@ -522,9 +533,12 @@ QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC T
  * @param[in] pCtx      The encoding context to add the text to.
  * @param[in] szString  Null-terminated text to add.
  *
- * This works the same as QCBOREncode_AddText(), except in streaming mode
+ * This does the same as QCBOREncode_AddText(), except in streaming mode
  * this passes the text direclty to the flush function by passing any buffering. Any
  * buffered encoded CBOR not yet flushed is flushed before the text is output.
+ *
+ * If streaming mode is not enabled or compiled out, this is the same as
+ * QCBOREncode_AddText().
  *
  * See additional discussion in @ref Streaming.
  */
@@ -922,18 +936,17 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 
 
 // TODO: streamed array/map documentation
-#ifndef USEFULBUF_DISABLE_STREAMING
 /* If uLenght is SIZE_MAX, the array is indefinite */
 static void
-QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pCtx, size_t uLength);
+QCBOREncode_OpenFlowedArray(QCBOREncodeContext *pCtx, size_t uLength);
 
 /** See QCBOREncode_OpenArray(). */
 static void
-QCBOREncode_OpenStreamedArrayInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, size_t uLength);
+QCBOREncode_OpenFlowedArrayInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, size_t uLength);
 
 /** See QCBOREncode_OpenArray(). */
 static void
-QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel, size_t uLength);
+QCBOREncode_OpenFlowedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel, size_t uLength);
 
 
 /**
@@ -945,7 +958,7 @@ QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel, s
  * that is being close must be of indefinite length.
  */
 static void
-QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pCtx);
+QCBOREncode_CloseFlowedArray(QCBOREncodeContext *pCtx);
 
 
 
@@ -961,21 +974,19 @@ QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pCtx);
  * This must be closed with QCBOREncode_CloseMapIndefiniteLength().
  */
 static void
-QCBOREncode_OpenStreamedMap(QCBOREncodeContext *pCtx, size_t uLength);
+QCBOREncode_OpenFlowedMap(QCBOREncodeContext *pCtx, size_t uLength);
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
 static void
-QCBOREncode_OpenStreamedMapInMapSZ(QCBOREncodeContext *pCtx,
+QCBOREncode_OpenFlowedMapInMapSZ(QCBOREncodeContext *pCtx,
                                    const char         *szLabel,
                                    size_t              uLength);
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
 static void
-QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pCtx,
+QCBOREncode_OpenFlowedMapMapN(QCBOREncodeContext *pCtx,
                                 int64_t             nLabel,
                                 size_t              uLength);
-
-
 
 
 /**
@@ -987,8 +998,7 @@ QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pCtx,
  * is being closed must be of indefinite length. TODO: not true, it could be streamed.
  */
 static void
-QCBOREncode_CloseStreamedMap(QCBOREncodeContext *pCtx);
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
+QCBOREncode_CloseFlowedMap(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -1023,7 +1033,7 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
 // sometimes. Have to know whether the starting position
 // is valid or not.
 void
-QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pCtx);
+QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pCtx);
 
 
 /**
@@ -1115,6 +1125,7 @@ void
 QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pCtx, bool bIncludeCBORHead, UsefulBufC *pWrappedCBOR);
 
 /** See QCBOREncode_CloseBstrWrap2(). */
+// TODO: deprecate this?
 static void
 QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pCtx, UsefulBufC *pWrappedCBOR);
 
@@ -1531,12 +1542,10 @@ QCBOREncode_OpenMapIndefiniteLengthInMap(QCBOREncodeContext *pCtx,
                                          const char         *szLabel);
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
-#ifndef USEFULBUF_DISABLE_STREAMING
 
 /** @deprecated Use QCBOREncode_OpenArrayIndefiniteLengthInMapSZ() instead. */
 static void
-QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pCtx);
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
+QCBOREncode_CloseFlowedArray(QCBOREncodeContext *pCtx);
 
 
 /** @deprecated Use QCBOREncode_BstrWrapInMapSZ() instead. */
@@ -1651,15 +1660,10 @@ void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pCtx,
                                    uint8_t             uMajorType);
 
-/** @private See qcbor_main_encode.c */
-void
-QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pCtx,
-                                                   uint8_t             uMajorType);
-
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_OpenStreamedArrayOrMap(QCBOREncodeContext *pMe,
+QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
                                            const uint8_t       uMajorType,
                                            const size_t        uLength);
 
@@ -1670,7 +1674,7 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pCtx,
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_CloseStreamedArrayOrMap(QCBOREncodeContext *pCtx,
+QCBOREncode_Private_CloseFlowedArrayOrMap(QCBOREncodeContext *pCtx,
                                             uint8_t             uMajorType);
 
 /** @private See qcbor_main_encode.c */
@@ -1737,9 +1741,9 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pMe, enum QCBOREncodeConfig uConfi
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
-QCBOREncode_SetStream(QCBOREncodeContext *pMe, size_t uThreshold, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
+QCBOREncode_SetStream(QCBOREncodeContext *pMe, UsefulOutBuf_FlushCallBack *pfCallback, void *pCBCtx)
 {
-   UsefulOutBuf_SetStream(&(pMe->OutBuf), uThreshold, pfCallback, pCBCtx);
+   UsefulOutBuf_SetStream(&(pMe->OutBuf), pfCallback, pCBCtx);
 }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
@@ -1752,29 +1756,7 @@ QCBOREncode_AddText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 }
 
 
-#ifndef USEFULBUF_DISABLE_STREAMING
-static inline void
-QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
-{
-   // TODO: make this work in not streamed mode???
-   QCBOREncode_Private_AddStreamedBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
-}
-/** See QCBOREncode_AddText(). */
-static inline void
-QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
-{
-   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
-   QCBOREncode_AddStreamedText(pMe, Text);
-}
 
-/** See QCBOREncode_AddText(). */
-static inline void
-QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
-{
-   QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddStreamedText(pMe, Text);
-}
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void
@@ -1801,6 +1783,49 @@ QCBOREncode_AddTextToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddText(pMe, Text);
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
+static inline void
+QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
+{
+   // TODO: make this work in not streamed mode???
+   QCBOREncode_Private_AddStreamedBuffer(pMe, CBOR_MAJOR_TYPE_TEXT_STRING, Text);
+}
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
+   QCBOREncode_AddStreamedText(pMe, Text);
+}
+
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddStreamedText(pMe, Text);
+}
+#else
+static inline void
+QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
+{
+   // TODO: make this work in not streamed mode???
+   QCBOREncode_AddText(pMe, Text);
+}
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddTextToMapSZ(pMe, szLabel, Text);
+}
+
+/** See QCBOREncode_AddText(). */
+static inline void
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
+{
+   QCBOREncode_AddTextToMapN(pMe, nLabel, Text);
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 inline static void
 QCBOREncode_AddSZString(QCBOREncodeContext *pMe, const char *szString)
@@ -2117,35 +2142,35 @@ QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
 #if 0
    QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 #else
-   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, 0);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, 0);
 #endif
 }
 
 
 static inline void
-QCBOREncode_OpenStreamedArray(QCBOREncodeContext *pMe, size_t uLength)
+QCBOREncode_OpenFlowedArray(QCBOREncodeContext *pMe, size_t uLength)
 {
    uint8_t uMajorType;
 
    uMajorType = uLength == SIZE_MAX ? CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN : CBOR_MAJOR_TYPE_ARRAY;
 
-   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, uLength);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, uMajorType, uLength);
 }
 
 /** See QCBOREncode_OpenArray(). */
 static inline void
-QCBOREncode_OpenStreamedArrayInMapSZ(QCBOREncodeContext *pMe, const char *szLabel, size_t uLength)
+QCBOREncode_OpenFlowedArrayInMapSZ(QCBOREncodeContext *pMe, const char *szLabel, size_t uLength)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_OpenStreamedArray(pMe, uLength);
+   QCBOREncode_OpenFlowedArray(pMe, uLength);
 }
 
 /** See QCBOREncode_OpenArray(). */
 static inline void
-QCBOREncode_OpenStreamedArrayInMapN(QCBOREncodeContext *pMe, int64_t nLabel, size_t uLength)
+QCBOREncode_OpenFlowedArrayInMapN(QCBOREncodeContext *pMe, int64_t nLabel, size_t uLength)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_OpenStreamedArray(pMe, uLength);
+   QCBOREncode_OpenFlowedArray(pMe, uLength);
 }
 
 
@@ -2177,59 +2202,57 @@ QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
-#ifndef USEFULBUF_DISABLE_STREAMING
 
 static inline void
-QCBOREncode_CloseStreamedArray(QCBOREncodeContext *pMe)
+QCBOREncode_CloseFlowedArray(QCBOREncodeContext *pMe)
 {
    // TODO: This closes definite and indefinite length arrays; disable check??
-   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
 }
 
 
 static inline void
-QCBOREncode_OpenStreamedMap(QCBOREncodeContext *pMe, size_t uLength)
+QCBOREncode_OpenFlowedMap(QCBOREncodeContext *pMe, size_t uLength)
 {
    uint8_t uMajorType;
 
    uMajorType = uLength == SIZE_MAX ? CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN : CBOR_MAJOR_TYPE_MAP;
 
-   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, uLength);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, uMajorType, uLength);
 }
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
 static inline void
-QCBOREncode_OpenStreamedMapInMapSZ(QCBOREncodeContext *pMe,
+QCBOREncode_OpenFlowedMapInMapSZ(QCBOREncodeContext *pMe,
                                    const char         *szLabel,
                                    size_t              uLength)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_OpenStreamedMap(pMe, uLength);
+   QCBOREncode_OpenFlowedMap(pMe, uLength);
 }
 
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
 static inline void
-QCBOREncode_OpenStreamedMapMapN(QCBOREncodeContext *pMe,
+QCBOREncode_OpenFlowedMapMapN(QCBOREncodeContext *pMe,
                                 int64_t             nLabel,
                                 size_t              uLength)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_OpenStreamedMap(pMe, uLength);
+   QCBOREncode_OpenFlowedMap(pMe, uLength);
 }
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static inline void
 QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN, 0);
 }
 
 static inline void
@@ -2258,18 +2281,16 @@ QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
-#ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
-QCBOREncode_CloseStreamedMap(QCBOREncodeContext *pMe)
+QCBOREncode_CloseFlowedMap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void

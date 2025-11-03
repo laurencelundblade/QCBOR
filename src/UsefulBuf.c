@@ -493,7 +493,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
       pMe->data_len  += uAmountToAppend;
       uNewDataOffset += uAmountToAppend;
 
-      if(pMe->pfFlush != NULL && pMe->data_len > pMe->uFlushThreshold) {
+      if(pMe->pfFlush != NULL && pMe->data_len == pMe->UB.len) {
          UsefulOutBuf_Flush(pMe);
          if(pMe->err) {
             return;

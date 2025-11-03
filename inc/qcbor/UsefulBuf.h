@@ -825,8 +825,8 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  *
  * @return 0 or an error code. See @ref UsefulBufErr.
  *
- * A caller-supplied function of this type is called when the useful
- * output has more bytes in it than the threshold set by UsefulOutBuf_SetStream().
+ * A caller-supplied function of this type is called when the output
+ * buffer is full.
  *
  * This can return proprietary error codes and they will be passed up
  * through  UsefulOutBuf_GetError().
@@ -908,7 +908,7 @@ typedef int (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
  * UsefulOutBuf.
  *
  * UsefulOutBuf has a streaming mode where a flush function is called
- * when the buffer is full beyond a threshold. This mode is entered
+ * when the buffer is full. This mode is entered
  * when UsefulOutBuf_ConfigFlush() is called. The buffer passed
  * to UsefulOutBuf_Init() then becomes a temporary buffer. In this
  * mode Append() ... TODO....
@@ -932,8 +932,6 @@ typedef struct useful_out_buf {
    uint8_t    err;
 
 #ifndef USEFULBUF_DISABLE_STREAMING
-   /** @private Call pfFlush if more bytes than this in data_len */
-   size_t     uFlushThreshold;
    /** @private Context for flush function. May be NULL. */
    void      *pFlushCtx;
    /** @private Function called to flush buffered data in streaming mode. NULL if not. */
@@ -984,17 +982,15 @@ void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
  * @brief Initialize and supply the output buffer.
  *
  * @param[out] pUOutBuf  The @ref UsefulOutBuf to initialize.
- * @param[in] uThreshold    Amount of bytes in buffer that triggers call to flush function.
  * @param[in] pfFlush    Function that is called to actually output accumulated bytes.
  * @param[in] pCallBackCtx    Context passed to @c pfFlush call.
  *
  * This puts the @ref UsefulOutBuf into streaming mode. In streaming mode,
  * the @c Storage given in the UsefulOutBuf_Init() call is used as a temporary
- * buffer. When it has more than @ref uThreshold bytes, the function referenced
+ * buffer. When it is full, the function referenced
  * by @c pfFlush is called.
  */
 static void UsefulOutBuf_SetStream(UsefulOutBuf               *pUOutBuf,
-                                   size_t                      uThreshold,
                                    UsefulOutBuf_FlushCallBack *pfFlush,
                                    void                       *pCallBackCtx);
 
@@ -1442,6 +1438,10 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
   * just calculating the length of the encoded data.
   */
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
+
+
+// Return 0 if not streaming, 1 if streaming
+static inline int UsefulOutBuf_IsStreaming(UsefulOutBuf *pUOutBuf);
 
 
 /**
@@ -2263,11 +2263,9 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
 #ifndef USEFULBUF_DISABLE_STREAMING
 static inline void
 UsefulOutBuf_SetStream(UsefulOutBuf              *pMe,
-                         const size_t               uThreshold,
                          UsefulOutBuf_FlushCallBack *pF,
                          void                       *pCallBackCtx)
 {
-   pMe->uFlushThreshold = uThreshold;
    pMe->pFlushCtx       = pCallBackCtx;
    pMe->pfFlush         = pF;
 }
@@ -2650,6 +2648,11 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pMe, size_t uLen)
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
 {
    return pMe->UB.ptr == NULL;
+}
+
+static inline int UsefulOutBuf_IsStreaming(UsefulOutBuf *pMe)
+{
+   return pMe->pfFlush != NULL;
 }
 
 

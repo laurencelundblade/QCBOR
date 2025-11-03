@@ -584,6 +584,9 @@ typedef enum {
    /** A tag number is expected, but missing. */
    QCBOR_ERR_MISSING_TAG_NUMBER = 91,
 
+   /** The function cannot be used in streaming mode. See QCBOREncode_SetStream() */
+   QCBOR_ERR_NOT_ALLOWED_IN_STREAMING = 92,
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */

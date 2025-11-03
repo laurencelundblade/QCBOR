@@ -606,14 +606,19 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
+
 #ifndef USEFULBUF_DISABLE_STREAMING
 void
 QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext *pMe,
                                       const uint8_t       uMajorType,
                                       const UsefulBufC    Bytes)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
-   UsefulOutBuf_AppendDirect(&(pMe->OutBuf), Bytes);
+   if( ! UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
+      QCBOREncode_Private_AddBuffer(pMe, uMajorType, Bytes);
+   } else {
+      QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
+      UsefulOutBuf_AppendDirect(&(pMe->OutBuf), Bytes);
+   }
 }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
@@ -653,9 +658,9 @@ void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
                                    const uint8_t       uMajorType)
 {
-   if(pMe->uConfigFlags & 0x800) { // TODO: flags
+   if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
       /* In streaming mode, can't open definite length without knowing length */
-      pMe->uError = 103; // TODO: error code
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED_IN_STREAMING;
       return;
    }
 
@@ -690,42 +695,11 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
 }
 
 
-#ifndef USEFULBUF_DISABLE_STREAMING
-/**
- * @brief Semi-private method to open a map, array with indefinite length
- *
- * @param[in] pMe        The context to add to.
- * @param[in] uMajorType  The major CBOR type to close
- *
- * Call QCBOREncode_OpenArrayIndefiniteLength() or
- * QCBOREncode_OpenMapIndefiniteLength() instead of this.
- */
+// TODO: document this.
 void
-QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(QCBOREncodeContext *pMe,
-                                                   const uint8_t       uMajorType)
-{
-#if 0
-   /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
-   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
-   if(pMe->uError) {
-      return;
-   }
-
-   /* Call the definite-length opener just to do the bookkeeping for
-    * nesting.  It will record the position of the opening item in the
-    * encoded output but this is not used when closing this open.
-    */
-   QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
-#else
-   QCBOREncode_Private_OpenStreamedArrayOrMap(pMe, uMajorType, 0);
-#endif
-}
-
-
-void
-QCBOREncode_Private_OpenStreamedArrayOrMap(QCBOREncodeContext *pMe,
-                                           const uint8_t       uMajorType,
-                                           const size_t        uLength)
+QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
+                                         const uint8_t       uMajorType,
+                                         const size_t        uLength)
 {
    /* TODO: fix comment -- insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uLength, 0);
@@ -740,34 +714,7 @@ QCBOREncode_Private_OpenStreamedArrayOrMap(QCBOREncodeContext *pMe,
    QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
 }
 
-/**
- * @brief Semi-private method to open a map, array with indefinite length
- *
- * @param[in] pMe        The context to add to.
- * @param[in] uMajorType  The major CBOR type to close
- *
- * Call QCBOREncode_OpenArrayIndefiniteLength() or
- * QCBOREncode_OpenMapIndefiniteLength() instead of this.
- */
-void
-QCBOREncode_Private_OpenMapOrArrayStreamedLength(QCBOREncodeContext *pMe,
-                                                   const uint8_t       uMajorType,
-                                                 const size_t uLength)
-{
-   /* Insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
-   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uLength, 0);
-   if(pMe->uError) {
-      return;
-   }
 
-   /* Call the definite-length opener just to do the bookkeeping for
-    * nesting.  It will record the position of the opening item in the
-    * encoded output but this is not used when closing this open.
-    */
-   QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
-}
-
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1232,14 +1179,23 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
  * Public functions for closing sorted maps. See qcbor/qcbor_encode.h
  */
 void
-QCBOREncode_CloseAndSortMapIndef(QCBOREncodeContext *pMe)
+QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;
+
+   /* TODO:
+    Not unknown length definite
+    Not indefinite
+    "NoAppend"
+    Flowed
+    NoCount
+
+    */
 
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncode_Private_SortMap(pMe, uStart);
 
-   QCBOREncode_Private_CloseStreamedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
@@ -1319,9 +1275,15 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 /*
  * Public function for opening a byte string. See qcbor/qcbor_encode.h
  */
+// TODO: could allow in streaming mode if length was given.
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
+   if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED_IN_STREAMING;
+      return;
+   }
+
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    uint8_t uMajorType = Nesting_GetMajorType(&(pMe->nesting));
@@ -1353,7 +1315,6 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 }
 
 
-#ifndef USEFULBUF_DISABLE_STREAMING
 /**
  * @brief Semi-private method to close a map, array with indefinite length
  *
@@ -1364,7 +1325,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
  * QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
 void
-QCBOREncode_Private_CloseStreamedArrayOrMap(QCBOREncodeContext *pMe,
+QCBOREncode_Private_CloseFlowedArrayOrMap(QCBOREncodeContext *pMe,
                                             const uint8_t       uMajorType)
 {
    if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
@@ -1381,10 +1342,8 @@ QCBOREncode_Private_CloseStreamedArrayOrMap(QCBOREncodeContext *pMe,
 #endif
    }
 
-
    Nesting_Decrease(&(pMe->nesting));
 }
-#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /*
