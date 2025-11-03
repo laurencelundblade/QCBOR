@@ -197,7 +197,7 @@ int32_t SortMapTest(void);
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
 
 /* Test CBOR Deterministic Encoding */
-int32_t CDETest(void);
+int32_t DeterministicEncodingTest(void);
 
 /* Test "dCBOR" mode */
 int32_t DCBORTest(void);

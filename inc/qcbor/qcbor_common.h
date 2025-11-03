@@ -447,15 +447,17 @@ typedef enum {
     * encoded in shortest form, or indefinite lengths are used. */
    QCBOR_ERR_PREFERRED_CONFORMANCE = 52,
 
-   /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
-    * CDE issues are reported as QCBOR_ERR_PREFERRED_CONFORMANCE. */
-   QCBOR_ERR_CDE_CONFORMANCE = 53,
+   /** Decoded CBOR does not conform to deterministic encoding. This
+    * occurs when a map is not sorted. Other deterministic issues are
+    * reported as @ref QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_DETERMINISTIC_CONFORMANCE = 53,
 
    /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
-    * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
+    * Other issues are reported as either @ref QCBOR_ERR_DETERMINISTIC_CONFORMANCE or
+    * @ref QCBOR_ERR_PREFERRED_CONFORMANCE. */
    QCBOR_ERR_DCBOR_CONFORMANCE = 54,
 
-   /** A map is unsorted and should be for CDE or dCBOR. */
+   /** A map is unsorted and should be for deterministic encoding or dCBOR. */
    QCBOR_ERR_UNSORTED = 55,
 
    /** Conformance checking requested, preferred serialization disabled, float in the input. */
@@ -555,11 +557,14 @@ typedef enum {
     * (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
 
-   /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
-    * allowed by mode. See QCBOREncode_SerializationPreferred(),
-    * QCBOREncode_SerializationCDE(),
-    * QCBOREncode_SerializationdCBOR() and @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS.
-    */
+   /** Attempt to output non-preferred, non-deterministic or non-dCBOR
+    * when not allowed by mode. See
+    * @ref QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS,
+    * @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS,
+    * @ref QCBOR_ENCODE_CONFIG_PREFERRED,
+    * @ref QCBOR_ENCODE_CONFIG_DETERMINISTIC,
+    * @ref QCBOR_ENCODE_CONFIG_DCBOR.
+     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
    /** Trying to do something that is not allowed. */

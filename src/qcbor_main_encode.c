@@ -830,7 +830,7 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
  *
  * @param[in] pMe     The encode context with map to close.
  *
- * See QCBOREncode_SerializationCDE() implemention for explantion for why
+ * See QCBOREncode_Config() implemention for the explantion for why
  * this exists in this form.
  */
 void
