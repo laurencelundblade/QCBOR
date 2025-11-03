@@ -48,7 +48,7 @@ extern "C" {
 #endif
 #endif
 
-//#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 /**
  * @file qcbor_common.h

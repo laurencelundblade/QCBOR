@@ -1440,9 +1440,10 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 // Return 0 if not streaming, 1 if streaming
 static inline int UsefulOutBuf_IsStreaming(UsefulOutBuf *pUOutBuf);
-
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 /**
  * @brief Returns pointer and length of the output buffer not yet used.
@@ -2650,10 +2651,12 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
    return pMe->UB.ptr == NULL;
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 static inline int UsefulOutBuf_IsStreaming(UsefulOutBuf *pMe)
 {
    return pMe->pfFlush != NULL;
 }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)

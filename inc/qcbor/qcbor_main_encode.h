@@ -652,6 +652,9 @@ QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Use
  *
  * The byte string must be closed by calling QCBOREncode_CloseBytes().
  *
+ * Use of this is not allowed in streaming mode. QCBOREncode_AddStreamedBytes()
+ * may be an alternative for some use cases.
+ *
  * Warning: this bypasses some of the usual checks provided by QCBOR
  * against writing off the end of the encoded output buffer.
  */
@@ -1028,10 +1031,6 @@ void
 QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
 
 /** See QCBOREncode_CloseAndSortMapIndef(). */
-// TODO: should this be retained?
-// It sort of doesn't make sense, but it can work
-// sometimes. Have to know whether the starting position
-// is valid or not.
 void
 QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pCtx);
 
@@ -1405,6 +1404,11 @@ QCBOREncode_GetErrorState(QCBOREncodeContext *pCtx);
  * no detection of these errors. This occurs because QCBOR goes back
  * and inserts the lengths of definite-length arrays and maps when
  * they are closed. This insertion will make the offsets incorrect.
+ *
+ * WARNING: In streaming mode, any call QCBOREncode_Flush()
+ * or any encode that triggers a streaming flush will invalidate
+ * the offset returned by this. Use of this in streaming mode is
+ * not recommended.
  */
 static size_t
 QCBOREncode_Tell(QCBOREncodeContext *pCtx);
@@ -1434,7 +1438,8 @@ QCBOREncode_Tell(QCBOREncodeContext *pCtx);
  * Unlike QCBOREncode_Finish(), this will succeed even if some arrays
  * and maps are not closed.
  *
- * See important usage WARNING in QCBOREncode_Tell()
+ * See important usage WARNING in QCBOREncode_Tell(). Use of
+ * this is not recommended in streaming mode.
  */
 UsefulBufC
 QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);

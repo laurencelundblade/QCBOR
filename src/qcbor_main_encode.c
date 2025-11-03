@@ -658,11 +658,13 @@ void
 QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
                                    const uint8_t       uMajorType)
 {
+#ifndef USEFULBUF_DISABLE_STREAMING
    if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
       /* In streaming mode, can't open definite length without knowing length */
       pMe->uError = QCBOR_ERR_NOT_ALLOWED_IN_STREAMING;
       return;
    }
+#endif  /* ! USEFULBUF_DISABLE_STREAMING */
 
    /* Add one item to the nesting level we are in for the new map or array */
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
@@ -1279,10 +1281,12 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
+#ifndef USEFULBUF_DISABLE_STREAMING
    if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED_IN_STREAMING;
       return;
    }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
