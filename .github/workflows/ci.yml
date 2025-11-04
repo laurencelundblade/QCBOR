@@ -37,7 +37,7 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make warn CMD_LINE=${{ matrix.config.dis-xxx }}
+        make warn CMD_LINE=${{ matrix.ifdef }}
 
     - name: Run tests
       run: ./qcbortest
