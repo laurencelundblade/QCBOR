@@ -11,15 +11,11 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        ifdef: [-DXX -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS -DUSEFULBUF_DISABLE_ALL_FLOAT]
+        ifdef: [-DXX, -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS, -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE]
 
         config:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_FLOAT_HW_USE'
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
