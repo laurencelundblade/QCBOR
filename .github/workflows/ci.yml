@@ -11,23 +11,11 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        ifdef: [-DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_NON_INTEGER_LABELS]
+        ifdef: [-DXX -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS -DUSEFULBUF_DISABLE_ALL_FLOAT]
 
         config:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_NON_INTEGER_LABELS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_TAGS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DUSEFULBUF_DISABLE_ALL_FLOAT'
 
         - os-image: ubuntu-latest
           container: ubuntu:22.04
