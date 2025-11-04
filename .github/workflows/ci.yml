@@ -11,7 +11,7 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        ifdef: ['-DQCBOR_DISABLE_NON_INTEGER_LABELS', '-DQCBOR_DISABLE_NON_INTEGER_LABELS']
+        ifdef: [-DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_NON_INTEGER_LABELS]
 
         config:
         - os-image: ubuntu-latest
