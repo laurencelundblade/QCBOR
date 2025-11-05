@@ -469,7 +469,31 @@ QCBOREncode_ConfigReduced(QCBOREncodeContext *pCtx, enum QCBOREncodeConfig uConf
 
 
 #ifndef USEFULBUF_DISABLE_STREAMING
-// TODO: document this
+/**
+ * @brief Put the encoder in to streaming mode.
+ *
+ * @param[in] pCtx   The encoding context for mode set.
+ * @param[in] pfCallback  Callback to flush output.
+ * @param[in] pCBCtx  Context for callback function.
+ *
+ * In streaming mode, @c pfCallback is called when the
+ * buffer configured in QCBOREncode_Init() is full. That buffer
+ * no longer has to hold the entire output.
+ *
+ * There is no minimum buffer size in streaming mode, but
+ * small buffers will result in many flush callbacks.
+ *
+ * In streaming mode OpenFlowedArray() or OpenFlowedMap()
+ * can be used to stream arrays and maps that won't fit into the
+ * buffer.
+ *
+ * In streaming mode, QCBOREncode_AddStreamedText() and similar
+ * can be used to directly output strings without any buffering. A direct
+ * call is made to the flush callback.
+ *
+ * The only way to exit streaming mode is to reinitialize the encoding context.
+ */
+// TODO: indef length string encoding
 static void
 QCBOREncode_SetStream(QCBOREncodeContext         *pCtx,
                       UsefulOutBuf_FlushCallBack *pfCallback,
@@ -996,12 +1020,14 @@ QCBOREncode_OpenFlowedMapMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- * @brief Close an open indefinite length map.
+ * @brief Close an open flowed map.
  *
  * @param[in] pCtx The encoding context to close the map in.
  *
- * This is the same as QCBOREncode_CloseMap(), but the open map that
- * is being closed must be of indefinite length. TODO: not true, it could be streamed.
+ * This is the same as QCBOREncode_CloseMap(), but the open map
+ * is flowed. When the flowed map is indefinite length, the ending
+ * break is output. When the flowed map is definite, length nothing
+ * is output; just the internal nest tracking is updated.
  */
 static void
 QCBOREncode_CloseFlowedMap(QCBOREncodeContext *pCtx);
@@ -1033,7 +1059,7 @@ QCBOREncode_CloseFlowedMap(QCBOREncodeContext *pCtx);
 void
 QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pCtx);
 
-/** See QCBOREncode_CloseAndSortMapIndef(). */
+/** See QCBOREncode_CloseAndSortMap() and QCBOREncode_CloseFlowedMap(). */
 void
 QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pCtx);
 
@@ -1672,8 +1698,8 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pCtx,
 /** @private See qcbor_main_encode.c */
 void
 QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
-                                           const uint8_t       uMajorType,
-                                           const size_t        uLength);
+                                         const uint8_t       uMajorType,
+                                         const size_t        uLength);
 
 /** @private See qcbor_main_encode.c */
 void
@@ -2147,22 +2173,14 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
 static inline void
 QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {
-#if 0
-   QCBOREncode_Private_OpenMapOrArrayIndefiniteLength(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN);
-#else
-   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN, 0);
-#endif
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_TYPE_ARRAY, SIZE_MAX);
 }
 
 
 static inline void
 QCBOREncode_OpenFlowedArray(QCBOREncodeContext *pMe, size_t uLength)
 {
-   uint8_t uMajorType;
-
-   uMajorType = uLength == SIZE_MAX ? CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN : CBOR_MAJOR_TYPE_ARRAY;
-
-   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, uMajorType, uLength);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_TYPE_ARRAY, uLength);
 }
 
 /** See QCBOREncode_OpenArray(). */
@@ -2227,11 +2245,7 @@ QCBOREncode_CloseFlowedArray(QCBOREncodeContext *pMe)
 static inline void
 QCBOREncode_OpenFlowedMap(QCBOREncodeContext *pMe, size_t uLength)
 {
-   uint8_t uMajorType;
-
-   uMajorType = uLength == SIZE_MAX ? CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN : CBOR_MAJOR_TYPE_MAP;
-
-   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, uMajorType, uLength);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_TYPE_MAP, uLength);
 }
 
 /** See QCBOREncode_OpenMapIndefiniteLength(). */
@@ -2260,7 +2274,7 @@ QCBOREncode_OpenFlowedMapMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN, 0);
+   QCBOREncode_Private_OpenFlowedArrayOrMap(pMe, CBOR_MAJOR_TYPE_MAP, SIZE_MAX);
 }
 
 static inline void

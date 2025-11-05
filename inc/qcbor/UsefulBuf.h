@@ -89,8 +89,6 @@
 #ifndef _UsefulBuf_h
 #define _UsefulBuf_h
 
-//#define USEFULBUF_DISABLE_STREAMING
-
 /*
  * Endianness Configuration
  *

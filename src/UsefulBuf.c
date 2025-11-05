@@ -263,7 +263,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     * little code.
     */
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err =  UBO_Err_Bad_State; /* Magic number is wrong due to uninitalization or corruption */
+      pMe->err = UBO_Err_Bad_State; /* Magic number is wrong due to uninitalization or corruption */
       return;
    }
 
@@ -309,7 +309,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
    }
 
 
-   if (!UsefulOutBuf_IsBufferNULL(pMe)) {
+   if ( ! UsefulOutBuf_IsBufferNULL(pMe)) {
       uint8_t *pSourceOfMove      = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; /* PtrMath #1 */
       size_t   uNumBytesToMove    = pMe->data_len - uInsertionPos; /* PtrMath #2 */
       uint8_t *pDestinationOfMove = pSourceOfMove + NewData.len; /* PtrMath #3*/
@@ -521,7 +521,7 @@ UsefulOutBuf_Flush(UsefulOutBuf *pMe)
 
    BytesToFlush = (UsefulBufC){pMe->UB.ptr, pMe->data_len};
    pMe->err = (uint8_t)(*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush); // TODO: sort out this cast
-   if(pMe->err == 0) {
+   if(pMe->err == UBO_Success) {
       pMe->data_len = 0;
    }
 }

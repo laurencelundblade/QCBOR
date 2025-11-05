@@ -697,22 +697,35 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
 }
 
 
-// TODO: document this.
+/**
+ * @brief Semi-private method to open an array or map where length doesn't have to be inserted.
+ *
+ * @param[in] pMe        The context to add to.
+ * @param[in] uMajorType  The major CBOR type to close
+ * @param[in] uLength  The length or @c SIZE_MAX if indefinite length
+ *
+ * The outputs the CBOR head for arrays and maps that are either indefinite or
+ * definite with a known length. 
+ */
 void
 QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
-                                         const uint8_t       uMajorType,
+                                         uint8_t             uMajorType,
                                          const size_t        uLength)
 {
-   /* TODO: fix comment -- insert the indefinite length marker (0x9f for arrays, 0xbf for maps) */
+   if(uLength == SIZE_MAX) {
+      uMajorType += QCBOR_INDEFINITE_LEN_TYPE_MODIFIER;
+   }
+
+   /* This ignores uLength when QCBOR_INDEFINITE_LEN_TYPE_MODIFIER is
+    * set in uMajorType. */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uLength, 0);
    if(pMe->uError) {
       return;
    }
 
    /* Call the definite-length opener just to do the bookkeeping for
-    * nesting.  It will record the position of the opening item in the
-    * encoded output but this is not used when closing this open.
-    */
+    * nesting. It will record the position of the opening item in the
+    * encoded output but this is not used when closing this open. */
    QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
 }
 
@@ -824,6 +837,37 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
                                     const uint8_t       uMajorType)
 {
    QCBOREncode_Private_CloseAggregate(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
+}
+
+
+/**
+ * @brief Semi-private method to close an array or map where length doesn't need to be inserted.
+ *
+ * @param[in] pMe           The context to add to.
+ * @param[in] uMajorType     The major CBOR type to close.
+ *
+ * Call QCBOREncode_CloseArrayIndefiniteLength() or
+ * QCBOREncode_CloseMapIndefiniteLength() instead of this.
+ */
+void
+QCBOREncode_Private_CloseFlowedArrayOrMap(QCBOREncodeContext *pMe,
+                                          const uint8_t       uMajorType)
+{
+   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
+      return;
+   }
+
+   if(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+      /* Append the break marker (0xff for both arrays and maps) */
+      QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+#else
+      pMe->uError = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+      return;
+#endif
+   }
+
+   Nesting_Decrease(&(pMe->nesting));
 }
 
 
@@ -1318,36 +1362,6 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
    QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
 }
 
-
-/**
- * @brief Semi-private method to close a map, array with indefinite length
- *
- * @param[in] pMe           The context to add to.
- * @param[in] uMajorType     The major CBOR type to close.
- *
- * Call QCBOREncode_CloseArrayIndefiniteLength() or
- * QCBOREncode_CloseMapIndefiniteLength() instead of this.
- */
-void
-QCBOREncode_Private_CloseFlowedArrayOrMap(QCBOREncodeContext *pMe,
-                                            const uint8_t       uMajorType)
-{
-   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
-      return;
-   }
-
-   if(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-      /* Append the break marker (0xff for both arrays and maps) */
-      QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
-#else
-      pMe->uError = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
-      return;
-#endif
-   }
-
-   Nesting_Decrease(&(pMe->nesting));
-}
 
 
 /*
