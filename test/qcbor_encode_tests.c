@@ -970,7 +970,7 @@ struct BigNumEncodeTest {
    UsefulBufC  NegativePreferred;
 };
 
-struct BigNumEncodeTest BigNumEncodeTestCases[] = {
+static const struct BigNumEncodeTest BigNumEncodeTestCases[] = {
    {
       "2^96 -1 or 79228162514264337593543950335 pos and neg with leading zeros",
       {"\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff", 15},
@@ -3105,7 +3105,7 @@ struct EAMEncodeTest {
    UsefulBufC  DecFracBig;
 };
 
-struct EAMEncodeTest EET[] = {
+static const struct EAMEncodeTest EET[] = {
    { "basic",
       -1,
       NULLUsefulBufC,
@@ -3294,7 +3294,7 @@ ExponentAndMantissaEncodeTests(void)
    const int nNumberOfTests = C_ARRAY_COUNT(EET, struct EAMEncodeTest);
 
    for(nIndex = 0; nIndex < nNumberOfTests; nIndex++) {
-      struct EAMEncodeTest *pTest = &EET[nIndex];
+      const struct EAMEncodeTest *pTest = &EET[nIndex];
 
 
       if(UsefulBuf_IsNULLC(pTest->BigNumMantissa)) {

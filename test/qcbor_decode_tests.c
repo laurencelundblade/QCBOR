@@ -11170,7 +11170,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
 };
 
 
-static UsefulBufC CorrectlySorted[] = {
+static const UsefulBufC CorrectlySorted[] = {
    /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
     * the sort order of the map without checking the preferred serialization of the
     * map items, so this test passes. */
