@@ -105,7 +105,7 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          $exe = "build/qcbortest.exe"
+          $exe = "qcbortest.exe"
           if (!(Test-Path $exe)) {
             Write-Error "Test binary not found: $exe"
           }
