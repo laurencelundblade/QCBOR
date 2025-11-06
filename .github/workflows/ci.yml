@@ -94,7 +94,7 @@ jobs:
       - name: Configure (CMake → VS solution)
         shell: bash
         run: |
-          cmake -S . -B build ^
+          cmake -S . -B build \
             -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
             -DCMAKE_C_FLAGS="${{ matrix.config.msvc_defines }}" \
             -DCMAKE_CXX_FLAGS="${{ matrix.config.msvc_defines }}"
