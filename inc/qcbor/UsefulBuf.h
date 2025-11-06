@@ -286,7 +286,7 @@ typedef struct q_useful_buf_c {
 
 typedef struct  xx {
     const void * const ptr;
-    const size_t      len;
+    size_t      len;
 } UsefulBufCC;
 
 /**
