@@ -3625,11 +3625,18 @@ static const struct SortTest sSortTests[] =
        "\xEB\x85\x1F\x01\xFF", 37},
       QCBOR_SUCCESS
    },
+   {
+      NULL,
+      ((UsefulBufC) {NULL, 0})
+      NULLUsefulBufC,
+      NULLUsefulBufC,
+      QCBOR_SUCCESS
+   }
 #endif
    {
       NULL,
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      ((const UsefulBufC) {NULL, 0}),
+      ((const UsefulBufC) {NULL, 0}),
       QCBOR_SUCCESS
    }
 };
