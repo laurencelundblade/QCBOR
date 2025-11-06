@@ -3557,10 +3557,10 @@ OpenCloseBytesTest(void)
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 struct SortTest {
-   const char *szDescription;
-   UsefulBufC  ToBeSorted;
-   UsefulBufC  Sorted;
-   QCBORError  uError;
+   const char       *szDescription;
+   const UsefulBufC  ToBeSorted;
+   const UsefulBufC  Sorted;
+   const QCBORError  uError;
 };
 
 static const struct SortTest sSortTests[] =
@@ -3634,10 +3634,10 @@ static const struct SortTest sSortTests[] =
    }
 #endif
    {
-      NULL,
+      (const void *)NULL,
       ((const UsefulBufC) {NULL, 0}),
       ((const UsefulBufC) {NULL, 0}),
-      QCBOR_SUCCESS
+      (const QCBORError)QCBOR_SUCCESS
    }
 };
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
