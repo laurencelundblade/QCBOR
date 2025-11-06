@@ -11,51 +11,17 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
+        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
+                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
+                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
+                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE ]
+
         config:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
 
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_NON_INTEGER_LABELS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_TAGS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DUSEFULBUF_DISABLE_ALL_FLOAT'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_FLOAT_HW_USE'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_PREFERRED_FLOAT'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_ENCODE_USAGE_GUARDS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_DECODE_CONFORMANCE'
-
-    name: ${{ matrix.config.dis-xxx }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
+    name: ${{ matrix.ifdef }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
 
     runs-on: ${{ matrix.config.os-image }}
     container: ${{ matrix.config.container }}
@@ -75,7 +41,7 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make warn CMD_LINE=${{ matrix.config.dis-xxx }}
+        make warn CMD_LINE=${{ matrix.ifdef }}
 
     - name: Run tests
       run: ./qcbortest
