@@ -3645,8 +3645,10 @@ static const struct SortTest sSortTests[] =
 #endif
    {
       NULL,
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      {NULL, 0},
+      {NULL, 0},
+  //    NULLUsefulBufC,
+   //   NULLUsefulBufC,
       QCBOR_SUCCESS
    }
 };
