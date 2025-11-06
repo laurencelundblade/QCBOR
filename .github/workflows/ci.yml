@@ -45,3 +45,70 @@ jobs:
 
     - name: Run tests
       run: ./qcbortest
+
+  msvc:
+    name: ${{ matrix.config.name }} • msvc • windows-latest
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: default
+            msvc_defines: ""
+          - name: DISABLE_NON_INTEGER_LABELS
+            msvc_defines: "/DQCBOR_DISABLE_NON_INTEGER_LABELS"
+          - name: DISABLE_TAGS
+            msvc_defines: "/DQCBOR_DISABLE_TAGS"
+          - name: USEFULBUF_DISABLE_ALL_FLOAT
+            msvc_defines: "/DUSEFULBUF_DISABLE_ALL_FLOAT"
+          - name: DISABLE_FLOAT_HW_USE
+            msvc_defines: "/DQCBOR_DISABLE_FLOAT_HW_USE"
+          - name: DISABLE_PREFERRED_FLOAT
+            msvc_defines: "/DQCBOR_DISABLE_PREFERRED_FLOAT"
+          - name: CONFIG_DISABLE_EXP_AND_MANTISSA
+            msvc_defines: "/DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA"
+          - name: DISABLE_ENCODE_USAGE_GUARDS
+            msvc_defines: "/DQCBOR_DISABLE_ENCODE_USAGE_GUARDS"
+          - name: DISABLE_INDEF_STRINGS
+            msvc_defines: "/DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS"
+          - name: DISABLE_INDEF_ARRAYS
+            msvc_defines: "/DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS"
+          - name: DISABLE_UNCOMMON_TAGS
+            msvc_defines: "/DQCBOR_DISABLE_UNCOMMON_TAGS"
+
+    env:
+      BUILD_TYPE: Release
+      ARCH: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Optional: ensures Dev Cmd environment; the VS generator usually finds MSVC without this,
+      # but keeping it makes detection deterministic.
+      - name: Set up MSVC DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
+
+      - name: Configure (CMake → VS solution)
+        shell: bash
+        run: |
+          cmake -S . -B build ^
+            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
+            -DCMAKE_C_FLAGS="${{ matrix.config.msvc_defines }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.config.msvc_defines }}"
+
+      - name: Build
+        run: cmake --build build --config $env:BUILD_TYPE
+        shell: pwsh
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $exe = "build/${env:BUILD_TYPE}/qcbortest.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Test binary not found: $exe"
+          }
+          & $exe
+
