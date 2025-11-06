@@ -78,7 +78,6 @@ jobs:
             msvc_defines: "/DQCBOR_DISABLE_UNCOMMON_TAGS"
 
     env:
-      BUILD_TYPE: Release
       ARCH: x64
 
     steps:
@@ -100,13 +99,13 @@ jobs:
             -DCMAKE_CXX_FLAGS="${{ matrix.config.msvc_defines }}"
 
       - name: Build
-        run: cmake --build build --config $env:BUILD_TYPE
+        run: cmake --build build 
         shell: pwsh
 
       - name: Run tests
         shell: pwsh
         run: |
-          $exe = "build/${env:BUILD_TYPE}/qcbortest.exe"
+          $exe = "build/qcbortest.exe"
           if (!(Test-Path $exe)) {
             Write-Error "Test binary not found: $exe"
           }
