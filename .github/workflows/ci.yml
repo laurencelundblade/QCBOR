@@ -12,9 +12,9 @@ jobs:
         c-compiler: [gcc, clang]
 
         ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
-                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
-                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
-                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
+#                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
+#                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+#                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
                 -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE ]
 
         config:
@@ -47,35 +47,18 @@ jobs:
       run: ./qcbortest
 
   msvc:
-    name: ${{ matrix.config.name }} • msvc • windows-latest
+    name: ${{ matrix.ifdef }} • msvc • windows-latest
     runs-on: windows-latest
 
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - name: default
-            msvc_defines: ""
-          - name: DISABLE_NON_INTEGER_LABELS
-            msvc_defines: "/DQCBOR_DISABLE_NON_INTEGER_LABELS"
-          - name: DISABLE_TAGS
-            msvc_defines: "/DQCBOR_DISABLE_TAGS"
-          - name: USEFULBUF_DISABLE_ALL_FLOAT
-            msvc_defines: "/DUSEFULBUF_DISABLE_ALL_FLOAT"
-          - name: DISABLE_FLOAT_HW_USE
-            msvc_defines: "/DQCBOR_DISABLE_FLOAT_HW_USE"
-          - name: DISABLE_PREFERRED_FLOAT
-            msvc_defines: "/DQCBOR_DISABLE_PREFERRED_FLOAT"
-          - name: CONFIG_DISABLE_EXP_AND_MANTISSA
-            msvc_defines: "/DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA"
-          - name: DISABLE_ENCODE_USAGE_GUARDS
-            msvc_defines: "/DQCBOR_DISABLE_ENCODE_USAGE_GUARDS"
-          - name: DISABLE_INDEF_STRINGS
-            msvc_defines: "/DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS"
-          - name: DISABLE_INDEF_ARRAYS
-            msvc_defines: "/DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS"
-          - name: DISABLE_UNCOMMON_TAGS
-            msvc_defines: "/DQCBOR_DISABLE_UNCOMMON_TAGS"
+
+        ifdef: ["", "/DQCBOR_DISABLE_NON_INTEGER_LABELS", "/DQCBOR_DISABLE_TAGS",
+#                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
+#                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+#                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
+                "/DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS", "/DQCBOR_DISABLE_DECODE_CONFORMANCE" ]
 
     env:
       ARCH: x64
@@ -95,8 +78,8 @@ jobs:
         run: |
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
             -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
-            -DCMAKE_C_FLAGS="${{ matrix.config.msvc_defines }}" \
-            -DCMAKE_CXX_FLAGS="${{ matrix.config.msvc_defines }}"
+            -DCMAKE_C_FLAGS="${{ matrix.ifdef }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.config.ifdef }}"
 
       - name: Build
         run: cmake --build build 

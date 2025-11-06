@@ -3991,7 +3991,7 @@ int32_t SpiffyDateDecodeTest(void)
 
 struct TestInput {
    const char *szDescription;
-   UsefulBufC  EncodedCBOR;
+   const UsefulBufC  EncodedCBOR;
 };
 
 
