@@ -3563,6 +3563,22 @@ struct SortTest {
    const QCBORError  uError;
 };
 
+struct SortTestX {
+   const char       *szDescription;
+    UsefulBufCC  ToBeSorted;
+    UsefulBufCC  Sorted;
+   const QCBORError  uError;
+};
+
+ const struct SortTest sSortTestsxxx[] = {
+   {
+      (const void *)NULL,
+      {NULL, 0},
+      {NULL, 0},
+      (const QCBORError)QCBOR_SUCCESS
+   }
+};
+
 static const struct SortTest sSortTests[] =
 {
 #ifdef TODO_REENABLE
@@ -3625,19 +3641,13 @@ static const struct SortTest sSortTests[] =
        "\xEB\x85\x1F\x01\xFF", 37},
       QCBOR_SUCCESS
    },
+
+#endif
    {
       NULL,
-      ((UsefulBufC) {NULL, 0})
       NULLUsefulBufC,
       NULLUsefulBufC,
       QCBOR_SUCCESS
-   }
-#endif
-   {
-      (const void *)NULL,
-      ((const UsefulBufC) {NULL, 0}),
-      ((const UsefulBufC) {NULL, 0}),
-      (const QCBORError)QCBOR_SUCCESS
    }
 };
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
