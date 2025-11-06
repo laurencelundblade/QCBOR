@@ -53,9 +53,9 @@ double decode_half(const unsigned char *halfp) {
 /* returns 0..0xFFFF if float16 encoding possible, -1 otherwise.
    b64 is a binary64 floating point as an unsigned long. */
 int try_float16_encode(unsigned long b64) {
-  unsigned long s16 = b64 >> 48 & 0x8000;
+  unsigned long s16 = b64 >> 48 & 0x8000UL;
   unsigned long mant = b64 & 0xfffffffffffffUL;
-  unsigned long exp = b64 >> 52 & 0x7ff;
+  unsigned long exp = b64 >> 52 & 0x7ffUL;
   if (exp == 0 && mant == 0)    /* f64 denorms are out of range */
     return (int)s16;                 /* so handle 0.0 and -0.0 only */
   if (exp >= 999 && exp < 1009) { /* f16 denorm, exp16 = 0 */
@@ -68,7 +68,7 @@ int try_float16_encode(unsigned long b64) {
   if (exp >= 1009 && exp <= 1038) /* normalized f16 */
     return (int)(s16 + ((exp - 1008) << 10) + (mant >> 42));
   if (exp == 2047)              /* Inf, NaN */
-    return (int)(s16 + 0x7c00 + (mant >> 42));
+    return (int)(s16 + 0x7c00UL + (mant >> 42));
   return -1;
 }
 
