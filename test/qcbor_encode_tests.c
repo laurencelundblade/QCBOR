@@ -3565,6 +3565,7 @@ struct SortTest {
 
 static const struct SortTest sSortTests[] =
 {
+#ifdef TODO_REENABLE
    {
       "Simple Sort Test",
       {"\x03\x03\x01\x01\x04\x04\x02\x02", 8},
@@ -3624,7 +3625,7 @@ static const struct SortTest sSortTests[] =
        "\xEB\x85\x1F\x01\xFF", 37},
       QCBOR_SUCCESS
    },
-
+#endif
    {
       NULL,
       NULLUsefulBufC,

@@ -52,10 +52,11 @@ double decode_half(const unsigned char *halfp) {
  * an RFC. Probably there will be updates. */
 /* returns 0..0xFFFF if float16 encoding possible, -1 otherwise.
    b64 is a binary64 floating point as an unsigned long. */
-int try_float16_encode(unsigned long b64) {
-  unsigned long s16 = (b64 >> 48) & 0x8000UL;
-  unsigned long mant = b64 & 0xfffffffffffffUL;
-  unsigned long exp = b64 >> 52 & 0x7ffUL;
+// TODO: tell Carsten about long long
+int try_float16_encode(unsigned long long b64) {
+  unsigned long long s16 = (b64 >> 48) & 0x8000UL;
+  unsigned long long mant = b64 & 0xfffffffffffffUL;
+  unsigned long long exp = b64 >> 52 & 0x7ffUL;
   if (exp == 0 && mant == 0)    /* f64 denorms are out of range */
     return (int)s16;                 /* so handle 0.0 and -0.0 only */
   if (exp >= 999 && exp < 1009) { /* f16 denorm, exp16 = 0 */
