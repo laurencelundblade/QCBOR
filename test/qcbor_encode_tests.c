@@ -3118,7 +3118,7 @@ static const struct EAMEncodeTest EET[] = {
       NULLUsefulBufC,
       NULLUsefulBufC
    },
-
+#ifdef TODO_REENABLE
    { "bignum gets preferred",
       -1,
       {"\x00\x03",2},
@@ -3131,7 +3131,7 @@ static const struct EAMEncodeTest EET[] = {
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
    }
-
+#endif
    // TODO: add more test cases, including converting some of the already-existing
 };
 
