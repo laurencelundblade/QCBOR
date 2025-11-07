@@ -902,8 +902,8 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_OpenArray(&ECtx);
 
    QCBOREncode_AddInt64(&ECtx, -9223372036854775807LL - 1);
-   QCBOREncode_AddInt64(&ECtx, -4294967297);
-   QCBOREncode_AddInt64(&ECtx, -4294967296);
+   QCBOREncode_AddInt64(&ECtx, -4294967297LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967296LL);
    QCBOREncode_AddInt64(&ECtx, -4294967295);
    QCBOREncode_AddInt64(&ECtx, -4294967294);
    QCBOREncode_AddInt64(&ECtx, -2147483648);
