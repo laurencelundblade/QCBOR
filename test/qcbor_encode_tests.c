@@ -939,14 +939,14 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_AddInt64(&ECtx, 65536);
    QCBOREncode_AddInt64(&ECtx, 65537);
    QCBOREncode_AddInt64(&ECtx, 65538);
-   QCBOREncode_AddInt64(&ECtx, 2147483647);
-   QCBOREncode_AddInt64(&ECtx, 2147483647);
-   QCBOREncode_AddInt64(&ECtx, 2147483648);
-   QCBOREncode_AddInt64(&ECtx, 2147483649);
-   QCBOREncode_AddInt64(&ECtx, 4294967294);
-   QCBOREncode_AddInt64(&ECtx, 4294967295);
-   QCBOREncode_AddInt64(&ECtx, 4294967296);
-   QCBOREncode_AddInt64(&ECtx, 4294967297);
+   QCBOREncode_AddInt64(&ECtx, 2147483647ULL);
+   QCBOREncode_AddInt64(&ECtx, 2147483647ULL);
+   QCBOREncode_AddInt64(&ECtx, 2147483648ULL);
+   QCBOREncode_AddInt64(&ECtx, 2147483649ULL);
+   QCBOREncode_AddInt64(&ECtx, 4294967294ULL);
+   QCBOREncode_AddInt64(&ECtx, 4294967295ULL);
+   QCBOREncode_AddInt64(&ECtx, 4294967296ULL);
+   QCBOREncode_AddInt64(&ECtx, 4294967297ULL);
    QCBOREncode_AddInt64(&ECtx, 9223372036854775807LL);
    QCBOREncode_AddUInt64(&ECtx, 18446744073709551615ULL);
 

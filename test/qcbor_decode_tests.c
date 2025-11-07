@@ -183,13 +183,13 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-      Item.val.uint64 != 0xffffffffffffffff)
+      Item.val.uint64 != 0xffffffffffffffffULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-      Item.val.uint64 != 0xfffffffffffffffe)
+      Item.val.uint64 != 0xfffffffffffffffeULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -201,38 +201,38 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967297)
+      Item.val.int64 != -4294967297LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967296)
+      Item.val.int64 != -4294967296LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967295)
+      Item.val.int64 != -4294967295LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967294)
+      Item.val.int64 != -4294967294LL)
       return -1;
 
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -2147483648)
+      Item.val.int64 != -2147483648LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -2147483647)
+      Item.val.int64 != -2147483647LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -437,52 +437,52 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483647)
+      Item.val.int64 != 2147483647LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483647)
+      Item.val.int64 != 2147483647LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483648)
+      Item.val.int64 != 2147483648LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483649)
+      Item.val.int64 != 2147483649LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967294)
-      return  -1;
-
-
-   if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return (int32_t)nCBORError;
-   if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967295)
+      Item.val.int64 != 4294967294LL)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967296)
+      Item.val.int64 != 4294967295LL)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967297)
+      Item.val.int64 != 4294967296LL)
+      return  -1;
+
+
+   if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 4294967297LL)
       return  -1;
 
 
@@ -6455,9 +6455,9 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetNext */
       QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA,
-      9223372036854775807,
+      9223372036854775807LL,
       0,
-      0xffffffffffffffff,
+      0xffffffffffffffffULL,
       {(const uint8_t []){0x00}, 0},
 
       QCBOR_ERR_BAD_EXP_AND_MANTISSA, /* GetDecimalFraction */
@@ -6474,7 +6474,7 @@ static const struct EaMTest pEaMTests[] = {
       0,
 
       QCBOR_SUCCESS, /* for GetTBigFloatBigMantissa */
-      9223372036854775807,
+      9223372036854775807LL,
       {(const uint8_t []){0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
       true
    },
