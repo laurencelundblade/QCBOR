@@ -46,7 +46,8 @@
  */
 
 
-
+#include <stdio.h>
+#include <inttypes.h>
 /*
  * Public function for adding signed integers. See qcbor/qcbor_encode.h
  */
@@ -56,6 +57,8 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
    uint8_t  uMajorType;
    uint64_t uValue;
 
+    printf("QCBOREncode_AddInt64 %" PRId64 "\n", nNum);
+
    if(nNum < 0) {
       /* In CBOR -1 encodes as 0x00 with major type negative int.
        * First add one as a signed integer because that will not
@@ -63,7 +66,11 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
        * opposite order, changing the sign and subtracting, can cause
        * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
+       printf("nTmp %" PRId64 "\n", nTmp);
+
       uValue = (uint64_t)-nTmp;
+       printf("uValue %" PRIu64 "\n", uValue);
+
       uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
    } else {
       uValue = (uint64_t)nNum;
