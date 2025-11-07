@@ -2382,6 +2382,7 @@ QCBORDecode_EndCheck(QCBORDecodeContext *pMe)
    return QCBOR_SUCCESS;
 }
 
+#include <stdio.h>
 
 /**
  * @brief Semi-private. Get pointer, length and item for an array or map.
@@ -2414,7 +2415,7 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    size_t     uTempSaveCursor;
    bool       bInMap;
    QCBORItem  LabelItem;
-   bool       EndedByBreak;
+   bool       bEndedByBreak;
 
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
@@ -2461,8 +2462,10 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
       uStartOfReturned = uStartingCursor;
    }
 
+   printf("uStartOfReturned %lu\n", (unsigned long)uStartOfReturned);
+
    /* Consume the entire array/map to find the end */
-   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &EndedByBreak, &uNestLevel);
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &bEndedByBreak, &uNestLevel);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       goto Done;
@@ -2470,11 +2473,14 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
 
    /* Fill in returned values */
    uEndOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
-   if(EndedByBreak) {
+   if(bEndedByBreak) {
       /* When ascending nesting levels, a break for the level above
        * was consumed. That break is not a part of what is consumed here. */
       uEndOfReturned--;
    }
+   printf("uEndOfReturned %lu\n", (unsigned long)uEndOfReturned);
+
+
    pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf), uStartOfReturned);
    pEncodedCBOR->len = uEndOfReturned - uStartOfReturned;
 

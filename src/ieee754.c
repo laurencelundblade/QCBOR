@@ -280,7 +280,7 @@ IEEE754_SingleToDouble(const uint32_t uSingle)
    const uint64_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
    const uint64_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int nSingleUnBiasedExponent      = (int)(uSingleBiasedExponent - SINGLE_EXPONENT_BIAS);
-   const int nIsNegative                  = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+   const int nIsNegative                  = (int)((uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT);
 
    if(nSingleUnBiasedExponent == SINGLE_EXPONENT_ZERO) {
       /* 0 or subnormal */
