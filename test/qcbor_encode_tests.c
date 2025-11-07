@@ -4359,3 +4359,28 @@ int32_t StreamTest(void)
    return 0;
 }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
+
+
+int32_t EncodeIndefiniteStringsTest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+   QCBORError         uExpectedErr;
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 1;
+   }
+
+   // TODO: compare to expected encoded
+
+   return 0;
+}

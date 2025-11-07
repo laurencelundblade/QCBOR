@@ -655,8 +655,7 @@ QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded
  * QCBOREncode_BstrWrap() instead of this.
  */
 void
-QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
-                                   const uint8_t       uMajorType)
+QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pMe, const uint8_t uMajorType)
 {
 #ifndef USEFULBUF_DISABLE_STREAMING
    if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
@@ -687,13 +686,10 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
     */
    if(uEndPosition >= QCBOR_MAX_SIZE) {
       pMe->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
-
-   } else {
-      /* Increase nesting level because this is a map or array.  Cast
-       * from size_t to uin32_t is safe because of check above.
-       */
-      pMe->uError = Nesting_Increase(&(pMe->nesting), uMajorType, (uint32_t)uEndPosition);
+      return;
    }
+
+   pMe->uError = Nesting_Increase(&(pMe->nesting), uMajorType, (uint32_t)uEndPosition);
 }
 
 
@@ -708,9 +704,9 @@ QCBOREncode_Private_OpenMapOrArray(QCBOREncodeContext *pMe,
  * definite with a known length. 
  */
 void
-QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
-                                         uint8_t             uMajorType,
-                                         const size_t        uLength)
+QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext *pMe,
+                                      uint8_t             uMajorType,
+                                      const size_t        uLength)
 {
    if(uLength == SIZE_MAX) {
       uMajorType += QCBOR_INDEFINITE_LEN_TYPE_MODIFIER;
@@ -723,13 +719,18 @@ QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
       return;
    }
 
-   /* Call the definite-length opener just to do the bookkeeping for
-    * nesting. It will record the position of the opening item in the
-    * encoded output but this is not used when closing this open. */
-   QCBOREncode_Private_OpenMapOrArray(pMe, uMajorType);
+   // TODO: Code in common with QCBOREncode_Private_OpenNestingInsert?
+   QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
+
+   /* Needed for sorting */
+   size_t uEndPosition = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
+   if(uEndPosition >= QCBOR_MAX_SIZE) {
+      pMe->uError = QCBOR_ERR_BUFFER_TOO_LARGE;
+      return;
+   }
+
+   pMe->uError = Nesting_Increase(&(pMe->nesting), uMajorType, (uint32_t)uEndPosition);
 }
-
-
 
 
 /**
@@ -745,9 +746,10 @@ QCBOREncode_Private_OpenFlowedArrayOrMap(QCBOREncodeContext *pMe,
  * This is called when closing maps, arrays, byte string wrapping and
  * open/close of byte strings.
  */
+// TODO: inline this -- it reduces to nothing with QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 static bool
-QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
-                                         const uint8_t       uMajorType)
+QCBOREncode_Private_CheckNestingType(QCBOREncodeContext *pMe,
+                                     const uint8_t       uMajorType)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uError != QCBOR_SUCCESS) {
@@ -792,11 +794,11 @@ QCBOREncode_Private_CheckDecreaseNesting(QCBOREncodeContext *pMe,
  * the CBOR Head with the major type and length.
  */
 static void
-QCBOREncode_Private_CloseAggregate(QCBOREncodeContext *pMe,
-                                   uint8_t             uMajorType,
-                                   size_t              uLen)
+QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext *pMe,
+                                       uint8_t             uMajorType,
+                                       size_t              uLen)
 {
-   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
+   if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
       return;
    }
 
@@ -827,20 +829,6 @@ QCBOREncode_Private_CloseAggregate(QCBOREncodeContext *pMe,
 
 
 /**
- * @brief Semi-private method to close a map, array or bstr wrapped CBOR.
- *
- * @param[in] pMe           The context to add to.
- * @param[in] uMajorType     The major CBOR type to close.
- */
-void
-QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
-                                    const uint8_t       uMajorType)
-{
-   QCBOREncode_Private_CloseAggregate(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
-}
-
-
-/**
  * @brief Semi-private method to close an array or map where length doesn't need to be inserted.
  *
  * @param[in] pMe           The context to add to.
@@ -850,10 +838,10 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
  * QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
 void
-QCBOREncode_Private_CloseFlowedArrayOrMap(QCBOREncodeContext *pMe,
-                                          const uint8_t       uMajorType)
+QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext *pMe,
+                                       const uint8_t       uMajorType)
 {
-   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, uMajorType)) {
+   if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
       return;
    }
 
@@ -869,6 +857,21 @@ QCBOREncode_Private_CloseFlowedArrayOrMap(QCBOREncodeContext *pMe,
 
    Nesting_Decrease(&(pMe->nesting));
 }
+
+
+/**
+ * @brief Semi-private method to close a map, array or bstr wrapped CBOR.
+ *
+ * @param[in] pMe           The context to add to.
+ * @param[in] uMajorType     The major CBOR type to close.
+ */
+void
+QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pMe,
+                                    const uint8_t       uMajorType)
+{
+   QCBOREncode_Private_CloseNestingInsert(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
+}
+
 
 
 /**
@@ -1216,7 +1219,7 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncode_Private_SortMap(pMe, uStart);
 
-   QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
+   QCBOREncode_Private_CloseNestingInsert(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
 }
 
 
@@ -1229,19 +1232,9 @@ QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pMe)
 {
    uint32_t uStart;
 
-   /* TODO:
-    Not unknown length definite
-    Not indefinite
-    "NoAppend"
-    Flowed
-    NoCount
-
-    */
-
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncode_Private_SortMap(pMe, uStart);
-
-   QCBOREncode_Private_CloseFlowedArrayOrMap(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
+   QCBOREncode_Private_CloseNestingAppend(pMe, CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN);
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
@@ -1265,7 +1258,7 @@ QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
    const size_t uBstrLen = uEndPosition - uInsertPosition;
 
    /* Actually insert */
-   QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uBstrLen);
+   QCBOREncode_Private_CloseNestingInsert(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uBstrLen);
 
    if(pWrappedCBOR) {
       /* Return pointer and length to the enclosed encoded CBOR. The
@@ -1293,7 +1286,7 @@ QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
 void
 QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 {
-   if(QCBOREncode_Private_CheckDecreaseNesting(pMe, CBOR_MAJOR_TYPE_BYTE_STRING)) {
+   if(QCBOREncode_Private_CheckNestingType(pMe, CBOR_MAJOR_TYPE_BYTE_STRING)) {
       return;
    }
 
@@ -1315,6 +1308,33 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 
    Nesting_Decrease(&(pMe->nesting));
    Nesting_Decrement(&(pMe->nesting));
+}
+
+
+void 
+QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext *pMe,
+                                               uint8_t             uMajorType)
+{
+   uMajorType += QCBOR_INDEFINITE_LEN_TYPE_MODIFIER;
+
+   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
+   if(pMe->uError) {
+      return;
+   }
+
+   QCBOREncode_Private_OpenNestingInsert(pMe, uMajorType); // TODO: rename this
+}
+
+
+void
+QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext *pMe, UsefulBufC Chunk, uint8_t uMajorType)
+{
+   // TODO: inline this?
+   if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER)) {
+      return;
+   }
+
+   QCBOREncode_Private_AddBuffer(pMe, uMajorType, Chunk);
 }
 
 
@@ -1343,7 +1363,7 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
-   QCBOREncode_Private_OpenMapOrArray(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
+   QCBOREncode_Private_OpenNestingInsert(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR);
 }
 
 
@@ -1359,7 +1379,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
       return;
    }
 
-   QCBOREncode_Private_CloseAggregate(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
+   QCBOREncode_Private_CloseNestingInsert(pMe, CBOR_MAJOR_NONE_TYPE_OPEN_BSTR, uAmount);
 }
 
 
