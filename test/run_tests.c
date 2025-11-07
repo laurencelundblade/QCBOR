@@ -189,8 +189,11 @@ static test_entry s_tests[] = {
    TEST_ENTRY(TagModesFanOutTest),
 #ifndef USEFULBUF_DISABLE_STREAMING
    TEST_ENTRY(StreamTest),
-   TEST_ENTRY(EncodeIndefiniteStringsTest)
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   TEST_ENTRY(EncodeIndefiniteStringsTest)
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
 };
 
 

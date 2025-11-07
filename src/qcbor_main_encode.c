@@ -846,10 +846,11 @@ QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext *pMe,
    }
 
    if(uMajorType & QCBOR_INDEFINITE_LEN_TYPE_MODIFIER) {
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#if ! (defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
       /* Append the break marker (0xff for both arrays and maps) */
       QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
 #else
+      /* Not correct for strings; don't waste object code for right error */
       pMe->uError = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
       return;
 #endif

@@ -209,8 +209,9 @@ int32_t SubStringTest(void);
 
 int32_t StreamTest(void);
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 int32_t EncodeIndefiniteStringsTest(void);
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */

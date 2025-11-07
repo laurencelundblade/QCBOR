@@ -4361,6 +4361,7 @@ int32_t StreamTest(void)
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 int32_t EncodeIndefiniteStringsTest(void)
 {
    QCBOREncodeContext EC;
@@ -4384,3 +4385,4 @@ int32_t EncodeIndefiniteStringsTest(void)
 
    return 0;
 }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
