@@ -382,7 +382,7 @@ IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    const int      nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
-   const int      nIsNegative             = (uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT;
+   const int      nIsNegative             = (int)((uSingle & SINGLE_SIGN_MASK) >> SINGLE_SIGN_SHIFT);
 
    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_ZERO) {
       if(uSingleSignificand == 0) {
@@ -568,7 +568,7 @@ IEEE754_DoubleToSingle(const double d)
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
    const int      nDoubleUnbiasedExponent = (int)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
-   const int      nIsNegative             = (uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT;
+   const int      nIsNegative             = (int)((uDouble & DOUBLE_SIGN_MASK) >> DOUBLE_SIGN_SHIFT);
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
 
    if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_ZERO) {
