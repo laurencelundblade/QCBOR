@@ -904,10 +904,10 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_AddInt64(&ECtx, -9223372036854775807LL - 1);
    QCBOREncode_AddInt64(&ECtx, -4294967297LL);
    QCBOREncode_AddInt64(&ECtx, -4294967296LL);
-   QCBOREncode_AddInt64(&ECtx, -4294967295);
-   QCBOREncode_AddInt64(&ECtx, -4294967294);
-   QCBOREncode_AddInt64(&ECtx, -2147483648);
-   QCBOREncode_AddInt64(&ECtx, -2147483647);
+   QCBOREncode_AddInt64(&ECtx, -4294967295LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967294LL);
+   QCBOREncode_AddInt64(&ECtx, -2147483648LL);
+   QCBOREncode_AddInt64(&ECtx, -2147483647LL);
    QCBOREncode_AddInt64(&ECtx, -65538);
    QCBOREncode_AddInt64(&ECtx, -65537);
    QCBOREncode_AddInt64(&ECtx, -65536);
