@@ -92,5 +92,5 @@ jobs:
           if (!(Test-Path $exe)) {
             Write-Error "Test binary not found: $exe"
           }
-          & $exe IntegerValuesTest1
+          & $exe 
 
