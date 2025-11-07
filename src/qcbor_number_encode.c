@@ -122,6 +122,7 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
             dNum = NAN;
             bNoNaNPayload = true;
             break;
+         default:
          case IEEE754_ToInt_NO_CONVERSION:
             bNoNaNPayload = true;
       }
@@ -185,6 +186,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
             fNum = NAN;
             bNoNaNPayload = true;
             break;
+         default:
          case IEEE754_ToInt_NO_CONVERSION:
             bNoNaNPayload = true;
       }

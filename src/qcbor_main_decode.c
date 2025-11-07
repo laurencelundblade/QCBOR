@@ -2000,9 +2000,6 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
 
    /* If it is a map or array, this will tell if it is empty. */
    const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
-   if(pbBreak) {
-      *pbBreak = false; // TODO: some testing to be sure this is right and always the same
-   }
 
    if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
       /* There is only real work to do for non-empty maps and arrays */
@@ -2428,6 +2425,7 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    QCBORItem  LabelItem;
    bool       bEndedByBreak;
 
+   bEndedByBreak = false;
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem, NULL);
