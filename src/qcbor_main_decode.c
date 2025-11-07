@@ -1974,6 +1974,7 @@ Done:
    return uErr;
 }
 
+#include <stdio.h>
 
 /**
  * @brief Consume an entire map or array including its contents.
@@ -2012,6 +2013,9 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
             uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
             goto Done;
          }
+         if(pbBreak) {
+            printf("QCBORDecode_Private_ConsumeItem pbBreak %d\n", (int)*pbBreak);
+         }
       } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
       *puNextNestLevel = Item.uNextNestLevel;
@@ -2024,6 +2028,10 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
 
       uReturn = QCBOR_SUCCESS;
+   }
+
+   if(pbBreak) {
+      printf("End of QCBORDecode_Private_ConsumeItem pbBreak %d\n", (int)*pbBreak);
    }
 
 Done:
@@ -2474,10 +2482,14 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    /* Fill in returned values */
    uEndOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
    if(bEndedByBreak) {
+      printf("uEndOfReturned %lu\n", (unsigned long)uEndOfReturned);
       /* When ascending nesting levels, a break for the level above
        * was consumed. That break is not a part of what is consumed here. */
       uEndOfReturned--;
    }
+   printf("uEndOfReturned %lu\n", (unsigned long)uEndOfReturned);
+
+
    printf("uEndOfReturned %lu\n", (unsigned long)uEndOfReturned);
 
 
