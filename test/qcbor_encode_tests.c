@@ -3608,7 +3608,7 @@ static const struct SortTest sSortTests[] =
    {
       "Not well formed label at end",
       {"\x03\x03\x01\x01\x04\x04\x1c\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 

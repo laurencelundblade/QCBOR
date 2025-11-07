@@ -41,6 +41,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h> // for fabs()
 #include "not_well_formed_cbor.h"
 
+#define NULLUsefulBufCConst {NULL, 0}
+
+
 // Handy macro to compare a UsefulBuf to a C string
 #define UsefulBufCompareToSZ(x, y) \
    UsefulBuf_Compare(x, UsefulBuf_FromSZ(y))
@@ -4061,7 +4064,7 @@ static const struct TestInput spTagInput2[] = {
 #endif
 
    {NULL,
-   NULLUsefulBufC}
+      NULLUsefulBufCConst}
 };
 
 
@@ -11175,14 +11178,12 @@ static const UsefulBufC CorrectlySorted[] = {
    /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
     * the sort order of the map without checking the preferred serialization of the
     * map items, so this test passes. */
-#ifdef TODO_REENABLE
    {"\xa4\x01\x61\x61\xf9\x3C\x00\x61\x62\xFA\x3F\x80\x00\x00\x61\x63\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00\x61\x64", 27},
    {"\xa3\x00\x61\x61\x01\x61\x62\xa3\x0c\x61\x78\x0b\x61\x79\x0a\x61\x7a\x61\x63", 19},
    {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
    {"\xa2\x00\x00\x01\x01", 5},
    {"\xA0", 1},
-#endif
-   NULLUsefulBufC
+   NULLUsefulBufCConst
 };
 
 
