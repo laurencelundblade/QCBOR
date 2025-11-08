@@ -749,39 +749,43 @@ const char *UBUtilTests(void)
       return "SkipLeading didn't return empty";
    }
 
-   const uint8_t pB[] = {0x01, 0x02, 0x03};
-   UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);
+   /* 0x00 at start/end not part of Boo; added to avoid compiler warnings */
+   const uint8_t pB[] = {0x00, 0x01, 0x02, 0x03, 0x00};
+   UsefulBufC Boo;
+   Boo.ptr = pB + 1;
+   Boo.len = sizeof(pB)-2;
+
    // Try to map a pointer before
-   if(UsefulBuf_PointerToOffset(Boo, pB-1) != SIZE_MAX) {
+   if(UsefulBuf_PointerToOffset(Boo, pB) != SIZE_MAX) {
       return "Didn't error on pointer before";
    }
 
    // Try to map a pointer after
-   if(UsefulBuf_PointerToOffset(Boo, pB+sizeof(pB)) != SIZE_MAX) {
+   if(UsefulBuf_PointerToOffset(Boo, pB+sizeof(pB)-1) != SIZE_MAX) {
       return "Didn't error on pointer after";
    }
 
    // Try to map a pointer inside
-   if(UsefulBuf_PointerToOffset(Boo, pB+1) != 1) {
+   if(UsefulBuf_PointerToOffset(Boo, pB+2) != 1) {
       return "Incorrect pointer offset";
    }
 
    // Try to map a pointer at the start
-   if(UsefulBuf_PointerToOffset(Boo, pB) != 0) {
+   if(UsefulBuf_PointerToOffset(Boo, pB+1) != 0) {
       return "Incorrect pointer offset for start";
    }
 
    // Try to map a pointer at the end
-   if(UsefulBuf_PointerToOffset(Boo, pB + sizeof(pB)-1) != 2) {
+   if(UsefulBuf_PointerToOffset(Boo, pB + sizeof(pB)-2) != 2) {
       return "Incorrect pointer offset for end";
    }
 
    // Try to map a pointer on a NULL UB
-   if(UsefulBuf_PointerToOffset(NULLUsefulBufC, pB ) != SIZE_MAX) {
+   if(UsefulBuf_PointerToOffset(NULLUsefulBufC, pB) != SIZE_MAX) {
       return "Incorrect pointer offset for start";
    }
 
-   if(UsefulBuf_OffsetToPointer(Boo, 0) != &pB[0]) {
+   if(UsefulBuf_OffsetToPointer(Boo, 0) != &pB[1]) {
       return "Wrong OffsetToPointer";
    }
 
@@ -789,7 +793,7 @@ const char *UBUtilTests(void)
       return "Didn't validate offset correctly";
    }
 
-   if(UsefulBuf_OffsetToPointer(Boo, 2) != &pB[2]) {
+   if(UsefulBuf_OffsetToPointer(Boo, 2) != &pB[3]) {
       return "Wrong OffsetToPointer 2";
    }
 
