@@ -1017,7 +1017,7 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      {NULL, 0},
+      ((const UsefulBufC){NULL, 0}),
      // NULLUsefulBufC,
       NULLUsefulBufC,
    },
