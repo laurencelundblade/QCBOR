@@ -320,7 +320,7 @@ typedef struct q_useful_buf {
 #ifdef __cplusplus
 #define NULLUsefulBufC {NULL, 0}
 #else
-#define NULLUsefulBufC ((UsefulBufC) {NULL, 0})
+#define NULLUsefulBufC ((const UsefulBufC) {NULL, 0})
 #endif
 
 /**
