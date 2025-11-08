@@ -781,9 +781,9 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const float f, const QCBORDecodeMode uConfigFlags)
+QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uConfigFlags)
 {
-   (void)f;
+   (void)uSingle;
    if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
@@ -1545,6 +1545,8 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
        /* Cast is OK because lengths are all 32-bit in QCBOR */
        *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
     }
+#else
+   (void)puLabelEndOffset;
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
    /* Get the value of the map item */

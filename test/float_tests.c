@@ -280,8 +280,8 @@ CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const Usef
       int uFloat16 = try_float16_encode(uDouble);
       uint8_t CarstenEncoded[3];
       CarstenEncoded[0] = 0xf9;
-      CarstenEncoded[1] = (uFloat16 & 0xff00) >> 8;
-      CarstenEncoded[2] = uFloat16 & 0xff;
+      CarstenEncoded[1] = (uint8_t)((uFloat16 & 0xff00) >> 8);
+      CarstenEncoded[2] = (uint8_t)(uFloat16 & 0xff);
 
       UsefulBufC CarstenEncodedUB;
       CarstenEncodedUB.len = 3;
