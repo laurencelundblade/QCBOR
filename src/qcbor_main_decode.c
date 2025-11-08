@@ -781,7 +781,7 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const uint32 uSingle, const QCBORDecodeMode uConfigFlags)
+QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uConfigFlags)
 {
    (void)uSingle;
    if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
