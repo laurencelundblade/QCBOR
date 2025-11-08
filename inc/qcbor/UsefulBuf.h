@@ -324,6 +324,8 @@ typedef struct q_useful_buf {
 #define NULLUsefulBufC1 (UsefulBufC) {NULL, 0}
 #define NULLUsefulBufC2 (const UsefulBufC) {NULL, 0}
 #define NULLUsefulBufC3 ((const UsefulBufC) {NULL, 0})
+#define NULLUsefulBufC4 {NULL, 0}
+#define NULLUsefulBufC5 {NULL, 0}
 
 #endif
 
