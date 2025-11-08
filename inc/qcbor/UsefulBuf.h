@@ -284,10 +284,6 @@ typedef struct q_useful_buf_c {
     size_t      len;
 } UsefulBufC;
 
-typedef struct  xx {
-    const void * ptr;
-    size_t      len;
-} UsefulBufCC;
 
 /**
  * This non-const @ref UsefulBuf is typically used for some allocated

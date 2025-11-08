@@ -46,6 +46,7 @@
  */
 
 
+
 /*
  * Public function for adding signed integers. See qcbor/qcbor_encode.h
  */
@@ -62,9 +63,7 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
        * opposite order, changing the sign and subtracting, can cause
        * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
-
       uValue = (uint64_t)-nTmp;
-
       uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
    } else {
       uValue = (uint64_t)nNum;

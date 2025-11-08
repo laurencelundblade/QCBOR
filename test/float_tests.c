@@ -457,62 +457,62 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
 
    /* 8388607 -- exponent 22 to test single exponent boundary */
-   {8388607,                                     8388607.0f,
+   {8388607.0,                                   8388607.0f,
     {"\xFA\x4A\xFF\xFF\xFE", 5},                 {"\xFB\x41\x5F\xFF\xFF\xC0\x00\x00\x00", 9},
     {"\xFA\x4A\xFF\xFF\xFE", 5},                 {"\x1A\x00\x7F\xFF\xFF", 5}},
 
    /* 16777215 -- exponent 23 to test single exponent boundary */
-   {16777215,                                    16777215.0f,
+   {16777215.0,                                  16777215.0f,
     {"\xFA\x4B\x7F\xFF\xFF", 5},                 {"\xFB\x41\x6F\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\x4B\x7F\xFF\xFF", 5},                 {"\x1A\x00\xFF\xFF\xFF", 5}},
 
    /* 16777216 -- converts to single without loss */
-   {16777216,                                    16777216.0f,
+   {16777216.0,                                  16777216.0f,
     {"\xFA\x4B\x80\x00\x00", 5},                 {"\xFB\x41\x70\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x4B\x80\x00\x00", 5},                 {"\x1A\x01\x00\x00\x00", 5}},
 
    /* 16777217 -- one more than above and fails conversion to single because of precision */
-   {16777217,                                    0.0f,
+   {16777217.0,                                  0.0f,
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9},
     {"\xFB\x41\x70\x00\x00\x10\x00\x00\x00", 9}, {"\x1A\x01\x00\x00\x01", 5}},
 
    /* 33554430 -- exponent 24 to test single exponent boundary */
-   {33554430,                                    33554430.0f,
+   {33554430.0,                                  33554430.0f,
     {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\xFB\x41\x7F\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\x1A\x01\xFF\xFF\xFE",                 5}},
 
    /* 4294967295 -- 2^^32 - 1 UINT32_MAX */
-   {4294967295,                                  0,
+   {4294967295.0,                                0,
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x1A\xFF\xFF\xFF\xFF",                 5}},
 
    /* 4294967296 -- 2^^32, UINT32_MAX + 1 */
-   {4294967296,                                  4294967296.0f,
+   {4294967296.0,                                4294967296.0f,
     {"\xFA\x4F\x80\x00\x00",                 5}, {"\xFB\x41\xF0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x4F\x80\x00\x00",                 5}, {"\x1B\x00\x00\x00\x01\x00\x00\x00\x00", 9}},
 
    /* 2251799813685248 -- exponent 51, 0 significand bits set, to test double exponent boundary */
-   {2251799813685248,                            2251799813685248.0f,
+   {2251799813685248.0,                          2251799813685248.0f,
     {"\xFA\x59\x00\x00\x00",                 5}, {"\xFB\x43\x20\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x59\x00\x00\x00",                 5}, {"\x1B\x00\x08\x00\x00\x00\x00\x00\x00", 9}},
 
    /* 4503599627370495 -- exponent 51, 52 significand bits set to test double exponent boundary*/
-   {4503599627370495,                            0,
+   {4503599627370495.0,                          0,
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\x1B\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 9007199254740991 -- exponent 52, 52 significand bits set to test double exponent boundary */
-   {9007199254740991,                            0,
+   {9007199254740991.0,                          0,
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision for 18014398509481983) */
-   {18014398509481982,                           0,
+   {18014398509481982.0,                         0,
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
 
    /* 18014398509481984 -- next largest possible double above 18014398509481982  */
-   {18014398509481984,                           18014398509481984.0f,
+   {18014398509481984.0,                         18014398509481984.0f,
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
 

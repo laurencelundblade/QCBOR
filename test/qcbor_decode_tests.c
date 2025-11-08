@@ -6343,7 +6343,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetBigFloat */
       -20,
-      4294967295,
+      4294967295LL,
 
       QCBOR_SUCCESS, /* for GetTBigFloatBigMantissa */
       -20,
@@ -11572,7 +11572,6 @@ static const uint8_t spInvalid[] = {0xf8, 0x01};
 
 static const uint8_t spArrayWithNotWellFormed[] = {0x81, 0xff, 0xff};
 
-#include <stdio.h>
 
 
 int32_t GetMapAndArrayTest(void)
@@ -11750,8 +11749,6 @@ int32_t GetMapAndArrayTest(void)
       return 58;
    }
    UsefulBufC Expected = UsefulBuf_Tail(UsefulBuf_Head(DefAndIndef, 8), 6);
-
-   printf("REC: %llu %x   EXP: %llu %x\n", (unsigned long long)ReturnedEncodedCBOR.len, *(uint8_t *)ReturnedEncodedCBOR.ptr, (unsigned long long)Expected.len, *(uint8_t *)Expected.ptr);
 
    if(UsefulBuf_Compare(ReturnedEncodedCBOR, Expected)) {
       return 59;

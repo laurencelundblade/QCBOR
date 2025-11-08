@@ -3566,14 +3566,7 @@ struct SortTest {
    const QCBORError  uError;
 };
 
-struct SortTestX {
-   const char       *szDescription;
-    UsefulBufCC  ToBeSorted;
-    UsefulBufCC  Sorted;
-   const QCBORError  uError;
-};
-
- const struct SortTest sSortTestsxxx[] = {
+const struct SortTest sSortTestsxxx[] = {
    {
       (const void *)NULL,
       {NULL, 0},
