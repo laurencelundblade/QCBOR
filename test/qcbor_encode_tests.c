@@ -140,9 +140,6 @@ MakeTestResultCode(uint32_t   uTestCase,
 }
 
 
-/* The usual NULLUsefulBufC doesn't work in static const
- * initializers in gcc and MSVC. This does. Not quite sure why.  */
-#define NULLUsefulBufCConst {NULL, 0}
 
 
 // One big buffer that is used by all the tests to encode into

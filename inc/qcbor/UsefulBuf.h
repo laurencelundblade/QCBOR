@@ -323,6 +323,10 @@ typedef struct q_useful_buf {
 #define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
 #endif
 
+/* The usual NULLUsefulBufC doesn't work in static const
+ * initializers in gcc and MSVC. This does. Not quite sure why.  */
+#define NULLUsefulBufCConst {NULL, 0}
+
 /**
  * A null @ref UsefulBuf is one that has no memory associated the same
  * way @c NULL points to nothing. It does not matter what @c len is.
@@ -332,6 +336,10 @@ typedef struct q_useful_buf {
 #else
 #define NULLUsefulBuf  ((UsefulBuf) {NULL, 0})
 #endif
+
+/* The usual NULLUsefulBuf doesn't work in static const
+ * initializers in gcc and MSVC. This does. Not quite sure why.  */
+#define NULLUsefulBufConst {NULL, 0}
 
 
 /**
