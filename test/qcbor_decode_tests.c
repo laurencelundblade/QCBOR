@@ -4062,7 +4062,8 @@ static const struct TestInput spTagInput2[] = {
    },
 
    {NULL,
-      NULLUsefulBufCConst}
+      NULLUsefulBufCConst
+   }
 };
 
 
