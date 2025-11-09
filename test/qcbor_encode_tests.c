@@ -1017,11 +1017,11 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufC4,
-      NULLUsefulBufC5
+      (const UsefulBufC) {NULL, 0},
+      NULLUsefulBufC1
    },
    {
-      "leading zeros -- 0 and error for no negative 0",
+      "zzzleading zeros -- 0 and error for no negative 0",
       {"\x00\x00\x00\x00", 4},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
