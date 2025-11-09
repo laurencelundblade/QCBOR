@@ -81,6 +81,9 @@ MakeTestResultCode(uint32_t   uTestCase,
    return (int32_t)uCode;
 }
 
+/* The usual NULLUsefulBufC doesn't work in static const
+ * initializers in gcc and MSVC. This does. Not quite sure why.  */
+#define NULLUsefulBufCConst {NULL, 0}
 
 /*
    [
@@ -4060,7 +4063,8 @@ static const struct TestInput spTagInput2[] = {
    },
 
    {NULL,
-   NULLUsefulBufC}
+      NULLUsefulBufCConst
+   }
 };
 
 
@@ -11179,7 +11183,7 @@ static UsefulBufC CorrectlySorted[] = {
    {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
    {"\xa2\x00\x00\x01\x01", 5},
    {"\xA0", 1},
-   NULLUsefulBufC
+   NULLUsefulBufCConst
 };
 
 

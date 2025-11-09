@@ -3110,18 +3110,18 @@ struct EAMEncodeTest {
    UsefulBufC  DecFracBig;
 };
 
-struct EAMEncodeTest EET[] = {
+static const struct EAMEncodeTest EET[] = {
    { "basic",
       -1,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       3,
       false,
       EAM_Pref,
 
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
-      NULLUsefulBufC,
-      NULLUsefulBufC
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    },
 
    { "bignum gets preferred",
@@ -3131,8 +3131,8 @@ struct EAMEncodeTest EET[] = {
       false,
       EAM_Pref,
 
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst,
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
    }
@@ -3299,7 +3299,7 @@ ExponentAndMantissaEncodeTests(void)
    const int nNumberOfTests = C_ARRAY_COUNT(EET, struct EAMEncodeTest);
 
    for(nIndex = 0; nIndex < nNumberOfTests; nIndex++) {
-      struct EAMEncodeTest *pTest = &EET[nIndex];
+      const struct EAMEncodeTest *pTest = &EET[nIndex];
 
 
       if(UsefulBuf_IsNULLC(pTest->BigNumMantissa)) {
@@ -3580,42 +3580,42 @@ static const struct SortTest sSortTests[] =
    {
       "Not well formed label",
       {"\x1c\x03\x01\x01\x04\x04\x02\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
    {
       "Not well formed value",
       {"\x03\x1c\x01\x01\x04\x04\x02\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
    {
       "Not well formed label at end",
       {"\x03\x03\x01\x01\x04\x04\x1c\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
    {
       "Extraneous break",
       {"\x03\x03\x01\x01\x04\xff\x02\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_HIT_END
    },
 
    {
       "Off end",
       {"\x03\x03\x01\x01\x04\x04\x02\x6f\x68\x69", 10},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_HIT_END
    },
 
    {
       "Indef string chunk in error",
       {"\x03\x03\x5f\x61\x68\x1c\xff\x01\x04\x04\x02\x02", 12},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
@@ -3632,8 +3632,8 @@ static const struct SortTest sSortTests[] =
 
    {
       NULL,
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst,
       QCBOR_SUCCESS
    }
 };
