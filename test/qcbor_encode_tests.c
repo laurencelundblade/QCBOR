@@ -140,8 +140,6 @@ MakeTestResultCode(uint32_t   uTestCase,
 }
 
 
-
-
 // One big buffer that is used by all the tests to encode into
 // Putting it in uninitialized data is better than using a lot
 // of stack. The tests should run on small devices too.
@@ -1023,7 +1021,7 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       NULLUsefulBufCConst
    },
    {
-      "zzzleading zeros -- 0 and error for no negative 0",
+      "leading zeros -- 0 and error for no negative 0",
       {"\x00\x00\x00\x00", 4},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
