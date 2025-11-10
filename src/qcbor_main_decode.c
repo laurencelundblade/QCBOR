@@ -2417,7 +2417,7 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    QCBORItem  LabelItem;
    bool       bEndedByBreak;
 
-   bEndedByBreak = false;
+   //bEndedByBreak = false;
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem, NULL);
