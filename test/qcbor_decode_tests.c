@@ -179,38 +179,38 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967297)
+      Item.val.int64 != -4294967297LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967296)
+      Item.val.int64 != -4294967296LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967295)
+      Item.val.int64 != -4294967295LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -4294967294)
+      Item.val.int64 != -4294967294LL)
       return -1;
 
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -2147483648)
+      Item.val.int64 != -2147483648LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != -2147483647)
+      Item.val.int64 != -2147483647LL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
@@ -415,52 +415,52 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483647)
+      Item.val.int64 != 2147483647LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483647)
+      Item.val.int64 != 2147483647LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483648)
+      Item.val.int64 != 2147483648LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 2147483649)
+      Item.val.int64 != 2147483649LL)
       return  -1;
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967294)
-      return  -1;
-
-
-   if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
-      return (int32_t)nCBORError;
-   if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967295)
+      Item.val.int64 != 4294967294LL)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967296)
+      Item.val.int64 != 4294967295LL)
       return  -1;
 
 
    if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_INT64 ||
-      Item.val.int64 != 4294967297)
+      Item.val.int64 != 4294967296LL)
+      return  -1;
+
+
+   if((   nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
+      return (int32_t)nCBORError;
+   if(Item.uDataType != QCBOR_TYPE_INT64 ||
+      Item.val.int64 != 4294967297LL)
       return  -1;
 
 
@@ -3453,7 +3453,7 @@ int32_t DateParseTest(void)
    }
    if(uError == QCBOR_SUCCESS) {
       if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-         Item.val.epochDate.nSeconds != 1400000000
+         Item.val.epochDate.nSeconds != 1400000000LL
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
          || Item.val.epochDate.fSecondsFraction != 0
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
@@ -3475,7 +3475,7 @@ int32_t DateParseTest(void)
       return -7;
    }
    if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-      Item.val.epochDate.nSeconds != 1400000001 ||
+      Item.val.epochDate.nSeconds != 1400000001LL ||
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
       Item.val.epochDate.fSecondsFraction != 0 ||
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
@@ -3523,7 +3523,7 @@ int32_t DateParseTest(void)
    }
    if(uError == QCBOR_SUCCESS) {
       if(Item.uDataType != QCBOR_TYPE_DATE_EPOCH ||
-         Item.val.epochDate.nSeconds != 9223372036854773760
+         Item.val.epochDate.nSeconds != 9223372036854773760LL
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
          || Item.val.epochDate.fSecondsFraction != 0.0
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
@@ -3899,7 +3899,7 @@ int32_t SpiffyDateDecodeTest(void)
 
 #ifndef QCBOR_DISABLE_TAGS
 
-   if(nEpochDate1400000000 != 1400000000) {
+   if(nEpochDate1400000000 != 1400000000LL) {
       return 200;
    }
 
@@ -4241,7 +4241,7 @@ int32_t OptTagParseTest(void)
    QCBORDecode_Init(&DCtx,
                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEncodedLargeTag),
                     QCBOR_DECODE_MODE_NORMAL);
-   const uint64_t puList[] = {0x9192939495969798, 257};
+   const uint64_t puList[] = {0x9192939495969798ULL, 257};
    const QCBORTagListIn TL = {2, puList};
    QCBORDecode_SetCallerConfiguredTagList(&DCtx, &TL);
 
@@ -4249,7 +4249,7 @@ int32_t OptTagParseTest(void)
       return -8;
    }
    if(Item.uDataType != QCBOR_TYPE_ARRAY ||
-      !QCBORDecode_IsTagged(&DCtx, &Item, 0x9192939495969798) ||
+      !QCBORDecode_IsTagged(&DCtx, &Item, 0x9192939495969798ULL) ||
       QCBORDecode_IsTagged(&DCtx, &Item, 257) ||
       QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_BIGFLOAT) ||
       Item.val.uCount != 0) {
@@ -4280,7 +4280,7 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_GetNextWithTags(&DCtx, &Item, &Out)) {
       return -12;
    }
-   if(puTags[0] != 0x9192939495969798 ||
+   if(puTags[0] != 0x9192939495969798ULL ||
       puTags[1] != 0x88 ||
       puTags[2] != 0x06 ||
       puTags[3] != 0x07) {
@@ -4349,7 +4349,7 @@ int32_t OptTagParseTest(void)
       QCBORDecode_IsTagged(&DCtx, &Item, 6) ||
       !QCBORDecode_IsTagged(&DCtx, &Item, 7) ||
       Item.val.uCount != 2 ||
-      puTags[0] != 5859837686836516696 ||
+      puTags[0] != 5859837686836516696ULL ||
       puTags[1] != 7 ||
       Out.uNumUsed != 2) {
       return -103;
@@ -4549,7 +4549,7 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
       return 210;
    }
-   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696ULL) {
       return 212;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
@@ -4568,7 +4568,7 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != 7) {
       return 220;
    }
-   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696) {
+   if(QCBORDecode_GetNthTagOfLast(&DCtx, 1) != 5859837686836516696ULL) {
       return 221;
    }
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 2) != CBOR_TAG_INVALID64) {
@@ -6027,7 +6027,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetBigFloat */
       -20,
-      4294967295,
+      4294967295LL,
 
       QCBOR_SUCCESS, /* for GetBigFloatBig */
       -20,
@@ -6076,7 +6076,7 @@ static const struct EaMTest pEaMTests[] = {
 
       QCBOR_SUCCESS, /* for GetNext */
       QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,
-      9223372036854775807,
+      9223372036854775807LL,
       0,
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
 
@@ -6085,7 +6085,7 @@ static const struct EaMTest pEaMTests[] = {
       0,
 
       QCBOR_SUCCESS, /* for GetDecimalFractionBig */
-      9223372036854775807,
+      9223372036854775807LL,
       {(const uint8_t []){0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 10},
       true,
 
@@ -7619,7 +7619,7 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xC5, 0x82, 0x20,
                                0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x0ff, 0xff, 0xff,
                                }, 15},
-      -4611686018427387904, /* INT64_MIN / 2 */
+      -4611686018427387904LL, /* INT64_MIN / 2 */
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
@@ -7961,7 +7961,7 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Negative integer -18446744073709551616",
       {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
-      -9223372036854775807-1, // INT64_MIN
+      -9223372036854775807LL-1, // INT64_MIN
       QCBOR_SUCCESS,
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
