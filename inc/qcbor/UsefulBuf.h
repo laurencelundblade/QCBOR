@@ -1,6 +1,6 @@
 /* =========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  * All rights reserved.
  *
@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 11/10/2025   llundblade      Explicitly size integer literals (MSVC fix).
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
  08/08/2024   llundblade      Add UsefulOutBuf_SubString().

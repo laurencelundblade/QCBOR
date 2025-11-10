@@ -228,7 +228,7 @@ extern "C" {
 /** The 32-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID32 0xffffffff
 /** The 64-bit invalid tag from the CBOR tags registry */
-#define CBOR_TAG_INVALID64 0xffffffffffffffff
+#define CBOR_TAG_INVALID64 0xffffffffffffffffULL
 
 
 
