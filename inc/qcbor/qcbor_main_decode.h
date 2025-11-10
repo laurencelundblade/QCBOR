@@ -1463,7 +1463,7 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
 QCBORError
 QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
                                 const QCBORItem    *pItemToConsume,
-                                bool               *pbBreak,
+                                bool               *pbEndedByBreak,
                                 uint8_t            *puNextNestLevel);
 
 /** @private  Semi-private function. See qcbor_decode.c */
