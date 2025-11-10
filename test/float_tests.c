@@ -260,37 +260,37 @@ struct NaNTestCase {
 static const struct NaNTestCase NaNTestCases[] =  {
 
    /* Payload with most significant bit set, a qNaN by most implementations */
-   {0x7ff8000000000000,                          0x00000000,
+   {0x7ff8000000000000ULL,                       0x00000000,
     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with single rightmost set */
-   {0x7ff8000000000001,                          0x00000000,
+   {0x7ff8000000000001ULL,                       0x00000000,
     {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 leftmost bits set -- converts to half */
-   {0x7ffffc0000000000,                          0x00000000,
+   {0x7ffffc0000000000ULL,                       0x00000000,
     {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 10 rightmost bits set -- cannot convert to half */
-   {0x7ff80000000003ff,                          0x00000000,
+   {0x7ff80000000003ffULL,                       0x00000000,
     {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF8\x00\x00\x00\x00\x03\xFF", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 23 leftmost bits set -- converts to a single */
-   {0x7ffFFFFFE0000000,                          0x7fffffff,
+   {0x7ffFFFFFE0000000ULL,                       0x7fffffff,
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with 24 leftmost bits set -- fails to convert to a single */
-   {0x7ffFFFFFF0000000,                          0x00000000,
+   {0x7ffFFFFFF0000000ULL,                       0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xFF\xFF\xFF\xF0\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* Payload with all bits set */
-   {0x7fffffffffffffff,                          0x00000000,
+   {0x7fffffffffffffffULL,                       0x00000000,
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 

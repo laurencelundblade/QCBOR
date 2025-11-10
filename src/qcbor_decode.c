@@ -6681,7 +6681,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
 static UsefulBufC
 QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
 {
-   while((uInt & 0xff00000000000000UL) == 0) {
+   while((uInt & 0xff00000000000000ULL) == 0) {
       uInt = uInt << 8;
    };
 
@@ -6690,7 +6690,7 @@ QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
    UsefulOutBuf_Init(&UOB, Buffer);
 
    while(uInt) {
-      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000UL) >> 56));
+      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000ULL) >> 56));
       uInt = uInt << 8;
    }
 
