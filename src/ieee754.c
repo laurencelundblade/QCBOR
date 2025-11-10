@@ -931,7 +931,7 @@ IEEE754_UintToDouble(const uint64_t uInt, const int nIsNegative)
       uDoubleSignificand = uInt;
       nDoubleUnbiasedExponent = 63;
       while(1) {
-         if(uDoubleSignificand & 0x8000000000000000UL) {
+         if(uDoubleSignificand & 0x8000000000000000ULL) {
             break;
          }
          uDoubleSignificand <<= 1;
