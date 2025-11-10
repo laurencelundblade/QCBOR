@@ -1,6 +1,6 @@
 /* ==========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -766,7 +766,7 @@ const char *  UIBTest_IntegerFormat(void)
    UsefulOutBuf_MakeOnStack(UOB, 100);
 
    const uint32_t u32 = 0x0A0B0C0D; // from https://en.wikipedia.org/wiki/Endianness
-   const uint64_t u64 = 1984738472938472;
+   const uint64_t u64 = 1984738472938472ULL;
    const uint16_t u16 = 40000;
    const uint8_t  u8 = 9;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT

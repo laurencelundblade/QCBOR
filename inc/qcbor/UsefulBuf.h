@@ -1,6 +1,6 @@
 /* =========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  * All rights reserved.
  *
@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 11/10/2025   llundblade      Explicitly size integer literals (MSVC fix).
  08/14/2024   llundblade      Add UsefulOutBuf_RetrieveOutputStorage().
  08/13/2024   llundblade      Add UsefulInputBuf_RetrieveUndecodedInput().
  08/08/2024   llundblade      Add UsefulOutBuf_SubString().
@@ -2125,14 +2126,14 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
     */
    uint8_t aTmp[8];
 
-   aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000) >> 56);
-   aTmp[1] = (uint8_t)((uInteger64 & 0xff000000000000) >> 48);
-   aTmp[2] = (uint8_t)((uInteger64 & 0xff0000000000) >> 40);
-   aTmp[3] = (uint8_t)((uInteger64 & 0xff00000000) >> 32);
-   aTmp[4] = (uint8_t)((uInteger64 & 0xff000000) >> 24);
-   aTmp[5] = (uint8_t)((uInteger64 & 0xff0000) >> 16);
-   aTmp[6] = (uint8_t)((uInteger64 & 0xff00) >> 8);
-   aTmp[7] = (uint8_t)(uInteger64 & 0xff);
+   aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000ULL) >> 56);
+   aTmp[1] = (uint8_t)((uInteger64 & 0xff000000000000ULL) >> 48);
+   aTmp[2] = (uint8_t)((uInteger64 & 0xff0000000000ULL) >> 40);
+   aTmp[3] = (uint8_t)((uInteger64 & 0xff00000000ULL) >> 32);
+   aTmp[4] = (uint8_t)((uInteger64 & 0xff000000ULL) >> 24);
+   aTmp[5] = (uint8_t)((uInteger64 & 0xff0000ULL) >> 16);
+   aTmp[6] = (uint8_t)((uInteger64 & 0xff00ULL) >> 8);
+   aTmp[7] = (uint8_t)(uInteger64  & 0xffULL);
 
    pBytes = aTmp;
 #endif
