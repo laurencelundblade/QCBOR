@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 11/10/2025   llundblade      Explicitly size integer literals (MSVC fix).
  02/21/2025   llundblade      Correct documentaion for UsefulOutBuf_Compare()
  02/21/2025   llundblade      Rename to UsefulOutBuf_OutSubString().
  12/31/2024   llundblade      Minor documentation tweaks for Doxygen.

@@ -180,13 +180,13 @@ static int32_t IntegerValuesParseTestInternal(QCBORDecodeContext *pDCtx)
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-      Item.val.uint64 != 0xffffffffffffffff)
+      Item.val.uint64 != 0xffffffffffffffffULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
       return (int32_t)nCBORError;
    if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-      Item.val.uint64 != 0xfffffffffffffffe)
+      Item.val.uint64 != 0xfffffffffffffffeULL)
       return -1;
 
    if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item)))
