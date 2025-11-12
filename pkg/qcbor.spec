@@ -1,7 +1,7 @@
 # Guidelines from https://docs.fedoraproject.org/en-US/packaging-guidelines/CMake/
 
 Name: qcbor
-Version: 1.5.3
+Version: 1.6
 Release: 0%{?dist}
 Summary: A CBOR encoder/decoder library
 URL: https://github.com/laurencelundblade/QCBOR
@@ -53,6 +53,13 @@ Development files needed to build and link to the QCBOR library.
 
 
 %changelog
+* Nov 12 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6
+- Better Windows/MSVC support
+- Bug fix for GetArray() and GetMap()
+- Fix gcc warnings
+- Bug fix for OpenBstr on empty map at end of input
+- Bug fix for floating-point NaN payload conversion for preferred serialization
+- Don't use strcpy()
 * Jun 16 2025 Laurence Lundblade <lgl@island-resort.com> - 1.5.3
 - Bug fix for GetArray() from empty map
 - Increase test coverage
