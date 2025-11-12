@@ -1,5 +1,6 @@
 #-------------------------------------------------------------------------------
 # Copyright (c) 2022-2023, Arm Limited. All rights reserved.
+# Copyright (c) 2025, Laurence Lundblade All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -11,7 +12,7 @@ cmake_minimum_required(VERSION 3.15)
 project(qcbor
     DESCRIPTION "QCBOR"
     LANGUAGES C
-    VERSION 1.5.2
+    VERSION 1.6
 )
 
 set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
