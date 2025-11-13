@@ -98,6 +98,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SIZEOF_C_ARRAY(array,type) (sizeof(array)/sizeof(type))
 
 
+/* Embed a version string in the library */
+const char libqcborVersionDecode[] = QCBOR_VERSION_STRING;
 
 
 static bool
