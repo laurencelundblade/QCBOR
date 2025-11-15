@@ -4322,39 +4322,99 @@ int32_t SubStringTest(void)
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 
-static int StreamTestFlushCB(void *pMe, UsefulBufC Bytes)
+
+struct Streamer  {
+   UsefulOutBuf UOB;
+};
+
+static void Streamer_init(struct Streamer *pMe, UsefulBuf UB)
 {
-   (void)pMe;
-   (void)Bytes;
+   UsefulOutBuf_Init(&(pMe->UOB), UB);
+}
+
+static int Streamer_CB(void *pMeVoid, UsefulBufC Bytes)
+{
+   struct Streamer *pMe = (struct Streamer *)pMeVoid;
+
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->UOB), Bytes);
+
    return 0;
 }
+
+static UsefulBufC Streamer_Out(struct Streamer *pMe)
+{
+   return UsefulOutBuf_OutUBuf(&(pMe->UOB));
+}
+
+
+
 
 
 
 int32_t StreamTest(void)
 {
    QCBOREncodeContext EC;
-   //QCBORError uErr;
+   UsefulBuf_MAKE_STACK_UB  (StreamerBuf, 100);
+   UsefulBuf_MAKE_STACK_UB  (Small, 3);
+   struct Streamer           Streamer;
+   QCBORError                uErr;
 
-   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-
-   QCBOREncode_SetStream(&EC, StreamTestFlushCB, &EC);
-
-   QCBOREncode_OpenFlowedArray(&EC, 1); // TODO: test indef lengths too
-
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 1);
    QCBOREncode_AddInt64(&EC, 4);
-#if 0
-   QCBOREncode_CloseStreamedArray(&EC);
-
+   QCBOREncode_CloseFlowedArray(&EC);
    uErr = QCBOREncode_FinishStream(&EC);
    if(uErr != QCBOR_SUCCESS) {
       return 1;
    }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x81\x04"))) {
+      return 91;
+   }
 
-   // TODO: what to do with finish?
-   // Finish for a stream is check errors and flush
-   // Nothing is returned
-#endif
+
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, SIZE_MAX);
+   QCBOREncode_AddInt64(&EC, 400000000);
+   QCBOREncode_Flush(&EC);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x9f\x1a\x17\xd7\x84\x00\xff"))) {
+      return 91;
+   }
+
+
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 1); // TODO: test indef lengths too
+   QCBOREncode_AddStreamedText(&EC, UsefulBuf_FROM_SZ_LITERAL("green eggs"));
+   QCBOREncode_AddStreamedBytes(&EC, UsefulBuf_FROM_SZ_LITERAL("and ham"));
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x81\x6agreen eggs\x47" "and ham"))) {
+      return 91;
+   }
+
+   /* Test flowed map */
+
+   /* Try a regular array in streamed mode */
+
+
+   /* Try open bytes in streamed mode */
+
+   /* Try bstr wrapping in streamed mode */
+
+
 
    return 0;
 }
@@ -4367,21 +4427,128 @@ int32_t EncodeIndefiniteStringsTest(void)
    QCBOREncodeContext EC;
    UsefulBufC         Encoded;
    QCBORError         uExpectedErr;
+   UsefulBuf_MAKE_STACK_UB (StreamerBuf, 100);
+   UsefulBuf_MAKE_STACK_UB (Small, 3);
+   struct Streamer Streamer;
 
+   /* Success indefinite-length text string */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-
    QCBOREncode_OpenIndefiniteLengthText(&EC);
    QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
    QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
    QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
    QCBOREncode_CloseIndefiniteLengthText(&EC);
-
    uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uExpectedErr) {
       return 1;
    }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x7f\x63xxx\x63yyy\x63zzz\xff"))) {
+      return 2;
+   }
 
-   // TODO: compare to expected encoded
+   /* Success indefinite-length byte string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthBytes(&EC);
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 10;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x5f\x43xxx\x43yyy\x43zzz\xff"))) {
+      return 11;
+   }
+
+   /* Fail trying to put bytes in a text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
+      return 20;
+   }
+
+   /* Fail trying to close a text string with byte string close */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
+      return 30;
+   }
+
+   /* Fail trying to put a double into a text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddDouble(&EC, 4.23); // TODO: how to cath this error?
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
+      return 40;
+   }
+
+   /* Success making an empty text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 50;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x7f\xff"))) {
+      return 51;
+   }
+
+   /* Fail because open indefinite length text string wasnt closed */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 60;
+   }
+
+   /* Fail trying to close string without one open */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 70;
+   }
+
+   /* Fail adding a text chunk without an open indefinite length string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) { // TODO: better error code?
+      return 80;
+   }
+
+   /* Indef lengths streaming (usually you do indef lengths to not need streaming) */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_FinishStream(&EC);
+   if(uExpectedErr) {
+      return 90;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x7f\x63xxx\x63yyy\x63zzz\xff"))) {
+      return 91;
+   }
 
    return 0;
 }

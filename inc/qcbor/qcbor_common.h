@@ -40,7 +40,7 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+//#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 #ifdef __cplusplus
 extern "C" {
@@ -288,9 +288,10 @@ typedef enum {
     *  @ref QCBOR_MAX_ARRAY_NESTING. */
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 4,
 
-   /** During encoding, @c QCBOREncode_CloseXxx() called for a
-    *  different type than is currently open.  */
+   /** During encoding, the type of close doesn't match what is open. Also
+    * an indefinite-length string chunk is of the wrong type. */
    QCBOR_ERR_CLOSE_MISMATCH = 5,
+   QCBOR_ERR_NESTED_TYPE_MISMATCH = 5,
 
    /** During encoding, the array or map had too many items in it. The
     * limits are @ref QCBOR_MAX_ITEMS_IN_ARRAY and
