@@ -175,7 +175,7 @@ extern "C" {
 /*
  * PRIVATE DATA STRUCTURE
  *
- * Holds the data for tracking array and map nesting during
+ * Holds the data for tracking open arrays, maps, indefinite-length strings, bstr-wrapping, open byte strings during
  * encoding. Pairs up with the Nesting_xxx functions to make an
  * "object" to handle nesting encoding.
  *
@@ -394,11 +394,28 @@ struct _QCBORDecodeContext {
 
 
 
+
+#define QCBOR_MAJOR_TYPE_MASK  0x07
+#define QCBOR_INDEFINITE_LEN_TYPE_MODIFIER 0x80
+#define QCBOR_OPEN_BYTES 0x40
+#define QCBOR_BSTR_WRSP  0x20
+
+
+#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR   CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_OPEN_BYTES
+#define CBOR_MAJOR_NONE_TYPE_BSTR_WRAP   CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_BSTR_WRSP
+
+
+/* Add this to types to indicate they are to be encoded as indefinite lengths */
+#define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN \
+            CBOR_MAJOR_TYPE_ARRAY + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
+#define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN \
+            CBOR_MAJOR_TYPE_MAP + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
+#define CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK \
+            CBOR_MAJOR_TYPE_SIMPLE + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
 /* Used internally in the impementation here Must not conflict with
  * any of the official CBOR types
  */
 #define CBOR_MAJOR_NONE_TAG_LABEL_REORDER  10
-#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR     12
 
 
 /* Add this to types to indicate they are to be encoded as indefinite lengths */
