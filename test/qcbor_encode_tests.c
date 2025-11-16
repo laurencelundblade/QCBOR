@@ -4466,6 +4466,7 @@ int32_t EncodeIndefiniteStringsTest(void)
    }
 
    /* Fail trying to put bytes in a text string */
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenIndefiniteLengthText(&EC);
    QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
@@ -4489,6 +4490,7 @@ int32_t EncodeIndefiniteStringsTest(void)
       return 30;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    /* Fail trying to put a double into a text string */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_OpenIndefiniteLengthText(&EC);
@@ -4500,18 +4502,7 @@ int32_t EncodeIndefiniteStringsTest(void)
    if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
       return 40;
    }
-
-   /* Success making an empty text string */
-   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_OpenIndefiniteLengthText(&EC);
-   QCBOREncode_CloseIndefiniteLengthText(&EC);
-   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
-   if(uExpectedErr) {
-      return 50;
-   }
-   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x7f\xff"))) {
-      return 51;
-   }
+#endif
 
    /* Fail because open indefinite length text string wasnt closed */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -4536,6 +4527,21 @@ int32_t EncodeIndefiniteStringsTest(void)
    if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) { // TODO: better error code?
       return 80;
    }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* Success making an empty text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 50;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x7f\xff"))) {
+      return 51;
+   }
+
+
 
 #ifndef USEFULBUF_DISABLE_STREAMING
    /* Indef lengths streaming (usually you do indef lengths to not need streaming) */
@@ -4555,7 +4561,7 @@ int32_t EncodeIndefiniteStringsTest(void)
       return 91;
    }
 #endif
-   
+
    return 0;
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */

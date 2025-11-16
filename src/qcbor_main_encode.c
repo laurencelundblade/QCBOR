@@ -152,13 +152,13 @@ Nesting_GetStartPos(QCBORTrackNesting *pNesting)
    return pNesting->pCurrentNesting->uStart;
 }
 
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 static enum QCBORMajorType
 Nesting_GetMajorType(QCBORTrackNesting *pNesting)
 {
    return (enum QCBORMajorType)pNesting->pCurrentNesting->uMajorType;
 }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 static bool
 Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {

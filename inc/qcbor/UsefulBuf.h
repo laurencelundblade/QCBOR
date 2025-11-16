@@ -164,6 +164,7 @@
  * option -mgeneral-regs-only.
  */
 
+//#define USEFULBUF_DISABLE_ALL_FLOAT
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
 #error "Cannot define both USEFULBUF_CONFIG_BIG_ENDIAN and USEFULBUF_CONFIG_LITTLE_ENDIAN"

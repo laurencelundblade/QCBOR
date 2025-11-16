@@ -40,7 +40,7 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 //#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 #ifdef __cplusplus
