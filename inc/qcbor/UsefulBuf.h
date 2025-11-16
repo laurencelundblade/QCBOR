@@ -164,6 +164,7 @@
  * option -mgeneral-regs-only.
  */
 
+
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
 #error "Cannot define both USEFULBUF_CONFIG_BIG_ENDIAN and USEFULBUF_CONFIG_LITTLE_ENDIAN"
 #endif
@@ -347,7 +348,7 @@ enum UsefulBufErr {
    UBO_Err_Bad_State   = 1, /* The UsefulOutBuf is in a bad state */
    UBO_Err_Full        = 2, /* Output buffer is full */
    UBO_Err_InsertPoint = 3, /* Insertion point requested is invalid */
-   UBO_Err_Streaming   = 4, /* Tryint to insert in streaming mode */
+   UBO_Err_Streaming   = 4, /* Trying to insert in streaming mode */
    UBO_Err_FlushWrite  = 10,/* General flush error */
 };
 
@@ -1239,6 +1240,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
                              UsefulBufC    NewData);
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
 /**
  * @brief In streaming mode, output bytes without buffering.
  *
@@ -1258,6 +1260,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
  */
 void
 UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes);
+#endif
 
 
 /**

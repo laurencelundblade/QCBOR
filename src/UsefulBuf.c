@@ -74,6 +74,8 @@
 
 #include "UsefulBuf.h"
 
+
+
 /* used to catch use of uninitialized or corrupted UsefulOutBuf */
 #define USEFUL_OUT_BUF_MAGIC  (0x0B0F)
 

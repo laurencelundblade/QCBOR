@@ -4367,13 +4367,14 @@ int32_t StreamTest(void)
    QCBOREncode_CloseFlowedArray(&EC);
    uErr = QCBOREncode_FinishStream(&EC);
    if(uErr != QCBOR_SUCCESS) {
-      return 1;
+      return 10;
    }
    if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x81\x04"))) {
-      return 91;
+      return 11;
    }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
    QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
@@ -4383,11 +4384,12 @@ int32_t StreamTest(void)
    QCBOREncode_CloseFlowedArray(&EC);
    uErr = QCBOREncode_FinishStream(&EC);
    if(uErr != QCBOR_SUCCESS) {
-      return 1;
+      return 20;
    }
    if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x9f\x1a\x17\xd7\x84\x00\xff"))) {
-      return 91;
+      return 21;
    }
+#endif 
 
 
    QCBOREncode_Init(&EC, Small);
@@ -4399,10 +4401,10 @@ int32_t StreamTest(void)
    QCBOREncode_CloseFlowedArray(&EC);
    uErr = QCBOREncode_FinishStream(&EC);
    if(uErr != QCBOR_SUCCESS) {
-      return 1;
+      return 30;
    }
    if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x81\x6agreen eggs\x47" "and ham"))) {
-      return 91;
+      return 31;
    }
 
    /* Test flowed map */
@@ -4427,9 +4429,11 @@ int32_t EncodeIndefiniteStringsTest(void)
    QCBOREncodeContext EC;
    UsefulBufC         Encoded;
    QCBORError         uExpectedErr;
+#ifndef USEFULBUF_DISABLE_STREAMING
    UsefulBuf_MAKE_STACK_UB (StreamerBuf, 100);
    UsefulBuf_MAKE_STACK_UB (Small, 3);
    struct Streamer Streamer;
+#endif
 
    /* Success indefinite-length text string */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
@@ -4533,6 +4537,7 @@ int32_t EncodeIndefiniteStringsTest(void)
       return 80;
    }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
    /* Indef lengths streaming (usually you do indef lengths to not need streaming) */
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
@@ -4549,7 +4554,8 @@ int32_t EncodeIndefiniteStringsTest(void)
    if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x7f\x63xxx\x63yyy\x63zzz\xff"))) {
       return 91;
    }
-
+#endif
+   
    return 0;
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */

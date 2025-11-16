@@ -431,8 +431,7 @@ QCBOREncode_EncodeHead(UsefulBuf                  Buffer,
    /* The 5 bits in the initial byte that are not the major type */
    int nAdditionalInfo;
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   // TODO: can't disable unless both arrays and strings are disabled
+#if ! (defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
    if(uMajorType & QCBOR_MT_INDEF) {
       /* This takes advantage of design of CBOR where additional info
        * is 31 for both opening and closing indefinite length
@@ -615,7 +614,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext        *pMe,
 
    /* Make sure right type of string is added when encoding indefinite-length strings */
    // Have to do this here to catch all the things that are not indef strings
-   // TODO: make Conditional on indefinite lengths
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    enum QCBORMajorType uMajorOpen = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorOpen == (QCBOR_INDEFINITE_LEN_TYPE_MODIFIER | QCBOR_MT_INDEF) ||
       uMajorOpen == (QCBOR_INDEFINITE_LEN_TYPE_MODIFIER | QCBOR_MT_INDEF)) {
@@ -627,6 +626,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext        *pMe,
          }
       }
    }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
