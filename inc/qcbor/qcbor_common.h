@@ -59,17 +59,25 @@ extern "C" {
 
 /**
  * Semantic versioning for QCBOR x.y.z from 1.3.0 on
- *
- * Note:
- *   - QCBOR 1.2 is indicated by the #define QCBOR_1_2
- *   - QCBOR 1.1 is indicated by the #define QCBOR_1_1
- *   - QCBOR 1.0 is indicated by the absence of all the above
  */
 #define QCBOR_VERSION_MAJOR 2
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
 /* This is an alpha (not ready for commercial use) release of 2.0.0 */
+
+/**
+ * Constuct version string
+ *
+ * Use C pre-processor magic to turn the above integers into
+ * a version string like "libqcbor 1.6.0"
+ */
+#define STR1(x) #x
+#define STR(x) STR1(x)
+#define QCBOR_VERSION_STRING "libqcbor " STR(QCBOR_VERSION_MAJOR) "." \
+                                         STR(QCBOR_VERSION_MINOR) "." \
+                                         STR(QCBOR_VERSION_PATCH) " alpha"
+
 
 /**
  * This define indicates a version of QCBOR that supports spiffy
