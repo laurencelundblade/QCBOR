@@ -74,8 +74,6 @@
 
 #include "UsefulBuf.h"
 
-
-
 /* used to catch use of uninitialized or corrupted UsefulOutBuf */
 #define USEFUL_OUT_BUF_MAGIC  (0x0B0F)
 
@@ -265,14 +263,14 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     * little code.
     */
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = UBO_Err_Bad_State; /* Magic number is wrong due to uninitalization or corruption */
+      pMe->err = UsefulBufErr_BadState; /* Magic number is wrong due to uninitalization or corruption */
       return;
    }
 
 #ifndef USEFULBUF_DISABLE_STREAMING
    if(pMe->pfFlush != NULL) {
       /* Can't do inserts in streaming mode */
-      pMe->err = UBO_Err_Streaming;
+      pMe->err = UsefulBufErr_Streaming;
       return;
    }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
@@ -282,7 +280,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     * be sure there is no pointer arithmatic under/overflow.
     */
    if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
-      pMe->err = UBO_Err_Bad_State;
+      pMe->err = UsefulBufErr_BadState;
       /* Offset of valid data is off the end of the UsefulOutBuf due to
        * uninitialization or corruption
        */
@@ -295,7 +293,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     */
    if(! UsefulOutBuf_WillItFit(pMe, NewData.len)) { /* Check #2 */
       /* The new data will not fit into the the buffer. */
-      pMe->err = UBO_Err_Full;
+      pMe->err = UsefulBuffErr_Full;
       return;
    }
 
@@ -306,7 +304,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     */
    if(uInsertionPos > pMe->data_len) { /* Check #3 */
       /* Off the end of the valid data in the buffer. */
-      pMe->err = UBO_Err_InsertPoint;
+      pMe->err =    UsefulBuffErr_InsertPoint;
       return;
    }
 
@@ -387,7 +385,7 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     * does good with very little code.
     */
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = UBO_Err_Bad_State;
+      pMe->err = UsefulBufErr_BadState;
       return;  /* Magic number is wrong due to uninitalization or corrption */
    }
 
@@ -397,7 +395,7 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     * under/overflow.
     */
    if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
-      pMe->err = UBO_Err_Bad_State;
+      pMe->err = UsefulBufErr_BadState;
       /* Offset of valid data is off the end of the UsefulOutBuf due
        * to uninitialization or corruption.
        */
@@ -412,7 +410,7 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     */
    if(! UsefulOutBuf_WillItFit(pMe, uAmount)) { /* Check #2 */
       /* The new data will not fit into the the buffer. */
-      pMe->err = UBO_Err_Full;
+      pMe->err = UsefulBuffErr_Full;
       return;
    }
 
@@ -447,7 +445,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
     * does good with very little code.
     */
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = UBO_Err_Bad_State;
+      pMe->err = UsefulBufErr_BadState;
       return;  /* Magic number is wrong due to uninitalization or corrption */
    }
 
@@ -458,7 +456,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
     * under/overflow.
     */
    if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
-      pMe->err = UBO_Err_Bad_State;
+      pMe->err = UsefulBufErr_BadState;
       /* Offset of valid data is off the end of the UsefulOutBuf due
        * to uninitialization or corruption.
        */
@@ -480,7 +478,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
             uAmountToAppend = uRoomLeft;
          } else {
             /* Non-streaming mode this is an error */
-            pMe->err = UBO_Err_Full;
+            pMe->err = UsefulBuffErr_Full;
             return;
          }
       }
@@ -522,8 +520,8 @@ UsefulOutBuf_Flush(UsefulOutBuf *pMe)
    }
 
    BytesToFlush = (UsefulBufC){pMe->UB.ptr, pMe->data_len};
-   pMe->err = (uint8_t)(*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush); // TODO: sort out this cast
-   if(pMe->err == UBO_Success) {
+   pMe->err = (uint8_t)(*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush);
+   if(pMe->err == UsefulBuf_Success) {
       pMe->data_len = 0;
    }
 }
@@ -538,7 +536,7 @@ UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes)
    UsefulOutBuf_Flush(pMe);
    if(pMe->err == 0) {
       if(pMe->pfFlush == NULL) {
-         pMe->err = UBO_Err_Bad_State;
+         pMe->err = UsefulBufErr_BadState;
          return;
       }
 

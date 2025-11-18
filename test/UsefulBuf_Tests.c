@@ -177,7 +177,7 @@ Done:
  *
  * returns 0 if test passed
  */
-static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
+static int AppendTest(UsefulOutBuf *pUOB, size_t num, enum UsefulBufErr expected)
 {
    //reset
    UsefulOutBuf_Reset(pUOB);
@@ -200,7 +200,7 @@ static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
 /*
  * Same as append, but takes a position param too
  */
-static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
+static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, enum UsefulBufErr expected)
 {
    // reset
    UsefulOutBuf_Reset(pUOB);
@@ -253,11 +253,11 @@ const char *UOBTest_BoundaryConditionsTest(void)
       return "Append to fill buffer failed";
 
    // append 3 bytes to a 2 byte buffer --> failure
-   if(AppendTest(&UOB, 3, UBO_Err_Full))
+   if(AppendTest(&UOB, 3, UsefulBuffErr_Full))
       return "Overflow of buffer not caught";
 
    // append max size_t to a 2 byte buffer --> failure
-   if(AppendTest(&UOB, SIZE_MAX, UBO_Err_Full))
+   if(AppendTest(&UOB, SIZE_MAX, UsefulBuffErr_Full))
       return "Append of SIZE_MAX error not caught";
 
    if(InsertTest(&UOB, 1, 0, 0))
@@ -266,10 +266,10 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(InsertTest(&UOB, 2, 0, 0))
       return "Insert 2 bytes at start failed";
 
-   if(InsertTest(&UOB, 3, 0, UBO_Err_Full))
+   if(InsertTest(&UOB, 3, 0, UsefulBuffErr_Full))
       return "Insert overflow not caught";
 
-   if(InsertTest(&UOB, 1, 1, UBO_Err_InsertPoint))
+   if(InsertTest(&UOB, 1, 1,    UsefulBuffErr_InsertPoint))
       return "Bad insertion point not caught";
 
 
@@ -372,7 +372,7 @@ const char *UOBTest_BoundaryConditionsTest(void)
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 
-static int FlushCallback(void *pMe, UsefulBufC Bytes)
+static enum UsefulBufErr  FlushCallback(void *pMe, UsefulBufC Bytes)
 {
    uint32_t uUsed;
 
@@ -385,7 +385,7 @@ static int FlushCallback(void *pMe, UsefulBufC Bytes)
    return 0;
 }
 
-static int FlushCallbackFail(void *pMe, UsefulBufC Bytes)
+static enum UsefulBufErr FlushCallbackFail(void *pMe, UsefulBufC Bytes)
 {
    uint32_t uUsed;
 
@@ -410,7 +410,7 @@ const char *UOBTest_Streaming(void)
    uint8_t                TestData[25];
    UsefulBufC             TestDataUBC;
    UsefulBufC             Output;
-   int                    nErr;
+   enum UsefulBufErr      nErr;
    char                   foo[60];
 
    /* Fill in a buffer with some test data */
@@ -493,7 +493,7 @@ const char *UOBTest_Streaming(void)
    UsefulOutBuf_Init(&UOB, OutputBuffer);
    UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
    nErr = UsefulOutBuf_GetError(&UOB);
-   if(nErr != UBO_Err_Bad_State) {
+   if(nErr != UsefulBufErr_BadState) {
       return "Stream AppendDirect on non-stream gave wrong error";
    }
 
@@ -502,7 +502,7 @@ const char *UOBTest_Streaming(void)
    UsefulOutBuf_AppendByte(&UOB, 0x83);
    UsefulOutBuf_InsertByte(&UOB, 0x97, 0);
    nErr = UsefulOutBuf_GetError(&UOB);
-   if(nErr != UBO_Err_Streaming) {
+   if(nErr != UsefulBufErr_Streaming) {
       return "Insert on stream gave wrong error";
    }
 

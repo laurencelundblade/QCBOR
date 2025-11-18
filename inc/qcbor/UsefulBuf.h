@@ -343,14 +343,18 @@ typedef struct q_useful_buf {
  * codes other than these and they will be passed through.
  *
  * This is stored in a uint8_t so the max value is 256.
+ * (enum is nice to keep code organized and works nice in IDEs,
+ * but the C standard allows compilers to choose the storage type and
+ * they don't choose the smallest)
  */
 enum UsefulBufErr {
-   UBO_Success         = 0,
-   UBO_Err_Bad_State   = 1, /* The UsefulOutBuf is in a bad state */
-   UBO_Err_Full        = 2, /* Output buffer is full */
-   UBO_Err_InsertPoint = 3, /* Insertion point requested is invalid */
-   UBO_Err_Streaming   = 4, /* Trying to insert in streaming mode */
-   UBO_Err_FlushWrite  = 10,/* General flush error */
+   UsefulBuf_Success         = 0,
+   UsefulBufErr_BadState     = 1,   /* The UsefulOutBuf is in a bad state */
+   UsefulBuffErr_Full        = 2,   /* Output buffer is full */
+   UsefulBuffErr_InsertPoint = 3,   /* Insertion point requested is invalid */
+   UsefulBufErr_Streaming    = 4,   /* Trying to insert in streaming mode */
+   UsefulBufErr_FlushWrite   = 10,  /* General flush error */
+   UsefulBufErr_Max          = 255, /* Stored in a uint8_t; don't exceed. */
 };
 
 
@@ -823,7 +827,7 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * @param[in] pFlushCtx   Context for the flush function
  * @param[in] Bytes       The bytes to be flushed
  *
- * @return 0 or an error code. See @ref UsefulBufErr.
+ * @return 0 or an error code less than 255. See @ref UsefulBufErr.
  *
  * A caller-supplied function of this type is called when the output
  * buffer is full.
@@ -831,7 +835,7 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * This can return proprietary error codes and they will be passed up
  * through  UsefulOutBuf_GetError().
  */
-typedef int (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
+typedef enum UsefulBufErr (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
 
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
@@ -909,9 +913,11 @@ typedef int (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
  *
  * UsefulOutBuf has a streaming mode where a flush function is called
  * when the buffer is full. This mode is entered
- * when UsefulOutBuf_ConfigFlush() is called. The buffer passed
- * to UsefulOutBuf_Init() then becomes a temporary buffer. In this
- * mode Append() ... TODO....
+ * when UsefulOutBuf_SetStream() is called. The buffer passed
+ * to UsefulOutBuf_Init()  becomes a temporary buffer. In this
+ * mode Insert() is not allowed and will result in an error. Appends()
+ * larger than the buffer size are allowed and will result in multiple
+ * calls to the flush function.
  *
  * @ref UsefulOutBuf has been used to create a CBOR encoder. The CBOR
  * encoder has almost no pointer manipulation in it, is easier to
@@ -1397,7 +1403,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
  *   - current position is off end of buffer (probably corrupted or uninitialized)
  *   - detect corruption / uninitialized by bad magic number
  */
-static inline int UsefulOutBuf_GetError(UsefulOutBuf *pUOutBuf);
+static inline enum UsefulBufErr UsefulOutBuf_GetError(UsefulOutBuf *pUOutBuf);
 
 
 /**
@@ -2505,14 +2511,10 @@ static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *pMe,
    UsefulOutBuf_AppendData(pMe, &byte, 1);
 }
 
+
+
+
 static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *pMe,
-                                             uint16_t uInteger16)
-{
-   UsefulOutBuf_InsertUint16(pMe, uInteger16, UsefulOutBuf_GetEndPosition(pMe));
-}
-
-
-static inline void UsefulOutBuf_AppendUint16_New(UsefulOutBuf *pMe,
                                              uint16_t uInteger16)
 {
    /* See UsefulOutBuf_InsertUint64() for comments on this code */
@@ -2630,9 +2632,9 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pMe,
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-static inline int UsefulOutBuf_GetError(UsefulOutBuf *pMe)
+static inline enum UsefulBufErr UsefulOutBuf_GetError(UsefulOutBuf *pMe)
 {
-   return pMe->err;
+   return (enum UsefulBufErr)pMe->err;
 }
 
 
