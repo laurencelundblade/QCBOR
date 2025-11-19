@@ -87,6 +87,10 @@
 #endif
 
 
+/* Embed a version string in the library */
+const char libqcborVersionDecode[] = QCBOR_VERSION_STRING;
+
+
 static bool
 QCBORItem_IsMapOrArray(const QCBORItem Item)
 {
