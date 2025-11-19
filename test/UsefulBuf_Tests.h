@@ -40,6 +40,8 @@ const char *  TestBasicSanity(void);
 
 const char *  UOBTest_BoundaryConditionsTest(void);
 
+const char *  UOBTest_Streaming(void);
+
 const char *  UBMacroConversionsTest(void);
 
 const char *  UBUtilTests(void);

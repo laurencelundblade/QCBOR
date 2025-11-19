@@ -2548,7 +2548,7 @@ MemPool_Pack(UsefulBuf Pool, uint32_t uFreeOffset)
    UsefulOutBuf_Init(&UOB, Pool);
    UsefulOutBuf_AppendUint32(&UOB, (uint32_t)Pool.len); // size of pool
    UsefulOutBuf_AppendUint32(&UOB, uFreeOffset); // first free position
-   return UsefulOutBuf_GetError(&UOB);
+   return (int)UsefulOutBuf_GetError(&UOB);
 }
 
 
