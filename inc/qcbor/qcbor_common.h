@@ -72,11 +72,11 @@ extern "C" {
  * Use C pre-processor magic to turn the above integers into
  * a version string like "libqcbor 1.6.0"
  */
-#define STR1(x) #x
-#define STR(x) STR1(x)
-#define QCBOR_VERSION_STRING "libqcbor " STR(QCBOR_VERSION_MAJOR) "." \
-                                         STR(QCBOR_VERSION_MINOR) "." \
-                                         STR(QCBOR_VERSION_PATCH) " alpha"
+#define QCBOR_STR1(x) #x
+#define QCBOR_STR(x) QCBOR_STR1(x)
+#define QCBOR_VERSION_STRING "libqcbor " QCBOR_STR(QCBOR_VERSION_MAJOR) "." \
+                                         QCBOR_STR(QCBOR_VERSION_MINOR) "." \
+                                         QCBOR_STR(QCBOR_VERSION_PATCH) " alpha"
 
 
 /**
