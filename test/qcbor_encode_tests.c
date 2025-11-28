@@ -4358,6 +4358,8 @@ int32_t StreamTest(void)
    UsefulBuf_MAKE_STACK_UB  (Small, 3);
    struct Streamer           Streamer;
    QCBORError                uErr;
+   UsefulBuf                 UB;
+   UsefulBufC                UBC;
 
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
@@ -4408,14 +4410,104 @@ int32_t StreamTest(void)
    }
 
    /* Test flowed map */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedMap(&EC, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 4,4);
+   QCBOREncode_CloseFlowedMap(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 40;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\xa1\x04\x04"))) {
+      return 41;
+   }
+
+
 
    /* Try a regular array in streamed mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
+      return 50;
+   }
 
 
    /* Try open bytes in streamed mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenBytes(&EC, &UB);
+   QCBOREncode_CloseBytes(&EC, 0);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
+      return 60;
+   }
 
    /* Try bstr wrapping in streamed mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_BstrWrap(&EC);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseBstrWrap2(&EC, false, &UBC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
+      return 70;
+   }
 
+   QCBOREncode_Init(&EC, Small);
+   QCBOREncode_OpenFlowedArray(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_STREAMING) {
+      return 80;
+   }
+
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 4);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 90;
+   }
+
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 2);
+   QCBOREncode_AddStreamedEncoded(&EC, UsefulBuf_FROM_SZ_LITERAL("\xa1\04\x04"));
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 100;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x82\xa1\x04\x04\x04"))) {
+      return 101;
+   }
+
+   QCBOREncode_Init(&EC, Small);
+   QCBOREncode_OpenFlowedArray(&EC, 2);
+   QCBOREncode_AddStreamedEncoded(&EC, UsefulBuf_FROM_SZ_LITERAL("\xa1\04\x04"));
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_STREAMING) {
+      return 110;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x82\xa1\x04\x04\x04"))) {
+      return 111;
+   }
 
 
    return 0;
@@ -4511,6 +4603,17 @@ int32_t EncodeIndefiniteStringsTest(void)
    if(uExpectedErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
       return 60;
    }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddStreamedText(&EC, UsefulBuf_FROM_SZ_LITERAL("hi"));
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_SUCCESS) {
+      return 65;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x62hi"))) {
+      return 66;
+   }
+
 
    /* Fail trying to close string without one open */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));

@@ -342,18 +342,18 @@ typedef struct q_useful_buf {
  * UsefulOutBuf_FlushCallBack can return proprietary error
  * codes other than these and they will be passed through.
  *
- * This is stored in a uint8_t so the max value is 256.
+ * This is stored in a uint8_t so the max value is 255.
  * (enum is nice to keep code organized and works nice in IDEs,
  * but the C standard allows compilers to choose the storage type and
  * they don't choose the smallest)
  */
 enum UsefulBufErr {
    UsefulBuf_Success         = 0,
-   UsefulBufErr_BadState     = 1,   /* The UsefulOutBuf is in a bad state */
-   UsefulBuffErr_Full        = 2,   /* Output buffer is full */
+   UsefulBuffErr_Full        = 1,   /* Output buffer is full */
+   UsefulBufErr_BadState     = 2,   /* The UsefulOutBuf is in a bad state */
    UsefulBuffErr_InsertPoint = 3,   /* Insertion point requested is invalid */
-   UsefulBufErr_Streaming    = 4,   /* Trying to insert in streaming mode */
-   UsefulBufErr_FlushWrite   = 10,  /* General flush error */
+   UsefulBufErr_NotStreaming = 4,   /* Trying to insert in streaming mode */
+   UsefulBufErr_FlushWrite   = 5,   /* General flush error */
    UsefulBufErr_Max          = 255, /* Stored in a uint8_t; don't exceed. */
 };
 

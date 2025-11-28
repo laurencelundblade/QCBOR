@@ -709,6 +709,7 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 #ifndef USEFULBUF_DISABLE_STREAMING
 /* Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h */
 // TODO: make this work in non-streaming mode?
+// Why? So caller can have the same code for streaming and non streaming? Is it worth it?
 void
 QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 {

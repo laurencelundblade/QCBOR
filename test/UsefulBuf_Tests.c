@@ -493,7 +493,7 @@ const char *UOBTest_Streaming(void)
    UsefulOutBuf_Init(&UOB, OutputBuffer);
    UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
    nErr = UsefulOutBuf_GetError(&UOB);
-   if(nErr != UsefulBufErr_BadState) {
+   if(nErr != UsefulBufErr_NotStreaming) {
       return "Stream AppendDirect on non-stream gave wrong error";
    }
 
@@ -502,7 +502,7 @@ const char *UOBTest_Streaming(void)
    UsefulOutBuf_AppendByte(&UOB, 0x83);
    UsefulOutBuf_InsertByte(&UOB, 0x97, 0);
    nErr = UsefulOutBuf_GetError(&UOB);
-   if(nErr != UsefulBufErr_Streaming) {
+   if(nErr != UsefulBufErr_NotStreaming) {
       return "Insert on stream gave wrong error";
    }
 

@@ -270,7 +270,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
 #ifndef USEFULBUF_DISABLE_STREAMING
    if(pMe->pfFlush != NULL) {
       /* Can't do inserts in streaming mode */
-      pMe->err = UsefulBufErr_Streaming;
+      pMe->err = UsefulBufErr_NotStreaming;
       return;
    }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
@@ -304,7 +304,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     */
    if(uInsertionPos > pMe->data_len) { /* Check #3 */
       /* Off the end of the valid data in the buffer. */
-      pMe->err =    UsefulBuffErr_InsertPoint;
+      pMe->err = UsefulBuffErr_InsertPoint;
       return;
    }
 
@@ -536,7 +536,7 @@ UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes)
    UsefulOutBuf_Flush(pMe);
    if(pMe->err == 0) {
       if(pMe->pfFlush == NULL) {
-         pMe->err = UsefulBufErr_BadState;
+         pMe->err = UsefulBufErr_NotStreaming;
          return;
       }
 
@@ -553,11 +553,11 @@ UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes)
 /*
  * Public function -- see UsefulBuf.h
  */
+// TODO: inline and rearrange (one check of pMe->err) to make QCBOR_Finish much smaller?
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pMe)
 {
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = 1;
-      return NULLUsefulBufC;
+      pMe->err = UsefulBufErr_BadState;
    }
 
    if(pMe->err) {
