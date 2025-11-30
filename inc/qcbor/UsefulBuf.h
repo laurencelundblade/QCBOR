@@ -353,7 +353,8 @@ enum UsefulBufErr {
    UsefulBufErr_BadState     = 2,   /* The UsefulOutBuf is in a bad state */
    UsefulBuffErr_InsertPoint = 3,   /* Insertion point requested is invalid */
    UsefulBufErr_NotStreaming = 4,   /* Trying to insert in streaming mode */
-   UsefulBufErr_FlushWrite   = 5,   /* General flush error */
+   UsefulBufErr_IsStreaming  = 5,   /* Trying to insert in streaming mode */
+   UsefulBufErr_FlushWrite   = 6,   /* General flush error */
    UsefulBufErr_Max          = 255, /* Stored in a uint8_t; don't exceed. */
 };
 

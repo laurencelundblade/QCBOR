@@ -502,7 +502,7 @@ const char *UOBTest_Streaming(void)
    UsefulOutBuf_AppendByte(&UOB, 0x83);
    UsefulOutBuf_InsertByte(&UOB, 0x97, 0);
    nErr = UsefulOutBuf_GetError(&UOB);
-   if(nErr != UsefulBufErr_NotStreaming) {
+   if(nErr != UsefulBufErr_IsStreaming) {
       return "Insert on stream gave wrong error";
    }
 

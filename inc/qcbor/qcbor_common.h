@@ -273,11 +273,24 @@ typedef enum {
     *   was too small and the encoded output will not fit. */
    QCBOR_ERR_BUFFER_TOO_SMALL = 1,
 
+   /** The @ref UsefulOutBuf for encoding is corrupted. */
    QCBOR_ERR_UB_BAD = 2,
-   QCBOR_ERR_BUFFER_UB_FU = 3,
-   QCBOR_ERR_NOT_STREAMING = 4,
-   QCBOR_ERR_STREAM_FLUSH = 5,
 
+   /** The @ref UsefulOutBuf for encoding returned an insert point error
+    *  (should never happen). */
+   QCBOR_ERR_USEFULBUF_INSERT_POINT = 3,
+
+   /** The operation can only  be performed in streaming mode.
+    *  See QCBOREncode_SetStream() .*/
+   QCBOR_ERR_NOT_STREAMING = 4,
+
+   /** The operation cannot be performed in streaming mode.
+    *  See QCBOREncode_SetStream() */
+   QCBOR_ERR_NOT_ALLOWED_IN_STREAMING = 5,
+
+   /** The streaming flush callback returned an error.
+    *  See QCBOREncode_SetStream(). */
+   QCBOR_ERR_STREAM_FLUSH = 6,
 
    /** During encoding, an attempt to create simple value between 24
     *  and 31. */
@@ -596,9 +609,6 @@ typedef enum {
 
    /** A tag number is expected, but missing. */
    QCBOR_ERR_MISSING_TAG_NUMBER = 91,
-
-   /** The function cannot be used in streaming mode. See QCBOREncode_SetStream() */
-   QCBOR_ERR_NOT_ALLOWED_IN_STREAMING = 92,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

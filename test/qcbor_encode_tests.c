@@ -4394,6 +4394,7 @@ int32_t StreamTest(void)
 #endif 
 
 
+   /* Test successful streamed strings */
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
    QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
@@ -4424,8 +4425,6 @@ int32_t StreamTest(void)
       return 41;
    }
 
-
-
    /* Try a regular array in streamed mode */
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
@@ -4437,7 +4436,6 @@ int32_t StreamTest(void)
    if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
       return 50;
    }
-
 
    /* Try open bytes in streamed mode */
    QCBOREncode_Init(&EC, Small);
@@ -4462,6 +4460,8 @@ int32_t StreamTest(void)
       return 70;
    }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   /* Try to close a non-streamed encodig (and see that flowed arrays work) */
    QCBOREncode_Init(&EC, Small);
    QCBOREncode_OpenFlowedArray(&EC, 1);
    QCBOREncode_AddInt64(&EC, 4);
@@ -4471,6 +4471,7 @@ int32_t StreamTest(void)
       return 80;
    }
 
+   /* Make sure unclosed array errors work in streaming mode */
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
    QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
@@ -4480,7 +4481,9 @@ int32_t StreamTest(void)
    if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
       return 90;
    }
+#endif
 
+   /* Test that streamed encoded CBOR works successfully */
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
    QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
@@ -4496,6 +4499,7 @@ int32_t StreamTest(void)
       return 101;
    }
 
+   /* Test that streamed encoded CBOR works fails if not streaming */
    QCBOREncode_Init(&EC, Small);
    QCBOREncode_OpenFlowedArray(&EC, 2);
    QCBOREncode_AddStreamedEncoded(&EC, UsefulBuf_FROM_SZ_LITERAL("\xa1\04\x04"));

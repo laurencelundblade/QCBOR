@@ -270,7 +270,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
 #ifndef USEFULBUF_DISABLE_STREAMING
    if(pMe->pfFlush != NULL) {
       /* Can't do inserts in streaming mode */
-      pMe->err = UsefulBufErr_NotStreaming;
+      pMe->err = UsefulBufErr_IsStreaming;
       return;
    }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
