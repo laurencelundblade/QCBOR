@@ -4332,7 +4332,7 @@ static void Streamer_init(struct Streamer *pMe, UsefulBuf UB)
    UsefulOutBuf_Init(&(pMe->UOB), UB);
 }
 
-static enum UsefulBufErr Streamer_CB(void *pMeVoid, UsefulBufC Bytes)
+static int Streamer_CB(void *pMeVoid, UsefulBufC Bytes)
 {
    struct Streamer *pMe = (struct Streamer *)pMeVoid;
 

@@ -510,6 +510,7 @@ void
 UsefulOutBuf_Flush(UsefulOutBuf *pMe)
 {
    UsefulBufC BytesToFlush;
+   int        nFlushErr;
 
    if(pMe->err) {
       return;
@@ -520,8 +521,10 @@ UsefulOutBuf_Flush(UsefulOutBuf *pMe)
    }
 
    BytesToFlush = (UsefulBufC){pMe->UB.ptr, pMe->data_len};
-   pMe->err = (uint8_t)(*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush);
-   if(pMe->err == UsefulBuf_Success) {
+   nFlushErr = (*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush);
+   if(nFlushErr) {
+      pMe->err = UsefulBufErr_FlushWrite;
+   } else {
       pMe->data_len = 0;
    }
 }

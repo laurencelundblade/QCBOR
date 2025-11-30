@@ -339,9 +339,6 @@ typedef struct q_useful_buf {
  * 0 was success and non-zero (always 1) was failure. That is
  * expanded to the list below for QCBOR v2.
  *
- * UsefulOutBuf_FlushCallBack can return proprietary error
- * codes other than these and they will be passed through.
- *
  * This is stored in a uint8_t so the max value is 255.
  * (enum is nice to keep code organized and works nice in IDEs,
  * but the C standard allows compilers to choose the storage type and
@@ -828,15 +825,12 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * @param[in] pFlushCtx   Context for the flush function
  * @param[in] Bytes       The bytes to be flushed
  *
- * @return 0 or an error code less than 255. See @ref UsefulBufErr.
+ * @return 0 or for success, non-zero for failure
  *
  * A caller-supplied function of this type is called when the output
  * buffer is full.
- *
- * This can return proprietary error codes and they will be passed up
- * through  UsefulOutBuf_GetError().
  */
-typedef enum UsefulBufErr (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
+typedef int (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
 
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
