@@ -44,6 +44,7 @@
  when         who             what, where, why
  --------     ----            --------------------------------------------------
  11/30/2025   llundblade      Add streaming mode.
+ 11/10/2025   llundblade      Explicitly size integer literals (MSVC fix).
  02/21/2025   llundblade      Correct documentaion for UsefulOutBuf_Compare()
  02/21/2025   llundblade      Rename to UsefulOutBuf_OutSubString().
  12/31/2024   llundblade      Minor documentation tweaks for Doxygen.
@@ -322,8 +323,12 @@ typedef struct q_useful_buf {
 #ifdef __cplusplus
 #define NULLUsefulBufC {NULL, 0}
 #else
-#define NULLUsefulBufC ((UsefulBufC) {NULL, 0})
+#define NULLUsefulBufC  ((UsefulBufC) {NULL, 0})
 #endif
+
+/* The usual NULLUsefulBufC doesn't work in static const
+ * initializers in gcc and MSVC. This does. Not quite sure why.  */
+#define NULLUsefulBufCConst {NULL, 0}
 
 /**
  * A null @ref UsefulBuf is one that has no memory associated the same
@@ -334,6 +339,10 @@ typedef struct q_useful_buf {
 #else
 #define NULLUsefulBuf  ((UsefulBuf) {NULL, 0})
 #endif
+
+/* The usual NULLUsefulBuf doesn't work in static const
+ * initializers in gcc and MSVC. This does. Not quite sure why.  */
+#define NULLUsefulBufConst {NULL, 0}
 
 
 /**
@@ -2460,14 +2469,14 @@ static inline void UsefulOutBuf_InsertUint64(UsefulOutBuf *pMe,
     */
    uint8_t aTmp[8];
 
-   aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000) >> 56);
-   aTmp[1] = (uint8_t)((uInteger64 & 0xff000000000000) >> 48);
-   aTmp[2] = (uint8_t)((uInteger64 & 0xff0000000000) >> 40);
-   aTmp[3] = (uint8_t)((uInteger64 & 0xff00000000) >> 32);
-   aTmp[4] = (uint8_t)((uInteger64 & 0xff000000) >> 24);
-   aTmp[5] = (uint8_t)((uInteger64 & 0xff0000) >> 16);
-   aTmp[6] = (uint8_t)((uInteger64 & 0xff00) >> 8);
-   aTmp[7] = (uint8_t)(uInteger64 & 0xff);
+   aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000ULL) >> 56);
+   aTmp[1] = (uint8_t)((uInteger64 & 0xff000000000000ULL) >> 48);
+   aTmp[2] = (uint8_t)((uInteger64 & 0xff0000000000ULL) >> 40);
+   aTmp[3] = (uint8_t)((uInteger64 & 0xff00000000ULL) >> 32);
+   aTmp[4] = (uint8_t)((uInteger64 & 0xff000000ULL) >> 24);
+   aTmp[5] = (uint8_t)((uInteger64 & 0xff0000ULL) >> 16);
+   aTmp[6] = (uint8_t)((uInteger64 & 0xff00ULL) >> 8);
+   aTmp[7] = (uint8_t)(uInteger64  & 0xffULL);
 
    pBytes = aTmp;
 #endif

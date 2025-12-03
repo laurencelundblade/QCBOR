@@ -132,9 +132,8 @@ GetIPAddr(QCBORDecodeContext *pDecodeCtx,
                 break;
 
             case CBOR_TAG_INVALID64:
-                if(bMustBeTag) {
-                    uErr = QCBOR_ERR_BAD_TAG_CONTENT;
-                }
+                uErr = QCBOR_ERR_BAD_TAG_CONTENT;
+                goto Done;
 
             default:
                 uErr = QCBOR_ERR_UNEXPECTED_TYPE;

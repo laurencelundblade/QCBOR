@@ -280,8 +280,8 @@ CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const Usef
       int uFloat16 = try_float16_encode(uDouble);
       uint8_t CarstenEncoded[3];
       CarstenEncoded[0] = 0xf9;
-      CarstenEncoded[1] = (uFloat16 & 0xff00) >> 8;
-      CarstenEncoded[2] = uFloat16 & 0xff;
+      CarstenEncoded[1] = (uint8_t)((uFloat16 & 0xff00) >> 8);
+      CarstenEncoded[2] = (uint8_t)(uFloat16 & 0xff);
 
       UsefulBufC CarstenEncodedUB;
       CarstenEncodedUB.len = 3;
@@ -482,37 +482,37 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\x1A\x01\xFF\xFF\xFE",                 5}},
 
    /* 4294967295 -- 2^^32 - 1 UINT32_MAX */
-   {4294967295,                                  0,
+   {4294967295.0,                                0,
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x1A\xFF\xFF\xFF\xFF",                 5}},
 
    /* 4294967296 -- 2^^32, UINT32_MAX + 1 */
-   {4294967296,                                  4294967296.0f,
+   {4294967296.0,                            4294967296.0f,
     {"\xFA\x4F\x80\x00\x00",                 5}, {"\xFB\x41\xF0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x4F\x80\x00\x00",                 5}, {"\x1B\x00\x00\x00\x01\x00\x00\x00\x00", 9}},
 
    /* 2251799813685248 -- exponent 51, 0 significand bits set, to test double exponent boundary */
-   {2251799813685248,                            2251799813685248.0f,
+   {2251799813685248.0,                      2251799813685248.0f,
     {"\xFA\x59\x00\x00\x00",                 5}, {"\xFB\x43\x20\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x59\x00\x00\x00",                 5}, {"\x1B\x00\x08\x00\x00\x00\x00\x00\x00", 9}},
 
    /* 4503599627370495 -- exponent 51, 52 significand bits set to test double exponent boundary*/
-   {4503599627370495,                            0,
+   {4503599627370495.0,                          0,
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\x1B\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 9007199254740991 -- exponent 52, 52 significand bits set to test double exponent boundary */
-   {9007199254740991,                            0,
+   {9007199254740991.0,                          0,
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision for 18014398509481983) */
-   {18014398509481982,                           0,
+   {18014398509481982.0,                         0,
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
 
    /* 18014398509481984 -- next largest possible double above 18014398509481982  */
-   {18014398509481984,                           18014398509481984.0f,
+   {18014398509481984.0,                     18014398509481984.0f,
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
 
@@ -865,8 +865,8 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
 
    /* double qNaN with 9 leftmost payload bits set -- shortens to half */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000,  0,
+   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
+    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
     {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
 
@@ -877,38 +877,38 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xF9\x7E\x00", 3}},
 
    /* double qNaN with 22 leftmost payload bits set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  SINGLE_NAN_BITS | 0x7fffff,
+   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
+    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_NAN_BITS | 0x7fffff,
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double negative qNaN with 22 leftmost payload bits set -- shortens to single */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
+   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
+    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
     {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xFB\xFF\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 23rd leftmost payload bit set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000,  SINGLE_NAN_BITS | 0x01,
+   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  0,
+    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  SINGLE_NAN_BITS | 0x01,
     {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
     {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with randomly chosen bit pattern -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000,  SINGLE_NAN_BITS | 0x21ebe2,
+   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  0,
+    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  SINGLE_NAN_BITS | 0x21ebe2,
     {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
     {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 23 leftmost payload bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000,  0,
+   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
+    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
     {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9},
     {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xF9\x7E\x00", 3}},
 
    /* double qNaN with all bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffff,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffff,  0,
+   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
+    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xF9\x7E\x00", 3}},
 

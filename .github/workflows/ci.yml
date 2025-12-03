@@ -46,3 +46,52 @@ jobs:
 
     - name: Run tests
       run: ./qcbortest
+
+  msvc:
+    name: ${{ matrix.ifdef }} • msvc • windows-latest
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+
+        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
+                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
+                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
+                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE ]
+
+    env:
+      ARCH: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Optional: ensures Dev Cmd environment; the VS generator usually finds MSVC without this,
+      # but keeping it makes detection deterministic.
+      - name: Set up MSVC DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
+
+      - name: Configure (CMake → VS solution)
+        shell: bash
+        run: |
+          cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
+            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
+            -DCMAKE_C_FLAGS="${{ matrix.ifdef }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.ifdef }}"
+
+      - name: Build
+        run: cmake --build build 
+        shell: pwsh
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $exe = "build/test/Debug/qcbortest.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Test binary not found: $exe"
+          }
+          & $exe 
+
