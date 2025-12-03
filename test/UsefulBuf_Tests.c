@@ -391,7 +391,7 @@ static int FlushCallbackFail(void *pMe, UsefulBufC Bytes)
 
    uUsed = *(uint32_t *)pMe;
 
-   if(uUsed > 13) {
+   if(uUsed > 13 || Bytes.len == 13) {
       /* Fail after 13 bytes have been output to test failure handling  */
       return 1;
    }
@@ -476,6 +476,19 @@ const char *UOBTest_Streaming(void)
       return "Stream didn't handle flush failure";
    }
 
+   /* Test flush function failure */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallbackFail, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulBufC ShortTestData = {TestDataUBC.ptr, 13};
+   UsefulOutBuf_AppendDirect(&UOB, ShortTestData);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_FlushWrite) {
+      return "Stream didn't handle AppendeDirect flush failure";
+   }
+
+
    /* Flush on non-stream should succeed and continue to work */
    UsefulOutBuf_Init(&UOB, OutputBuffer);
    UsefulOutBuf_Flush(&UOB);
@@ -557,14 +570,20 @@ const char *TestBasicSanity(void)
 
 
 
-   // Next make sure that the valid data length check is working right
+   /* Next make sure that the valid data length check is working right */
    UsefulOutBuf_Init(&UOB, outbuf);
-
-   UOB.data_len = UOB.UB.len+1; // make size bogus
-
+   UOB.data_len = UOB.UB.len+1; /* make size bogus */
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
-   if(!UsefulOutBuf_GetError(&UOB))
-      return "valid data check failed";
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "valid data append check failed";
+   }
+
+   UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.data_len = UOB.UB.len+1; /* make size bogus */
+   UsefulOutBuf_InsertData(&UOB, (const uint8_t *)"bluster", 7, 0);
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "valid data on insert check failed";
+   }
 
    return NULL;
 }
