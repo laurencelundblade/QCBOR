@@ -79,6 +79,13 @@
 #define USEFUL_OUT_BUF_MAGIC  (0x0B0F)
 
 
+/* General TODO:
+ *  - make function comments on line when the can be
+ *  - other shortening of comments
+ *  - Organize comments on checks and ptrhMath better
+ *  - Some common code or macros for checks
+ */
+
 /*
  * Public function -- see UsefulBuf.h
  */
@@ -372,8 +379,10 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
  *   The destination of move is validated by check #12
  *   The source of the move is validated by check #11
  *   The length of the move is validated by
- *     - uAmountToAppend is never greater than uRoomLeft because of Check #10, making sure it is never off end of UB.ptr
- *     - uAmountToAppend is never greater than NewData.Len because of check #11 making sure it is never off the end of NewData.ptr
+ *     - uAmountToAppend is never greater than uRoomLeft because of Check #10,
+ *        making sure it is never off end of UB.ptr
+ *     - uAmountToAppend is never greater than NewData.Len because of check #11
+ *       sy making sure it is never off the end of NewData.ptr
  *
  * PtrMath #14
  *   Check #10
@@ -508,7 +517,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
          }
          pAppendPosition = (uint8_t *)pMe->UB.ptr + pMe->data_len; /* PtrMath #12 */
 
-         /* could use memcpy here, but afraid it is a banned function for some */
+         /* could use memcpy here, but afraid it is a banned function */
          /* PtrMath #13 */
          memmove(pAppendPosition, pNewDataCopyStart, uAmountToAppend);
       }

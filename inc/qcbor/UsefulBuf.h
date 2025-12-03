@@ -339,7 +339,7 @@ typedef struct q_useful_buf {
 /**
  * Errors returned by some UsefulBuf functions.
  *
- * In QCBOR v1 0 was success and non-zero (always 1) was failure. That
+ * In QCBOR v1, 0 was success and non-zero (always 1) was failure. That
  * is expanded to the list below for QCBOR v2.
  */
 
@@ -999,7 +999,18 @@ typedef struct useful_out_buf {
 void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
 
 
+/**
+ * Convenience macro to make a @ref UsefulOutBuf on the stack and
+ * initialize it with a stack buffer of the given size. The variable
+ * will be named @c name.
+ */
+#define  UsefulOutBuf_MakeOnStack(name, size) \
+   uint8_t       __pBuf##name[(size)];\
+   UsefulOutBuf  name;\
+   UsefulOutBuf_Init(&(name), (UsefulBuf){__pBuf##name, (size)});
 #ifndef USEFULBUF_DISABLE_STREAMING
+
+
 /**
  * @brief Configure for streaming mode.
  *
@@ -1017,17 +1028,6 @@ static void UsefulOutBuf_SetStream(UsefulOutBuf               *pUOutBuf,
                                    void                       *pCallBackCtx);
 
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
-
-
-/**
- * Convenience macro to make a @ref UsefulOutBuf on the stack and
- * initialize it with a stack buffer of the given size. The variable
- * will be named @c name.
- */
-#define  UsefulOutBuf_MakeOnStack(name, size) \
-   uint8_t       __pBuf##name[(size)];\
-   UsefulOutBuf  name;\
-   UsefulOutBuf_Init(&(name), (UsefulBuf){__pBuf##name, (size)});
 
 
 /**
