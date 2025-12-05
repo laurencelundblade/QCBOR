@@ -175,9 +175,10 @@ extern "C" {
 /*
  * PRIVATE DATA STRUCTURE
  *
- * Holds the data for tracking open arrays, maps, indefinite-length strings, bstr-wrapping, open byte strings during
- * encoding. Pairs up with the Nesting_xxx functions to make an
- * "object" to handle nesting encoding.
+ * Holds the data for tracking open arrays, maps, indefinite-length
+ * strings, bstr-wrapping, open byte strings during encoding. Pairs up
+ * with the Nesting_xxx functions to make an "object" to handle
+ * nesting encoding.
  *
  * uStart is a uint32_t instead of a size_t to keep the size of this
  * struct down so it can be on the stack without any concern.  It

@@ -356,10 +356,12 @@ enum QCBOREncodeConfig {
 
 
 
-/* Lower 3 bits are the CBOR Major Type. Upper 5 are
+/**
+ * This enum is used internally, but can be used with QCBOREncode_EncodeHead().
+ *
+ * Lower 3 bits are the CBOR Major Type. Upper bits are
  * indicators used by QCBOR to track ways of encoding
- * the major types.  There use is primarily internal,
- * though QCBOREncode_EncodeHead() does use them.
+ * the major types.
  */
 enum QCBORMajorType {
    QCBOR_MT_MASK = 0x07,

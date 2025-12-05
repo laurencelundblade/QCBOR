@@ -274,7 +274,6 @@ QCBOREncode_EncodeHead(UsefulBuf                  Buffer,
                        uint8_t                    uMinLen,
                        uint64_t                   uArgument)
 {
-   //enum QCBORMajorType umt = uMajorType;
    /*
     * == Description of the CBOR Head ==
     *
