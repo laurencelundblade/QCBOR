@@ -400,6 +400,33 @@ struct _QCBORDecodeContext {
 #define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
 
 
+/*
+ * Lower 3 bits are the CBOR Major Type. Upper bits are
+ * indicators used by QCBOR to track ways of encoding
+ * the major types.
+ *
+ * QCBOR_MT_INDEF_LEN is used by QCBOREncode_EncodeHead(), but
+ * this is enum kept private because most of it is internal-only
+ * and to reduce clutter in the public interface.
+ */
+enum QCBORPrivateMajorType {
+   QCBOR_MT_MASK = 0x07,
+
+   QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
+   QCBOR_MT_WRAP             = 0x20,
+   QCBOR_MT_OPENED           = 0x40,
+   QCBOR_MT_INDEF_LEN        = 0x80,
+
+   QCBOR_MT_INDEF_ARRAY  = CBOR_MAJOR_TYPE_ARRAY + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_INDEF_MAP    = CBOR_MAJOR_TYPE_MAP   + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_BSTR_WRAP    = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_WRAP,
+   QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
+   QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN
+};
+
+
 /* The number of elements in a C array of a particular type */
 #define C_ARRAY_COUNT(array, type) (sizeof(array)/sizeof(type))
 

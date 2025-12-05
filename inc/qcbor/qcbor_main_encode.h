@@ -201,6 +201,12 @@ extern "C" {
 #define QCBOR_HEAD_BUFFER_SIZE  (sizeof(uint64_t) + 2)
 
 
+/** Modifier for QCBOREncode_EncodeHead() to produce
+ * an indefinite length CBOR head. */
+#define QCBOR_INDEF_TYPE_BIT  QCBOR_MT_INDEF_LEN
+
+
+
 
 /**
  * This enum is the bit flags for configuring the encoder for things
@@ -355,30 +361,6 @@ enum QCBOREncodeConfig {
 };
 
 
-
-/**
- * This enum is used internally, but can be used with QCBOREncode_EncodeHead().
- *
- * Lower 3 bits are the CBOR Major Type. Upper bits are
- * indicators used by QCBOR to track ways of encoding
- * the major types.
- */
-enum QCBORMajorType {
-   QCBOR_MT_MASK = 0x07,
-
-   QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
-   QCBOR_MT_WRAP             = 0x20,
-   QCBOR_MT_OPENED           = 0x40,
-   QCBOR_MT_INDEF_LEN        = 0x80,
-
-   QCBOR_MT_INDEF_ARRAY  = CBOR_MAJOR_TYPE_ARRAY + QCBOR_MT_INDEF_LEN,
-   QCBOR_MT_INDEF_MAP    = CBOR_MAJOR_TYPE_MAP   + QCBOR_MT_INDEF_LEN,
-   QCBOR_MT_BSTR_WRAP    = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_WRAP,
-   QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
-   QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
-   QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
-   QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN
-};
 
 
 /**
@@ -1596,14 +1578,15 @@ QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
  * encode the head in a 10 byte buffer with this function, hash that and
  * then hash the 100,000 bytes using the same hash context.
  *
- * If @c uMajorType has the bit QCBOR_MT_INDEF set, the head written
- * will be for an indefinite length.
+ * If @c uMajorType has the bit QCBOR_INDEF_TYPE_BIT set, the head written
+ * will be for an indefinite length of the major type. It should only
+ * be used for strings, arrays and maps.
  */
 UsefulBufC
-QCBOREncode_EncodeHead(UsefulBuf            Buffer,
-                       enum QCBORMajorType  uMajorType,
-                       uint8_t              uMinLen,
-                       uint64_t             uNumber);
+QCBOREncode_EncodeHead(UsefulBuf  Buffer,
+                       uint8_t    uMajorType,
+                       uint8_t    uMinLen,
+                       uint64_t   uNumber);
 
 
 
@@ -1757,44 +1740,44 @@ QCBOREncode_CloseMapIndefiniteLength(QCBOREncodeContext *pCtx);
  * ========================================================================= */
 
 /** @private See qcbor_main_encode.c */
-void QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext  *pMe,
-                                        enum QCBORMajorType  uMajorType,
-                                        uint64_t             uArgument,
-                                        uint8_t              uMinLen);
+void QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext         *pMe,
+                                        enum QCBORPrivateMajorType  uMajorType,
+                                        uint64_t                    uArgument,
+                                        uint8_t                     uMinLen);
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_AddBuffer(QCBOREncodeContext  *pCtx,
-                              enum QCBORMajorType  uMajorType,
-                              UsefulBufC           Bytes);
+QCBOREncode_Private_AddBuffer(QCBOREncodeContext         *pCtx,
+                              enum QCBORPrivateMajorType  uMajorType,
+                              UsefulBufC                  Bytes);
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 void
-QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext        *pMe,
-                                      const enum QCBORMajorType  uMajorType,
-                                      const UsefulBufC           Bytes);
+QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext               *pMe,
+                                      const enum QCBORPrivateMajorType  uMajorType,
+                                      const UsefulBufC                  Bytes);
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pCtx, enum QCBORMajorType uMajorType);
+QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pCtx, enum QCBORPrivateMajorType uMajorType);
 
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext  *pMe,
-                                      enum QCBORMajorType  uMajorType,
-                                      size_t               uLength);
+QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext         *pMe,
+                                      enum QCBORPrivateMajorType  uMajorType,
+                                      size_t                      uLength);
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext *pCtx,
-                                    enum QCBORMajorType uMajorType);
+QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext        *pCtx,
+                                    enum QCBORPrivateMajorType uMajorType);
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext  *pCtx,
-                                       enum QCBORMajorType  uMajorType);
+QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext         *pCtx,
+                                       enum QCBORPrivateMajorType  uMajorType);
 
 /** @private See qcbor_main_encode.c */
 void
@@ -1806,18 +1789,18 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 /** @private See qcbor_main_encode.c */
 void
-QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext  *pMe,
-                                               enum QCBORMajorType  uMajorType);
+QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext        *pMe,
+                                               enum QCBORPrivateMajorType uMajorType);
 /** @private See qcbor_main_encode.c */
  void
-QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext *pMe,
-                                             const UsefulBufC    Chunk,
-                                             enum QCBORMajorType  uMajorType);
+QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext         *pMe,
+                                             const UsefulBufC            Chunk,
+                                             enum QCBORPrivateMajorType  uMajorType);
 
 
 static inline void
-QCBOREncode_Private_CloseIndefiniteLengthString(QCBOREncodeContext *pMe,
-                                                enum QCBORMajorType uMajorType)
+QCBOREncode_Private_CloseIndefiniteLengthString(QCBOREncodeContext        *pMe,
+                                                enum QCBORPrivateMajorType uMajorType)
 {
    QCBOREncode_Private_CloseNestingAppend(pMe, uMajorType | QCBOR_MT_INDEF_LEN);
 }

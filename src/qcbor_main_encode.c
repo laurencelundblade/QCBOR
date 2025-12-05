@@ -82,9 +82,9 @@ Nesting_Init(QCBORTrackNesting *pNesting)
 }
 
 static uint8_t
-Nesting_Increase(QCBORTrackNesting         *pNesting,
-                 const enum QCBORMajorType  uMajorType,
-                 const uint32_t             uPos)
+Nesting_Increase(QCBORTrackNesting                *pNesting,
+                 const enum QCBORPrivateMajorType  uMajorType,
+                 const uint32_t                    uPos)
 {
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
       return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
@@ -152,10 +152,10 @@ Nesting_GetStartPos(QCBORTrackNesting *pNesting)
    return pNesting->pCurrentNesting->uStart;
 }
 
-static enum QCBORMajorType
+static enum QCBORPrivateMajorType
 Nesting_GetMajorType(QCBORTrackNesting *pNesting)
 {
-   return (enum QCBORMajorType)pNesting->pCurrentNesting->uMajorType;
+   return (enum QCBORPrivateMajorType)pNesting->pCurrentNesting->uMajorType;
 }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
@@ -269,10 +269,10 @@ QCBOREncode_Init(QCBOREncodeContext *pMe, UsefulBuf Storage)
  * Public function to encode a CBOR head. See qcbor/qcbor_encode.h
  */
 UsefulBufC
-QCBOREncode_EncodeHead(UsefulBuf                  Buffer,
-                       const enum QCBORMajorType  uMajorType,
-                       uint8_t                    uMinLen,
-                       uint64_t                   uArgument)
+QCBOREncode_EncodeHead(UsefulBuf  Buffer,
+                       uint8_t    uMajorType,
+                       uint8_t    uMinLen,
+                       uint64_t   uArgument)
 {
    /*
     * == Description of the CBOR Head ==
@@ -432,7 +432,7 @@ QCBOREncode_EncodeHead(UsefulBuf                  Buffer,
    int nAdditionalInfo;
 
 #if ! (defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
-   if(uMajorType & QCBOR_MT_INDEF_LEN) {
+   if(uMajorType & QCBOR_INDEF_TYPE_BIT) {
       /* This takes advantage of design of CBOR where additional info
        * is 31 for both opening and closing indefinite length
        * maps and arrays.
@@ -541,8 +541,8 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
  */
 // TODO: inline this -- it reduces to nothing with QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 static bool
-QCBOREncode_Private_CheckNestingType(QCBOREncodeContext        *pMe,
-                                     const enum QCBORMajorType  uMajorType)
+QCBOREncode_Private_CheckNestingType(QCBOREncodeContext               *pMe,
+                                     const enum QCBORPrivateMajorType  uMajorType)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uError != QCBOR_SUCCESS) {
@@ -554,8 +554,8 @@ QCBOREncode_Private_CheckNestingType(QCBOREncodeContext        *pMe,
       return true;
    }
 
-   enum QCBORMajorType uOpenType = Nesting_GetMajorType(&(pMe->nesting));
-   enum QCBORMajorType uCheckType = uMajorType;
+   enum QCBORPrivateMajorType uOpenType = Nesting_GetMajorType(&(pMe->nesting));
+   enum QCBORPrivateMajorType uCheckType = uMajorType;
    if(uMajorType & QCBOR_MT_CHECK_ONLY_MAJOR) {
       uOpenType  &= QCBOR_MT_MASK;
       uCheckType &= QCBOR_MT_MASK;
@@ -597,10 +597,10 @@ QCBOREncode_Private_CheckNestingType(QCBOREncodeContext        *pMe,
  * uArgument is ignored if uMajorType has QCBOR_INDEFINITE_LEN_TYPE_MODIFIER or'd in.
  */
 void
-QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext        *pMe,
-                                   const enum QCBORMajorType  uMajorType,
-                                   const uint64_t             uArgument,
-                                   const uint8_t              uMinLen)
+QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
+                                   const enum QCBORPrivateMajorType  uMajorType,
+                                   const uint64_t                    uArgument,
+                                   const uint8_t                     uMinLen)
 {
    /* A stack buffer large enough for a CBOR head */
    UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
@@ -615,7 +615,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext        *pMe,
    /* Make sure right type of string is added when encoding indefinite-length strings */
    // Have to do this here to catch all the things that are not indef strings
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   enum QCBORMajorType uMajorOpen = Nesting_GetMajorType(&(pMe->nesting));
+   enum QCBORPrivateMajorType uMajorOpen = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorOpen == QCBOR_MT_INDEF_BYTES ||
       uMajorOpen == QCBOR_MT_INDEF_TEXT) {
       /* We are nested in an indefinite-length string. Unlike all other nesting
@@ -631,7 +631,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext        *pMe,
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                    uMajorType,
+                                                    (uint8_t)uMajorType,
                                                     uMinLen,
                                                     uArgument);
 
@@ -670,9 +670,9 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext        *pMe,
  * the least used).
  */
 void
-QCBOREncode_Private_AddBuffer(QCBOREncodeContext        *pMe,
-                              const enum QCBORMajorType  uMajorType,
-                              const UsefulBufC           Bytes)
+QCBOREncode_Private_AddBuffer(QCBOREncodeContext               *pMe,
+                              const enum QCBORPrivateMajorType  uMajorType,
+                              const UsefulBufC                  Bytes)
 {
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
@@ -681,9 +681,9 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext        *pMe,
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 void
-QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext        *pMe,
-                                      const enum QCBORMajorType  uMajorType,
-                                      const UsefulBufC           Bytes)
+QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext               *pMe,
+                                      const enum QCBORPrivateMajorType  uMajorType,
+                                      const UsefulBufC                  Bytes)
 {
    if( ! UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
       QCBOREncode_Private_AddBuffer(pMe, uMajorType, Bytes);
@@ -719,7 +719,7 @@ QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded
 
 
 static void
-QCBOREncode_Private_OpenNestingCommon(QCBOREncodeContext *pMe, const enum QCBORMajorType uMajorType)
+QCBOREncode_Private_OpenNestingCommon(QCBOREncodeContext *pMe, const enum QCBORPrivateMajorType uMajorType)
 {
    /* Add one item to the nesting level we are in for the new map or array */
    QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
@@ -762,7 +762,7 @@ QCBOREncode_Private_OpenNestingCommon(QCBOREncodeContext *pMe, const enum QCBORM
  * QCBOREncode_BstrWrap() instead of this.
  */
 void
-QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pMe, const enum QCBORMajorType uMajorType)
+QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pMe, const enum QCBORPrivateMajorType uMajorType)
 {
 #ifndef USEFULBUF_DISABLE_STREAMING
    if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
@@ -787,9 +787,9 @@ QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pMe, const enum QCBORM
  * definite with a known length. 
  */
 void
-QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext  *pMe,
-                                      enum QCBORMajorType  uMajorType,
-                                      const size_t         uLength)
+QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext         *pMe,
+                                      enum QCBORPrivateMajorType  uMajorType,
+                                      const size_t                uLength)
 {
    if(uLength == SIZE_MAX) {
       uMajorType |= QCBOR_MT_INDEF_LEN;
@@ -821,7 +821,7 @@ QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext  *pMe,
  */
 static void
 QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext       *pMe,
-                                       const enum QCBORMajorType uMajorType,
+                                       const enum QCBORPrivateMajorType uMajorType,
                                        const size_t              uLen)
 {
    if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
@@ -832,7 +832,7 @@ QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext       *pMe,
    UsefulBuf_MAKE_STACK_UB(pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
 
    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                   uMajorType,
+                                                   (uint8_t)uMajorType,
                                                    0,
                                                    uLen);
 
@@ -860,14 +860,14 @@ QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext       *pMe,
  * QCBOREncode_CloseMapIndefiniteLength() instead of this.
  */
 void
-QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext        *pMe,
-                                       const enum QCBORMajorType  uMajorType)
+QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext               *pMe,
+                                       const enum QCBORPrivateMajorType  uMajorType)
 {
    if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
       return;
    }
 
-   enum QCBORMajorType uOpened = Nesting_GetMajorType(&(pMe->nesting));
+   enum QCBORPrivateMajorType uOpened = Nesting_GetMajorType(&(pMe->nesting));
 
    if(uOpened & QCBOR_MT_INDEF_LEN) {
 #if ! (defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
@@ -891,8 +891,8 @@ QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext        *pMe,
  * @param[in] uMajorType     The major CBOR type to close.
  */
 void
-QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext        *pMe,
-                                    const enum QCBORMajorType  uMajorType)
+QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext               *pMe,
+                                    const enum QCBORPrivateMajorType  uMajorType)
 {
    QCBOREncode_Private_CloseNestingInsert(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
 }
@@ -1348,8 +1348,8 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
  * and QCBOREncode_OpenIndefiniteLengthBytes().
  */
 void
-QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext  *pMe,
-                                               enum QCBORMajorType  uMajorType)
+QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext         *pMe,
+                                               enum QCBORPrivateMajorType  uMajorType)
 {
    uMajorType |= QCBOR_MT_INDEF_LEN;
 
@@ -1374,9 +1374,9 @@ QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext  *pMe,
  * and QCBOREncode_OpenIndefiniteLengthBytes().
  */
 void
-QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext        *pMe,
-                                             const UsefulBufC           Chunk,
-                                             const enum QCBORMajorType  uMajorType)
+QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext               *pMe,
+                                             const UsefulBufC                  Chunk,
+                                             const enum QCBORPrivateMajorType  uMajorType)
 {
    if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType | QCBOR_MT_INDEF_LEN)) {
       return;
@@ -1401,7 +1401,7 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 
    *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   enum QCBORMajorType uMajorType = Nesting_GetMajorType(&(pMe->nesting));
+   enum QCBORPrivateMajorType uMajorType = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorType == QCBOR_MT_OPEN_BYTES) {
       /* It's OK to nest a byte string in any type but
        * another open byte string. */
