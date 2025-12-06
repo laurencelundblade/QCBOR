@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 11/30/2025   llundblade      Add streaming mode.
  11/10/2025   llundblade      Explicitly size integer literals (MSVC fix).
  02/21/2025   llundblade      Correct documentaion for UsefulOutBuf_Compare()
  02/21/2025   llundblade      Rename to UsefulOutBuf_OutSubString().
@@ -165,6 +166,7 @@
  * interfaces. This makes it possible to compile the code with the compile
  * option -mgeneral-regs-only.
  */
+
 
 #if defined(USEFULBUF_CONFIG_BIG_ENDIAN) && defined(USEFULBUF_CONFIG_LITTLE_ENDIAN)
 #error "Cannot define both USEFULBUF_CONFIG_BIG_ENDIAN and USEFULBUF_CONFIG_LITTLE_ENDIAN"
@@ -341,6 +343,46 @@ typedef struct q_useful_buf {
 /* The usual NULLUsefulBuf doesn't work in static const
  * initializers in gcc and MSVC. This does. Not quite sure why.  */
 #define NULLUsefulBufConst {NULL, 0}
+
+
+/**
+ * Errors returned by some UsefulBuf functions.
+ *
+ * In QCBOR v1, 0 was success and non-zero (always 1) was failure. That
+ * is expanded to the list below for QCBOR v2.
+ */
+
+/*
+ * This is stored in a uint8_t so the max value is 255.
+ * (enum is nice to keep code organized and works nice in IDEs,
+ * but the C standard allows compilers to choose the storage type and
+ * they don't choose the smallest)
+ */
+enum UsefulBufErr {
+   /** Success */
+   UsefulBuf_Success         = 0,
+
+   /** The @ref UsefulOutBuf buffer is full */
+   UsefulBuffErr_Full        = 1,
+
+   /** The @ref UsefulOutBuf is in a bad state. */
+   UsefulBufErr_BadState     = 2,
+
+   /** The @ref UsefulOutBuf Insertion point requested is invalid */
+   UsefulBuffErr_InsertPoint = 3,
+
+   /** UsefulOutBuf_InsertUsefulBuf() or siimilar called in streaming mode. */
+   UsefulBufErr_NotStreaming = 4,
+
+   /** UsefulOutBuf_AppendDirect() used when not in streaming mode */
+   UsefulBufErr_IsStreaming  = 5,
+
+   /** @ref An call to @ref UsefulOutBuf_FlushCallBack failed */
+   UsefulBufErr_FlushWrite   = 6,
+
+   /* Stored in a uint8_t; don't exceed. */
+   UsefulBufErr_Max          = 255,
+};
 
 
 /**
@@ -804,6 +846,24 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
 
 
 
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+/**
+ * @brief Function prototype for streaming mode flush callback.
+ *
+ * @param[in] pFlushCtx   Context for the flush function
+ * @param[in] Bytes       The bytes to be flushed
+ *
+ * @return 0 or for success, non-zero for failure
+ *
+ * A caller-supplied function of this type is called when the output
+ * buffer is full.
+ */
+typedef int (UsefulOutBuf_FlushCallBack)(void *pFlushCtx, UsefulBufC Bytes);
+
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
+
 /**
  * UsefulOutBuf is a structure and functions (an object) for
  * serializing data into a buffer to encode for a network protocol or
@@ -875,6 +935,15 @@ static inline double UsefulBufUtil_CopyUint64ToDouble(uint64_t u64);
  * data addition to guard against use of an uninitialized or corrupted
  * UsefulOutBuf.
  *
+ * UsefulOutBuf has a streaming mode where a flush function is called
+ * when the buffer is full. This mode is entered when
+ * UsefulOutBuf_SetStream() is called. The buffer given to
+ * UsefulOutBuf_Init() becomes a temporary buffer. In this mode
+ * UsefulOutBuf_InsertUsefulBuf() and similar are not allowed and will
+ * result in an error. UsefulOutBuf_AppendUsefulBuf() and similar that
+ * output larger than the buffer size are allowed and will result in
+ * multiple calls to the flush function.
+ *
  * @ref UsefulOutBuf has been used to create a CBOR encoder. The CBOR
  * encoder has almost no pointer manipulation in it, is easier to
  * read, and easier to review.
@@ -892,6 +961,14 @@ typedef struct useful_out_buf {
    uint16_t   magic;
    /** @private Used to detect corruption and lack of initialization */
    uint8_t    err;
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+   /** @private Context for flush function. May be NULL. */
+   void      *pFlushCtx;
+   /** @private Function called to flush buffered data in streaming mode. NULL if not. */
+   UsefulOutBuf_FlushCallBack *pfFlush;
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
 } UsefulOutBuf;
 
 
@@ -940,6 +1017,26 @@ void UsefulOutBuf_Init(UsefulOutBuf *pUOutBuf, UsefulBuf Storage);
    uint8_t       __pBuf##name[(size)];\
    UsefulOutBuf  name;\
    UsefulOutBuf_Init(&(name), (UsefulBuf){__pBuf##name, (size)});
+#ifndef USEFULBUF_DISABLE_STREAMING
+
+
+/**
+ * @brief Configure for streaming mode.
+ *
+ * @param[out] pUOutBuf     The @ref UsefulOutBuf to configure.
+ * @param[in] pfFlush       Function that is called to flush accumulated output.
+ * @param[in] pCallBackCtx  Context for the @c pfFlush call.
+ *
+ * This puts the @ref UsefulOutBuf into streaming mode. In streaming
+ * mode, the @c Storage given in the UsefulOutBuf_Init() call is used
+ * as a temporary buffer. When it is full, the function referenced by
+ * @c pfFlush is called.
+ */
+static void UsefulOutBuf_SetStream(UsefulOutBuf               *pUOutBuf,
+                                   UsefulOutBuf_FlushCallBack *pfFlush,
+                                   void                       *pCallBackCtx);
+
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1164,9 +1261,39 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pUOutBuf,
  *
  * See UsefulOutBuf_InsertUsefulBuf() for details. This does the same
  * with the insertion point at the end of the valid data.
+ *
+ * This works in streaming mode.
  */
-static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
-                                                UsefulBufC NewData);
+#ifdef USEFULBUF_DISABLE_STREAMING
+static inline
+#endif /* USEFULBUT_DISABLE_STREAMING */
+void
+UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
+                             UsefulBufC    NewData);
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+/**
+ * @brief In streaming mode, output bytes without buffering.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * This is the same as UsefulOutBuf_AppendUsefulBuf() but more
+ * efficient in some situations.  When this is called, first all data
+ * in the output buffer is flushed. Then @c Bytes are passed directly
+ * to a call of the flush function with no copying.
+ *
+ * For example, if the UsefulOutBuf is set up with a ten bytes buffer and
+ * UsefulOutBuf_AppendUsefulBuf() is called with 1,000 bytes the flush
+ * function will be called 100 times. With this function, it will be
+ * called once with 1,000 bytes.
+ *
+ * If not in streaming mode, calling this puts the UsefulOutBuf into
+ * the error state.
+ */
+void
+UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 /**
@@ -1302,7 +1429,7 @@ static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pUOutBuf,
  *   - current position is off end of buffer (probably corrupted or uninitialized)
  *   - detect corruption / uninitialized by bad magic number
  */
-static inline int UsefulOutBuf_GetError(UsefulOutBuf *pUOutBuf);
+static inline enum UsefulBufErr UsefulOutBuf_GetError(UsefulOutBuf *pUOutBuf);
 
 
 /**
@@ -1347,6 +1474,17 @@ static inline int UsefulOutBuf_WillItFit(UsefulOutBuf *pUOutBuf, size_t uLen);
 static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
+/**
+ * @brief Report whether in streaming mode or not.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * @returns 1 if in streaming mode, 0 if not.
+ */
+static inline int UsefulOutBuf_IsStreaming(UsefulOutBuf *pUOutBuf);
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
 /**
  * @brief Returns pointer and length of the output buffer not yet used.
  *
@@ -1365,6 +1503,11 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pUOutBuf);
  * the output of the symmetric cipher can go directly
  * into the output buffer, rather than having to go into
  * an intermediate buffer.
+ *
+ * It is OK to use this in streaming mode as it is only
+ * for appending. If UsefulOutBuf_Flush() is called
+ * before this, there will be more room in the bufer.
+ * See also UsefulOutBuf_DirectOut().
  *
  * See UsefulOutBuf_Advance() which is used to tell
  * UsefulOutBuf how much was written.
@@ -1392,6 +1535,23 @@ UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf);
  */
 void
 UsefulOutBuf_Advance(UsefulOutBuf *pUOutBuf, size_t uAmount);
+
+
+/**
+ * @brief Flush all data in the output buffer.
+ *
+ * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ *
+ * It is not necessary to call this as flushes happen automatically
+ * when the buffer is too full.
+ *
+ * In streaming mode, this always makes a call to the configured flush
+ * function configured with UsefulOutBuf_SetStream(), even if there
+ * are zero bytes to flush.
+ *
+ * If not in streaming mode this does nothing.
+ */
+void UsefulOutBuf_Flush(UsefulOutBuf *pUOutBuf);
 
 
 /**
@@ -2139,6 +2299,16 @@ static inline float UsefulBufUtil_CopyUint32ToFloat(uint32_t u32)
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
+static inline void
+UsefulOutBuf_SetStream(UsefulOutBuf              *pMe,
+                         UsefulOutBuf_FlushCallBack *pF,
+                         void                       *pCallBackCtx)
+{
+   pMe->pFlushCtx       = pCallBackCtx;
+   pMe->pfFlush         = pF;
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void UsefulOutBuf_Reset(UsefulOutBuf *pMe)
@@ -2333,13 +2503,16 @@ static inline void UsefulOutBuf_InsertDouble(UsefulOutBuf *pMe,
 }
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
-
+#ifdef USEFULBUF_DISABLE_STREAMING
 static inline void UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe,
                                                 UsefulBufC NewData)
 {
    /* An append is just a insert at the end */
    UsefulOutBuf_InsertUsefulBuf(pMe, NewData, UsefulOutBuf_GetEndPosition(pMe));
 }
+#else
+   /* With streaming enabled, this is in UsefulBuf.c and not inline */
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline void UsefulOutBuf_AppendData(UsefulOutBuf *pMe,
@@ -2372,20 +2545,102 @@ static inline void UsefulOutBuf_AppendByte(UsefulOutBuf *pMe,
 static inline void UsefulOutBuf_AppendUint16(UsefulOutBuf *pMe,
                                              uint16_t uInteger16)
 {
-   UsefulOutBuf_InsertUint16(pMe, uInteger16, UsefulOutBuf_GetEndPosition(pMe));
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
+
+   const void *pBytes;
+
+#if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+   pBytes = &uInteger16;
+
+#elif defined(USEFULBUF_CONFIG_HTON)
+   uint16_t uTmp = htons(uInteger16);
+   pBytes        = &uTmp;
+
+#elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
+   uint16_t uTmp = __builtin_bswap16(uInteger16);
+   pBytes = &uTmp;
+
+#else
+   uint8_t aTmp[2];
+
+   aTmp[0] = (uint8_t)((uInteger16 & 0xff00) >> 8);
+   aTmp[1] = (uint8_t)(uInteger16 & 0xff);
+
+   pBytes = aTmp;
+#endif
+   UsefulOutBuf_AppendData(pMe, pBytes, 2);
 }
 
 static inline void UsefulOutBuf_AppendUint32(UsefulOutBuf *pMe,
                                              uint32_t uInteger32)
 {
-   UsefulOutBuf_InsertUint32(pMe, uInteger32, UsefulOutBuf_GetEndPosition(pMe));
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
+
+   const void *pBytes;
+
+#if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+   pBytes = &uInteger32;
+
+#elif defined(USEFULBUF_CONFIG_HTON)
+   uint32_t uTmp = htonl(uInteger32);
+   pBytes = &uTmp;
+
+#elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
+   uint32_t uTmp = __builtin_bswap32(uInteger32);
+
+   pBytes = &uTmp;
+
+#else
+   uint8_t aTmp[4];
+
+   aTmp[0] = (uint8_t)((uInteger32 & 0xff000000) >> 24);
+   aTmp[1] = (uint8_t)((uInteger32 & 0xff0000) >> 16);
+   aTmp[2] = (uint8_t)((uInteger32 & 0xff00) >> 8);
+   aTmp[3] = (uint8_t)(uInteger32 & 0xff);
+
+   pBytes = aTmp;
+#endif
+
+   UsefulOutBuf_AppendData(pMe, pBytes, 4);
 }
 
 
 static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pMe,
                                              uint64_t uInteger64)
 {
-   UsefulOutBuf_InsertUint64(pMe, uInteger64, UsefulOutBuf_GetEndPosition(pMe));
+   /* See UsefulOutBuf_InsertUint64() for comments on this code */
+
+   const void *pBytes;
+
+#if defined(USEFULBUF_CONFIG_BIG_ENDIAN)
+   pBytes = &uInteger64;
+
+#elif defined(USEFULBUF_CONFIG_HTON)
+   uint64_t uTmp = htonll(uInteger64);
+
+   pBytes = &uTmp;
+
+#elif defined(USEFULBUF_CONFIG_LITTLE_ENDIAN) && defined(USEFULBUF_CONFIG_BSWAP)
+   uint64_t uTmp = __builtin_bswap64(uInteger64);
+
+   pBytes = &uTmp;
+
+#else
+   uint8_t aTmp[8];
+
+   aTmp[0] = (uint8_t)((uInteger64 & 0xff00000000000000) >> 56);
+   aTmp[1] = (uint8_t)((uInteger64 & 0xff000000000000) >> 48);
+   aTmp[2] = (uint8_t)((uInteger64 & 0xff0000000000) >> 40);
+   aTmp[3] = (uint8_t)((uInteger64 & 0xff00000000) >> 32);
+   aTmp[4] = (uint8_t)((uInteger64 & 0xff000000) >> 24);
+   aTmp[5] = (uint8_t)((uInteger64 & 0xff0000) >> 16);
+   aTmp[6] = (uint8_t)((uInteger64 & 0xff00) >> 8);
+   aTmp[7] = (uint8_t)(uInteger64 & 0xff);
+
+   pBytes = aTmp;
+#endif
+
+   UsefulOutBuf_AppendData(pMe, pBytes, 8);
 }
 
 
@@ -2393,21 +2648,21 @@ static inline void UsefulOutBuf_AppendUint64(UsefulOutBuf *pMe,
 static inline void UsefulOutBuf_AppendFloat(UsefulOutBuf *pMe,
                                             float f)
 {
-   UsefulOutBuf_InsertFloat(pMe, f, UsefulOutBuf_GetEndPosition(pMe));
+   UsefulOutBuf_AppendUint32(pMe, UsefulBufUtil_CopyFloatToUint32(f));
 }
 
 
 static inline void UsefulOutBuf_AppendDouble(UsefulOutBuf *pMe,
                                              double d)
 {
-   UsefulOutBuf_InsertDouble(pMe, d, UsefulOutBuf_GetEndPosition(pMe));
+   UsefulOutBuf_AppendUint64(pMe, UsefulBufUtil_CopyDoubleToUint64(d));
 }
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-static inline int UsefulOutBuf_GetError(UsefulOutBuf *pMe)
+static inline enum UsefulBufErr UsefulOutBuf_GetError(UsefulOutBuf *pMe)
 {
-   return pMe->err;
+   return (enum UsefulBufErr)pMe->err;
 }
 
 
@@ -2427,6 +2682,13 @@ static inline int UsefulOutBuf_IsBufferNULL(UsefulOutBuf *pMe)
 {
    return pMe->UB.ptr == NULL;
 }
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+static inline int UsefulOutBuf_IsStreaming(UsefulOutBuf *pMe)
+{
+   return pMe->pfFlush != NULL;
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
 static inline UsefulBuf UsefulOutBuf_GetOutPlace(UsefulOutBuf *pUOutBuf)

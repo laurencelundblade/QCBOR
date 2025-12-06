@@ -177,7 +177,7 @@ Done:
  *
  * returns 0 if test passed
  */
-static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
+static int AppendTest(UsefulOutBuf *pUOB, size_t num, enum UsefulBufErr expected)
 {
    //reset
    UsefulOutBuf_Reset(pUOB);
@@ -200,7 +200,7 @@ static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
 /*
  * Same as append, but takes a position param too
  */
-static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
+static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, enum UsefulBufErr expected)
 {
    // reset
    UsefulOutBuf_Reset(pUOB);
@@ -253,11 +253,11 @@ const char *UOBTest_BoundaryConditionsTest(void)
       return "Append to fill buffer failed";
 
    // append 3 bytes to a 2 byte buffer --> failure
-   if(AppendTest(&UOB, 3, 1))
+   if(AppendTest(&UOB, 3, UsefulBuffErr_Full))
       return "Overflow of buffer not caught";
 
    // append max size_t to a 2 byte buffer --> failure
-   if(AppendTest(&UOB, SIZE_MAX, 1))
+   if(AppendTest(&UOB, SIZE_MAX, UsefulBuffErr_Full))
       return "Append of SIZE_MAX error not caught";
 
    if(InsertTest(&UOB, 1, 0, 0))
@@ -266,10 +266,10 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(InsertTest(&UOB, 2, 0, 0))
       return "Insert 2 bytes at start failed";
 
-   if(InsertTest(&UOB, 3, 0, 1))
+   if(InsertTest(&UOB, 3, 0, UsefulBuffErr_Full))
       return "Insert overflow not caught";
 
-   if(InsertTest(&UOB, 1, 1, 1))
+   if(InsertTest(&UOB, 1, 1,    UsefulBuffErr_InsertPoint))
       return "Bad insertion point not caught";
 
 
@@ -370,6 +370,160 @@ const char *UOBTest_BoundaryConditionsTest(void)
    return NULL;
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
+
+static int FlushCallback(void *pMe, UsefulBufC Bytes)
+{
+   uint32_t uUsed;
+
+   uUsed = *(uint32_t *)pMe;
+
+   memmove((uint8_t *)pMe + uUsed + sizeof(uint32_t), Bytes.ptr, Bytes.len);
+
+   *(uint32_t *)pMe = uUsed + (uint32_t)Bytes.len;
+
+   return 0;
+}
+
+static int FlushCallbackFail(void *pMe, UsefulBufC Bytes)
+{
+   uint32_t uUsed;
+
+   uUsed = *(uint32_t *)pMe;
+
+   if(uUsed > 13 || Bytes.len == 13) {
+      /* Fail after 13 bytes have been output to test failure handling  */
+      return 1;
+   }
+
+   memmove((uint8_t *)pMe + uUsed + sizeof(uint32_t), Bytes.ptr, Bytes.len);
+
+   *(uint32_t *)pMe = uUsed + (uint32_t)Bytes.len;
+
+   return 0;
+}
+
+const char *UOBTest_Streaming(void)
+{
+   MakeUsefulBufOnStack(  OutputBuffer, 6);
+   UsefulOutBuf           UOB;
+   uint8_t                TestData[25];
+   UsefulBufC             TestDataUBC;
+   UsefulBufC             Output;
+   enum UsefulBufErr      nErr;
+   char                   StreamCtxAndBuf[60];
+
+   /* Fill in a buffer with some test data */
+   for(int i = 0; i < 25; i++) {
+      TestData[i] = (uint8_t)i;
+   }
+   TestDataUBC.ptr = TestData;
+   TestDataUBC.len = sizeof(TestData);
+
+
+   /* Output 25 bytes with a 6 byte buffer */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUsefulBuf(&UOB, TestDataUBC);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream Append Failed with error";
+   }
+   if(memcmp(TestData, StreamCtxAndBuf+sizeof(uint32_t), sizeof(TestData))) {
+      return "Stream appended wrong bytes";
+   }
+
+   /* Output a uint64_t with a 6 byte buffer */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUint64(&UOB, 0xfffef1);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream Append Failed with error";
+   }
+   if(memcmp("\x00\x00\x00\x00\x00\xff\xfe\xf1", StreamCtxAndBuf+sizeof(uint32_t), 8)) {
+      return "Stream appended wrong bytes";
+   }
+
+   /* Output a 32-bit integer, then 20 bytes directly */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUint64(&UOB, 0xfffef1);
+   UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream Append Failed with error";
+   }
+  if(memcmp("\x00\x00\x00\x00\x00\xff\xfe\xf1\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15",
+            StreamCtxAndBuf+sizeof(uint32_t), 8)) {
+      return "Stream appended wrong bytes";
+   }
+
+   /* Test flush function failure */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallbackFail, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUsefulBuf(&UOB, TestDataUBC);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_FlushWrite) {
+      return "Stream didn't handle flush failure";
+   }
+
+   /* Test flush function failure */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallbackFail, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulBufC ShortTestData = {TestDataUBC.ptr, 13};
+   UsefulOutBuf_AppendDirect(&UOB, ShortTestData);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_FlushWrite) {
+      return "Stream didn't handle AppendeDirect flush failure";
+   }
+
+
+   /* Flush on non-stream should succeed and continue to work */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream flush didn't do nothing";
+   }
+   UsefulOutBuf_AppendByte(&UOB, 0x83);
+   Output = UsefulOutBuf_CopyOut(&UOB, OutputBuffer);
+   if(UsefulBuf_Compare(Output, UsefulBuf_FROM_SZ_LITERAL("\x083"))){
+      return"Stream flush didn't continue to work";
+   }
+
+   /* Attempt a streaming-only operation on a non-stream and fail */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_NotStreaming) {
+      return "Stream AppendDirect on non-stream gave wrong error";
+   }
+
+   /* Attempt an insert on a stream and fail */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   UsefulOutBuf_AppendByte(&UOB, 0x83);
+   UsefulOutBuf_InsertByte(&UOB, 0x97, 0);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_IsStreaming) {
+      return "Insert on stream gave wrong error";
+   }
+
+   return NULL;
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
 
 
 // Test function to get size and magic number check
@@ -405,15 +559,31 @@ const char *TestBasicSanity(void)
    }
 
 
-
-   // Next make sure that the valid data length check is working right
    UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.magic = 8888; // make magic bogus
 
-   UOB.data_len = UOB.UB.len+1; // make size bogus
+   UsefulOutBuf_InsertData(&UOB, (const uint8_t *)"bluster", 7, 0);
 
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "magic corruption check failed";
+   }
+
+
+
+   /* Next make sure that the valid data length check is working right */
+   UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.data_len = UOB.UB.len+1; /* make size bogus */
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
-   if(!UsefulOutBuf_GetError(&UOB))
-      return "valid data check failed";
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "valid data append check failed";
+   }
+
+   UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.data_len = UOB.UB.len+1; /* make size bogus */
+   UsefulOutBuf_InsertData(&UOB, (const uint8_t *)"bluster", 7, 0);
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "valid data on insert check failed";
+   }
 
    return NULL;
 }

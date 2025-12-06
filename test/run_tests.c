@@ -58,6 +58,9 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UOBTest_NonAdversarial),
     TEST_ENTRY(TestBasicSanity),
     TEST_ENTRY(UOBTest_BoundaryConditionsTest),
+#ifndef USEFULBUF_DISABLE_STREAMING
+    TEST_ENTRY(UOBTest_Streaming),
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
     TEST_ENTRY(UIBTest_IntegerFormat),
@@ -183,7 +186,14 @@ static test_entry s_tests[] = {
     TEST_ENTRY(ParseEmptyMapInMapTest),
     TEST_ENTRY(SubStringTest),
     TEST_ENTRY(BoolTest),
-   TEST_ENTRY(TagModesFanOutTest)
+   TEST_ENTRY(TagModesFanOutTest),
+#ifndef USEFULBUF_DISABLE_STREAMING
+   TEST_ENTRY(StreamTest),
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   TEST_ENTRY(EncodeIndefiniteStringsTest)
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
 };
 
 

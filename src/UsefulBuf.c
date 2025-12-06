@@ -44,6 +44,7 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 11/30/2025  llundblade   Add streaming mode.
  02/21/2025  llundblade   Improve magic number to detect lack of initialization.
  02/21/2025  llundblade   Bug fixes to UsefulOutBuf_Compare().
  02/21/2025  llundblade   Rename to UsefulOutBuf_OutSubString().
@@ -77,6 +78,13 @@
 /* used to catch use of uninitialized or corrupted UsefulOutBuf */
 #define USEFUL_OUT_BUF_MAGIC  (0x0B0F)
 
+
+/* General TODO:
+ *  - make function comments on line when the can be
+ *  - other shortening of comments
+ *  - Organize comments on checks and ptrhMath better
+ *  - Some common code or macros for checks
+ */
 
 /*
  * Public function -- see UsefulBuf.h
@@ -188,6 +196,9 @@ UsefulBuf_SkipLeading(UsefulBufC String, uint8_t uByte)
 void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
 {
     pMe->magic  = USEFUL_OUT_BUF_MAGIC;
+#ifndef USEFULBUF_DISABLE_STREAMING
+   pMe->pfFlush = NULL;
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
     UsefulOutBuf_Reset(pMe);
     pMe->UB     = Storage;
 
@@ -207,7 +218,6 @@ void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
         me->err = 1;
 #endif
 }
-
 
 
 /*
@@ -249,6 +259,11 @@ void UsefulOutBuf_Init(UsefulOutBuf *pMe, UsefulBuf Storage)
  */
 void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t uInsertionPos)
 {
+   if(pMe->err) {
+      /* Already in error state. */
+      return;
+   }
+
    /* 0. Sanity check the UsefulOutBuf structure
     * A "counter measure". If magic number is not the right number it
     * probably means pMe was not initialized or it was corrupted. Attackers
@@ -256,24 +271,27 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     * little code.
     */
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = 1;
-      return;  /* Magic number is wrong due to uninitalization or corrption */
-   }
-
-   if(pMe->err) {
-      /* Already in error state. */
+      /* Magic number is wrong due to uninitalization or corruption */
+      pMe->err = UsefulBufErr_BadState;
       return;
    }
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+   if(pMe->pfFlush != NULL) {
+      /* Can't do inserts in streaming mode */
+      pMe->err = UsefulBufErr_IsStreaming;
+      return;
+   }
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
 
    /* Make sure valid data is less than buffer size. This would only occur
     * if there was corruption of me, but it is also part of the checks to
     * be sure there is no pointer arithmatic under/overflow.
     */
    if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
-      pMe->err = 1;
       /* Offset of valid data is off the end of the UsefulOutBuf due to
-       * uninitialization or corruption
-       */
+       * uninitialization or corruption. */
+      pMe->err = UsefulBufErr_BadState;
       return;
    }
 
@@ -283,7 +301,7 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     */
    if(! UsefulOutBuf_WillItFit(pMe, NewData.len)) { /* Check #2 */
       /* The new data will not fit into the the buffer. */
-      pMe->err = 1;
+      pMe->err = UsefulBuffErr_Full;
       return;
    }
 
@@ -294,16 +312,17 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
     */
    if(uInsertionPos > pMe->data_len) { /* Check #3 */
       /* Off the end of the valid data in the buffer. */
-      pMe->err = 1;
+      pMe->err = UsefulBuffErr_InsertPoint;
       return;
    }
 
-   /* 3. Slide existing data to the right */
-   if (!UsefulOutBuf_IsBufferNULL(pMe)) {
+
+   if ( ! UsefulOutBuf_IsBufferNULL(pMe)) {
       uint8_t *pSourceOfMove      = ((uint8_t *)pMe->UB.ptr) + uInsertionPos; /* PtrMath #1 */
       size_t   uNumBytesToMove    = pMe->data_len - uInsertionPos; /* PtrMath #2 */
       uint8_t *pDestinationOfMove = pSourceOfMove + NewData.len; /* PtrMath #3*/
 
+      /* 3. Slide existing data to the right */
       /* To know memmove won't go off end of destination, see PtrMath #4.
        * Use memove because it handles overlapping buffers
        */
@@ -346,6 +365,32 @@ void UsefulOutBuf_InsertUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData, size_t 
  *   Calculation for extent of memove is uRoomInDestination = me->UB.len - uInsertionPos;
  *   Check #1 makes sure me->data_len is less than me->size
  *   Check #3 makes sure uInsertionPos is less than me->data_len
+ *
+ * PtrMath #10 will never wrap negative because
+ *    Check #10.
+ *
+ * PtrMath #11 will exceed NewData.len because:
+ *   Check #11
+ *
+ * PtrMath #12 will never exceed UB.len because:
+ *   Check #12 (effectively the same as #1)
+ *
+ * PtrMath #13
+ *   The destination of move is validated by check #12
+ *   The source of the move is validated by check #11
+ *   The length of the move is validated by
+ *     - uAmountToAppend is never greater than uRoomLeft because of Check #10,
+ *        making sure it is never off end of UB.ptr
+ *     - uAmountToAppend is never greater than NewData.Len because of check #11
+ *       sy making sure it is never off the end of NewData.ptr
+ *
+ * PtrMath #14
+ *   Check #10
+ *   Check #11
+ *
+ * PtrMath #15
+ *   uRoomLeft is always < UB.len because of call to RoomLeft()
+ *   uAmountToAppend is always less than uRoomLeft because of #10
  */
 
 
@@ -361,6 +406,11 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     * rarely used.
     */
 
+   if(pMe->err) {
+      /* Already in error state. */
+      return;
+   }
+
    /* 0. Sanity check the UsefulOutBuf structure
     *
     * A "counter measure". If magic number is not the right number it
@@ -369,12 +419,8 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     * does good with very little code.
     */
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = 1;
-      return;  /* Magic number is wrong due to uninitalization or corrption */
-   }
-
-   if(pMe->err) {
-      /* Already in error state. */
+      /* Magic number is wrong due to uninitalization or corrption */
+      pMe->err = UsefulBufErr_BadState;
       return;
    }
 
@@ -384,10 +430,9 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     * under/overflow.
     */
    if(pMe->data_len > pMe->UB.len) {  /* Check #1 */
-      pMe->err = 1;
       /* Offset of valid data is off the end of the UsefulOutBuf due
-       * to uninitialization or corruption.
-       */
+       * to uninitialization or corruption. */
+      pMe->err = UsefulBufErr_BadState;
       return;
    }
 
@@ -399,7 +444,7 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
     */
    if(! UsefulOutBuf_WillItFit(pMe, uAmount)) { /* Check #2 */
       /* The new data will not fit into the the buffer. */
-      pMe->err = 1;
+      pMe->err = UsefulBuffErr_Full;
       return;
    }
 
@@ -407,14 +452,152 @@ void UsefulOutBuf_Advance(UsefulOutBuf *pMe, size_t uAmount)
 }
 
 
+#ifndef USEFULBUF_DISABLE_STREAMING
+
 /*
  * Public function -- see UsefulBuf.h
  */
+void
+UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
+{
+   size_t       uNewDataCurrentOffset;
+   size_t       uAmountToAppend;
+   size_t       uRoomLeft;
+   const void  *pNewDataCopyStart;
+   void        *pAppendPosition;
+
+   if(pMe->err) {
+      /* Already in error state. */
+      return;
+   }
+
+   /* 0. Sanity check the UsefulOutBuf structure
+    *
+    * A "counter measure". If magic number is not the right number it
+    * probably means pMe was not initialized or it was
+    * corrupted. Attackers can defeat this, but it is a hurdle and
+    * does good with very little code.
+    */
+   if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
+      pMe->err = UsefulBufErr_BadState;
+      return;  /* Magic number is wrong due to uninitalization or corrption */
+   }
+
+
+   /* Loop because the bytes to append might be more than the buffer can hold */
+   for(uNewDataCurrentOffset = 0; uNewDataCurrentOffset < NewData.len;) { /* Check #11 */
+      uRoomLeft = UsefulOutBuf_RoomLeft(pMe);
+
+      if((NewData.len - uNewDataCurrentOffset) <= uRoomLeft) { /* Check #10 */
+         /* All the new data will fit in space remaining in buffer */
+         uAmountToAppend = (NewData.len - uNewDataCurrentOffset); /* PtrMath #10 */
+      } else {
+         /* The new data won't fit in the buffer */
+         if(pMe->pfFlush != NULL) {
+            /* In streaming mode, just copy what will fit. */
+            uAmountToAppend = uRoomLeft;
+         } else {
+            /* Non-streaming mode this is an error */
+            pMe->err = UsefulBuffErr_Full;
+            return;
+         }
+      }
+      pNewDataCopyStart = (const uint8_t *)NewData.ptr + uNewDataCurrentOffset; /* PtrMath #11 */
+
+      if( ! UsefulOutBuf_IsBufferNULL(pMe) && NewData.ptr != NULL) {
+         if(pMe->data_len > pMe->UB.len) { /* Check #12 */
+            /* This check is strictly not necessary as the rest of the
+             * checks and correctness of pointer math will result in
+             * this never happening, but it is inexpensive and provides
+             * a nice secondary defense against corruption of pMe. */
+            pMe->err = UsefulBufErr_BadState;
+            /* Offset of valid data is off the end of the UsefulOutBuf due
+             * to uninitialization or corruption. */
+            return;
+         }
+         pAppendPosition = (uint8_t *)pMe->UB.ptr + pMe->data_len; /* PtrMath #12 */
+
+         /* could use memcpy here, but afraid it is a banned function */
+         /* PtrMath #13 */
+         memmove(pAppendPosition, pNewDataCopyStart, uAmountToAppend);
+      }
+
+      pMe->data_len         += uAmountToAppend; /* PtrMath #14 */
+      uNewDataCurrentOffset += uAmountToAppend; /* PtrMath #5 */
+
+      if(pMe->pfFlush != NULL && pMe->data_len == pMe->UB.len) {
+         UsefulOutBuf_Flush(pMe);
+         if(pMe->err) {
+            return;
+         }
+      }
+   }
+}
+
+
+/*
+ * Public function -- see UsefulBuf.h
+ */
+void
+UsefulOutBuf_Flush(UsefulOutBuf *pMe)
+{
+   UsefulBufC BytesToFlush;
+   int        nFlushErr;
+
+   if(pMe->err) {
+      return;
+   }
+
+   if(pMe->pfFlush == NULL) {
+      return;
+   }
+
+   BytesToFlush = (UsefulBufC){pMe->UB.ptr, pMe->data_len};
+   nFlushErr = (*pMe->pfFlush)(pMe->pFlushCtx, BytesToFlush);
+   if(nFlushErr) {
+      pMe->err = UsefulBufErr_FlushWrite;
+   } else {
+      pMe->data_len = 0;
+   }
+}
+
+
+/*
+ * Public function -- see UsefulBuf.h
+ */
+void
+UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes)
+{
+   int        nFlushErr;
+
+   UsefulOutBuf_Flush(pMe);
+   if(pMe->err == 0) {
+      if(pMe->pfFlush == NULL) {
+         pMe->err = UsefulBufErr_NotStreaming;
+         return;
+      }
+
+      nFlushErr = (*pMe->pfFlush)(pMe->pFlushCtx, Bytes);
+      if(nFlushErr) {
+         pMe->err = UsefulBufErr_FlushWrite;
+      }
+   }
+}
+
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
+
+
+
+
+/*
+ * Public function -- see UsefulBuf.h
+ */
+// TODO: inline and rearrange (one check of pMe->err) to make QCBOR_Finish much smaller?
 UsefulBufC UsefulOutBuf_OutUBuf(UsefulOutBuf *pMe)
 {
    if(pMe->magic != USEFUL_OUT_BUF_MAGIC) {
-      pMe->err = 1;
-      return NULLUsefulBufC;
+      pMe->err = UsefulBufErr_BadState;
    }
 
    if(pMe->err) {

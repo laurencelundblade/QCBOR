@@ -40,6 +40,8 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
+//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+//#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 #ifdef __cplusplus
 extern "C" {
@@ -279,48 +281,70 @@ typedef enum {
     *   was too small and the encoded output will not fit. */
    QCBOR_ERR_BUFFER_TOO_SMALL = 1,
 
+   /** The @ref UsefulOutBuf for encoding is corrupted. */
+   QCBOR_ERR_UB_BAD = 2,
+
+   /** The @ref UsefulOutBuf for encoding returned an insert point error
+    *  (should never happen). */
+   QCBOR_ERR_USEFULBUF_INSERT_POINT = 3,
+
+   /** The operation can only  be performed in streaming mode.
+    *  See QCBOREncode_SetStream() .*/
+   QCBOR_ERR_NOT_STREAMING = 4,
+
+   /** The operation cannot be performed in streaming mode.
+    *  See QCBOREncode_SetStream() */
+   QCBOR_ERR_NOT_ALLOWED_IN_STREAMING = 5,
+
+   /** The streaming flush callback returned an error.
+    *  See QCBOREncode_SetStream(). */
+   QCBOR_ERR_STREAM_FLUSH = 6,
+
+   /* 7 and 8 are for UsefuBuf, but can be used here too. */
+
    /** During encoding, an attempt to create simple value between 24
     *  and 31. */
-   QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
+   QCBOR_ERR_ENCODE_UNSUPPORTED = 9,
 
    /** During encoding, the length of the encoded CBOR exceeded
     *  @ref QCBOR_MAX_SIZE, which is slightly less than
     *  @c UINT32_MAX. */
-   QCBOR_ERR_BUFFER_TOO_LARGE = 3,
+   QCBOR_ERR_BUFFER_TOO_LARGE = 10,
 
    /** During encoding, the array or map nesting was deeper than this
     *  implementation can handle. Note that in the interest of code
     *  size and memory use, QCBOR has a hard limit on array
     *  nesting. The limit is defined as the constant
     *  @ref QCBOR_MAX_ARRAY_NESTING. */
-   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 4,
+   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 11,
 
-   /** During encoding, @c QCBOREncode_CloseXxx() called for a
-    *  different type than is currently open.  */
-   QCBOR_ERR_CLOSE_MISMATCH = 5,
+   /** During encoding, the type of close doesn't match what is open. Also
+    * an indefinite-length string chunk is of the wrong type. */
+   QCBOR_ERR_CLOSE_MISMATCH = 12,
+   QCBOR_ERR_NESTED_TYPE_MISMATCH = 12,
 
    /** During encoding, the array or map had too many items in it. The
     * limits are @ref QCBOR_MAX_ITEMS_IN_ARRAY and
     * @ref QCBOR_MAX_ITEMS_IN_MAP. */
-   QCBOR_ERR_ARRAY_TOO_LONG = 6,
+   QCBOR_ERR_ARRAY_TOO_LONG = 13,
 
    /** During encoding, more arrays or maps were closed than
     *  opened. This is a coding error on the part of the caller of the
     *  encoder. */
-   QCBOR_ERR_TOO_MANY_CLOSES = 7,
+   QCBOR_ERR_TOO_MANY_CLOSES = 14,
 
    /** During encoding, the number of array or map opens was not
     *  matched by the number of closes. Also occurs with opened byte
     *  strings that are not closed. */
-   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 8,
+   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 15,
 
    /** During encoding, opening a byte string while a byte string is
     *  open is not allowed. */
-   QCBOR_ERR_OPEN_BYTE_STRING = 9,
+   QCBOR_ERR_OPEN_BYTE_STRING = 16,
 
    /** Trying to cancel a byte string wrapping after items have been
     *  added to it. */
-   QCBOR_ERR_CANNOT_CANCEL = 10,
+   QCBOR_ERR_CANNOT_CANCEL = 17,
 
 #define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 20
 

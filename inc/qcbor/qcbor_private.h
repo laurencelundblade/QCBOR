@@ -175,9 +175,10 @@ extern "C" {
 /*
  * PRIVATE DATA STRUCTURE
  *
- * Holds the data for tracking array and map nesting during
- * encoding. Pairs up with the Nesting_xxx functions to make an
- * "object" to handle nesting encoding.
+ * Holds the data for tracking open arrays, maps, indefinite-length
+ * strings, bstr-wrapping, open byte strings during encoding. Pairs up
+ * with the Nesting_xxx functions to make an "object" to handle
+ * nesting encoding.
  *
  * uStart is a uint32_t instead of a size_t to keep the size of this
  * struct down so it can be on the stack without any concern.  It
@@ -392,30 +393,38 @@ struct _QCBORDecodeContext {
 };
 
 
-
-
-/* Used internally in the impementation here Must not conflict with
- * any of the official CBOR types
- */
-#define CBOR_MAJOR_NONE_TAG_LABEL_REORDER  10
-#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR     12
-
-
-/* Add this to types to indicate they are to be encoded as indefinite lengths */
-#define QCBOR_INDEFINITE_LEN_TYPE_MODIFIER 0x80
-#define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN \
-            CBOR_MAJOR_TYPE_ARRAY + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
-#define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN \
-            CBOR_MAJOR_TYPE_MAP + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
-#define CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK \
-            CBOR_MAJOR_TYPE_SIMPLE + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
-
-
 /* Value of QCBORItem.val.string.len when the string length is
  * indefinite. Used temporarily in the implementation and never
  * returned in the public interface.
  */
 #define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
+
+
+/*
+ * Lower 3 bits are the CBOR Major Type. Upper bits are
+ * indicators used by QCBOR to track ways of encoding
+ * the major types.
+ *
+ * QCBOR_MT_INDEF_LEN is used by QCBOREncode_EncodeHead(), but
+ * this is enum kept private because most of it is internal-only
+ * and to reduce clutter in the public interface.
+ */
+enum QCBORPrivateMajorType {
+   QCBOR_MT_MASK = 0x07,
+
+   QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
+   QCBOR_MT_WRAP             = 0x20,
+   QCBOR_MT_OPENED           = 0x40,
+   QCBOR_MT_INDEF_LEN        = 0x80,
+
+   QCBOR_MT_INDEF_ARRAY  = CBOR_MAJOR_TYPE_ARRAY + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_INDEF_MAP    = CBOR_MAJOR_TYPE_MAP   + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_BSTR_WRAP    = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_WRAP,
+   QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
+   QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN
+};
 
 
 /* The number of elements in a C array of a particular type */
