@@ -1024,11 +1024,11 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
 static void
 QCBOREncode_OpenFlowedArray(QCBOREncodeContext *pCtx, size_t uLength);
 
-/** See QCBOREncode_OpenArray(). */
+/** See QCBOREncode_OpenFlowedArray(). */
 static void
 QCBOREncode_OpenFlowedArrayInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, size_t uLength);
 
-/** See QCBOREncode_OpenArray(). */
+/** See QCBOREncode_OpenFlowedArray(). */
 static void
 QCBOREncode_OpenFlowedArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel, size_t uLength);
 
@@ -1661,7 +1661,7 @@ QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-/** @deprecated use QCBOREncode_OpenStreamedArray() instead. */
+/** @deprecated use QCBOREncode_OpenFlowedArray() instead. */
 /**
  * @brief Indicates that the next items added are in an indefinite length array.
  *
@@ -1675,21 +1675,21 @@ QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pCtx, const char *szLabel, Usefu
 static void
 QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pCtx);
 
-/** @deprecated use QCBOREncode_OpenStreamedArrayInMapSZ() instead. */
+/** @deprecated use QCBOREncode_OpenFlowedArrayInMapSZ() instead. */
 static void
 QCBOREncode_OpenArrayIndefiniteLengthInMapSZ(QCBOREncodeContext *pCtx,
                                              const char         *szLabel);
 
-/** @deprecated use QCBOREncode_OpenStreamedArrayInMapN() instead. */
+/** @deprecated use QCBOREncode_OpenFlowedArrayInMapN() instead. */
 static void
 QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
                                             int64_t            nLabel);
 
-/** @deprecated use QCBOREncode_CloseStreamedArray() instead. */
+/** @deprecated use QCBOREncode_CloseFlowedArray() instead. */
 static void
 QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
 
-
+/** @deprecated use QCBOREncode_OpenFlowedMap() instead. */
 /**
  * @brief Indicates that the next items added are in an indefinite length map.
  *
@@ -1703,17 +1703,17 @@ QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pCtx);
 static void
 QCBOREncode_OpenMapIndefiniteLength(QCBOREncodeContext *pCtx);
 
-/** See QCBOREncode_OpenMapIndefiniteLength(). */
+/** @deprecated use QCBOREncode_OpenFlowedMapInMapSZ() instead. */
 static void
 QCBOREncode_OpenMapIndefiniteLengthInMapSZ(QCBOREncodeContext *pCtx,
                                            const char         *szLabel);
 
-/** See QCBOREncode_OpenMapIndefiniteLength(). */
+/** @deprecated use QCBOREncode_OpenFlowedMapInMapN() instead. */
 static void
 QCBOREncode_OpenMapIndefiniteLengthInMapN(QCBOREncodeContext *pCtx,
                                          int64_t              nLabel);
 
-
+/** @deprecated use QCBOREncode_CloseFlowedMap() instead. */
 /**
  * @brief Close an open indefinite length map.
  *
@@ -2575,13 +2575,6 @@ static inline QCBORError
 QCBOREncode_GetErrorState(QCBOREncodeContext *pMe)
 {
    const enum UsefulBufErr UBErr = UsefulOutBuf_GetError(&(pMe->OutBuf));
-   /*
-    if(UBErr) {
-    return (QCBORError)UBErr;
-    } else {
-    return (QCBORError)pMe->uError;
-    }
-    */
    if(UBErr) {
       pMe->uError = (uint8_t)UBErr;
    }

@@ -176,20 +176,17 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 /*
  * == Major CBOR Types ==
  *
- * Encoding of the major CBOR types is by these functions:
+ * Encoding of the major CBOR types is primarily by these functions:
  *
- * TODO: revise this
  * CBOR Major Type  Public Function
  * 0                QCBOREncode_AddUInt64()
  * 0, 1             QCBOREncode_AddUInt64(), QCBOREncode_AddInt64()
- * 2, 3             QCBOREncode_AddBuffer()
- * 4, 5             QCBOREncode_OpenMapOrArray(), QCBOREncode_CloseMapOrArray(),
- *                  QCBOREncode_OpenMapOrArrayIndefiniteLength(),
- *                  QCBOREncode_CloseMapOrArrayIndefiniteLength()
+ * 2, 3             QCBOREncode_Private_AddBuffer()
+ * 4, 5             QCBOREncode_Private_OpenNestingInsert(),
+ *                  QCBOREncode_Private_CloseMapOrArray(),
  * 6                QCBOREncode_AddTagNumber()
  * 7                QCBOREncode_AddDouble(), QCBOREncode_AddFloat(),
- *                  QCBOREncode_AddDoubleNoPreferred(),
- *                  QCBOREncode_AddFloatNoPreferred(), QCBOREncode_AddType7()
+ *                  QCBOREncode_AddType7()
  *
  * Additionally, encoding of decimal fractions and bigfloats is by
  * QCBOREncode_AddExponentAndMantissa() and byte strings that wrap
@@ -616,14 +613,16 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
       return;
    }
 
-   /* Make sure right type of string is added when encoding indefinite-length strings */
-   // Have to do this here to catch all the things that are not indef strings
+   /* Make sure right type of string is added when encoding
+    * indefinite-length strings. Have to do this here to catch all the
+    * things that are not indef strings
+   */
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
    enum QCBORPrivateMajorType uMajorOpen = Nesting_GetMajorType(&(pMe->nesting));
    if(uMajorOpen == QCBOR_MT_INDEF_BYTES ||
       uMajorOpen == QCBOR_MT_INDEF_TEXT) {
-      /* We are nested in an indefinite-length string. Unlike all other nesting
-       * only break and strings are allowed here. */
+      /* We are nested in an indefinite-length string. Unlike all
+       * other nesting only break and strings are allowed here. */
       if(uArgument != CBOR_SIMPLE_BREAK) {
          if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType | QCBOR_MT_INDEF_LEN)) {
             return;
@@ -649,10 +648,10 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), EncodedHead);
 
    if(!(uMajorType & QCBOR_MT_INDEF_LEN || uMajorType == CBOR_MAJOR_TYPE_TAG)) {
-      /* Don't increment the map count for tag or break because that is
-       * not needed. Don't do it for indefinite-length arrays and maps
-       * because it is done elsewhere. This is never called when opening definite-length
-       * arrays and maps.
+      /* Don't increment the map count for tag or break because that
+       * is not needed. Don't do it for indefinite-length arrays and
+       * maps because it is done elsewhere. This is never called when
+       * opening definite-length arrays and maps.
        */
       QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
    }
@@ -788,7 +787,7 @@ QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pMe, const enum QCBORP
  * @param[in] uLength  The length or @c SIZE_MAX if indefinite length
  *
  * The outputs the CBOR head for arrays and maps that are either indefinite or
- * definite with a known length. 
+ * definite with a known length.sy
  */
 void
 QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext         *pMe,
@@ -824,9 +823,9 @@ QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext         *pMe,
  * the CBOR Head with the major type and length.
  */
 static void
-QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext       *pMe,
+QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext              *pMe,
                                        const enum QCBORPrivateMajorType uMajorType,
-                                       const size_t              uLen)
+                                       const size_t                     uLen)
 {
    if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
       return;
@@ -898,7 +897,9 @@ void
 QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext               *pMe,
                                     const enum QCBORPrivateMajorType  uMajorType)
 {
-   QCBOREncode_Private_CloseNestingInsert(pMe, uMajorType, Nesting_GetCount(&(pMe->nesting)));
+   QCBOREncode_Private_CloseNestingInsert(pMe,
+                                          uMajorType,
+                                          Nesting_GetCount(&(pMe->nesting)));
 }
 
 
@@ -1248,7 +1249,9 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncode_Private_SortMap(pMe, uStart);
 
-   QCBOREncode_Private_CloseNestingInsert(pMe, CBOR_MAJOR_TYPE_MAP, Nesting_GetCount(&(pMe->nesting)));
+   QCBOREncode_Private_CloseNestingInsert(pMe,
+                                          CBOR_MAJOR_TYPE_MAP,
+                                          Nesting_GetCount(&(pMe->nesting)));
 }
 
 
