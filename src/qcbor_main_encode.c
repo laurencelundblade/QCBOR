@@ -71,7 +71,7 @@ const char libqcborVersionEncode[] = QCBOR_VERSION_STRING;
  * QCBOR has a special feature to allow constructing byte string
  * wrapped CBOR directly into the output buffer, so no extra buffer is
  * needed for byte string wrapping.  This is implemented as nesting
- * with the type CBOR_MAJOR_TYPE_BYTE_STRING and is tracked here. Byte
+ * with the type QCBOR_MT_BYTE_STRING and is tracked here. Byte
  * string wrapped CBOR is used by COSE for data that is to be hashed.
  */
 static void
@@ -82,7 +82,7 @@ Nesting_Init(QCBORTrackNesting *pNesting)
    /* Implied CBOR array at the top nesting level. This is never
     * returned, but makes the item count work correctly.
     */
-   pNesting->pCurrentNesting->uMajorType = CBOR_MAJOR_TYPE_ARRAY;
+   pNesting->pCurrentNesting->uMajorType = QCBOR_MT_ARRAY;
 }
 
 static uint8_t
@@ -142,7 +142,7 @@ Nesting_GetCount(QCBORTrackNesting *pNesting)
     * so it divides the number of items by two for maps to get the
     * number of pairs.
     */
-   if(pNesting->pCurrentNesting->uMajorType == CBOR_MAJOR_TYPE_MAP) {
+   if(pNesting->pCurrentNesting->uMajorType == QCBOR_MT_MAP) {
       /* Cast back to uint16_t after integer promotion from bit shift */
       return (uint16_t)(pNesting->pCurrentNesting->uCount >> 1);
    } else {
@@ -647,7 +647,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
 
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), EncodedHead);
 
-   if(!(uMajorType & QCBOR_MT_INDEF_LEN || uMajorType == CBOR_MAJOR_TYPE_TAG)) {
+   if(!(uMajorType & QCBOR_MT_INDEF_LEN || uMajorType == QCBOR_MT_TAG)) {
       /* Don't increment the map count for tag or break because that
        * is not needed. Don't do it for indefinite-length arrays and
        * maps because it is done elsewhere. This is never called when
@@ -915,7 +915,7 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext               *pMe,
 void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseMapOrArray(pMe, CBOR_MAJOR_TYPE_MAP);
+   QCBOREncode_Private_CloseMapOrArray(pMe, QCBOR_MT_MAP);
 }
 
 
@@ -1249,9 +1249,7 @@ QCBOREncode_CloseAndSortMap(QCBOREncodeContext *pMe)
    uStart = Nesting_GetStartPos(&(pMe->nesting));
    QCBOREncode_Private_SortMap(pMe, uStart);
 
-   QCBOREncode_Private_CloseNestingInsert(pMe,
-                                          CBOR_MAJOR_TYPE_MAP,
-                                          Nesting_GetCount(&(pMe->nesting)));
+   QCBOREncode_Private_CloseNestingInsert(pMe, QCBOR_MT_MAP, Nesting_GetCount(&(pMe->nesting)));
 }
 
 

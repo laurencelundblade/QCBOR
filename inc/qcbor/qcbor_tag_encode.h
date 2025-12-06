@@ -714,7 +714,7 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
 static inline void
 QCBOREncode_AddTagNumber(QCBOREncodeContext *pMe, const uint64_t uTagNumber)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTagNumber, 0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_TAG, uTagNumber, 0);
 }
 
 

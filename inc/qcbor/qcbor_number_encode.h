@@ -1206,7 +1206,7 @@ QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_AddUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_POSITIVE_INT, uValue, 0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_POSITIVE_INT, uValue, 0);
 }
 
 
@@ -1238,7 +1238,7 @@ QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pMe,
 static inline void
 QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_NEGATIVE_INT, uValue, 0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_NEGATIVE_INT, uValue, 0);
 }
 
 static inline void

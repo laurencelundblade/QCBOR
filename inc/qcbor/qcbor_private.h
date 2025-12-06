@@ -408,8 +408,21 @@ struct _QCBORDecodeContext {
  * QCBOR_MT_INDEF_LEN is used by QCBOREncode_EncodeHead(), but
  * this is enum kept private because most of it is internal-only
  * and to reduce clutter in the public interface.
+ *
+ * This is stored in a uint8_t sometimes so < 256.
  */
 enum QCBORPrivateMajorType {
+   /* Enum of the major types, because C++ function name mangling goes
+    * wrong with non-enum literals. */
+   QCBOR_MT_POSITIVE_INT = CBOR_MAJOR_TYPE_POSITIVE_INT,
+   QCBOR_MT_NEGATIVE_INT = CBOR_MAJOR_TYPE_NEGATIVE_INT,
+   QCBOR_MT_BYTE_STRING  = CBOR_MAJOR_TYPE_BYTE_STRING,
+   QCBOR_MT_TEXT_STRING  = CBOR_MAJOR_TYPE_TEXT_STRING,
+   QCBOR_MT_ARRAY        = CBOR_MAJOR_TYPE_ARRAY,
+   QCBOR_MT_MAP          = CBOR_MAJOR_TYPE_MAP,
+   QCBOR_MT_TAG          = CBOR_MAJOR_TYPE_TAG,
+   QCBOR_MT_SIMPLE       = CBOR_MAJOR_TYPE_SIMPLE,
+
    QCBOR_MT_MASK = 0x07,
 
    QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
@@ -423,7 +436,10 @@ enum QCBORPrivateMajorType {
    QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
    QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
-   QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN
+   QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN,
+
+   QCBOR_MT_ARRAY_CHECK_ONLY = QCBOR_MT_ARRAY | QCBOR_MT_CHECK_ONLY_MAJOR,
+   QCBOR_MT_MAP_CHECK_ONLY   = QCBOR_MT_MAP   | QCBOR_MT_CHECK_ONLY_MAJOR
 };
 
 
