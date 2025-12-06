@@ -53,8 +53,8 @@
 void
 QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
 {
-   uint8_t  uMajorType;
-   uint64_t uValue;
+   enum QCBORPrivateMajorType uMajorType;
+   uint64_t                   uValue;
 
    if(nNum < 0) {
       /* In CBOR -1 encodes as 0x00 with major type negative int.
@@ -64,10 +64,10 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
        * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
       uValue = (uint64_t)-nTmp;
-      uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
+      uMajorType = QCBOR_MT_NEGATIVE_INT;
    } else {
       uValue = (uint64_t)nNum;
-      uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
+      uMajorType = QCBOR_MT_POSITIVE_INT;
    }
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uValue, 0);
 }
@@ -304,7 +304,7 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
    if(bCarry && BigNumber.len > 1 && UsefulBufC_NTH_BYTE(BigNumber, 0) >= 1) {
       uLen--;
    }
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uLen,0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_BYTE_STRING, uLen,0);
 
    SubString = BigNumber;
    bCopiedSomething = false;
@@ -389,7 +389,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
 {
    uint64_t   uInt;
    bool       bIs2exp64;
-   uint8_t    uMajorType;
+   enum QCBORPrivateMajorType uMajorType;
    UsefulBufC BigNumberNLZ;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
@@ -418,8 +418,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
             uInt--;
          }
       }
-      uMajorType = bNegative ? CBOR_MAJOR_TYPE_NEGATIVE_INT :
-                               CBOR_MAJOR_TYPE_POSITIVE_INT;
+      uMajorType = bNegative ? QCBOR_MT_NEGATIVE_INT : QCBOR_MT_POSITIVE_INT;
       QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uInt, 0);
    } else {
       if(bNegative) {
