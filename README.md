@@ -22,6 +22,10 @@ work with.
 
 * Plug-in API scheme for custom tag content processors.
 
+* Streamed encoding mode -- encoded output doesn't have to fit in one buffer
+
+* Indefinite-length string encoding
+
 * Sort maps and check for duplicate labels when encoding.
 
 * Encode modes for dCBOR, deterministic and preferred serialization.
@@ -61,9 +65,20 @@ It may be consumed by a tag content process or like QCBORDecode_DateEpochTagCB()
 installed with QCBORDecode_InstallTagDecoders(). It may be
 consumed with a spiffy decode function like QCBORDecode_GetTBigNumber().
 
+## Manifesto
 
-**QCBOR** is a powerful, commercial-quality CBOR encoder-decoder that
-implements these RFCs:
+* Maximal set of CBOR features with mininum object code
+* Implement everything in RFC 8949 and some other CBOR RFCs
+* Very small object code for very simple protocols
+* Rich feature set to support complex CBOR protocol stacks 
+* Small simple memory use model without malloc()
+* Clear, fully documented public interface
+* Commercial quality test coverage and secure coding 
+* Minimal dependency — C99 and a few standard library functions
+* Works out of the box without configuration
+* #ifdefs only optimize and disable features for constrained environments
+
+## Standards
 
 * [RFC8949](https://tools.ietf.org/html/rfc8949) The CBOR Standard. (Nearly everything
 except full (complex) duplicate detection))
@@ -71,64 +86,12 @@ except full (complex) duplicate detection))
 Replaced by RFC 8949.
 * [RFC8742](https://tools.ietf.org/html/rfc8742) CBOR Sequences
 * [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
-* [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
 * [dCBOR](https://www.ietf.org/archive/id/draft-mcnally-deterministic-cbor-11.html) "dCBOR, deterministic encoding"
 
-## QCBOR Characteristics
-
-**Implemented in C with minimal dependency** – Dependent only
- on C99, <stdint.h>, <stddef.h>, <stdbool.h> and <string.h> making
-  it highly portable. <math.h> and <fenv.h> are used too, but their
-  use can disabled. No #ifdefs or compiler options need to be set for
-  QCBOR to run correctly.
-
-**Focused on C / native data representation** – Careful conversion of
-  CBOR data types in to C data types,  handling over and
-  underflow, strict typing and such so the caller doesn't have to
-  worry so much about this and so code using QCBOR passes static
-  analyzers easier.  Simpler code because there is no support for
-  encoding/decoding to/from JSON, pretty printing, diagnostic
-  notation... Only encoding from native C representations and decoding
-  to native C representations is supported.
-
-**Small simple memory model** – Malloc is not needed. The encode
-  context is 176 bytes, decode context is 312 bytes and the
-  description of decoded data item is 56 bytes. Stack use is light and
-  there is no recursion. The caller supplies the memory to hold the
-  encoded CBOR and encode/decode contexts so caller has full control
-  of memory usage making it good for embedded implementations that
-  have to run in small fixed memory.
-
-**Easy decoding of maps** – The "spiffy decode" functions allow
-  fetching map items directly by label. Detection of duplicate map
-  items is automatically performed. This makes decoding of complex
-  protocols much simpler, say when compared to TinyCBOR.
-
-**Supports most of RFC 8949** – With some size limits, all data types
-  and formats in the specification are supported. Map sorting is main
-  CBOR feature that is not supported.  The same decoding API supports
-  both definite and indefinite-length map and array decoding. Decoding
-  indefinite length strings is supported but requires a string
-  allocator be set up. Encoding of indefinite length strings is
-  planned, but not yet supported.
-
-**Extensible and general** – Provides a way to handle data types that
-  are not directly supported.
-
-**Secure coding style** – Uses a construct called UsefulBuf as a
-  discipline for very safe coding and handling of binary data.
-
-**Small code size** – In the smallest configuration the object
-  code is less than 4KB on 64-bit x86 CPUs. The design is such that
-  object code for QCBOR APIs not used is not referenced.
-
-**Clear documented public interface** – The public interface is
-  separated from the implementation. It can be put to use without
-  reading the source.
-
-**Comprehensive test suite** – Easy to verify on a new platform or OS
-  with the test suite. The test suite dependencies are minimal and the
-  same as the library's.
+## Dependency
+* C99 or C++11
+* <stdint.h>, <stddef.h>, <stdbool.h> and <string.h>
+* <math.h> and <fenv.h> but can be excluded
 
 ## Documentation
 
@@ -146,8 +109,7 @@ encoding mechanics than QCBOR's. QCBOR's API is at a somewhat higher
 level of abstraction.
 
 QCBOR really does implement just about everything described in
-RFC 8949. The main part missing is sorting of maps when encoding.
-TinyCBOR implements a smaller part of the standard.
+RFC 8949.  TinyCBOR implements a smaller part of the standard.
 
 No detailed code size comparison has been made, but in a spot check
 that encodes and decodes a single integer shows QCBOR about 25%
@@ -200,7 +162,7 @@ coming is the need for more testing of the newer features. It will
 go through alpha, then to beta and then to an official 2.0
 commerical release sometimes in 2025.
 
-The official QCBOR commercial quality release (as of this writing) is QCBOR 1.5. It
+The official QCBOR commercial quality release (as of this writing) is QCBOR 1.6. It
 is very stable. Only small fixes and features additions have been
 made to it over the last years.
 
