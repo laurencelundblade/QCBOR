@@ -542,7 +542,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddUInt64(pECtx, 89989909);
    QCBOREncode_AddSZString(pECtx, "INT64");
    QCBOREncode_AddTagNumber(pECtx, 76);
-   QCBOREncode_AddInt64(pECtx, 77689989909);
+   QCBOREncode_AddInt64(pECtx, 77689989909LL);
    QCBOREncode_AddUInt64(pECtx, 0);
    QCBOREncode_AddInt64(pECtx, -44);
 
@@ -550,18 +550,18 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddUInt64ToMap(pECtx, "LBL", 77);
    QCBOREncode_AddUInt64ToMapN(pECtx, -4, 88);
-   QCBOREncode_AddInt64ToMap(pECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238);
+   QCBOREncode_AddInt64ToMap(pECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238LL);
    QCBOREncode_AddInt64ToMapN(pECtx, -100000000, -800000000);
    QCBOREncode_CloseMap(pECtx);
 
    /* Epoch Date */
-   QCBOREncode_AddDateEpoch(pECtx, 2383748234);
+   QCBOREncode_AddDateEpoch(pECtx, 2383748234LL);
 
    /* Epoch date with labels */
    QCBOREncode_OpenMap(pECtx);
-   QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000);
-   QCBOREncode_AddTDateEpochToMapSZ(pECtx, "time()", QCBOR_ENCODE_AS_TAG, 1477263730);
-   QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222);
+   QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000LL);
+   QCBOREncode_AddTDateEpochToMapSZ(pECtx, "time()", QCBOR_ENCODE_AS_TAG, 1477263730LL);
+   QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222LL);
    QCBOREncode_CloseMap(pECtx);
 
    /* Binary blobs */
@@ -899,12 +899,12 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_OpenArray(&ECtx);
 
    QCBOREncode_AddInt64(&ECtx, -9223372036854775807LL - 1);
-   QCBOREncode_AddInt64(&ECtx, -4294967297);
-   QCBOREncode_AddInt64(&ECtx, -4294967296);
-   QCBOREncode_AddInt64(&ECtx, -4294967295);
-   QCBOREncode_AddInt64(&ECtx, -4294967294);
-   QCBOREncode_AddInt64(&ECtx, -2147483648);
-   QCBOREncode_AddInt64(&ECtx, -2147483647);
+   QCBOREncode_AddInt64(&ECtx, -4294967297LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967296LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967295LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967294LL);
+   QCBOREncode_AddInt64(&ECtx, -2147483648LL);
+   QCBOREncode_AddInt64(&ECtx, -2147483647LL);
    QCBOREncode_AddInt64(&ECtx, -65538);
    QCBOREncode_AddInt64(&ECtx, -65537);
    QCBOREncode_AddInt64(&ECtx, -65536);
@@ -936,14 +936,14 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_AddInt64(&ECtx, 65536);
    QCBOREncode_AddInt64(&ECtx, 65537);
    QCBOREncode_AddInt64(&ECtx, 65538);
-   QCBOREncode_AddInt64(&ECtx, 2147483647);
-   QCBOREncode_AddInt64(&ECtx, 2147483647);
-   QCBOREncode_AddInt64(&ECtx, 2147483648);
-   QCBOREncode_AddInt64(&ECtx, 2147483649);
-   QCBOREncode_AddInt64(&ECtx, 4294967294);
-   QCBOREncode_AddInt64(&ECtx, 4294967295);
-   QCBOREncode_AddInt64(&ECtx, 4294967296);
-   QCBOREncode_AddInt64(&ECtx, 4294967297);
+   QCBOREncode_AddInt64(&ECtx, 2147483647LL);
+   QCBOREncode_AddInt64(&ECtx, 2147483647LL);
+   QCBOREncode_AddInt64(&ECtx, 2147483648LL);
+   QCBOREncode_AddInt64(&ECtx, 2147483649LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967294LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967295LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967296LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967297LL);
    QCBOREncode_AddInt64(&ECtx, 9223372036854775807LL);
    QCBOREncode_AddUInt64(&ECtx, 18446744073709551615ULL);
 
@@ -1017,16 +1017,16 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    },
    {
       "leading zeros -- 0 and error for no negative 0",
       {"\x00\x00\x00\x00", 4},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    }
 
 };
@@ -1492,8 +1492,8 @@ int32_t EncodeDateTest(void)
    /* The values are taken from the CBOR RFCs */
    QCBOREncode_AddTDateString(&ECtx, QCBOR_ENCODE_AS_BORROWED, "2013-03-21T20:04:00Z");
    QCBOREncode_AddDateString(&ECtx, "2013-03-21T20:04:00Z");
-   QCBOREncode_AddTDateEpoch(&ECtx, QCBOR_ENCODE_AS_BORROWED, 1363896240);
-   QCBOREncode_AddDateEpoch(&ECtx, 1363896240);
+   QCBOREncode_AddTDateEpoch(&ECtx, QCBOR_ENCODE_AS_BORROWED, 1363896240LL);
+   QCBOREncode_AddDateEpoch(&ECtx, 1363896240LL);
    QCBOREncode_AddTDaysEpoch(&ECtx, QCBOR_ENCODE_AS_TAG, -10676);
    QCBOREncode_AddTDaysEpoch(&ECtx, QCBOR_ENCODE_AS_BORROWED, 3994);
    QCBOREncode_AddTDaysString(&ECtx, QCBOR_ENCODE_AS_TAG, "1940-10-09");
@@ -1984,7 +1984,7 @@ static const uint8_t spExpectedRTIC[] = {
 
 int32_t RTICResultsTest(void)
 {
-   const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
+   const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730LL,
                                           "recent", "0xA1eC5001",
                                           UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    if(UsefulBuf_IsNULLC(Encoded)) {
@@ -3105,18 +3105,18 @@ struct EAMEncodeTest {
    UsefulBufC  DecFracBig;
 };
 
-struct EAMEncodeTest EET[] = {
+static const struct EAMEncodeTest EET[] = {
    { "basic",
       -1,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       3,
       false,
       EAM_Pref,
 
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
-      NULLUsefulBufC,
-      NULLUsefulBufC
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    },
 
    { "bignum gets preferred",
@@ -3126,8 +3126,8 @@ struct EAMEncodeTest EET[] = {
       false,
       EAM_Pref,
 
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst,
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
    }
@@ -3294,7 +3294,7 @@ ExponentAndMantissaEncodeTests(void)
    const int nNumberOfTests = C_ARRAY_COUNT(EET, struct EAMEncodeTest);
 
    for(nIndex = 0; nIndex < nNumberOfTests; nIndex++) {
-      struct EAMEncodeTest *pTest = &EET[nIndex];
+      const struct EAMEncodeTest *pTest = &EET[nIndex];
 
 
       if(UsefulBuf_IsNULLC(pTest->BigNumMantissa)) {
@@ -3575,42 +3575,42 @@ static const struct SortTest sSortTests[] =
    {
       "Not well formed label",
       {"\x1c\x03\x01\x01\x04\x04\x02\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
    {
       "Not well formed value",
       {"\x03\x1c\x01\x01\x04\x04\x02\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
    {
       "Not well formed label at end",
       {"\x03\x03\x01\x01\x04\x04\x1c\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
    {
       "Extraneous break",
       {"\x03\x03\x01\x01\x04\xff\x02\x02", 8},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_HIT_END
    },
 
    {
       "Off end",
       {"\x03\x03\x01\x01\x04\x04\x02\x6f\x68\x69", 10},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_HIT_END
    },
 
    {
       "Indef string chunk in error",
       {"\x03\x03\x5f\x61\x68\x1c\xff\x01\x04\x04\x02\x02", 12},
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       QCBOR_ERR_UNSUPPORTED
    },
 
@@ -3627,8 +3627,8 @@ static const struct SortTest sSortTests[] =
 
    {
       NULL,
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst,
       QCBOR_SUCCESS
    }
 };
