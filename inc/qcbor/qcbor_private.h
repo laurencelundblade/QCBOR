@@ -335,6 +335,18 @@ typedef struct __QCBORDecodeNesting  {
 } QCBORDecodeNesting;
 
 
+/*
+ * Private data structure.
+ */
+struct  _QCBORSaveDecodeCursor {
+   uint8_t            last_error;
+   uint32_t           offset;
+   QCBORDecodeNesting Nesting;
+};
+
+
+
+
 typedef struct  {
    /* PRIVATE DATA STRUCTURE */
    void *pAllocateCxt;

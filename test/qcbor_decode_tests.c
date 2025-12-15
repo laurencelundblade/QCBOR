@@ -1141,29 +1141,22 @@ static const uint8_t pPerverseLabels[] = {
 
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-/*
- Decode and thoroughly check a moderately complex
- set of maps. Can be run in QCBOR_DECODE_MODE_NORMAL or in
- QCBOR_DECODE_MODE_MAP_STRINGS_ONLY.
- */
-static int32_t ParseMapTest1(QCBORDecodeMode nMode)
+
+
+static int
+ParseValidMap(QCBORDecodeContext *pDCtx)
 {
-   QCBORDecodeContext DCtx;
    QCBORItem Item;
    QCBORError nCBORError;
 
-   QCBORDecode_Init(&DCtx,
-                    (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
-                    nMode);
-
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_MAP ||
       Item.val.uCount != 3)
       return -1;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
 
@@ -1176,7 +1169,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
@@ -1187,7 +1180,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       Item.val.uCount != 2)
       return -1;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
@@ -1197,7 +1190,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uDataType != QCBOR_TYPE_TEXT_STRING ||
@@ -1207,7 +1200,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
@@ -1219,7 +1212,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
@@ -1231,7 +1224,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
@@ -1243,7 +1236,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       return -1;
    }
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
@@ -1254,7 +1247,7 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
       Item.val.int64 != 98)
       return -1;
 
-   if((nCBORError = QCBORDecode_GetNext(&DCtx, &Item))) {
+   if((nCBORError = QCBORDecode_GetNext(pDCtx, &Item))) {
       return (int32_t)nCBORError;
    }
    if(Item.uLabelType != QCBOR_TYPE_TEXT_STRING ||
@@ -1267,6 +1260,22 @@ static int32_t ParseMapTest1(QCBORDecodeMode nMode)
    }
 
    return 0;
+}
+
+/*
+ Decode and thoroughly check a moderately complex
+ set of maps. Can be run in QCBOR_DECODE_MODE_NORMAL or in
+ QCBOR_DECODE_MODE_MAP_STRINGS_ONLY.
+ */
+static int32_t ParseMapTest1(QCBORDecodeMode nMode)
+{
+   QCBORDecodeContext DCtx;
+
+   QCBORDecode_Init(&DCtx,
+                    (UsefulBufC){pValidMapEncoded, sizeof(pValidMapEncoded)},
+                    nMode);
+
+   return ParseValidMap(&DCtx);
 }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
@@ -11397,13 +11406,14 @@ ErrorHandlingTests(void)
 }
 
 
-int32_t TellTests(void)
+int32_t CursorTests(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
    uint32_t           uPosition;
    int                nIndex;
    int64_t            nDecodedInt;
+   int32_t            nErr;
 
    // Improvement: rewrite so this can run with only integer labels
    static const uint32_t aPos[] =
@@ -11715,6 +11725,58 @@ int32_t TellTests(void)
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+
+   /* Basic test of save-restore */
+   /* Save; decode some stuff; restore; decode again */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   QCBORSavedDecodeCursor SaveCursor;
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   QCBORDecode_EnterMap(&DCtx, &Item); /* Causes error */
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
+   if(QCBORDecode_GetError(&DCtx) == QCBOR_SUCCESS) {
+      return 10000;
+   }
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 10001;
+   }
+
+   /* Decode whole thing; go back to start; no errors involved. */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   nErr = ParseValidMap(&DCtx);
+   if(nErr) {
+      return 10002;
+   }
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   nErr = ParseValidMap(&DCtx);
+   if(nErr) {
+      return 10003;
+   }
+
+   /* Test saving state at end.  */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   nErr = ParseValidMap(&DCtx);
+   if(nErr) {
+      return 10002;
+   }
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 10003;
+   }
+
+
+   // TODO: saving state with tags partially consumed.
 
    return 0;
 }

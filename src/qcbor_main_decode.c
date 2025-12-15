@@ -2481,6 +2481,28 @@ Done:
 
 
 
+/* Public function; see qcbor_main_decode.h */
+void QCBORDecode_SaveCursor(QCBORDecodeContext     *pMe,
+                            QCBORSavedDecodeCursor *pSaveState)
+{
+    pSaveState->Nesting    = pMe->nesting;
+    pSaveState->offset     = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+    pSaveState->last_error = pMe->uLastError;
+}
+
+
+/* Public function; see qcbor_main_decode.h */
+void QCBORDecode_RestoreCursor(QCBORDecodeContext           *pMe,
+                               const QCBORSavedDecodeCursor *pSavedSate)
+{
+    pMe->nesting = pSavedSate->Nesting;
+    UsefulInputBuf_Seek(&(pMe->InBuf), pSavedSate->offset);
+    pMe->uLastError = pSavedSate->last_error;
+}
+
+
+
+
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
 /* ===========================================================================
