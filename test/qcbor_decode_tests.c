@@ -12016,6 +12016,9 @@ ErrorHandlingTests(void)
    return 0;
 }
 
+
+
+
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 
 int32_t CursorTests(void)
@@ -12067,7 +12070,7 @@ int32_t CursorTests(void)
 
       QCBORDecode_VGetNext(&DCtx, &Item);
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* Next, some tests with entered maps and arrays */
    QCBORDecode_Init(&DCtx,
@@ -12161,7 +12164,7 @@ int32_t CursorTests(void)
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
       return 2010;
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 
@@ -12235,7 +12238,7 @@ int32_t CursorTests(void)
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
       return 4110;
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* Test on a CBOR sequence */
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSequenceTestInput),0);
@@ -12337,7 +12340,7 @@ int32_t CursorTests(void)
 
       QCBORDecode_VGetNext(&DCtx, &Item);
    }
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* Basic test of save-restore */
    /* Save; decode some stuff; restore; decode again */
@@ -12419,13 +12422,14 @@ int32_t CursorTests(void)
    if(uTagNumber != 55799) {
       return 6004;
    }
-#endif
+#endif /* ! QCBOR_DISABLE_TAGS */
 
    // TODO: more tag tests, test of all the various state
    // that is saved.
 
    return 0;
 }
+#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
 
@@ -12576,4 +12580,3 @@ int32_t TagModesFanOutTest(void)
    return 0;
 }
 
-#endif
