@@ -12339,6 +12339,91 @@ int32_t CursorTests(void)
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
+   /* Basic test of save-restore */
+   /* Save; decode some stuff; restore; decode again */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   QCBORSavedDecodeCursor SaveCursor;
+   QCBORSavedDecodeCursor SaveCursor2;
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   QCBORDecode_EnterMap(&DCtx, &Item); /* Causes error */
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
+   if(QCBORDecode_GetError(&DCtx) == QCBOR_SUCCESS) {
+      return 10000;
+   }
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 10001;
+   }
+
+   /* Decode whole thing; go back to start; no errors involved. */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   nErr = ParseValidMap(&DCtx);
+   if(nErr) {
+      return 10002;
+   }
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   nErr = ParseValidMap(&DCtx);
+   if(nErr) {
+      return 10003;
+   }
+
+   /* Test saving state at end.  */
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
+                    0);
+   nErr = ParseValidMap(&DCtx);
+   if(nErr) {
+      return 10002;
+   }
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 10003;
+   }
+
+#ifndef QCBOR_DISABLE_TAGS
+   QCBORDecode_Init(&DCtx,
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_NORMAL);
+
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 55799) {
+      return 6000;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor2);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 585983...
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 7
+   if(uTagNumber != 7) {
+      return 6003;
+   }
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 7 again
+   if(uTagNumber != 7) {
+      return 6005;
+   }
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor2);
+   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 1);
+   if(uTagNumber != 55799) {
+      return 6004;
+   }
+#endif
+
+   // TODO: more tag tests, test of all the various state
+   // that is saved.
+
    return 0;
 }
 
@@ -12487,90 +12572,7 @@ int32_t TagModesFanOutTest(void)
       }
    }
 
-   /* Basic test of save-restore */
-   /* Save; decode some stuff; restore; decode again */
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
-                    0);
-   QCBORDecode_EnterMap(&DCtx, &Item);
-   QCBORSavedDecodeCursor SaveCursor;
-   QCBORSavedDecodeCursor SaveCursor2;
-   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
-   QCBORDecode_EnterMap(&DCtx, &Item); /* Causes error */
-   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
-   if(QCBORDecode_GetError(&DCtx) == QCBOR_SUCCESS) {
-      return 10000;
-   }
-   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
-   QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
-      return 10001;
-   }
 
-   /* Decode whole thing; go back to start; no errors involved. */
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
-                    0);
-   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
-   nErr = ParseValidMap(&DCtx);
-   if(nErr) {
-      return 10002;
-   }
-   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
-   nErr = ParseValidMap(&DCtx);
-   if(nErr) {
-      return 10003;
-   }
-
-   /* Test saving state at end.  */
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pValidMapEncoded),
-                    0);
-   nErr = ParseValidMap(&DCtx);
-   if(nErr) {
-      return 10002;
-   }
-   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
-   QCBORDecode_VGetNext(&DCtx, &Item);
-   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_NO_MORE_ITEMS) {
-      return 10003;
-   }
-
-#ifndef QCBOR_DISABLE_TAGS
-   QCBORDecode_Init(&DCtx,
-                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                     QCBOR_DECODE_MODE_NORMAL);
-
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
-   if(uTagNumber != 55799) {
-      return 6000;
-   }
-   QCBORDecode_EnterMap(&DCtx, NULL);
-   QCBORDecode_SaveCursor(&DCtx, &SaveCursor2);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 585983...
-   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 7
-   if(uTagNumber != 7) {
-      return 6003;
-   }
-   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 7 again
-   if(uTagNumber != 7) {
-      return 6005;
-   }
-   QCBORDecode_VGetNext(&DCtx, &Item);
-   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor2);
-   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 1);
-   if(uTagNumber != 55799) {
-      return 6004;
-   }
-#endif
-
-   // TODO: more tag tests, test of all the various state
-   // that is saved.
    return 0;
 }
 
