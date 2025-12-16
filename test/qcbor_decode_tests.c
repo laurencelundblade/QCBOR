@@ -11779,6 +11779,7 @@ int32_t CursorTests(void)
       return 10003;
    }
 
+#ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_Init(&DCtx,
                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
                      QCBOR_DECODE_MODE_NORMAL);
@@ -11808,6 +11809,7 @@ int32_t CursorTests(void)
    if(uTagNumber != 55799) {
       return 6004;
    }
+#endif
 
    // TODO: more tag tests, test of all the various state
    // that is saved.
