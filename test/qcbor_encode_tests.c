@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2024, Laurence Lundblade.
+ Copyright (c) 2018-2025, Laurence Lundblade.
  Copyright (c) 2022, Arm Limited. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -542,7 +542,7 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_AddUInt64(pECtx, 89989909);
    QCBOREncode_AddSZString(pECtx, "INT64");
    QCBOREncode_AddTagNumber(pECtx, 76);
-   QCBOREncode_AddInt64(pECtx, 77689989909);
+   QCBOREncode_AddInt64(pECtx, 77689989909LL);
    QCBOREncode_AddUInt64(pECtx, 0);
    QCBOREncode_AddInt64(pECtx, -44);
 
@@ -550,18 +550,18 @@ static void AddAll(QCBOREncodeContext *pECtx)
    QCBOREncode_OpenMap(pECtx);
    QCBOREncode_AddUInt64ToMap(pECtx, "LBL", 77);
    QCBOREncode_AddUInt64ToMapN(pECtx, -4, 88);
-   QCBOREncode_AddInt64ToMap(pECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238);
+   QCBOREncode_AddInt64ToMap(pECtx, "NEGLBLTHAT IS KIND OF LONG", -2394893489238LL);
    QCBOREncode_AddInt64ToMapN(pECtx, -100000000, -800000000);
    QCBOREncode_CloseMap(pECtx);
 
    /* Epoch Date */
-   QCBOREncode_AddDateEpoch(pECtx, 2383748234);
+   QCBOREncode_AddDateEpoch(pECtx, 2383748234LL);
 
    /* Epoch date with labels */
    QCBOREncode_OpenMap(pECtx);
-   QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000);
-   QCBOREncode_AddTDateEpochToMapSZ(pECtx, "time()", QCBOR_ENCODE_AS_TAG, 1477263730);
-   QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222);
+   QCBOREncode_AddDateEpochToMap(pECtx, "LongLiveDenisRitchie", 1400000000LL);
+   QCBOREncode_AddTDateEpochToMapSZ(pECtx, "time()", QCBOR_ENCODE_AS_TAG, 1477263730LL);
+   QCBOREncode_AddDateEpochToMapN(pECtx, -1969, 1477263222LL);
    QCBOREncode_CloseMap(pECtx);
 
    /* Binary blobs */
@@ -717,7 +717,6 @@ int32_t AllAddMethodsTest(void)
    UsefulBufC         Enc;
    size_t             size;
    int                nReturn;
-   QCBORError         uExpectedErr;
 
    nReturn = 0;
 
@@ -753,6 +752,9 @@ int32_t AllAddMethodsTest(void)
       goto Done;
    }
 
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+   QCBORError         uExpectedErr;
+
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    uExpectedErr = QCBOR_ERR_NOT_ALLOWED;
 #else
@@ -766,7 +768,6 @@ int32_t AllAddMethodsTest(void)
    uExpectedErr = QCBOR_SUCCESS;
 #endif
 
-#ifndef USEFULBUF_DISABLE_ALL_FLOAT
    QCBOREncode_Init(&ECtx, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    /* 0x7ff8000000000001ULL is a NaN with a payload. */
    QCBOREncode_AddDouble(&ECtx, UsefulBufUtil_CopyUint64ToDouble(0x7ff8000000000001ULL));
@@ -898,12 +899,12 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_OpenArray(&ECtx);
 
    QCBOREncode_AddInt64(&ECtx, -9223372036854775807LL - 1);
-   QCBOREncode_AddInt64(&ECtx, -4294967297);
-   QCBOREncode_AddInt64(&ECtx, -4294967296);
-   QCBOREncode_AddInt64(&ECtx, -4294967295);
-   QCBOREncode_AddInt64(&ECtx, -4294967294);
-   QCBOREncode_AddInt64(&ECtx, -2147483648);
-   QCBOREncode_AddInt64(&ECtx, -2147483647);
+   QCBOREncode_AddInt64(&ECtx, -4294967297LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967296LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967295LL);
+   QCBOREncode_AddInt64(&ECtx, -4294967294LL);
+   QCBOREncode_AddInt64(&ECtx, -2147483648LL);
+   QCBOREncode_AddInt64(&ECtx, -2147483647LL);
    QCBOREncode_AddInt64(&ECtx, -65538);
    QCBOREncode_AddInt64(&ECtx, -65537);
    QCBOREncode_AddInt64(&ECtx, -65536);
@@ -935,14 +936,14 @@ int32_t IntegerValuesTest1(void)
    QCBOREncode_AddInt64(&ECtx, 65536);
    QCBOREncode_AddInt64(&ECtx, 65537);
    QCBOREncode_AddInt64(&ECtx, 65538);
-   QCBOREncode_AddInt64(&ECtx, 2147483647);
-   QCBOREncode_AddInt64(&ECtx, 2147483647);
-   QCBOREncode_AddInt64(&ECtx, 2147483648);
-   QCBOREncode_AddInt64(&ECtx, 2147483649);
-   QCBOREncode_AddInt64(&ECtx, 4294967294);
-   QCBOREncode_AddInt64(&ECtx, 4294967295);
-   QCBOREncode_AddInt64(&ECtx, 4294967296);
-   QCBOREncode_AddInt64(&ECtx, 4294967297);
+   QCBOREncode_AddInt64(&ECtx, 2147483647LL);
+   QCBOREncode_AddInt64(&ECtx, 2147483647LL);
+   QCBOREncode_AddInt64(&ECtx, 2147483648LL);
+   QCBOREncode_AddInt64(&ECtx, 2147483649LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967294LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967295LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967296LL);
+   QCBOREncode_AddInt64(&ECtx, 4294967297LL);
    QCBOREncode_AddInt64(&ECtx, 9223372036854775807LL);
    QCBOREncode_AddUInt64(&ECtx, 18446744073709551615ULL);
 
@@ -1016,16 +1017,16 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    },
    {
       "leading zeros -- 0 and error for no negative 0",
       {"\x00\x00\x00\x00", 4},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    }
 
 };
@@ -1078,6 +1079,27 @@ int32_t BigNumEncodeTests(void)
             return MakeTestResultCode(uTestIndex, 4, QCBOR_SUCCESS);
          }
       }
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   QCBORError uExpectedErr = QCBOR_ERR_NOT_PREFERRED;
+#else
+   QCBORError uExpectedErr = QCBOR_SUCCESS;
+#endif /* !QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* Test failure for attempting non-prefered serialiation */
+   QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
+   QCBOREncode_AddTBigNumberRaw(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_SZ_LITERAL("\x00"));
+   if(QCBOREncode_GetErrorState(&Enc) != uExpectedErr) {
+      return -1;
+   }
+
+   QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
+   QCBOREncode_AddTBigNumberNoPreferred(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_SZ_LITERAL("\x00"));
+   if(QCBOREncode_GetErrorState(&Enc) != uExpectedErr) {
+      return -2;
    }
 
    return 0;
@@ -1470,8 +1492,8 @@ int32_t EncodeDateTest(void)
    /* The values are taken from the CBOR RFCs */
    QCBOREncode_AddTDateString(&ECtx, QCBOR_ENCODE_AS_BORROWED, "2013-03-21T20:04:00Z");
    QCBOREncode_AddDateString(&ECtx, "2013-03-21T20:04:00Z");
-   QCBOREncode_AddTDateEpoch(&ECtx, QCBOR_ENCODE_AS_BORROWED, 1363896240);
-   QCBOREncode_AddDateEpoch(&ECtx, 1363896240);
+   QCBOREncode_AddTDateEpoch(&ECtx, QCBOR_ENCODE_AS_BORROWED, 1363896240LL);
+   QCBOREncode_AddDateEpoch(&ECtx, 1363896240LL);
    QCBOREncode_AddTDaysEpoch(&ECtx, QCBOR_ENCODE_AS_TAG, -10676);
    QCBOREncode_AddTDaysEpoch(&ECtx, QCBOR_ENCODE_AS_BORROWED, 3994);
    QCBOREncode_AddTDaysString(&ECtx, QCBOR_ENCODE_AS_TAG, "1940-10-09");
@@ -1962,7 +1984,7 @@ static const uint8_t spExpectedRTIC[] = {
 
 int32_t RTICResultsTest(void)
 {
-   const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730,
+   const UsefulBufC Encoded = FormatRTICResults(CBOR_SIMPLEV_FALSE, 1477263730LL,
                                           "recent", "0xA1eC5001",
                                           UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    if(UsefulBuf_IsNULLC(Encoded)) {
@@ -2742,7 +2764,7 @@ int32_t EncodeErrorTests(void)
    // Third, fit an array in exactly at max position allowed
    QCBOREncode_Init(&EC, Buffer);
    QCBOREncode_OpenArray(&EC);
-   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, QCBOR_MAX_ARRAY_OFFSET-6});
+   QCBOREncode_AddBytes(&EC, (UsefulBufC){NULL, QCBOR_MAX_SIZE-6});
    QCBOREncode_OpenArray(&EC);
    QCBOREncode_CloseArray(&EC);
    QCBOREncode_CloseArray(&EC);
@@ -3073,7 +3095,7 @@ struct EAMEncodeTest {
    UsefulBufC  BigNumMantissa;
    int64_t     nMantissa;
    bool        bSign;
-   enum {EAM_Any, EAM_Pref, EAM_CDE} eSerialization;
+   enum {EAM_Any, EAM_Pref, EAM_Deterministic} eSerialization;
    // TODO: add tag requirement
 
    /* Only testing successes (right?) */
@@ -3083,18 +3105,18 @@ struct EAMEncodeTest {
    UsefulBufC  DecFracBig;
 };
 
-struct EAMEncodeTest EET[] = {
+static const struct EAMEncodeTest EET[] = {
    { "basic",
       -1,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
       3,
       false,
       EAM_Pref,
 
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
-      NULLUsefulBufC,
-      NULLUsefulBufC
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst
    },
 
    { "bignum gets preferred",
@@ -3104,8 +3126,8 @@ struct EAMEncodeTest EET[] = {
       false,
       EAM_Pref,
 
-      NULLUsefulBufC,
-      NULLUsefulBufC,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst,
       {"\xC5\x82\x20\x03", 4},
       {"\xC4\x82\x20\x03", 4},
    }
@@ -3124,8 +3146,8 @@ EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
       case EAM_Pref:
          QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED );
          break;
-      case EAM_CDE:
-         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_CDE);
+      case EAM_Deterministic:
+         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
          break;
 
       default:
@@ -3272,7 +3294,7 @@ ExponentAndMantissaEncodeTests(void)
    const int nNumberOfTests = C_ARRAY_COUNT(EET, struct EAMEncodeTest);
 
    for(nIndex = 0; nIndex < nNumberOfTests; nIndex++) {
-      struct EAMEncodeTest *pTest = &EET[nIndex];
+      const struct EAMEncodeTest *pTest = &EET[nIndex];
 
 
       if(UsefulBuf_IsNULLC(pTest->BigNumMantissa)) {
@@ -3532,6 +3554,85 @@ OpenCloseBytesTest(void)
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
+struct SortTest {
+   const char *szDescription;
+   UsefulBufC  ToBeSorted;
+   UsefulBufC  Sorted;
+   QCBORError  uError;
+};
+
+static const struct SortTest sSortTests[] =
+{
+   {
+      "Simple Sort Test",
+      {"\x03\x03\x01\x01\x04\x04\x02\x02", 8},
+      {"\xBF\x01\x01\x02\x02\x03\x03\x04\x04\xFF", 10},
+      QCBOR_SUCCESS
+   },
+
+   {
+      "Not well formed label",
+      {"\x1c\x03\x01\x01\x04\x04\x02\x02", 8},
+      NULLUsefulBufCConst,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "Not well formed value",
+      {"\x03\x1c\x01\x01\x04\x04\x02\x02", 8},
+      NULLUsefulBufCConst,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "Not well formed label at end",
+      {"\x03\x03\x01\x01\x04\x04\x1c\x02", 8},
+      NULLUsefulBufCConst,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "Extraneous break",
+      {"\x03\x03\x01\x01\x04\xff\x02\x02", 8},
+      NULLUsefulBufCConst,
+      QCBOR_ERR_HIT_END
+   },
+
+   {
+      "Off end",
+      {"\x03\x03\x01\x01\x04\x04\x02\x6f\x68\x69", 10},
+      NULLUsefulBufCConst,
+      QCBOR_ERR_HIT_END
+   },
+
+   {
+      "Indef string chunk in error",
+      {"\x03\x03\x5f\x61\x68\x1c\xff\x01\x04\x04\x02\x02", 12},
+      NULLUsefulBufCConst,
+      QCBOR_ERR_UNSUPPORTED
+   },
+
+   {
+      "All sorts of labels",
+      {"\x81\x00\x03\xFB\x40\x09\x1E\xB8\x51\xEB\x85\x1F\x01\xf4\x04\xa2"
+       "\x05\x05\x06\x06\x02\xc1\x38\xff\x05\x81\x01\x06\x81\x20\x07\x19"
+       "\x00\x01\x08", 35},
+      {"\xBF\x19\x00\x01\x08\x81\x00\x03\x81\x01\x06\x81\x20\x07\xA2\x05"
+       "\x05\x06\x06\x02\xC1\x38\xFF\x05\xF4\x04\xFB\x40\x09\x1E\xB8\x51"
+       "\xEB\x85\x1F\x01\xFF", 37},
+      QCBOR_SUCCESS
+   },
+
+   {
+      NULL,
+      NULLUsefulBufCConst,
+      NULLUsefulBufCConst,
+      QCBOR_SUCCESS
+   }
+};
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 int32_t
 SortMapTest(void)
@@ -3541,6 +3642,44 @@ SortMapTest(void)
    UsefulBufC                 EncodedAndSorted;
    QCBORError                 uErr;
    struct UBCompareDiagnostic CompareDiagnostics;
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
+   for(int nIndex = 0; ; nIndex++) {
+      const struct SortTest *pTest = &sSortTests[nIndex];
+
+      if(pTest->szDescription == NULL) {
+         break;
+      }
+
+      if(nIndex == 7) {
+         uErr = 0; /* For break point */
+      }
+
+      QCBOREncode_Init(&EC, TestBuf);
+      /* Have to use indefinite length map to make test work */
+      QCBOREncode_OpenMapIndefiniteLength(&EC);
+      /* Violating layering here to be able to make test work.
+       * In particular to test error handling when the CBOR
+       * being sorted is not well formed. That should never happen
+       * but it needs to be tested for code safety.
+       */
+      UsefulOutBuf_AppendUsefulBuf(&(EC.OutBuf), pTest->ToBeSorted);
+      QCBOREncode_CloseAndSortFlowedMap(&EC);
+      uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
+      if(uErr != pTest->uError) {
+         return MakeTestResultCode((uint32_t)nIndex, 0, uErr);
+      }
+
+      if(uErr == QCBOR_SUCCESS && !UsefulBuf_IsNULLC(pTest->Sorted)) {
+         if(UsefulBuf_Compare(pTest->Sorted, EncodedAndSorted)) {
+            return MakeTestResultCode((uint32_t)nIndex, 1, uErr);
+
+         }
+      }
+   }
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+   // TODO: Move most of the tests below into sSortTests
 
 
    /* --- Basic sort test case --- */
@@ -3896,7 +4035,7 @@ SortMapTest(void)
    QCBOREncode_OpenMapIndefiniteLengthInMap(&EC, "bb");
    QCBOREncode_CloseMapIndefiniteLength(&EC);
 
-   QCBOREncode_CloseAndSortMapIndef(&EC);
+   QCBOREncode_CloseAndSortFlowedMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
    if(uErr) {
       return 101;
@@ -3960,7 +4099,7 @@ SortMapTest(void)
 
 
 /* Public function. See qcbor_encode_tests.h */
-int32_t CDETest(void)
+int32_t DeterministicEncodingTest(void)
 {
    QCBOREncodeContext EC;
    UsefulBufC         Encoded;
@@ -3968,7 +4107,7 @@ int32_t CDETest(void)
 
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
-   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_CDE);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
 
 
    /* Items added to test sorting and preferred encoding of numbers and floats */
@@ -3987,13 +4126,13 @@ int32_t CDETest(void)
       return 2;
    }
 
-   static const uint8_t spExpectedCDE[] = {
+   static const uint8_t spExpectedDeterministic[] = {
       0xA6, 0x61, 0x61, 0x01, 0x61, 0x62, 0xF9, 0x7E,
       0x00, 0x61, 0x6B, 0xF9, 0x3C, 0x00, 0x61, 0x72,
       0xFA, 0x7F, 0x7F, 0xFF, 0xFF, 0x61, 0x74, 0xF7,
       0x61, 0x78, 0xF9, 0x40, 0x00};
 
-   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedCDE),
+   if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeterministic),
                         Encoded)) {
       return 1;
    }
@@ -4006,9 +4145,9 @@ int32_t CDETest(void)
 #endif
 
 #ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-   /* Next, make sure methods that encode non-CDE error out */
+   /* Next, make sure methods that encode non-deterministic error out */
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_CDE);
+   QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
    QCBOREncode_OpenMapIndefiniteLength(&EC);
    QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
@@ -4060,7 +4199,7 @@ int32_t DCBORTest(void)
    uExpectedErr = QCBOR_SUCCESS;
 #endif
 
-   /* Next, make sure methods that encode of non-CDE error out */
+   /* Next, make sure methods that encode of non-deterministic error out */
 
 #ifndef  QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* Indefinite-length map */
@@ -4086,11 +4225,9 @@ int32_t DCBORTest(void)
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_Config(&EC, QCBOR_ENCODE_CONFIG_DCBOR);
    QCBOREncode_AddUndef(&EC);
-   QCBOREncode_CloseMap(&EC);
    if(QCBOREncode_GetErrorState(&EC) != uExpectedErr) {
       return 102;
    }
-
 
    /* Improvement: when indefinite length string encoding is supported
     * test it here too. */
@@ -4180,3 +4317,358 @@ int32_t SubStringTest(void)
 
    return 0;
 }
+
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+
+
+struct Streamer  {
+   UsefulOutBuf UOB;
+};
+
+static void Streamer_init(struct Streamer *pMe, UsefulBuf UB)
+{
+   UsefulOutBuf_Init(&(pMe->UOB), UB);
+}
+
+static int Streamer_CB(void *pMeVoid, UsefulBufC Bytes)
+{
+   struct Streamer *pMe = (struct Streamer *)pMeVoid;
+
+   UsefulOutBuf_AppendUsefulBuf(&(pMe->UOB), Bytes);
+
+   return 0;
+}
+
+static UsefulBufC Streamer_Out(struct Streamer *pMe)
+{
+   return UsefulOutBuf_OutUBuf(&(pMe->UOB));
+}
+
+
+
+
+
+
+int32_t StreamTest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBuf_MAKE_STACK_UB  (StreamerBuf, 100);
+   UsefulBuf_MAKE_STACK_UB  (Small, 3);
+   struct Streamer           Streamer;
+   QCBORError                uErr;
+   UsefulBuf                 UB;
+   UsefulBufC                UBC;
+
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 10;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x81\x04"))) {
+      return 11;
+   }
+
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, SIZE_MAX);
+   QCBOREncode_AddInt64(&EC, 400000000);
+   QCBOREncode_Flush(&EC);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 20;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x9f\x1a\x17\xd7\x84\x00\xff"))) {
+      return 21;
+   }
+#endif 
+
+
+   /* Test successful streamed strings */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 1); // TODO: test indef lengths too
+   QCBOREncode_AddStreamedText(&EC, UsefulBuf_FROM_SZ_LITERAL("green eggs"));
+   QCBOREncode_AddStreamedBytes(&EC, UsefulBuf_FROM_SZ_LITERAL("and ham"));
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 30;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x81\x6agreen eggs\x47" "and ham"))) {
+      return 31;
+   }
+
+   /* Test flowed map */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedMap(&EC, 1);
+   QCBOREncode_AddInt64ToMapN(&EC, 4,4);
+   QCBOREncode_CloseFlowedMap(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 40;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\xa1\x04\x04"))) {
+      return 41;
+   }
+
+   /* Try a regular array in streamed mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenArray(&EC);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
+      return 50;
+   }
+
+   /* Try open bytes in streamed mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenBytes(&EC, &UB);
+   QCBOREncode_CloseBytes(&EC, 0);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
+      return 60;
+   }
+
+   /* Try bstr wrapping in streamed mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_BstrWrap(&EC);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseBstrWrap2(&EC, false, &UBC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
+      return 70;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   /* Try to close a non-streamed encodig (and see that flowed arrays work) */
+   QCBOREncode_Init(&EC, Small);
+   QCBOREncode_OpenFlowedArray(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_STREAMING) {
+      return 80;
+   }
+
+   /* Make sure unclosed array errors work in streaming mode */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 1);
+   QCBOREncode_AddInt64(&EC, 4);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 90;
+   }
+#endif
+
+   /* Test that streamed encoded CBOR works successfully */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenFlowedArray(&EC, 2);
+   QCBOREncode_AddStreamedEncoded(&EC, UsefulBuf_FROM_SZ_LITERAL("\xa1\04\x04"));
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 100;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x82\xa1\x04\x04\x04"))) {
+      return 101;
+   }
+
+   /* Test that streamed encoded CBOR works fails if not streaming */
+   QCBOREncode_Init(&EC, Small);
+   QCBOREncode_OpenFlowedArray(&EC, 2);
+   QCBOREncode_AddStreamedEncoded(&EC, UsefulBuf_FROM_SZ_LITERAL("\xa1\04\x04"));
+   QCBOREncode_AddInt64(&EC, 4);
+   QCBOREncode_CloseFlowedArray(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_ERR_NOT_STREAMING) {
+      return 110;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x82\xa1\x04\x04\x04"))) {
+      return 111;
+   }
+
+
+   return 0;
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+int32_t EncodeIndefiniteStringsTest(void)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+   QCBORError         uExpectedErr;
+#ifndef USEFULBUF_DISABLE_STREAMING
+   UsefulBuf_MAKE_STACK_UB (StreamerBuf, 100);
+   UsefulBuf_MAKE_STACK_UB (Small, 3);
+   struct Streamer Streamer;
+#endif
+
+   /* Success indefinite-length text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 1;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x7f\x63xxx\x63yyy\x63zzz\xff"))) {
+      return 2;
+   }
+
+   /* Success indefinite-length byte string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthBytes(&EC);
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 10;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x5f\x43xxx\x43yyy\x43zzz\xff"))) {
+      return 11;
+   }
+
+   /* Fail trying to put bytes in a text string */
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthBytesChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
+      return 20;
+   }
+
+   /* Fail trying to close a text string with byte string close */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
+      return 30;
+   }
+
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+   /* Fail trying to put a double into a text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddDouble(&EC, 4.23); // TODO: how to cath this error?
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
+      return 40;
+   }
+#endif
+
+   /* Fail because open indefinite length text string wasnt closed */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 60;
+   }
+
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddStreamedText(&EC, UsefulBuf_FROM_SZ_LITERAL("hi"));
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_SUCCESS) {
+      return 65;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x62hi"))) {
+      return 66;
+   }
+
+
+   /* Fail trying to close string without one open */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_CloseIndefiniteLengthBytes(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 70;
+   }
+
+   /* Fail adding a text chunk without an open indefinite length string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) { // TODO: better error code?
+      return 80;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* Success making an empty text string */
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uExpectedErr) {
+      return 50;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x7f\xff"))) {
+      return 51;
+   }
+
+
+
+#ifndef USEFULBUF_DISABLE_STREAMING
+   /* Indef lengths streaming (usually you do indef lengths to not need streaming) */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenIndefiniteLengthText(&EC);
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+   QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("zzz"));
+   QCBOREncode_CloseIndefiniteLengthText(&EC);
+   uExpectedErr = QCBOREncode_FinishStream(&EC);
+   if(uExpectedErr) {
+      return 90;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer), UsefulBuf_FROM_SZ_LITERAL("\x7f\x63xxx\x63yyy\x63zzz\xff"))) {
+      return 91;
+   }
+#endif
+
+   return 0;
+}
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */

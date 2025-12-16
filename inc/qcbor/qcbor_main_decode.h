@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -32,6 +32,12 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
+
+
+/* See https://www.securitytheory.com/qcbor-docs/ for the full
+ * searchable documnetation built from these headers.
+ */
+
 
 #ifndef qcbor_main_decode_h
 #define qcbor_main_decode_h
@@ -147,13 +153,13 @@ extern "C" {
  * successfully decoded before examining their value or type.
  *
  * The internal decode error state can be reset by reinitializing the
- * decoder or calling QCBORDecode_GetErrorAndReset(). Code calling
+ * decoder or calling QCBORDecode_GetAndResetError(). Code calling
  * QCBOR may take advantage of the internal error state to halt
  * futher decoding and propagate errors it detects using
  * QCBORDecode_SetError().
  *
  * It is only useful to reset the error state by calling
- * QCBORDecode_GetErrorAndReset() on recoverable errors. Examples of
+ * QCBORDecode_GetAndResetError() on recoverable errors. Examples of
  * recoverable errors are a map entry not being found or integer
  * overflow or underflow during conversion. Examples of unrecoverable
  * errors are hitting the end of the input and array or map nesting
@@ -273,12 +279,12 @@ typedef enum {
     *
     * This also performs all the checks that
     * @ref QCBOR_DECODE_MODE_PREFERRED does. */
-   QCBOR_DECODE_MODE_CDE = QCBOR_DECODE_MODE_PREFERRED |
-                           QCBOR_DECODE_ONLY_SORTED_MAPS,
+   QCBOR_DECODE_MODE_DETERMINISTIC = QCBOR_DECODE_MODE_PREFERRED |
+                                     QCBOR_DECODE_ONLY_SORTED_MAPS,
 
    /** This requires integer-float unification. It performs all the checks that
-    * @ref QCBOR_DECODE_MODE_CDE does. */
-   QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_CDE |
+    * @ref QCBOR_DECODE_MODE_DETERMINISTIC does. */
+   QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_DETERMINISTIC |
                              QCBOR_DECODE_ONLY_REDUCED_FLOATS |
                              QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES,
 
@@ -286,15 +292,10 @@ typedef enum {
 
 
 
-/**
- * The maximum size of input to the decoder. Slightly less than
- * @c UINT32_MAX to make room for some special indicator values.
- */
-#define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
 /**
  * The maximum number of tags that may occur on an individual nested
- * item. Typically 4.
+ * item. Typically 4. This is a QCBOR implementation limit.
  */
 #define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
@@ -621,11 +622,15 @@ typedef struct _QCBORItem {
        *  both definite and indefinite length maps and arrays. */
       uint16_t    uCount;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-      /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. */
+      /** The value for @c uDataType @ref QCBOR_TYPE_DOUBLE. All floating-point
+       * values (double, single and half-precision) are returned as a double except when
+       * the library is built with QCBOR_DISABLE_PREFERRED_FLOAT, in which case
+       * double and single are returned as @c dfnum and @c fnum respectiively, and half-precision
+       * results in an error. */
       double      dfnum;
       /** The value for @c uDataType @ref QCBOR_TYPE_FLOAT. */
       float       fnum;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
       /** The value for @c uDataType @ref QCBOR_TYPE_DATE_EPOCH, the
        *  number of seconds after or before Jan 1, 1970. This has a
        *  range of 500 billion years. Floating-point dates are
@@ -640,7 +645,7 @@ typedef struct _QCBORItem {
          int64_t  nSeconds;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
          double   fSecondsFraction;
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
       } epochDate;
 
       /** The value for @c uDataType @ref QCBOR_TYPE_DAYS_EPOCH -- the
@@ -687,7 +692,7 @@ typedef struct _QCBORItem {
     * It wasn't explicitly described as private, but was implicitly private.
     */
    QCBORMappedTagNumbers auTagNumbers;
-#endif
+#endif /* ! QCBOR_DISABLE_TAGS */
 } QCBORItem;
 
 /**
@@ -1051,7 +1056,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | __Configuration errors__  ||
  * | @ref QCBOR_ERR_NO_STRING_ALLOCATOR        | Encountered indefinite-length string with no allocator configured |
  * | @ref QCBOR_ERR_MAP_LABEL_TYPE             | A map label that is not a string on an integer |
- * | @ref QCBOR_ERR_HALF_PRECISION_DISABLED    | Half-precision input, but disabled in QCBOR library |
+ * | @ref QCBOR_ERR_PREFERRED_FLOAT_DISABLED    | Half-precision input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED  | Indefinite-length input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED | Indefinite-length input, but disabled in QCBOR library |
  * | @ref QCBOR_ERR_ALL_FLOAT_DISABLED             | Library compiled with floating-point support turned off. |
@@ -1428,6 +1433,12 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  * ========================================================================= */
 
 /**
+ * @deprecated  Use @ref QCBOR_MAX_SIZE instead.
+ */
+#define QCBOR_MAX_DECODE_INPUT_SIZE QCBOR_MAX_SIZE
+
+
+/**
  * @deprecated The v2 tag number behavior is more correct.
  * @brief [Deprecated] Configure CBOR decoder context for QCBOR v1 compatibility.
  *
@@ -1482,7 +1493,7 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
 QCBORError
 QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
                                 const QCBORItem    *pItemToConsume,
-                                bool               *pbBreak,
+                                bool               *pbEndedByBreak,
                                 uint8_t            *puNextNestLevel);
 
 /** @private  Semi-private function. See qcbor_decode.c */
@@ -1613,11 +1624,11 @@ QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t 
 
 
 /* A few cross checks on size constants and special value lengths */
-#if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_DECODE_INPUT_SIZE
+#if  QCBOR_MAP_OFFSET_CACHE_INVALID < QCBOR_MAX_SIZE
 #error QCBOR_MAP_OFFSET_CACHE_INVALID is too large
 #endif
 
-#if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_DECODE_INPUT_SIZE
+#if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_SIZE
 #error QCBOR_NON_BOUNDED_OFFSET is too large
 #endif
 

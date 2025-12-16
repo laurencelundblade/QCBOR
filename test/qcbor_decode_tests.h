@@ -291,7 +291,7 @@ int32_t DecodeTaggedTypeTests(void);
 
 /*
  Test the detection of input that is too large. Requires
- a special build that makes QCBOR_MAX_DECODE_INPUT_SIZE small.
+ a special build that makes QCBOR_MAX_SIZE small.
  */
 int32_t TooLargeInputTest(void);
 
@@ -299,7 +299,7 @@ int32_t TooLargeInputTest(void);
 /*
  Test spiffy decoding of indefinite length strings.
  */
-int32_t SpiffyIndefiniteLengthStringsTests(void);
+int32_t SpiffyStringTest(void);
 
 
 /*
@@ -320,7 +320,7 @@ int32_t CBORTestIssue134(void);
 
 
 /*
- * Test the decode checking features for dCBOR, CDE and preferred.
+ * Test the decode checking features for dCBOR, deterministic and preferred.
  */
 int32_t DecodeConformanceTests(void);
 
@@ -337,6 +337,9 @@ int32_t GetMapAndArrayTest(void);
 
 /* Test cursor manipulation -- tell, save, restore */
 int32_t CursorTests(void);
+
+int32_t TagModesFanOutTest(void);
+
 
 
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

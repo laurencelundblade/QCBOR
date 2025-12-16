@@ -13,7 +13,7 @@
  * ========================================================================== */
 
 #include "qcbor/qcbor_common.h"
-#include <string.h>
+#include "UsefulBuf.h"
 
 #define ERR_TO_STR_CASE(errpart) case errpart: return #errpart;
 
@@ -66,7 +66,7 @@ qcbor_err_to_str(const QCBORError uErr) {
    ERR_TO_STR_CASE(QCBOR_ERR_MAP_NOT_ENTERED)
    ERR_TO_STR_CASE(QCBOR_ERR_CALLBACK_FAIL)
    ERR_TO_STR_CASE(QCBOR_ERR_FLOAT_DATE_DISABLED)
-   ERR_TO_STR_CASE(QCBOR_ERR_HALF_PRECISION_DISABLED)
+   ERR_TO_STR_CASE(QCBOR_ERR_PREFERRED_FLOAT_DISABLED)
    ERR_TO_STR_CASE(QCBOR_ERR_HW_FLOAT_DISABLED)
    ERR_TO_STR_CASE(QCBOR_ERR_FLOAT_EXCEPTION)
    ERR_TO_STR_CASE(QCBOR_ERR_ALL_FLOAT_DISABLED)
@@ -77,14 +77,17 @@ qcbor_err_to_str(const QCBORError uErr) {
       if(uErr >= QCBOR_ERR_FIRST_USER_DEFINED && uErr <= QCBOR_ERR_LAST_USER_DEFINED) {
          /* Static buffer is not thread safe, but this is only a diagnostic */
          static char buf[20];
-         strcpy(buf, "USER_DEFINED_");
-         size_t uEndOffset = strlen(buf);
-         buf[uEndOffset]   = (char)(uErr/100 + '0');
-         buf[uEndOffset+1] = (char)(((uErr/10) % 10) + '0');
-         buf[uEndOffset+2] = (char)((uErr % 10 )+ '0');
-         buf[uEndOffset+3] = '\0';
-         return buf;
+         UsefulOutBuf OB;
 
+         /* Make NULL-terminated string "USER_DEFINED_NNN" using UsefulOutBuf */
+         UsefulOutBuf_Init(&OB, UsefulBuf_FROM_BYTE_ARRAY(buf));
+         UsefulOutBuf_AppendString(&OB, "USER_DEFINED_");
+         UsefulOutBuf_AppendByte(&OB, (uint8_t)(uErr/100 + '0'));
+         UsefulOutBuf_AppendByte(&OB, (uint8_t)(((uErr/10) % 10) + '0'));
+         UsefulOutBuf_AppendByte(&OB, (uint8_t)(((uErr/10) % 10) + '0'));
+         UsefulOutBuf_AppendByte(&OB, 0x00);
+
+         return buf;
       } else {
          return "Unidentified QCBOR error";
       }

@@ -2,7 +2,7 @@
  * qcbor_private -- Non-public data structures for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -59,7 +59,7 @@ extern "C" {
 #define QCBOR_DISABLE_EXP_AND_MANTISSA
 #endif
 
-/* If USEFULBUF_DISABLE_ALL_FLOATis defined then define
+/* If USEFULBUF_DISABLE_ALL_FLOAT is defined then define
  * QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
@@ -85,42 +85,42 @@ extern "C" {
  *  The below macros always return QCBOR_ERR_ALL_FLOAT_DISABLED when all
  *  floating point is disabled.
  *
- *  FLOAT_ERR_CODE_NO_HALF_PREC(x) Can be used when disabled preferred float
- *                                 results in error, and all other cases should
- *                                 return 'x'.
+ *  FLOAT_ERR_CODE_NO_PREF_FLOAT(x) Can be used when disabled preferred float
+ *                                  results in error, and all other cases should
+ *                                  return 'x'.
  *  FLOAT_ERR_CODE_NO_FLOAT_HW(x) Can be used when disabled hardware floating
  *                                point results in error, and all other cases
  *                                should return 'x'.
- *  FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) Can be used when either disabled
- *                                             preferred float or disabling
- *                                             hardware floating point results
- *                                             in error, and all other cases
- *                                             should return 'x'.
+ *  FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) Can be used when either disabled
+ *                                              preferred float or disabling
+ *                                              hardware floating point results
+ *                                              in error, and all other cases
+ *                                              should return 'x'.
  */
 #ifdef USEFULBUF_DISABLE_ALL_FLOAT
-   #define FLOAT_ERR_CODE_NO_FLOAT(x)                 QCBOR_ERR_ALL_FLOAT_DISABLED
-   #define FLOAT_ERR_CODE_NO_HALF_PREC(x)             QCBOR_ERR_ALL_FLOAT_DISABLED
-   #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)              QCBOR_ERR_ALL_FLOAT_DISABLED
-   #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_FLOAT(x)                  QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x)             QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)               QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_ALL_FLOAT_DISABLED
 #else /* USEFULBUF_DISABLE_ALL_FLOAT*/
    #define FLOAT_ERR_CODE_NO_FLOAT(x)     x
    #ifdef QCBOR_DISABLE_PREFERRED_FLOAT
-      #define FLOAT_ERR_CODE_NO_HALF_PREC(x) QCBOR_ERR_HALF_PRECISION_DISABLED
-      #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) QCBOR_ERR_HALF_PRECISION_DISABLED
-   #else /* QCBOR_DISABLE_PREFERRED_FLOAT */
-      #define FLOAT_ERR_CODE_NO_HALF_PREC(x) x
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x) QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+   #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x) x
       #ifdef QCBOR_DISABLE_FLOAT_HW_USE
-         #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) QCBOR_ERR_HW_FLOAT_DISABLED
+         #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_HW_FLOAT_DISABLED
       #else
-         #define FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(x) x
+         #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) x
       #endif
-   #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
    #ifdef QCBOR_DISABLE_FLOAT_HW_USE
       #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  QCBOR_ERR_HW_FLOAT_DISABLED
-   #else /* QCBOR_DISABLE_FLOAT_HW_USE */
+   #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
       #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  x
    #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
-#endif /*USEFULBUF_DISABLE_ALL_FLOAT*/
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT*/
 
 
 /*
@@ -160,17 +160,6 @@ extern "C" {
 #define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
-/* The largest offset to the start of an array or map. It is slightly
- * less than UINT32_MAX so the error condition can be tested on 32-bit
- * machines.  UINT32_MAX comes from uStart in QCBORTrackNesting being
- * a uin32_t.
- *
- * This will cause trouble on a machine where size_t is less than 32-bits.
- *
- * TODO: make this public?
- */
-#define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
-
 
 /* The number of tags that are 16-bit or larger that can be handled
  * in a decode.
@@ -186,9 +175,10 @@ extern "C" {
 /*
  * PRIVATE DATA STRUCTURE
  *
- * Holds the data for tracking array and map nesting during
- * encoding. Pairs up with the Nesting_xxx functions to make an
- * "object" to handle nesting encoding.
+ * Holds the data for tracking open arrays, maps, indefinite-length
+ * strings, bstr-wrapping, open byte strings during encoding. Pairs up
+ * with the Nesting_xxx functions to make an "object" to handle
+ * nesting encoding.
  *
  * uStart is a uint32_t instead of a size_t to keep the size of this
  * struct down so it can be on the stack without any concern.  It
@@ -390,6 +380,8 @@ struct _QCBORDecodeContext {
    uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
 
    /* See QCBORDecode_Private_MapTagNumber() for description of how tags are mapped. */
+   /* See QCBORDecode_Private_MapTagNumber() for how tags are mapped. */
+   // TODO: can this be removed if tags are disabled?
    uint64_t auMappedTagNumbers[QCBOR_NUM_MAPPED_TAGS];
 
    QCBORMappedTagNumbers auLastTagNumbers;
@@ -397,6 +389,7 @@ struct _QCBORDecodeContext {
    const struct QCBORTagDecoderEntry *pTagDecoderTable;
    void       *pTagDecodersContext;
 
+   /* Tag number cursor. See QCBORDecode_Private_TagNumberCursor(). */
    size_t      uTagNumberCheckOffset;
    uint8_t     uTagNumberIndex;
 #define QCBOR_ALL_TAGS_PROCESSED UINT8_MAX
@@ -421,29 +414,54 @@ struct  _QCBORSaveDecodeCursor {
 
 
 
-
-/* Used internally in the impementation here Must not conflict with
- * any of the official CBOR types
- */
-#define CBOR_MAJOR_NONE_TAG_LABEL_REORDER  10
-#define CBOR_MAJOR_NONE_TYPE_OPEN_BSTR     12
-
-
-/* Add this to types to indicate they are to be encoded as indefinite lengths */
-#define QCBOR_INDEFINITE_LEN_TYPE_MODIFIER 0x80
-#define CBOR_MAJOR_NONE_TYPE_ARRAY_INDEFINITE_LEN \
-            CBOR_MAJOR_TYPE_ARRAY + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
-#define CBOR_MAJOR_NONE_TYPE_MAP_INDEFINITE_LEN \
-            CBOR_MAJOR_TYPE_MAP + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
-#define CBOR_MAJOR_NONE_TYPE_SIMPLE_BREAK \
-            CBOR_MAJOR_TYPE_SIMPLE + QCBOR_INDEFINITE_LEN_TYPE_MODIFIER
-
-
 /* Value of QCBORItem.val.string.len when the string length is
  * indefinite. Used temporarily in the implementation and never
  * returned in the public interface.
  */
 #define QCBOR_STRING_LENGTH_INDEFINITE SIZE_MAX
+
+
+/*
+ * Lower 3 bits are the CBOR Major Type. Upper bits are
+ * indicators used by QCBOR to track ways of encoding
+ * the major types.
+ *
+ * QCBOR_MT_INDEF_LEN is used by QCBOREncode_EncodeHead(), but
+ * this is enum kept private because most of it is internal-only
+ * and to reduce clutter in the public interface.
+ *
+ * This is stored in a uint8_t sometimes so < 256.
+ */
+enum QCBORPrivateMajorType {
+   /* Enum of the major types, because C++ function name mangling goes
+    * wrong with non-enum literals. */
+   QCBOR_MT_POSITIVE_INT = CBOR_MAJOR_TYPE_POSITIVE_INT,
+   QCBOR_MT_NEGATIVE_INT = CBOR_MAJOR_TYPE_NEGATIVE_INT,
+   QCBOR_MT_BYTE_STRING  = CBOR_MAJOR_TYPE_BYTE_STRING,
+   QCBOR_MT_TEXT_STRING  = CBOR_MAJOR_TYPE_TEXT_STRING,
+   QCBOR_MT_ARRAY        = CBOR_MAJOR_TYPE_ARRAY,
+   QCBOR_MT_MAP          = CBOR_MAJOR_TYPE_MAP,
+   QCBOR_MT_TAG          = CBOR_MAJOR_TYPE_TAG,
+   QCBOR_MT_SIMPLE       = CBOR_MAJOR_TYPE_SIMPLE,
+
+   QCBOR_MT_MASK = 0x07,
+
+   QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
+   QCBOR_MT_WRAP             = 0x20,
+   QCBOR_MT_OPENED           = 0x40,
+   QCBOR_MT_INDEF_LEN        = 0x80,
+
+   QCBOR_MT_INDEF_ARRAY  = CBOR_MAJOR_TYPE_ARRAY + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_INDEF_MAP    = CBOR_MAJOR_TYPE_MAP   + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_BSTR_WRAP    = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_WRAP,
+   QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
+   QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
+   QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN,
+
+   QCBOR_MT_ARRAY_CHECK_ONLY = QCBOR_MT_ARRAY | QCBOR_MT_CHECK_ONLY_MAJOR,
+   QCBOR_MT_MAP_CHECK_ONLY   = QCBOR_MT_MAP   | QCBOR_MT_CHECK_ONLY_MAJOR
+};
 
 
 /* The number of elements in a C array of a particular type */

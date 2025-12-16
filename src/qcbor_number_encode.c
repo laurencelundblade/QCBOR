@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -53,8 +53,8 @@
 void
 QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
 {
-   uint8_t  uMajorType;
-   uint64_t uValue;
+   enum QCBORPrivateMajorType uMajorType;
+   uint64_t                   uValue;
 
    if(nNum < 0) {
       /* In CBOR -1 encodes as 0x00 with major type negative int.
@@ -64,10 +64,10 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
        * an overflow when encoding INT64_MIN). */
       int64_t nTmp = nNum + 1;
       uValue = (uint64_t)-nTmp;
-      uMajorType = CBOR_MAJOR_TYPE_NEGATIVE_INT;
+      uMajorType = QCBOR_MT_NEGATIVE_INT;
    } else {
       uValue = (uint64_t)nNum;
-      uMajorType = CBOR_MAJOR_TYPE_POSITIVE_INT;
+      uMajorType = QCBOR_MT_POSITIVE_INT;
    }
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uValue, 0);
 }
@@ -121,6 +121,7 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
             dNum = NAN;
             bNoNaNPayload = true;
             break;
+         default:
          case IEEE754_ToInt_NO_CONVERSION:
             bNoNaNPayload = true;
       }
@@ -153,15 +154,16 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
    struct IEEE754_ToInt IntResult;
    uint64_t             uNegValue;
 
+    const uint32_t uSingle = UsefulBufUtil_CopyFloatToUint32(fNum);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_SingleHasNaNPayload(fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleHasNaNPayload(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
-      IntResult = IEEE754_SingleToInt(fNum);
+      IntResult = IEEE754_SingleToInt(uSingle);
       switch(IntResult.type) {
          case IEEE754_ToInt_IS_INT:
             QCBOREncode_AddInt64(pMe, IntResult.integer.is_signed);
@@ -183,6 +185,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
             fNum = NAN;
             bNoNaNPayload = true;
             break;
+         default:
          case IEEE754_ToInt_NO_CONVERSION:
             bNoNaNPayload = true;
       }
@@ -190,7 +193,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
       bNoNaNPayload = false;
    }
 
-   FloatResult = IEEE754_SingleToHalf(fNum, bNoNaNPayload);
+   FloatResult = IEEE754_SingleToHalf(uSingle, bNoNaNPayload);
 
    QCBOREncode_Private_AddType7(pMe,
                                 (uint8_t)FloatResult.uSize,
@@ -226,7 +229,7 @@ QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
 
 
 /**
- * @brief Is there a carry when you subtract 1 from the BigNumber.
+ * @brief Is there a carry when you subtract 1 from the BigNumber?
  *
  * @param[in]  BigNumber  Big number to check for carry.
  *
@@ -301,7 +304,7 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
    if(bCarry && BigNumber.len > 1 && UsefulBufC_NTH_BYTE(BigNumber, 0) >= 1) {
       uLen--;
    }
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uLen,0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_BYTE_STRING, uLen,0);
 
    SubString = BigNumber;
    bCopiedSomething = false;
@@ -331,9 +334,9 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
  * @return Big number with no leading zeros.
  *
  * If the big number is all zeros, this returns a big number that is
- * one zero rather than the empty string.
+ * a single zero rather than the empty string.
  *
- * RFC 8949 3.4.3 does not explicitly decoders MUST handle the empty
+ * RFC 8949 3.4.3 does not explicitly say decoders MUST handle the empty
  * string, but does say decoders MUST handle leading zeros. So
  * Postel's Law is applied here and 0 is not encoded as an empty
  * string.
@@ -386,7 +389,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
 {
    uint64_t   uInt;
    bool       bIs2exp64;
-   uint8_t    uMajorType;
+   enum QCBORPrivateMajorType uMajorType;
    UsefulBufC BigNumberNLZ;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
@@ -415,8 +418,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
             uInt--;
          }
       }
-      uMajorType = bNegative ? CBOR_MAJOR_TYPE_NEGATIVE_INT :
-                               CBOR_MAJOR_TYPE_POSITIVE_INT;
+      uMajorType = bNegative ? QCBOR_MT_NEGATIVE_INT : QCBOR_MT_POSITIVE_INT;
       QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uInt, 0);
    } else {
       if(bNegative) {

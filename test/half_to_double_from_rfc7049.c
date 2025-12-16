@@ -46,4 +46,31 @@ double decode_half(const unsigned char *halfp) {
     else val = mant == 0 ? INFINITY : NAN;
     return half & 0x8000 ? -val : val;
 }
+
+
+/* This is a first version from Carsten in July 2025 to be published in
+ * an RFC. Probably there will be updates. */
+/* returns 0..0xFFFF if float16 encoding possible, -1 otherwise.
+   b64 is a binary64 floating point as an unsigned long. */
+int try_float16_encode(unsigned long long b64) {
+  unsigned long long s16 = b64 >> 48 & 0x8000;
+  unsigned long long mant = b64 & 0xfffffffffffffULL;
+  unsigned long long exp = b64 >> 52 & 0x7ff;
+  if (exp == 0 && mant == 0)    /* f64 denorms are out of range */
+    return (int)s16;                 /* so handle 0.0 and -0.0 only */
+  if (exp >= 999 && exp < 1009) { /* f16 denorm, exp16 = 0 */
+    if (mant & ((1UL << (1051 - exp)) - 1))
+      return -1;                /* bits lost in f16 denorm */
+    return (int)(s16 + ((mant + 0x10000000000000ULL) >> (1051 - exp)));
+  }
+  if (mant & 0x3ffffffffffULL)   /* bits lost in f16 */
+    return -1;
+  if (exp >= 1009 && exp <= 1038) /* normalized f16 */
+    return (int)(s16 + ((exp - 1008) << 10) + (mant >> 42));
+  if (exp == 2047)              /* Inf, NaN */
+    return (int)(s16 + 0x7c00 + (mant >> 42));
+  return -1;
+}
+
+
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */

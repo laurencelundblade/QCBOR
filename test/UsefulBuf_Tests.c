@@ -127,7 +127,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   Out = UsefulOutBuf_SubString(&UOB, 10, 8);
+   Out = UsefulOutBuf_OutSubString(&UOB, 10, 8);
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(UsefulBuf_FROM_SZ_LITERAL("unbounce"), Out) ||
       UsefulOutBuf_GetError(&UOB)) {
@@ -135,7 +135,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   Out = UsefulOutBuf_SubString(&UOB, 0, Expected.len);
+   Out = UsefulOutBuf_OutSubString(&UOB, 0, Expected.len);
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(Expected, Out) ||
       UsefulOutBuf_GetError(&UOB)) {
@@ -143,7 +143,7 @@ const char * UOBTest_NonAdversarial(void)
       goto Done;
    }
 
-   Out = UsefulOutBuf_SubString(&UOB, Expected.len, 0);
+   Out = UsefulOutBuf_OutSubString(&UOB, Expected.len, 0);
    if(UsefulBuf_IsNULLC(Out) ||
       UsefulBuf_Compare(UsefulBuf_FROM_SZ_LITERAL(""), Out) ||
       UsefulOutBuf_GetError(&UOB)) {
@@ -177,7 +177,7 @@ Done:
  *
  * returns 0 if test passed
  */
-static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
+static int AppendTest(UsefulOutBuf *pUOB, size_t num, enum UsefulBufErr expected)
 {
    //reset
    UsefulOutBuf_Reset(pUOB);
@@ -200,7 +200,7 @@ static int AppendTest(UsefulOutBuf *pUOB, size_t num, int expected)
 /*
  * Same as append, but takes a position param too
  */
-static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
+static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, enum UsefulBufErr expected)
 {
    // reset
    UsefulOutBuf_Reset(pUOB);
@@ -232,8 +232,11 @@ static int InsertTest(UsefulOutBuf *pUOB,  size_t num, size_t pos, int expected)
 const char *UOBTest_BoundaryConditionsTest(void)
 {
    UsefulBuf_MAKE_STACK_UB(outbuf, 2);
+   UsefulOutBuf            UOB_UnInitialized;
+   UsefulOutBuf            UOB;
 
-   UsefulOutBuf UOB;
+   /* For test detection of uninitlized UOB (wrong magic number) */
+   memset(&UOB_UnInitialized, 42, sizeof(UsefulInputBuf));
 
    UsefulOutBuf_Init(&UOB, outbuf);
 
@@ -250,11 +253,11 @@ const char *UOBTest_BoundaryConditionsTest(void)
       return "Append to fill buffer failed";
 
    // append 3 bytes to a 2 byte buffer --> failure
-   if(AppendTest(&UOB, 3, 1))
+   if(AppendTest(&UOB, 3, UsefulBuffErr_Full))
       return "Overflow of buffer not caught";
 
    // append max size_t to a 2 byte buffer --> failure
-   if(AppendTest(&UOB, SIZE_MAX, 1))
+   if(AppendTest(&UOB, SIZE_MAX, UsefulBuffErr_Full))
       return "Append of SIZE_MAX error not caught";
 
    if(InsertTest(&UOB, 1, 0, 0))
@@ -263,10 +266,10 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(InsertTest(&UOB, 2, 0, 0))
       return "Insert 2 bytes at start failed";
 
-   if(InsertTest(&UOB, 3, 0, 1))
+   if(InsertTest(&UOB, 3, 0, UsefulBuffErr_Full))
       return "Insert overflow not caught";
 
-   if(InsertTest(&UOB, 1, 1, 1))
+   if(InsertTest(&UOB, 1, 1,    UsefulBuffErr_InsertPoint))
       return "Bad insertion point not caught";
 
 
@@ -284,26 +287,31 @@ const char *UOBTest_BoundaryConditionsTest(void)
       return "insert with data should have failed";
    }
 
+   UsefulOutBuf_InsertString(&UOB_UnInitialized, "abc123", 0);
+   if(!UsefulOutBuf_GetError(&UOB_UnInitialized)) {
+      return "InsertString failed uninit detect";
+   }
+
    UsefulOutBuf_Init(&UOB, outBuf2);
    UsefulOutBuf_AppendString(&UOB, "abc123");
 
-   UsefulBufC Out = UsefulOutBuf_SubString(&UOB, 7, 1);
+   UsefulBufC Out = UsefulOutBuf_OutSubString(&UOB, 7, 1);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString start should fail off end 1";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 5, 3);
+   Out = UsefulOutBuf_OutSubString(&UOB, 5, 3);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 2";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 0, 7);
+   Out = UsefulOutBuf_OutSubString(&UOB, 0, 7);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 3";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 7, 0);
+   Out = UsefulOutBuf_OutSubString(&UOB, 7, 0);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 4";
    }
-   Out = UsefulOutBuf_SubString(&UOB, 6, 1);
+   Out = UsefulOutBuf_OutSubString(&UOB, 6, 1);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "SubString len should fail off end 5";
    }
@@ -313,6 +321,17 @@ const char *UOBTest_BoundaryConditionsTest(void)
    if(UsefulOutBuf_GetError(&UOB)) {
       return "insert in huge should have succeeded";
    }
+   UsefulOutBuf_Init(&UOB, outBuf2);
+   Out = UsefulOutBuf_OutSubString(&UOB, 0, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString len should fail off end 5";
+   }
+   Out = UsefulOutBuf_OutSubString(&UOB_UnInitialized, 0, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "SubString failed uninit detect";
+   }
+
+
 
    UsefulOutBuf_Init(&UOB, (UsefulBuf){NULL, SIZE_MAX - 5});
    UsefulOutBuf_AppendData(&UOB, "123456789", SIZE_MAX -5);
@@ -351,6 +370,160 @@ const char *UOBTest_BoundaryConditionsTest(void)
    return NULL;
 }
 
+#ifndef USEFULBUF_DISABLE_STREAMING
+
+static int FlushCallback(void *pMe, UsefulBufC Bytes)
+{
+   uint32_t uUsed;
+
+   uUsed = *(uint32_t *)pMe;
+
+   memmove((uint8_t *)pMe + uUsed + sizeof(uint32_t), Bytes.ptr, Bytes.len);
+
+   *(uint32_t *)pMe = uUsed + (uint32_t)Bytes.len;
+
+   return 0;
+}
+
+static int FlushCallbackFail(void *pMe, UsefulBufC Bytes)
+{
+   uint32_t uUsed;
+
+   uUsed = *(uint32_t *)pMe;
+
+   if(uUsed > 13 || Bytes.len == 13) {
+      /* Fail after 13 bytes have been output to test failure handling  */
+      return 1;
+   }
+
+   memmove((uint8_t *)pMe + uUsed + sizeof(uint32_t), Bytes.ptr, Bytes.len);
+
+   *(uint32_t *)pMe = uUsed + (uint32_t)Bytes.len;
+
+   return 0;
+}
+
+const char *UOBTest_Streaming(void)
+{
+   MakeUsefulBufOnStack(  OutputBuffer, 6);
+   UsefulOutBuf           UOB;
+   uint8_t                TestData[25];
+   UsefulBufC             TestDataUBC;
+   UsefulBufC             Output;
+   enum UsefulBufErr      nErr;
+   char                   StreamCtxAndBuf[60];
+
+   /* Fill in a buffer with some test data */
+   for(int i = 0; i < 25; i++) {
+      TestData[i] = (uint8_t)i;
+   }
+   TestDataUBC.ptr = TestData;
+   TestDataUBC.len = sizeof(TestData);
+
+
+   /* Output 25 bytes with a 6 byte buffer */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUsefulBuf(&UOB, TestDataUBC);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream Append Failed with error";
+   }
+   if(memcmp(TestData, StreamCtxAndBuf+sizeof(uint32_t), sizeof(TestData))) {
+      return "Stream appended wrong bytes";
+   }
+
+   /* Output a uint64_t with a 6 byte buffer */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUint64(&UOB, 0xfffef1);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream Append Failed with error";
+   }
+   if(memcmp("\x00\x00\x00\x00\x00\xff\xfe\xf1", StreamCtxAndBuf+sizeof(uint32_t), 8)) {
+      return "Stream appended wrong bytes";
+   }
+
+   /* Output a 32-bit integer, then 20 bytes directly */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUint64(&UOB, 0xfffef1);
+   UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream Append Failed with error";
+   }
+  if(memcmp("\x00\x00\x00\x00\x00\xff\xfe\xf1\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15",
+            StreamCtxAndBuf+sizeof(uint32_t), 8)) {
+      return "Stream appended wrong bytes";
+   }
+
+   /* Test flush function failure */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallbackFail, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulOutBuf_AppendUsefulBuf(&UOB, TestDataUBC);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_FlushWrite) {
+      return "Stream didn't handle flush failure";
+   }
+
+   /* Test flush function failure */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallbackFail, StreamCtxAndBuf);
+   memset(StreamCtxAndBuf, 0, sizeof(StreamCtxAndBuf));
+   UsefulBufC ShortTestData = {TestDataUBC.ptr, 13};
+   UsefulOutBuf_AppendDirect(&UOB, ShortTestData);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_FlushWrite) {
+      return "Stream didn't handle AppendeDirect flush failure";
+   }
+
+
+   /* Flush on non-stream should succeed and continue to work */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_Flush(&UOB);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr) {
+      return "Stream flush didn't do nothing";
+   }
+   UsefulOutBuf_AppendByte(&UOB, 0x83);
+   Output = UsefulOutBuf_CopyOut(&UOB, OutputBuffer);
+   if(UsefulBuf_Compare(Output, UsefulBuf_FROM_SZ_LITERAL("\x083"))){
+      return"Stream flush didn't continue to work";
+   }
+
+   /* Attempt a streaming-only operation on a non-stream and fail */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_AppendDirect(&UOB, TestDataUBC);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_NotStreaming) {
+      return "Stream AppendDirect on non-stream gave wrong error";
+   }
+
+   /* Attempt an insert on a stream and fail */
+   UsefulOutBuf_Init(&UOB, OutputBuffer);
+   UsefulOutBuf_SetStream(&UOB, FlushCallback, StreamCtxAndBuf);
+   UsefulOutBuf_AppendByte(&UOB, 0x83);
+   UsefulOutBuf_InsertByte(&UOB, 0x97, 0);
+   nErr = UsefulOutBuf_GetError(&UOB);
+   if(nErr != UsefulBufErr_IsStreaming) {
+      return "Insert on stream gave wrong error";
+   }
+
+   return NULL;
+}
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+
 
 
 // Test function to get size and magic number check
@@ -386,15 +559,31 @@ const char *TestBasicSanity(void)
    }
 
 
-
-   // Next make sure that the valid data length check is working right
    UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.magic = 8888; // make magic bogus
 
-   UOB.data_len = UOB.UB.len+1; // make size bogus
+   UsefulOutBuf_InsertData(&UOB, (const uint8_t *)"bluster", 7, 0);
 
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "magic corruption check failed";
+   }
+
+
+
+   /* Next make sure that the valid data length check is working right */
+   UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.data_len = UOB.UB.len+1; /* make size bogus */
    UsefulOutBuf_AppendData(&UOB, (const uint8_t *)"bluster", 7);
-   if(!UsefulOutBuf_GetError(&UOB))
-      return "valid data check failed";
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "valid data append check failed";
+   }
+
+   UsefulOutBuf_Init(&UOB, outbuf);
+   UOB.data_len = UOB.UB.len+1; /* make size bogus */
+   UsefulOutBuf_InsertData(&UOB, (const uint8_t *)"bluster", 7, 0);
+   if(!UsefulOutBuf_GetError(&UOB)) {
+      return "valid data on insert check failed";
+   }
 
    return NULL;
 }
@@ -730,39 +919,43 @@ const char *UBUtilTests(void)
       return "SkipLeading didn't return empty";
    }
 
-   const uint8_t pB[] = {0x01, 0x02, 0x03};
-   UsefulBufC Boo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pB);
+   /* 0x00 at start/end not part of Boo; added to avoid compiler warnings */
+   const uint8_t pB[] = {0x00, 0x01, 0x02, 0x03, 0x00};
+   UsefulBufC Boo;
+   Boo.ptr = pB + 1;
+   Boo.len = sizeof(pB)-2;
+
    // Try to map a pointer before
-   if(UsefulBuf_PointerToOffset(Boo, pB-1) != SIZE_MAX) {
+   if(UsefulBuf_PointerToOffset(Boo, pB) != SIZE_MAX) {
       return "Didn't error on pointer before";
    }
 
    // Try to map a pointer after
-   if(UsefulBuf_PointerToOffset(Boo, pB+sizeof(pB)) != SIZE_MAX) {
+   if(UsefulBuf_PointerToOffset(Boo, pB+sizeof(pB)-1) != SIZE_MAX) {
       return "Didn't error on pointer after";
    }
 
    // Try to map a pointer inside
-   if(UsefulBuf_PointerToOffset(Boo, pB+1) != 1) {
+   if(UsefulBuf_PointerToOffset(Boo, pB+2) != 1) {
       return "Incorrect pointer offset";
    }
 
    // Try to map a pointer at the start
-   if(UsefulBuf_PointerToOffset(Boo, pB) != 0) {
+   if(UsefulBuf_PointerToOffset(Boo, pB+1) != 0) {
       return "Incorrect pointer offset for start";
    }
 
    // Try to map a pointer at the end
-   if(UsefulBuf_PointerToOffset(Boo, pB + sizeof(pB)-1) != 2) {
+   if(UsefulBuf_PointerToOffset(Boo, pB + sizeof(pB)-2) != 2) {
       return "Incorrect pointer offset for end";
    }
 
    // Try to map a pointer on a NULL UB
-   if(UsefulBuf_PointerToOffset(NULLUsefulBufC, pB ) != SIZE_MAX) {
+   if(UsefulBuf_PointerToOffset(NULLUsefulBufC, pB) != SIZE_MAX) {
       return "Incorrect pointer offset for start";
    }
 
-   if(UsefulBuf_OffsetToPointer(Boo, 0) != &pB[0]) {
+   if(UsefulBuf_OffsetToPointer(Boo, 0) != &pB[1]) {
       return "Wrong OffsetToPointer";
    }
 
@@ -770,7 +963,7 @@ const char *UBUtilTests(void)
       return "Didn't validate offset correctly";
    }
 
-   if(UsefulBuf_OffsetToPointer(Boo, 2) != &pB[2]) {
+   if(UsefulBuf_OffsetToPointer(Boo, 2) != &pB[3]) {
       return "Wrong OffsetToPointer 2";
    }
 
@@ -787,7 +980,7 @@ const char *  UIBTest_IntegerFormat(void)
    UsefulOutBuf_MakeOnStack(UOB, 100);
 
    const uint32_t u32 = 0x0A0B0C0D; // from https://en.wikipedia.org/wiki/Endianness
-   const uint64_t u64 = 1984738472938472;
+   const uint64_t u64 = 1984738472938472ULL;
    const uint16_t u16 = 40000;
    const uint8_t  u8 = 9;
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
@@ -1091,13 +1284,18 @@ const char *UBAdvanceTest(void)
 const char * UOBExtraTests(void)
 {
    #define COMPARE_TEST_SIZE 10
-   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE);
+   UsefulOutBuf_MakeOnStack( UOB, COMPARE_TEST_SIZE); /* includes initialization */
    int                       nCompare;
    UsefulBufC                Out;
+   UsefulOutBuf              UOB_UnInitialized;
 
-   /* Test UsefulOutBuf_Compare() */
+   /* For test detection of uninitlized UOB (wrong magic number) */
+   memset(&UOB_UnInitialized, 42, sizeof(UsefulInputBuf));
+
+   /* --- Test UsefulOutBuf_Compare() --- */
    UsefulOutBuf_AppendString(&UOB, "abcabdefab");
 
+   /* Tests of equal length, not off the end. */
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 8, 2);
    if(nCompare != 0) {
       return "ab should compare equal";
@@ -1106,6 +1304,11 @@ const char * UOBExtraTests(void)
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 3);
    if(nCompare != 'd' - 'c') {
       return "abc should not equal abd";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 3, 3, 0, 3);
+   if(nCompare !=  'c' - 'd') {
+      return "abd should not equal abc";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 3, 2, 8, 2);
@@ -1138,40 +1341,93 @@ const char * UOBExtraTests(void)
       return "b should compare equal to b";
    }
 
+   /* Tests off end */
    nCompare = UsefulOutBuf_Compare(&UOB, 10, 1, 10, 1);
    if(nCompare != 0) {
-      return "Comparison off the end is equal";
+      return "Comparison off the end is not equal";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 1, 100, 1);
-   if(nCompare != 0) {
-      return "Comparison off the end is equal";
+   if(nCompare != -1) {
+      return "Comparison off end fail 1";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 100, 1, 0, 1);
-   if(nCompare != 0) {
-      return "Comparison off the end is equal";
+   if(nCompare != 1) {
+      return "Comparison off end fail 2";
    }
 
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 3, 0, 3);
+   if(nCompare != 1) {
+      return "Comparison off end fail 3";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 8, 3);
+   if(nCompare != -1) {
+      return "Comparison off end fail 4";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 10, 1, 5, 1);
+   if(nCompare != 1) {
+      return "Comparison off end fail 5";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 5, 1, 10, 1);
+   if(nCompare != -1) {
+      return "Comparison off end fail 6";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 8, 3, 0, 2);
+   if(nCompare != 0) {
+      return "Comparison off end fail 7";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 8, 100);
+   if(nCompare != 0) {
+      return "Comparison off end fail 8";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 0, 0, 0);
+   if(nCompare != 0) {
+      return "Empty compare failed";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 1, 1, 9, 3);
+   if(nCompare != 0) {
+      return "Unequal lengths, off end";
+   }
+
+   /* Tests of unequal lengths */
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 3, 3, 2);
-   if(nCompare > 0) {
+   if(nCompare >= 0) {
       return "Comparison of unequal lengths incorrect";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 8, 2, 0, 3);
-   if(nCompare < 0) {
+   if(nCompare <= 0) {
       return "Comparison of unequal lengths incorrect 2";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, 2, 3);
    if(nCompare != 'c' - 'a') {
-      return "Inequal lengths, but inequal strings";
+      return "Unequal lengths, unequal strings";
    }
 
    nCompare = UsefulOutBuf_Compare(&UOB, 1, 3, 4, 2);
    if(nCompare != 'd' - 'c') {
-      return "Inequal lengths, but inequal strings";
+      return "Unequal lengths, unequal strings";
    }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 7, 0, 7, 1);
+   if(nCompare != 1) {
+      return "zero length unequal length compare";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 8, 3, 5);
+   if(nCompare != 'd' - 'c') {
+      return "another unequal length compare";
+   }
+
 
    /* Test UsefulOutBuf_Swap() */
 
@@ -1284,6 +1540,11 @@ const char * UOBExtraTests(void)
    Out = UsefulOutBuf_OutUBufOffset(&UOB, 7);
    if(!UsefulBuf_IsNULLC(Out)) {
       return "GetOutput fail 5";
+   }
+
+   Out = UsefulOutBuf_OutUBufOffset(&UOB_UnInitialized, 1);
+   if(!UsefulBuf_IsNULLC(Out)) {
+      return "GetOutput fail 7";
    }
 
    return NULL;

@@ -3,7 +3,7 @@
  * Forked from qcbor_encode.h 12/17/2024
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -33,6 +33,12 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
+
+
+/* See https://www.securitytheory.com/qcbor-docs/ for the full
+ * searchable documnetation built from these headers.
+ */
+
 
 #ifndef qcbor_tag_encode_h
 #define qcbor_tag_encode_h
@@ -708,7 +714,7 @@ QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
 static inline void
 QCBOREncode_AddTagNumber(QCBOREncodeContext *pMe, const uint64_t uTagNumber)
 {
-   QCBOREncode_Private_AppendCBORHead(pMe, CBOR_MAJOR_TYPE_TAG, uTagNumber, 0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_TAG, uTagNumber, 0);
 }
 
 

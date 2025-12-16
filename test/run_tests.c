@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.c -- test aggregator and results reporting
 
- Copyright (c) 2018-2024, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
  Copyright (c) 2021, Arm Limited. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
@@ -58,6 +58,9 @@ static test_entry2 s_tests2[] = {
     TEST_ENTRY(UOBTest_NonAdversarial),
     TEST_ENTRY(TestBasicSanity),
     TEST_ENTRY(UOBTest_BoundaryConditionsTest),
+#ifndef USEFULBUF_DISABLE_STREAMING
+    TEST_ENTRY(UOBTest_Streaming),
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
     TEST_ENTRY(UBMacroConversionsTest),
     TEST_ENTRY(UBUtilTests),
     TEST_ENTRY(UIBTest_IntegerFormat),
@@ -79,7 +82,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(ParseMapAsArrayTest),
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    TEST_ENTRY(ArrayNestingTest3),
-#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
    TEST_ENTRY(SpiffyDateDecodeTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    TEST_ENTRY(EnterBstrTest),
@@ -119,7 +122,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(TagNumberDecodeTest),
    TEST_ENTRY(DateParseTest),
    TEST_ENTRY(DecodeTaggedTypeTests),
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
 
    TEST_ENTRY(ShortBufferParseTest2),
    TEST_ENTRY(ShortBufferParseTest),
@@ -131,21 +134,22 @@ static test_entry s_tests[] = {
    TEST_ENTRY(MemPoolTest),
    TEST_ENTRY(IndefiniteLengthStringTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   TEST_ENTRY(SpiffyIndefiniteLengthStringsTests),
+   TEST_ENTRY(SpiffyStringTest),
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    TEST_ENTRY(SetUpAllocatorTest),
    TEST_ENTRY(CBORTestIssue134),
 
-#endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
-   TEST_ENTRY(FloatValuesTests),
    TEST_ENTRY(PreciseNumbersDecodeTest),
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+   TEST_ENTRY(FloatValuesTests),
+   TEST_ENTRY(NaNPayloadsTest),
    TEST_ENTRY(GeneralFloatEncodeTests),
    TEST_ENTRY(GeneralFloatDecodeTests),
-#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
    TEST_ENTRY(BstrWrapTest),
    TEST_ENTRY(BstrWrapErrorTest),
@@ -159,7 +163,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(EncodeErrorTests),
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     TEST_ENTRY(IndefiniteLengthTest),
-#endif
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
    TEST_ENTRY(EncodeLengthThirtyoneTest),
    TEST_ENTRY(CBORSequenceDecodeTests),
    TEST_ENTRY(IntToTests),
@@ -171,17 +175,25 @@ static test_entry s_tests[] = {
    TEST_ENTRY(ExponentAndMantissaDecodeTests),
 #ifndef QCBOR_DISABLE_TAGS
    TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
    TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
    TEST_ENTRY(SortMapTest),
 #if !defined(USEFULBUF_DISABLE_ALL_FLOAT) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-   TEST_ENTRY(CDETest),
+   TEST_ENTRY(DeterministicEncodingTest),
    TEST_ENTRY(DCBORTest),
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT && ! QCBOR_DISABLE_PREFERRED_FLOAT */
     TEST_ENTRY(ParseEmptyMapInMapTest),
     TEST_ENTRY(SubStringTest),
-    TEST_ENTRY(BoolTest)
+    TEST_ENTRY(BoolTest),
+   TEST_ENTRY(TagModesFanOutTest),
+#ifndef USEFULBUF_DISABLE_STREAMING
+   TEST_ENTRY(StreamTest),
+#endif /* ! USEFULBUF_DISABLE_STREAMING */
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   TEST_ENTRY(EncodeIndefiniteStringsTest)
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
 };
 
 

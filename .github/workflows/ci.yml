@@ -11,51 +11,18 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
+        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
+                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
+                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
+                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE,
+                -DUSEFULBUF_DISABLE_STREAMING ]
+
         config:
         - os-image: ubuntu-latest
           container: ubuntu:22.04
 
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_NON_INTEGER_LABELS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_TAGS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DUSEFULBUF_DISABLE_ALL_FLOAT'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_FLOAT_HW_USE'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_PREFERRED_FLOAT'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_ENCODE_USAGE_GUARDS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS'
-
-        - os-image: ubuntu-latest
-          container: ubuntu:22.04
-          dis-xxx: '-DQCBOR_DISABLE_DECODE_CONFORMANCE'
-
-    name: ${{ matrix.config.dis-xxx }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
+    name: ${{ matrix.ifdef }} • ${{ matrix.c-compiler }} • ${{ matrix.config.container }}
 
     runs-on: ${{ matrix.config.os-image }}
     container: ${{ matrix.config.container }}
@@ -75,7 +42,56 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make warn CMD_LINE=${{ matrix.config.dis-xxx }}
+        make warn CMD_LINE=${{ matrix.ifdef }}
 
     - name: Run tests
       run: ./qcbortest
+
+  msvc:
+    name: ${{ matrix.ifdef }} • msvc • windows-latest
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+
+        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
+                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
+                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
+                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE ]
+
+    env:
+      ARCH: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Optional: ensures Dev Cmd environment; the VS generator usually finds MSVC without this,
+      # but keeping it makes detection deterministic.
+      - name: Set up MSVC DevCmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
+
+      - name: Configure (CMake → VS solution)
+        shell: bash
+        run: |
+          cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
+            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
+            -DCMAKE_C_FLAGS="${{ matrix.ifdef }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.ifdef }}"
+
+      - name: Build
+        run: cmake --build build 
+        shell: pwsh
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $exe = "build/test/Debug/qcbortest.exe"
+          if (!(Test-Path $exe)) {
+            Write-Error "Test binary not found: $exe"
+          }
+          & $exe 
+

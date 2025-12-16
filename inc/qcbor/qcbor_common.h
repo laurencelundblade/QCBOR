@@ -2,7 +2,7 @@
  * qcbor_common -- Common definitions for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -33,8 +33,15 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ========================================================================= */
 
+/* See https://www.securitytheory.com/qcbor-docs/ for the full
+ * searchable documnetation built from these headers.
+ */
+
 #ifndef qcbor_common_h
 #define qcbor_common_h
+
+//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+//#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +49,7 @@ extern "C" {
 } // Keep editor indention formatting happy
 #endif
 #endif
+
 
 /**
  * @file qcbor_common.h
@@ -53,17 +61,25 @@ extern "C" {
 
 /**
  * Semantic versioning for QCBOR x.y.z from 1.3.0 on
- *
- * Note:
- *   - QCBOR 1.2 is indicated by the #define QCBOR_1_2
- *   - QCBOR 1.1 is indicated by the #define QCBOR_1_1
- *   - QCBOR 1.0 is indicated by the absence of all the above
  */
 #define QCBOR_VERSION_MAJOR 2
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
 /* This is an alpha (not ready for commercial use) release of 2.0.0 */
+
+/**
+ * Constuct version string
+ *
+ * Use C pre-processor magic to turn the above integers into
+ * a version string like "libqcbor 1.6.0"
+ */
+#define QCBOR_STR1(x) #x
+#define QCBOR_STR(x) QCBOR_STR1(x)
+#define QCBOR_VERSION_STRING "libqcbor " QCBOR_STR(QCBOR_VERSION_MAJOR) "." \
+                                         QCBOR_STR(QCBOR_VERSION_MINOR) "." \
+                                         QCBOR_STR(QCBOR_VERSION_PATCH) " alpha"
+
 
 /**
  * This define indicates a version of QCBOR that supports spiffy
@@ -233,7 +249,7 @@ extern "C" {
 /** The 32-bit invalid tag from the CBOR tags registry */
 #define CBOR_TAG_INVALID32 0xffffffff
 /** The 64-bit invalid tag from the CBOR tags registry */
-#define CBOR_TAG_INVALID64 0xffffffffffffffff
+#define CBOR_TAG_INVALID64 0xffffffffffffffffULL
 
 /** Allows tag content handler installed by QCBORDecode_InstallTagDecoders to match any tag number */
 #define CBOR_TAG_ANY (CBOR_TAG_INVALID64 - 1)
@@ -265,48 +281,70 @@ typedef enum {
     *   was too small and the encoded output will not fit. */
    QCBOR_ERR_BUFFER_TOO_SMALL = 1,
 
+   /** The @ref UsefulOutBuf for encoding is corrupted. */
+   QCBOR_ERR_UB_BAD = 2,
+
+   /** The @ref UsefulOutBuf for encoding returned an insert point error
+    *  (should never happen). */
+   QCBOR_ERR_USEFULBUF_INSERT_POINT = 3,
+
+   /** The operation can only  be performed in streaming mode.
+    *  See QCBOREncode_SetStream() .*/
+   QCBOR_ERR_NOT_STREAMING = 4,
+
+   /** The operation cannot be performed in streaming mode.
+    *  See QCBOREncode_SetStream() */
+   QCBOR_ERR_NOT_ALLOWED_IN_STREAMING = 5,
+
+   /** The streaming flush callback returned an error.
+    *  See QCBOREncode_SetStream(). */
+   QCBOR_ERR_STREAM_FLUSH = 6,
+
+   /* 7 and 8 are for UsefuBuf, but can be used here too. */
+
    /** During encoding, an attempt to create simple value between 24
     *  and 31. */
-   QCBOR_ERR_ENCODE_UNSUPPORTED = 2,
+   QCBOR_ERR_ENCODE_UNSUPPORTED = 9,
 
    /** During encoding, the length of the encoded CBOR exceeded
-    *  @ref QCBOR_MAX_ARRAY_OFFSET, which is slightly less than
+    *  @ref QCBOR_MAX_SIZE, which is slightly less than
     *  @c UINT32_MAX. */
-   QCBOR_ERR_BUFFER_TOO_LARGE = 3,
+   QCBOR_ERR_BUFFER_TOO_LARGE = 10,
 
    /** During encoding, the array or map nesting was deeper than this
     *  implementation can handle. Note that in the interest of code
     *  size and memory use, QCBOR has a hard limit on array
     *  nesting. The limit is defined as the constant
     *  @ref QCBOR_MAX_ARRAY_NESTING. */
-   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 4,
+   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 11,
 
-   /** During encoding, @c QCBOREncode_CloseXxx() called for a
-    *  different type than is currently open.  */
-   QCBOR_ERR_CLOSE_MISMATCH = 5,
+   /** During encoding, the type of close doesn't match what is open. Also
+    * an indefinite-length string chunk is of the wrong type. */
+   QCBOR_ERR_CLOSE_MISMATCH = 12,
+   QCBOR_ERR_NESTED_TYPE_MISMATCH = 12,
 
    /** During encoding, the array or map had too many items in it. The
     * limits are @ref QCBOR_MAX_ITEMS_IN_ARRAY and
     * @ref QCBOR_MAX_ITEMS_IN_MAP. */
-   QCBOR_ERR_ARRAY_TOO_LONG = 6,
+   QCBOR_ERR_ARRAY_TOO_LONG = 13,
 
    /** During encoding, more arrays or maps were closed than
     *  opened. This is a coding error on the part of the caller of the
     *  encoder. */
-   QCBOR_ERR_TOO_MANY_CLOSES = 7,
+   QCBOR_ERR_TOO_MANY_CLOSES = 14,
 
    /** During encoding, the number of array or map opens was not
     *  matched by the number of closes. Also occurs with opened byte
     *  strings that are not closed. */
-   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 8,
+   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN = 15,
 
    /** During encoding, opening a byte string while a byte string is
     *  open is not allowed. */
-   QCBOR_ERR_OPEN_BYTE_STRING = 9,
+   QCBOR_ERR_OPEN_BYTE_STRING = 16,
 
    /** Trying to cancel a byte string wrapping after items have been
     *  added to it. */
-   QCBOR_ERR_CANNOT_CANCEL = 10,
+   QCBOR_ERR_CANNOT_CANCEL = 17,
 
 #define QCBOR_START_OF_NOT_WELL_FORMED_ERRORS 20
 
@@ -361,7 +399,7 @@ typedef enum {
 #define QCBOR_END_OF_NOT_WELL_FORMED_ERRORS 39
 
    /** During decoding, the input is too large. It is greater than
-    *  QCBOR_MAX_DECODE_INPUT_SIZE. This is an implementation limit.
+    *  QCBOR_MAX_SIZE. This is an implementation limit.
     *  This error makes no further decoding possible. */
    QCBOR_ERR_INPUT_TOO_LARGE = 40,
 
@@ -440,15 +478,17 @@ typedef enum {
     * encoded in shortest form, or indefinite lengths are used. */
    QCBOR_ERR_PREFERRED_CONFORMANCE = 52,
 
-   /** Decoded CBOR does not conform to CDE. This occurs when a map is not sorted. Other
-    * CDE issues are reported as QCBOR_ERR_PREFERRED_CONFORMANCE. */
-   QCBOR_ERR_CDE_CONFORMANCE = 53,
+   /** Decoded CBOR does not conform to deterministic encoding. This
+    * occurs when a map is not sorted. Other deterministic issues are
+    * reported as @ref QCBOR_ERR_PREFERRED_CONFORMANCE. */
+   QCBOR_ERR_DETERMINISTIC_CONFORMANCE = 53,
 
    /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
-    * Other issues are reported as either QCBOR_ERR_CDE_CONFORMANCE or QCBOR_ERR_PREFERRED_CONFORMANCE. */
+    * Other issues are reported as either @ref QCBOR_ERR_DETERMINISTIC_CONFORMANCE or
+    * @ref QCBOR_ERR_PREFERRED_CONFORMANCE. */
    QCBOR_ERR_DCBOR_CONFORMANCE = 54,
 
-   /** A map is unsorted and should be for CDE or dCBOR. */
+   /** A map is unsorted and should be for deterministic encoding or dCBOR. */
    QCBOR_ERR_UNSORTED = 55,
 
    /** Conformance checking requested, preferred serialization disabled, float in the input. */
@@ -515,14 +555,16 @@ typedef enum {
    QCBOR_ERR_CALLBACK_FAIL = 72,
 
    /** This error code is deprecated. Instead,
-    *  @ref QCBOR_ERR_HALF_PRECISION_DISABLED,
+    *  @ref QCBOR_ERR_PREFERRED_FLOAT_DISABLED,
     *  @ref QCBOR_ERR_HW_FLOAT_DISABLED or @ref QCBOR_ERR_ALL_FLOAT_DISABLED
     *  is returned depending on the specific floating-point functionality
     *  that is disabled and the type of floating-point input. */
    QCBOR_ERR_FLOAT_DATE_DISABLED = 73,
 
-   /** Support for half-precision float decoding is disabled. */
-   QCBOR_ERR_HALF_PRECISION_DISABLED = 74,
+   /** Support for preferred serialization is disabled (QCBOR
+    * was compiled with QCBOR_DISABLE_PREFERRED_FLOAT). */
+   QCBOR_ERR_PREFERRED_FLOAT_DISABLED = 74,
+   QCBOR_ERR_HALF_PRECISION_DISABLED = 74, /* Deprecated */
 
    /** Use of floating-point HW is disabled. This affects all type
     *  conversions to and from double and float types. */
@@ -546,11 +588,14 @@ typedef enum {
     * (to save object code). */
    QCBOR_ERR_RECOVERABLE_BAD_TAG_CONTENT = 78,
 
-   /** Attempt to output non-preferred, non-CDE or non-dCBOR when not
-    * allowed by mode. See QCBOREncode_SerializationPreferred(),
-    * QCBOREncode_SerializationCDE(),
-    * QCBOREncode_SerializationdCBOR() and @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS.
-    */
+   /** Attempt to output non-preferred, non-deterministic or non-dCBOR
+    * when not allowed by mode. See
+    * @ref QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS,
+    * @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS,
+    * @ref QCBOR_ENCODE_CONFIG_PREFERRED,
+    * @ref QCBOR_ENCODE_CONFIG_DETERMINISTIC,
+    * @ref QCBOR_ENCODE_CONFIG_DCBOR.
+     */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
    /** Trying to do something that is not allowed. */
@@ -564,12 +609,16 @@ typedef enum {
    /** Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
-   /** An unconsumed tag number was encountered. */
-   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89, // TODO: rid of this in favor of below?
+   /** A tag number was not expected such as one is encountered with 
+    * @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG. */
+   QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89,
 
    /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber().
     * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
+
+   /** A tag number is expected, but missing. */
+   QCBOR_ERR_MISSING_TAG_NUMBER = 91,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
@@ -599,7 +648,13 @@ const char *
 qcbor_err_to_str(QCBORError uErr);
 
 
-
+/* The maximum size in bytes for input to decode or encoder output. */
+/* It is slightly less than UINT32_MAX to accommodate
+ * QCBOR_NON_BOUNDED_OFFSET and so the limit can be tested on 32-bit
+ * machines. This will cause trouble where size_t is less than 32
+ * bits.
+ */
+#define QCBOR_MAX_SIZE  (UINT32_MAX - 100)
 
 /**
  * The maximum nesting of arrays and maps when encoding or

@@ -2,7 +2,7 @@
  * qcbor_spiffy_decode.c -- "Spiffy" QCBOR decoding
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -64,6 +64,34 @@
  */
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
+
+
+/**
+ * @brief Spiffy decode get a byte string.
+ *
+ * @param[in] pMe       The decode context.
+ * @param[in] uType     The CBOR qcbor type requested.
+ * @param[out] pString  The returned string.
+ *
+ * This sets the spiffy decode last error if there is a problem
+ * deocing or the string is not of the requested type.
+ */
+void
+QCBORDecode_Private_GetString(QCBORDecodeContext *pMe, const uint8_t uType, UsefulBufC *pString)
+{
+   QCBORItem  Item;
+
+   QCBORDecode_VGetNext(pMe, &Item);
+
+   *pString = NULLUsefulBufC;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      if(Item.uDataType == uType) {
+         *pString = Item.val.string;
+      } else {
+         pMe->uLastError = QCBOR_ERR_UNEXPECTED_TYPE;
+      }
+   }
+}
 
 
 /* Return true if the labels in Item1 and Item2 are the same.
@@ -210,7 +238,15 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
                               MapSearchCallBack  *pCallBack)
 {
    QCBORError uReturn;
-   uint64_t   uFoundItemBitMap = 0;
+   uint64_t   uFoundItemBitMap;
+   uint8_t    uNextNestLevel;
+
+   if(pInfo != NULL) {
+      pInfo->uItemCount   = 0;
+      pInfo->uStartOffset = UINT32_MAX;
+   }
+
+   uFoundItemBitMap = 0;
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       uReturn = pMe->uLastError;
@@ -219,8 +255,8 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
    if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
       pItemArray->uLabelType != QCBOR_TYPE_NONE) {
-      /* QCBOR_TYPE_NONE as first item indicates just looking
-         for the end of an array, so don't give error. */
+      /* QCBOR_TYPE_NONE as first item indicates just looking for the
+       * end of an array, so don't give error. */
       uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
       goto Done2;
    }
@@ -232,8 +268,8 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
          pMe->uMapEndOffsetCache = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
          uReturn = QCBOR_SUCCESS;
       } else {
-         // Nothing is ever found in an empty array or map. All items
-         // are marked as not found below.
+         /* Nothing is ever found in an empty array or map. All items
+          * are marked as not found below. */
          uReturn = QCBOR_SUCCESS;
       }
       goto Done2;
@@ -246,38 +282,35 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
    /* Reposition to search from the start of the map / array */
    QCBORDecode_Private_RewindMapOrArray(pMe);
 
-   /*
-    Loop over all the items in the map or array. Each item
-    could be a map or array, but label matching is only at
-    the main level. This handles definite- and indefinite-
-    length maps and arrays. The only reason this is ever
-    called on arrays is to find their end position.
-
-    This will always run over all items in order to do
-    duplicate detection.
-
-    This will exit with failure if it encounters an
-    unrecoverable error, but continue on for recoverable
-    errors.
-
-    If a recoverable error occurs on a matched item, then
-    that error code is returned.
+   /* Loop over all the items in the map or array. Each item could be
+    * a map or array, but label matching is only at the main
+    * level. This handles definite- and indefinite- length maps and
+    * arrays. The only reason this is ever called on arrays is to find
+    * their end position.
+    *
+    * This will always run over all items in order to do duplicate
+    * detection.
+    *
+    * This will exit with failure if it encounters an unrecoverable
+    * error, but continue on for recoverable errors.
+    *
+    * If a recoverable error occurs on a matched item, then that error
+    * code is returned.
     */
    const uint8_t uMapNestLevel = DecodeNesting_GetBoundedModeLevel(&(pMe->nesting));
-   if(pInfo) {
-      pInfo->uItemCount = 0;
-   }
-   uint8_t       uNextNestLevel;
    do {
+      QCBORItem   Item;
+      bool        bMatched;
+      QCBORError  uResult;
+
       /* Remember offset of the item because sometimes it has to be returned */
       const size_t uOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
       /* Get the item */
-      QCBORItem Item;
       /* QCBORDecode_Private_GetNextTagContent() rather than GetNext()
        * because a label match is performed on recoverable errors to
        * be able to return the the error code for the found item. */
-      QCBORError uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
+      uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsUnrecoverableError(uResult)) {
          /* The map/array can't be decoded when unrecoverable errors occur */
          uReturn = uResult;
@@ -290,7 +323,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       }
 
       /* See if item has one of the labels that are of interest */
-      bool bMatched = false;
+      bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
          if(QCBORItem_MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
@@ -314,7 +347,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
             /* Successful match. Return the item. */
             pItemArray[nIndex] = Item;
             uFoundItemBitMap |= 0x01ULL << nIndex;
-            if(pInfo) {
+            if(pInfo != NULL) {
                pInfo->uStartOffset = uOffset;
             }
             bMatched = true;
@@ -323,31 +356,26 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
 
       if(!bMatched && pCallBack != NULL) {
-         /*
-          Call the callback on unmatched labels.
-          (It is tempting to do duplicate detection here, but that would
-          require dynamic memory allocation because the number of labels
-          that might be encountered is unbounded.)
-         */
+         /* Call the callback on unmatched labels.
+          * (It is tempting to do duplicate detection here, but that
+          * would require dynamic memory allocation because the number
+          * of labels that might be encountered is unbounded.) */
          uReturn = (*(pCallBack->pfCallback))(pCallBack->pCBContext, &Item);
          if(uReturn != QCBOR_SUCCESS) {
             goto Done;
          }
       }
 
-      /*
-       Consume the item whether matched or not. This
-       does the work of traversing maps and array and
-       everything in them. In this loop only the
-       items at the current nesting level are examined
-       to match the labels.
-       */
+      /* Consume the item whether matched or not. This does the work
+       * of traversing maps and array and everything in them. In this
+       * loop only the items at the current nesting level are examined
+       * to match the labels. */
       uReturn = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uNextNestLevel);
       if(uReturn != QCBOR_SUCCESS) {
          goto Done;
       }
 
-      if(pInfo) {
+      if(pInfo != NULL) {
          pInfo->uItemCount++;
       }
 
@@ -357,11 +385,13 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
    const size_t uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
 
-   // Check here makes sure that this won't accidentally be
-   // QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
-   // QCBOR_MAX_DECODE_INPUT_SIZE.
-   // Cast to uint32_t to possibly address cases where SIZE_MAX < UINT32_MAX
-   if((uint32_t)uEndOffset >= QCBOR_MAX_DECODE_INPUT_SIZE) {
+   /* Check here makes sure that this won't accidentally be
+    * QCBOR_MAP_OFFSET_CACHE_INVALID which is larger than
+    * QCBOR_MAX_DECODE_INPUT_SIZE.  Cast to uint32_t to possibly
+    * address cases where SIZE_MAX < UINT32_MAX. It is near-impossible
+    * to test this, so test coverage of this function is not 100%,
+    * but it is 100% when this is commented out. */
+   if((uint32_t)uEndOffset >= QCBOR_MAX_SIZE) {
       uReturn = QCBOR_ERR_INPUT_TOO_LARGE;
       goto Done;
    }
@@ -390,18 +420,18 @@ void
 QCBORDecode_SeekToLabelN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
    MapSearchInfo Info;
-   QCBORItem     OneItemSeach[2];
+   QCBORItem     OneItemSearch[2];
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
-   OneItemSeach[0].label.int64 = nLabel;
-   OneItemSeach[0].uDataType   = QCBOR_TYPE_ANY;
-   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSearch[0].label.int64 = nLabel;
+   OneItemSearch[0].uDataType   = QCBOR_TYPE_ANY;
+   OneItemSearch[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, OneItemSeach, &Info, NULL);
+   pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, OneItemSearch, &Info, NULL);
    if(pMe->uLastError == QCBOR_SUCCESS) {
       UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
    }
@@ -413,18 +443,18 @@ QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel)
 {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    MapSearchInfo  Info;
-   QCBORItem      OneItemSeach[2];
+   QCBORItem      OneItemSearch[2];
 
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
-   OneItemSeach[0].uDataType    = QCBOR_TYPE_ANY;
-   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSearch[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSearch[0].uDataType    = QCBOR_TYPE_ANY;
+   OneItemSearch[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, OneItemSeach, &Info, NULL);
+   pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, OneItemSearch, &Info, NULL);
    if(pMe->uLastError == QCBOR_SUCCESS) {
       UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
    }
@@ -438,7 +468,7 @@ QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel)
 
 void
 QCBORDecode_Private_GetItemInMapNoCheck(QCBORDecodeContext *pMe,
-                                        QCBORItem          *OneItemSeach,
+                                        QCBORItem          *OneItemSearch,
                                         QCBORItem          *pItem,
                                         size_t             *puOffset)
 {
@@ -449,12 +479,12 @@ QCBORDecode_Private_GetItemInMapNoCheck(QCBORDecodeContext *pMe,
       return;
    }
 
-   uErr = QCBORDecode_Private_MapSearch(pMe, OneItemSeach, &SearchInfo, NULL);
+   uErr = QCBORDecode_Private_MapSearch(pMe, OneItemSearch, &SearchInfo, NULL);
 
-   if(uErr == QCBOR_SUCCESS && OneItemSeach[0].uDataType == QCBOR_TYPE_NONE) {
+   if(uErr == QCBOR_SUCCESS && OneItemSearch[0].uDataType == QCBOR_TYPE_NONE) {
       uErr = QCBOR_ERR_LABEL_NOT_FOUND;
    }
-   *pItem = OneItemSeach[0];
+   *pItem = OneItemSearch[0];
    *puOffset = SearchInfo.uStartOffset;
 
    if(uErr == QCBOR_SUCCESS) {
@@ -466,12 +496,12 @@ QCBORDecode_Private_GetItemInMapNoCheck(QCBORDecodeContext *pMe,
 
 
 static void
-QCBORDecode_Private_GetItemInMap(QCBORDecodeContext *pMe, QCBORItem *OneItemSeach, QCBORItem *pItem)
+QCBORDecode_Private_GetItemInMap(QCBORDecodeContext *pMe, QCBORItem *OneItemSearch, QCBORItem *pItem)
 {
    QCBORError  uErr;
    size_t      uOffset;
 
-   QCBORDecode_Private_GetItemInMapNoCheck(pMe, OneItemSeach, pItem, &uOffset);
+   QCBORDecode_Private_GetItemInMapNoCheck(pMe, OneItemSearch, pItem, &uOffset);
 
    uErr = QCBORDecode_Private_GetItemChecks(pMe, pMe->uLastError, uOffset, pItem);
    if(uErr != QCBOR_SUCCESS) {
@@ -492,14 +522,14 @@ QCBORDecode_GetItemInMapN(QCBORDecodeContext *pMe,
                           const uint8_t       uQcborType,
                           QCBORItem          *pItem)
 {
-   QCBORItem OneItemSeach[2];
+   QCBORItem OneItemSearch[2];
 
-   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
-   OneItemSeach[0].label.int64 = nLabel;
-   OneItemSeach[0].uDataType   = uQcborType;
-   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSearch[0].label.int64 = nLabel;
+   OneItemSearch[0].uDataType   = uQcborType;
+   OneItemSearch[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORDecode_Private_GetItemInMap(pMe, OneItemSeach, pItem);
+   QCBORDecode_Private_GetItemInMap(pMe, OneItemSearch, pItem);
 }
 
 
@@ -523,14 +553,14 @@ QCBORDecode_Private_GetItemInMapNoCheckN(QCBORDecodeContext *pMe,
                                  QCBORItem          *pItem,
                                  size_t             *puOffset)
 {
-   QCBORItem OneItemSeach[2];
+   QCBORItem OneItemSearch[2];
 
-   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
-   OneItemSeach[0].label.int64 = nLabel;
-   OneItemSeach[0].uDataType   = uQcborType;
-   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSearch[0].label.int64 = nLabel;
+   OneItemSearch[0].uDataType   = uQcborType;
+   OneItemSearch[1].uLabelType  = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORDecode_Private_GetItemInMapNoCheck(pMe, OneItemSeach,  pItem, puOffset);
+   QCBORDecode_Private_GetItemInMapNoCheck(pMe, OneItemSearch,  pItem, puOffset);
 }
 
 
@@ -542,14 +572,14 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pMe,
                            QCBORItem          *pItem)
 {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   QCBORItem OneItemSeach[2];
+   QCBORItem OneItemSearch[2];
 
-   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
-   OneItemSeach[0].uDataType    = uQcborType;
-   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSearch[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSearch[0].uDataType    = uQcborType;
+   OneItemSearch[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORDecode_Private_GetItemInMap(pMe, OneItemSeach, pItem);
+   QCBORDecode_Private_GetItemInMap(pMe, OneItemSearch, pItem);
 
 #else
    (void)pMe;
@@ -581,14 +611,14 @@ QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
                                   size_t             *puOffset)
 {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   QCBORItem OneItemSeach[2];
+   QCBORItem OneItemSearch[2];
 
-   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
-   OneItemSeach[0].uDataType    = uQcborType;
-   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
+   OneItemSearch[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSearch[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSearch[0].uDataType    = uQcborType;
+   OneItemSearch[1].uLabelType   = QCBOR_TYPE_NONE; // Indicates end of array
 
-   QCBORDecode_Private_GetItemInMapNoCheck(pMe, OneItemSeach, pItem, puOffset);
+   QCBORDecode_Private_GetItemInMapNoCheck(pMe, OneItemSearch, pItem, puOffset);
 
 #else
    (void)pMe;
@@ -614,61 +644,46 @@ QCBORDecode_Private_GetItemInMapNoCheckSZ(QCBORDecodeContext *pMe,
  * The next item to be decoded must be a map or array as specified by @c uType.
  *
  * When this is complete, the traversal cursor is unchanged.
- */void
+ */
+void
 QCBORDecode_Private_SearchAndGetArrayOrMap(QCBORDecodeContext *pMe,
                                            QCBORItem          *pTarget,
                                            QCBORItem          *pItem,
                                            UsefulBufC         *pEncodedCBOR)
 {
+   /* Heavy stack use, but it's only for a few QCBOR public methods */
    MapSearchInfo      Info;
    QCBORDecodeNesting SaveNesting;
    size_t             uSaveCursor;
 
+   /* Find the array or map of interest */
    pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, pTarget, &Info, NULL);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
+
+   if(pTarget->uDataType == QCBOR_TYPE_NONE) {
+      pMe->uLastError = QCBOR_ERR_LABEL_NOT_FOUND;
+      return;
+   }
+
    pMe->uLastError = (uint8_t)QCBORDecode_Private_GetItemChecks(pMe, pMe->uLastError, Info.uStartOffset, pItem);
    if(pMe->uLastError != QCBOR_SUCCESS) {
       return;
    }
 
-   /* Save the whole position of things so they can be restored.
-    * so the cursor position is unchanged by this operation, like
-    * all the other GetXxxxInMap() operations. */
+   /* Save the traversal cursor and related */
    DecodeNesting_PrepareForMapSearch(&(pMe->nesting), &SaveNesting);
    uSaveCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
 
+   /* Get the array or map of interest */
    DecodeNesting_ResetMapOrArrayCount(&(pMe->nesting));
    UsefulInputBuf_Seek(&(pMe->InBuf), Info.uStartOffset);
    QCBORDecode_Private_GetArrayOrMap(pMe, pTarget[0].uDataType, pItem, pEncodedCBOR);
 
+   /* Restore the traversal cursor */
    UsefulInputBuf_Seek(&(pMe->InBuf), uSaveCursor);
    DecodeNesting_RestoreFromMapSearch(&(pMe->nesting), &SaveNesting);
-}
-
-
-
-/* Public function, see qcbor/qcbor_spiffy_decode.h */
-void
-QCBORDecode_GetItemsInMap(QCBORDecodeContext *pMe, QCBORItem *pItemList)
-{
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, pItemList, NULL, NULL);
-}
-
-/* Public function, see qcbor/qcbor_spiffy_decode.h */
-void
-QCBORDecode_GetItemsInMapWithCallback(QCBORDecodeContext *pMe,
-                                      QCBORItem          *pItemList,
-                                      void               *pCallbackCtx,
-                                      QCBORItemCallback   pfCB)
-{
-   MapSearchCallBack CallBack;
-
-   CallBack.pCBContext = pCallbackCtx;
-   CallBack.pfCallback = pfCB;
-
-   pMe->uLastError = (uint8_t)QCBORDecode_Private_MapSearch(pMe, pItemList, NULL, &CallBack);
 }
 
 
@@ -747,14 +762,14 @@ QCBORDecode_Private_SearchAndEnter(QCBORDecodeContext *pMe, QCBORItem pSearch[])
 void
 QCBORDecode_EnterMapFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
-   QCBORItem OneItemSeach[2];
-   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
-   OneItemSeach[0].label.int64 = nLabel;
-   OneItemSeach[0].uDataType   = QCBOR_TYPE_MAP;
-   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSearch[2];
+   OneItemSearch[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSearch[0].label.int64 = nLabel;
+   OneItemSearch[0].uDataType   = QCBOR_TYPE_MAP;
+   OneItemSearch[1].uLabelType  = QCBOR_TYPE_NONE;
 
    /* The map to enter was found, now finish off entering it. */
-   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSeach);
+   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSearch);
 }
 
 
@@ -763,13 +778,13 @@ void
 QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   QCBORItem OneItemSeach[2];
-   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
-   OneItemSeach[0].uDataType    = QCBOR_TYPE_MAP;
-   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSearch[2];
+   OneItemSearch[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSearch[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSearch[0].uDataType    = QCBOR_TYPE_MAP;
+   OneItemSearch[1].uLabelType   = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSeach);
+   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSearch);
 #else
    (void)szLabel;
    pMe->uLastError = QCBOR_ERR_LABEL_NOT_FOUND;
@@ -780,13 +795,13 @@ QCBORDecode_EnterMapFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 void
 QCBORDecode_EnterArrayFromMapN(QCBORDecodeContext *pMe, int64_t nLabel)
 {
-   QCBORItem OneItemSeach[2];
-   OneItemSeach[0].uLabelType  = QCBOR_TYPE_INT64;
-   OneItemSeach[0].label.int64 = nLabel;
-   OneItemSeach[0].uDataType   = QCBOR_TYPE_ARRAY;
-   OneItemSeach[1].uLabelType  = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSearch[2];
+   OneItemSearch[0].uLabelType  = QCBOR_TYPE_INT64;
+   OneItemSearch[0].label.int64 = nLabel;
+   OneItemSearch[0].uDataType   = QCBOR_TYPE_ARRAY;
+   OneItemSearch[1].uLabelType  = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSeach);
+   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSearch);
 }
 
 /* Public function, see qcbor/qcbor_spiffy_decode.h */
@@ -794,13 +809,13 @@ void
 QCBORDecode_EnterArrayFromMapSZ(QCBORDecodeContext *pMe, const char  *szLabel)
 {
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   QCBORItem OneItemSeach[2];
-   OneItemSeach[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
-   OneItemSeach[0].label.string = UsefulBuf_FromSZ(szLabel);
-   OneItemSeach[0].uDataType    = QCBOR_TYPE_ARRAY;
-   OneItemSeach[1].uLabelType   = QCBOR_TYPE_NONE;
+   QCBORItem OneItemSearch[2];
+   OneItemSearch[0].uLabelType   = QCBOR_TYPE_TEXT_STRING;
+   OneItemSearch[0].label.string = UsefulBuf_FromSZ(szLabel);
+   OneItemSearch[0].uDataType    = QCBOR_TYPE_ARRAY;
+   OneItemSearch[1].uLabelType   = QCBOR_TYPE_NONE;
 
-   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSeach);
+   QCBORDecode_Private_SearchAndEnter(pMe, OneItemSearch);
 #else
    (void)szLabel;
    pMe->uLastError = QCBOR_ERR_LABEL_NOT_FOUND;
@@ -926,7 +941,7 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     * level is reached.  It may do nothing, or ascend all the way to
     * the top level.
     */
-   uErr = QCBORDecode_Private_NestLevelAscender(pMe, NULL, false);
+   uErr = QCBORDecode_Private_NestLevelAscender(pMe, false, NULL);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
