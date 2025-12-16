@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2024, Laurence Lundblade.
+ Copyright (c) 2018-2025, Laurence Lundblade.
  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -334,7 +334,9 @@ int32_t ErrorHandlingTests(void);
  */
 int32_t GetMapAndArrayTest(void);
 
-int32_t TellTests(void);
+
+/* Test cursor manipulation -- tell, save, restore */
+int32_t CursorTests(void);
 
 int32_t TagModesFanOutTest(void);
 

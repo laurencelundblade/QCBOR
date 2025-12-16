@@ -78,7 +78,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(OpenCloseBytesTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    TEST_ENTRY(GetMapAndArrayTest),
-   TEST_ENTRY(TellTests),
+   TEST_ENTRY(CursorTests),
    TEST_ENTRY(ParseMapAsArrayTest),
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    TEST_ENTRY(ArrayNestingTest3),
@@ -384,10 +384,12 @@ static void PrintSize(const char *szWhat,
 void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx)
 {
    // These will never be large so cast is safe
+   PrintSize("sizeof(QCBORDecode_SaveCursor)", (uint32_t)sizeof(QCBORSavedDecodeCursor),  pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORTrackNesting)",   (uint32_t)sizeof(QCBORTrackNesting),  pfOutput, pOutCtx);
    PrintSize("sizeof(QCBOREncodeContext)",  (uint32_t)sizeof(QCBOREncodeContext), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORDecodeNesting)",  (uint32_t)sizeof(QCBORDecodeNesting), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORDecodeContext)",  (uint32_t)sizeof(QCBORDecodeContext), pfOutput, pOutCtx);
    PrintSize("sizeof(QCBORItem)",           (uint32_t)sizeof(QCBORItem),          pfOutput, pOutCtx);
+
    (*pfOutput)("", pOutCtx, 1);
 }

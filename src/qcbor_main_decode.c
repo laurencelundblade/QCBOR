@@ -2494,6 +2494,39 @@ Done:
 
 
 
+/* Public function; see qcbor_main_decode.h */
+void QCBORDecode_SaveCursor(QCBORDecodeContext     *pMe,
+                            QCBORSavedDecodeCursor *pSaveState)
+{
+   pSaveState->Nesting    = pMe->nesting;
+   pSaveState->offset     = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+   pSaveState->last_error = pMe->uLastError;
+   pSaveState->uTagNumberCheckOffset = (uint32_t)pMe->uTagNumberCheckOffset;
+   pSaveState->uTagNumberIndex = pMe->uTagNumberIndex;
+   pSaveState->uMapEndOffsetCache = pMe->uMapEndOffsetCache;
+   memcpy(pSaveState->auLastTagNumbers, pMe->auLastTagNumbers, sizeof(pMe->auLastTagNumbers));
+   memcpy(pSaveState->auMappedTagNumbers, pMe->auMappedTagNumbers, sizeof(pMe->auMappedTagNumbers));
+
+}
+
+
+/* Public function; see qcbor_main_decode.h */
+void QCBORDecode_RestoreCursor(QCBORDecodeContext           *pMe,
+                               const QCBORSavedDecodeCursor *pSavedState)
+{
+   pMe->nesting = pSavedState->Nesting;
+   UsefulInputBuf_Seek(&(pMe->InBuf), pSavedState->offset);
+   pMe->uLastError = pSavedState->last_error;
+   pMe->uTagNumberCheckOffset = pSavedState->uTagNumberCheckOffset;
+   pMe->uTagNumberIndex = pSavedState->uTagNumberIndex;
+   pMe->uMapEndOffsetCache = pSavedState->uMapEndOffsetCache;
+   memcpy(pMe->auLastTagNumbers, pSavedState->auLastTagNumbers, sizeof(pMe->auLastTagNumbers));
+   memcpy(pMe->auMappedTagNumbers, pSavedState->auMappedTagNumbers, sizeof(pMe->auMappedTagNumbers));
+}
+
+
+
+
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 
 /* ===========================================================================

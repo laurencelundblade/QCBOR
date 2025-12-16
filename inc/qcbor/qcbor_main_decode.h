@@ -791,6 +791,14 @@ typedef struct _QCBORDecodeContext QCBORDecodeContext;
 
 
 /**
+ * This is for use with QCBORDecode_SaveCursor() to hold decode
+ * cursor position and other interal state. This is somewhat large
+ * at a bit over 200 bytes.
+ */
+typedef struct _QCBORSaveDecodeCursor QCBORSavedDecodeCursor;
+
+
+/**
  * Initialize the CBOR decoder context.
  *
  * @param[in] pCtx          The context to initialize.
@@ -1392,6 +1400,28 @@ QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
 
+
+/**
+ * @brief Save traversal cusor and other state so it can be restored later.
+ *
+ * @param[in] pCtx   The decoding context.
+ * @param[out] pSavedState Place to save cursor and state.
+ *
+ * This saves the decode state such that any decoding done after
+ * this call can be abandoned with a call to QCBORDecode_RestoreCursor().
+ */
+void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pSavedState);
+
+
+/**
+ * @brief Restore traversal cursor.
+ *
+ * @param[in] pCtx   The decoding context.
+ * @param[in] pSavedState  Cursor and state to restore.
+ *
+ * See QCBORDecode_SaveCursor().
+ */
+void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeCursor *pSavedState);
 
 
 
