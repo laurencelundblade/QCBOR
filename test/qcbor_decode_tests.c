@@ -1,6 +1,6 @@
 /*==============================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2024, Laurence Lundblade.
+ * Copyright (c) 2018-2025, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -11405,6 +11405,7 @@ ErrorHandlingTests(void)
    return 0;
 }
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 
 int32_t CursorTests(void)
 {
@@ -11414,6 +11415,8 @@ int32_t CursorTests(void)
    int                nIndex;
    int64_t            nDecodedInt;
    int32_t            nErr;
+   uint64_t           uTagNumber;
+
 
    // Improvement: rewrite so this can run with only integer labels
    static const uint32_t aPos[] =
@@ -11733,6 +11736,7 @@ int32_t CursorTests(void)
                     0);
    QCBORDecode_EnterMap(&DCtx, &Item);
    QCBORSavedDecodeCursor SaveCursor;
+   QCBORSavedDecodeCursor SaveCursor2;
    QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
    QCBORDecode_EnterMap(&DCtx, &Item); /* Causes error */
    QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
@@ -11775,8 +11779,39 @@ int32_t CursorTests(void)
       return 10003;
    }
 
+   QCBORDecode_Init(&DCtx,
+                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
+                     QCBOR_DECODE_MODE_NORMAL);
 
-   // TODO: saving state with tags partially consumed.
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
+   if(uTagNumber != 55799) {
+      return 6000;
+   }
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor2);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 585983...
+   QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 7
+   if(uTagNumber != 7) {
+      return 6003;
+   }
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor);
+   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber); // 7 again
+   if(uTagNumber != 7) {
+      return 6005;
+   }
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   QCBORDecode_RestoreCursor(&DCtx, &SaveCursor2);
+   uTagNumber = QCBORDecode_GetNthTagNumberOfLast(&DCtx, 1);
+   if(uTagNumber != 55799) {
+      return 6004;
+   }
 
+   // TODO: more tag tests, test of all the various state
+   // that is saved.
    return 0;
 }
+
+#endif

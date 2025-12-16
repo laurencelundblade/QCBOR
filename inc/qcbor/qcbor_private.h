@@ -335,16 +335,6 @@ typedef struct __QCBORDecodeNesting  {
 } QCBORDecodeNesting;
 
 
-/*
- * Private data structure.
- */
-struct  _QCBORSaveDecodeCursor {
-   uint8_t            last_error;
-   uint32_t           offset;
-   QCBORDecodeNesting Nesting;
-};
-
-
 
 
 typedef struct  {
@@ -399,7 +389,7 @@ struct _QCBORDecodeContext {
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
    uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
 
-   /* See MapTagNumber() for description of how tags are mapped. */
+   /* See QCBORDecode_Private_MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTagNumbers[QCBOR_NUM_MAPPED_TAGS];
 
    QCBORMappedTagNumbers auLastTagNumbers;
@@ -410,6 +400,23 @@ struct _QCBORDecodeContext {
    size_t      uTagNumberCheckOffset;
    uint8_t     uTagNumberIndex;
 #define QCBOR_ALL_TAGS_PROCESSED UINT8_MAX
+};
+
+
+
+
+/*
+ * Private data structure.
+ */
+struct  _QCBORSaveDecodeCursor {
+   uint8_t            last_error;
+   uint8_t            uTagNumberIndex;
+   uint32_t           offset;
+   uint32_t           uTagNumberCheckOffset;
+   uint32_t           uMapEndOffsetCache;
+   QCBORDecodeNesting Nesting;
+   QCBORMappedTagNumbers auLastTagNumbers;
+   uint64_t              auMappedTagNumbers[QCBOR_NUM_MAPPED_TAGS];
 };
 
 
