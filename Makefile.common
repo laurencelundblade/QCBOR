@@ -1,6 +1,6 @@
 # Makefile.common -- Make configuration common to all crypto adaptors
 #
-# Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2025, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 # Copyright (c) 2022-2023 Arm Limited. All rights reserved.
 #
@@ -87,6 +87,10 @@ PUBLIC_INTERFACE=inc/t_cose/q_useful_buf.h \
                  inc/t_cose/t_cose_signature_verify_eddsa.h \
                  inc/t_cose/t_cose_signature_verify_main.h \
                  inc/t_cose/t_cose_standard_constants.h
+
+
+# ---- gcov code coverage files -----
+COV_FILES=test/*.gc{no,da} test/data/*.gc{no,da} src/*.gc{no,da} crypto_adapters/*.gc{no,da} examples/*.gc{no,da} *.gc{no,da} *.gcov
 
 
 # ---- library source dependecies -----

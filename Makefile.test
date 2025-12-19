@@ -1,6 +1,6 @@
 # Makefile.test -- Makefile for no-crypto test config for t_cose
 #
-# Copyright (c) 2019-2023, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2019-2025, Laurence Lundblade. All rights reserved.
 # Copyright (c) 2020, Michael Eckel, Fraunhofer SIT.
 # Copyright (c) 2022, Arm Limited. All rights reserved.
 #
@@ -81,6 +81,8 @@ all: libt_cose.a t_cose_test t_cose_examples
 warn:
 	make -f Makefile.test CMD_LINE="-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
+coverage:
+	make -f Makefile.test CMD_LINE="$(CMD_LINE) -fprofile-arcs -ftest-coverage" t_cose_cov
 
 # ---- Bring in common definitions of SRC_OBJ, TEST_OBJ, ... -----
 
@@ -102,6 +104,9 @@ libt_cose.so: $(SRC_OBJ) $(CRYPTO_OBJ)
 t_cose_test: main.o $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
 	cc -dead_strip -o $@ $^ $(QCBOR_LIB) $(CRYPTO_LIB)
 
+t_cose_cov: main.o $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_TEST_OBJ) libt_cose.a
+	cc -fprofile-arcs -ftest-coverage -o $@ $^ $(CRYPTO_LIB) $(QCBOR_LIB)
+
 crypto_adapters/t_cose_test_crypto.o: crypto_adapters/t_cose_test_crypto.c \
                                       src/t_cose_crypto.h \
                                       src/t_cose_util.h \
@@ -120,6 +125,6 @@ t_cose_examples: $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) libt_cose.a
 
 clean:
 	rm -f $(SRC_OBJ) $(TEST_OBJ) $(CRYPTO_OBJ) $(CRYPTO_TEST_OBJ) $(EXAMPLE_OBJ) $(CRYPTO_EXAMPLE_OBJ) \
-        t_cose_examples libt_cose.so \
+         $(COV_FILES) t_cose_cov t_cose_examples libt_cose.so \
         main.o t_cose_test libt_cose.a libt_cose.so
 
