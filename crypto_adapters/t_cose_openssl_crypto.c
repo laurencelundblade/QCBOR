@@ -1,7 +1,7 @@
 /*
  *  t_cose_openssl_crypto.c
  *
- * Copyright 2019-2023, Laurence Lundblade
+ * Copyright 2019-2025, Laurence Lundblade
  * Copyright (c) 2022, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -14,6 +14,8 @@
 
 #include "t_cose_crypto.h" /* The interface this code implements */
 
+#include <openssl/bn.h>
+#include <openssl/crypto.h>
 #include <openssl/ecdsa.h> /* Needed for signature format conversion */
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
