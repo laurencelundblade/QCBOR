@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # Copyright (c) 2022-2023, Arm Limited. All rights reserved.
-# Copyright (c) 2024, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -14,6 +14,7 @@ project(qcbor
     LANGUAGES C
     VERSION 2.0.0
 )
+
 
 set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
 set(BUILD_QCBOR_WARN   OFF   CACHE BOOL   "Compile with the warning flags used in the QCBOR release process")
@@ -34,6 +35,7 @@ if (BUILD_QCBOR_WARN)
     add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
 endif()
 
+
 add_library(qcbor)
 
 target_sources(qcbor
@@ -49,12 +51,8 @@ target_sources(qcbor
         src/UsefulBuf.c
 )
 
-target_include_directories(qcbor
-    PUBLIC
-        inc
-    PRIVATE
-        src
-)
+add_library(qcbor::qcbor ALIAS qcbor)
+
 
 target_compile_definitions(qcbor
     PRIVATE
@@ -64,7 +62,7 @@ target_compile_definitions(qcbor
 )
 
 if (BUILD_SHARED_LIBS)
-    target_compile_options(qcbor PRIVATE -Os -fPIC)
+    target_compile_options(qcbor PRIVATE -Os)
 endif()
 
 # The math library is needed for floating-point support.
@@ -94,14 +92,59 @@ set_target_properties(
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
         PUBLIC_HEADER "${HEADERS}"
+        POSITION_INDEPENDENT_CODE ON
 )
+
+target_include_directories(qcbor
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+        $<INSTALL_INTERFACE:include>
+)
+
+
+
 include(GNUInstallDirs)
+
 install(
     TARGETS qcbor
-    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/qcbor"
+    EXPORT qcborTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+
+install(
+    EXPORT qcborTargets
+    NAMESPACE qcbor::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
 )
 
 if (NOT BUILD_QCBOR_TEST STREQUAL "OFF")
     enable_testing()
     add_subdirectory(test)
 endif()
+
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+    cmake/qcborConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/qcborConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/qcborConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/qcborConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/qcborConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
+)
+
