@@ -16,19 +16,28 @@ project(qcbor
 )
 
 
-set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
-set(BUILD_QCBOR_WARN   OFF   CACHE BOOL   "Compile with the warning flags used in the QCBOR release process")
+option(BUILD_QCBOR_TEST  "Build QCBOR test suite [OFF, LIB, APP]" OFF)
+option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
 # BUILD_SHARED_LIBS is a built-in global CMake flag
 #    The shared library is not made by default because of platform
 #    variability For example MacOS and Linux behave differently and some
 #    IoT OS's don't support them at all.
-set(BUILD_SHARED_LIBS  OFF   CACHE BOOL   "Build shared libraries instead of static ones")
+option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
 
 # Configuration:
 #   Floating-point support (see README.md for more information)
-set(QCBOR_OPT_DISABLE_FLOAT_HW_USE     OFF  CACHE BOOL "Eliminate dependency on FP hardware and FP instructions")
-set(QCBOR_OPT_DISABLE_FLOAT_PREFERRED  OFF  CACHE BOOL "Eliminate support for half-precision and CBOR preferred serialization")
-set(QCBOR_OPT_DISABLE_FLOAT_ALL        OFF  CACHE BOOL "Eliminate floating-point support completely")
+option(QCBOR_DISABLE_FLOAT_HW_USE     "Eliminate dependency on FP hardware and FP instructions" OFF)
+option(QCBOR_DISABLE_FLOAT_PREFERRED  "Eliminate support for half-precision and CBOR preferred serialization" OFF)
+option(QCBOR_DISABLE_FLOAT_ALL        "Eliminate floating-point support completely" OFF)
+
+option(QCBOR_DISABLE_NON_INTEGER_LABELS        "Disable all label types except integers" OFF)
+option(QCBOR_DISABLE_TAGS                      "Disable all tag encoding and decoding" OFF)
+option(QCBOR_DISABLE_EXP_AND_MANTISSA          "Disable big float and decimal fraction tags" OFF)
+option(QCBOR_DISABLE_ENCODE_USAGE_GUARDS       "Disable (safely) encoding usage error checking" OFF)
+option(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS "Disable encoding and decoding of indefinite-length strings" OFF)
+option(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  "Disable encoding and decoding of indefinite-length arrays and maps" OFF)
+option(QCBOR_DISABLE_DECODE_CONFORMANCE        "Exclude all decode conformance checking features" OFF)
+option(USEFULBUF_DISABLE_STREAMING             "Exclude features for streaming encoding" OFF)
 
 if (BUILD_QCBOR_WARN)
     # Compile options applying to all targets in current directory and below
@@ -59,6 +68,14 @@ target_compile_definitions(qcbor
         $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
         $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_PREFERRED}>:QCBOR_DISABLE_PREFERRED_FLOAT>
         $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_ALL}>:USEFULBUF_DISABLE_ALL_FLOAT>
+        $<$<BOOL:${QCBOR_DISABLE_NON_INTEGER_LABEL}S>:QCBOR_DISABLE_NON_INTEGER_LABELS>
+        $<$<BOOL:${QCBOR_DISABLE_TAGS}>:QCBOR_DISABLE_TAGS>
+        $<$<BOOL:${QCBOR_DISABLE_EXP_AND_MANTISSA}>:QCBOR_DISABLE_EXP_AND_MANTISSA>
+        $<$<BOOL:${QCBOR_DISABLE_ENCODE_USAGE_GUARDS}>:QCBOR_DISABLE_ENCODE_USAGE_GUARDS>
+        $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS>
+        $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
+        $<$<BOOL:${QCBOR_DISABLE_DECODE_CONFORMANCE}>:QCBOR_DISABLE_DECODE_CONFORMANCE>
+        $<$<BOOL:${USEFULBUF_DISABLE_STREAMING}>:USEFULBUF_DISABLE_STREAMING>
 )
 
 if (BUILD_SHARED_LIBS)
