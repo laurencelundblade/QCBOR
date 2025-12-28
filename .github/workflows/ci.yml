@@ -1,5 +1,8 @@
 env:
-    x2-ifdef-array: &ifdef-array ["", "-DQCBOR_DISABLE_NON_INTEGER_LABELS", "-DQCBOR_DISABLE_TAGS"]
+    x3-ifdef-array: &ifdef-array
+     - ""
+     - "-DQCBOR_DISABLE_NON_INTEGER_LABELS"
+     - "-DQCBOR_DISABLE_TAGS"
 
 #                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
 #                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
