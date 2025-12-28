@@ -16,6 +16,8 @@ project(qcbor
 )
 
 
+# TODO: does this really have three values? Is the test suite really a library?
+
 option(BUILD_QCBOR_TEST  "Build QCBOR test suite [OFF, LIB, APP]" OFF)
 option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
 # BUILD_SHARED_LIBS is a built-in global CMake flag
@@ -29,6 +31,7 @@ option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
 #option(QCBOR_DISABLE_FLOAT_HW_USE     "Eliminate dependency on FP hardware and FP instructions" OFF)
 #option(QCBOR_DISABLE_FLOAT_PREFERRED  "Eliminate support for half-precision and CBOR preferred serialization" OFF)
 #option(QCBOR_DISABLE_FLOAT_ALL        "Eliminate floating-point support completely" OFF)
+# TODO: backwards compatibility for these?? Maybe not since this is 2.x
 
 option(QCBOR_DISABLE_FLOAT_HW_USE              "Eliminate dependency on FP libraries, hardware and instructions" OFF)
 option(QCBOR_DISABLE_PREFERRED_FLOAT           "Eliminate support for half-precision and CBOR preferred serialization" OFF)
@@ -85,7 +88,7 @@ if (BUILD_SHARED_LIBS AND NOT MSVC)
     target_compile_options(qcbor PRIVATE -Os)
 endif()
 
-
+# Portable handling of the math library, the only special library dependency QCBOR has
 if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
     include(CheckSymbolExists)
     check_symbol_exists(pow "math.h" QCBOR_HAVE_MATH)
@@ -108,6 +111,7 @@ set(HEADERS
     inc/qcbor/qcbor_spiffy_decode.h
     inc/qcbor/UsefulBuf.h
 )
+
 set_target_properties(
     qcbor PROPERTIES
         VERSION ${PROJECT_VERSION}
