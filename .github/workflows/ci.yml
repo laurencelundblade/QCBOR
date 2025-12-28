@@ -25,9 +25,10 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        ifdef-array: &ifdef-array
+        ifdef: &ifdef-array
           - "-DQCBOR_DISABLE_NON_INTEGER_LABELS"
           - "-DQCBOR_DISABLE_TAGS"
+          - "-DUSEFULBUF_DISABLE_ALL_FLOAT"
 
         config:
         - os-image: ubuntu-latest
