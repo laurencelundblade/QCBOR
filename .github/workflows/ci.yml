@@ -26,9 +26,10 @@ jobs:
         c-compiler: [gcc, clang]
 
         ifdef: &ifdef-array
-          - "-DQCBOR_DISABLE_NON_INTEGER_LABELS"
-          - "-DQCBOR_DISABLE_TAGS"
-          - "-DUSEFULBUF_DISABLE_ALL_FLOAT"
+          - ""
+          - "QCBOR_DISABLE_NON_INTEGER_LABELS"
+          - "QCBOR_DISABLE_TAGS"
+          - "USEFULBUF_DISABLE_ALL_FLOAT"
 
         config:
         - os-image: ubuntu-latest
@@ -54,7 +55,13 @@ jobs:
     - name: Build QCBOR
       run: |
         set -ex
-        make warn CMD_LINE=${{ matrix.ifdef }}
+        IFD="${{ matrix.ifdef }}"
+        if [ $IFD = "" ]; then
+          CONDITIONAL=""
+        else
+          CONDITIONAL="CMD_LINE=-D${IFD}"
+        fi
+        make warn $CONDITIONAL
 
     - name: Run tests
       run: ./qcbortest
@@ -88,7 +95,7 @@ jobs:
           if [ $IFD = "" ]; then
             CONDITIONAL=""
           else
-            CONDITIONAL="${IFD}=ON"
+            CONDITIONAL="-D${IFD}=ON"
           fi
           ARCH="${{ env.ARCH }}" 
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
