@@ -85,7 +85,8 @@ jobs:
         shell: bash
         run: |
 #          CONDITIONAL="${{ matrix.ifdef == '' ? '' : $matrix.idef + '=ON' }}"
-          CONDITIONAL="${{ matrix.ifdef + '=ON' }}"
+#          CONDITIONAL="${{ matrix.ifdef + '=ON' }}"
+          CONDITIONAL=""
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
             -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
             $CONDITIONAL
