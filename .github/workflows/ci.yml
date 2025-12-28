@@ -55,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
 
-        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS=ON, -DQCBOR_DISABLE_TAGS=ON ]
+        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS ]
 #                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
 #                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
 #                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
@@ -79,7 +79,7 @@ jobs:
         run: |
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
             -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
-            ${{ matrix.ifdef }}
+            ${{ matrix.ifdef }}=ON
 
       - name: Build
         run: cmake --build build 
