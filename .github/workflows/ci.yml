@@ -84,11 +84,11 @@ jobs:
       - name: Configure (CMake → VS solution)
         shell: bash
         run: |
-           IFD="${{ matrix.ifdef }}"
-           if [ $IFD = "" ]; then
-             CONDITIONAL=""
-           else
-             CONDITIONAL="${IFD}=ON"
+          IFD="${{ matrix.ifdef }}"
+          if [ $IFD = "" ]; then
+            CONDITIONAL=""
+          else
+            CONDITIONAL="${IFD}=ON"
           fi
           ARCH="${{ env.ARCH }}" 
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
