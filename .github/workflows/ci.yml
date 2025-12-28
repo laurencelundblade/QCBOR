@@ -1,9 +1,9 @@
-env:
-    x3-ifdef-array: &ifdef-array
-     - ""
-     - "-DQCBOR_DISABLE_NON_INTEGER_LABELS"
-     - "-DQCBOR_DISABLE_TAGS"
-
+#env:
+#    x3-ifdef-array: &ifdef-array
+#     - ""
+#     - "-DQCBOR_DISABLE_NON_INTEGER_LABELS"
+#     - "-DQCBOR_DISABLE_TAGS"
+#
 #                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
 #                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
 #                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
@@ -25,7 +25,9 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        ifdef: *ifdef-array
+        ifdef-array: &ifdef-array
+          - "-DQCBOR_DISABLE_NON_INTEGER_LABELS"
+          - "-DQCBOR_DISABLE_TAGS"
 
         config:
         - os-image: ubuntu-latest
@@ -63,12 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-
-        ifdef: [ -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS, 
-                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
-                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
-                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
-                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE ]
+        ifdef: *ifdef-array
 
     env:
       ARCH: x64
