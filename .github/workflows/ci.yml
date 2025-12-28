@@ -84,7 +84,7 @@ jobs:
       - name: Configure (CMake → VS solution)
         shell: bash
         run: |
-          CONDITIONAL="${{ matrix.ifdef == '' ? '' : matrix.idef + '=ON' }}"
+          CONDITIONAL="${{ matrix.ifdef == '' ? '' : matrix.ifdef + '=ON' }}"
           ARCH="${{ env.ARCH }}" 
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
             -G "Visual Studio 17 2022" -A "$ARCH" \
