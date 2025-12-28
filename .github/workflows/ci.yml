@@ -85,7 +85,7 @@ jobs:
         shell: bash
         run: |
            IFD="${{ matrix.ifdef }}"
-           if [ $IFD= "" ]; then
+           if [ $IFD = "" ]; then
              CONDITIONAL=""
            else
              CONDITIONAL="${IFD}=ON"
