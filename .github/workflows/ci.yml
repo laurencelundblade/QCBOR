@@ -84,11 +84,10 @@ jobs:
       - name: Configure (CMake → VS solution)
         shell: bash
         run: |
-#          CONDITIONAL="${{ matrix.ifdef == '' ? '' : $matrix.idef + '=ON' }}"
-#          CONDITIONAL="${{ matrix.ifdef + '=ON' }}"
           CONDITIONAL="-DXXX"
+          ARCH="${{ env.ARCH }}" 
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
-            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
+            -G "Visual Studio 17 2022" -A "$ARCH" \
             "$CONDITIONAL"
 
       - name: Build
@@ -103,4 +102,10 @@ jobs:
             Write-Error "Test binary not found: $exe"
           }
           & $exe 
+
+
+
+
+#          CONDITIONAL="${{ matrix.ifdef == '' ? '' : $matrix.idef + '=ON' }}"
+#          CONDITIONAL="${{ matrix.ifdef + '=ON' }}"
 
