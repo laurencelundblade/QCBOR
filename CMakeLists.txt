@@ -26,10 +26,13 @@ option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
 
 # Configuration:
 #   Floating-point support (see README.md for more information)
-option(QCBOR_DISABLE_FLOAT_HW_USE     "Eliminate dependency on FP hardware and FP instructions" OFF)
-option(QCBOR_DISABLE_FLOAT_PREFERRED  "Eliminate support for half-precision and CBOR preferred serialization" OFF)
-option(QCBOR_DISABLE_FLOAT_ALL        "Eliminate floating-point support completely" OFF)
+#option(QCBOR_DISABLE_FLOAT_HW_USE     "Eliminate dependency on FP hardware and FP instructions" OFF)
+#option(QCBOR_DISABLE_FLOAT_PREFERRED  "Eliminate support for half-precision and CBOR preferred serialization" OFF)
+#option(QCBOR_DISABLE_FLOAT_ALL        "Eliminate floating-point support completely" OFF)
 
+option(QCBOR_DISABLE_FLOAT_HW_USE              "Eliminate dependency on FP libraries, hardware and instructions" OFF)
+option(QCBOR_DISABLE_PREFERRED_FLOAT           "Eliminate support for half-precision and CBOR preferred serialization" OFF)
+option(USEFULBUF_DISABLE_ALL_FLOAT             "Eliminate floating-point support completely" OFF)
 option(QCBOR_DISABLE_NON_INTEGER_LABELS        "Disable all label types except integers" OFF)
 option(QCBOR_DISABLE_TAGS                      "Disable all tag encoding and decoding" OFF)
 option(QCBOR_DISABLE_EXP_AND_MANTISSA          "Disable big float and decimal fraction tags" OFF)
@@ -65,10 +68,10 @@ add_library(qcbor::qcbor ALIAS qcbor)
 
 target_compile_definitions(qcbor
     PRIVATE
-        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
-        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_PREFERRED}>:QCBOR_DISABLE_PREFERRED_FLOAT>
-        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_ALL}>:USEFULBUF_DISABLE_ALL_FLOAT>
-        $<$<BOOL:${QCBOR_DISABLE_NON_INTEGER_LABEL}S>:QCBOR_DISABLE_NON_INTEGER_LABELS>
+        $<$<BOOL:${QCBOR_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
+        $<$<BOOL:${QCBOR_DISABLE_PREFERRED_FLOAT}>:QCBOR_DISABLE_PREFERRED_FLOAT>
+        $<$<BOOL:${USEFULBUF_DISABLE_ALL_FLOAT}>:USEFULBUF_DISABLE_ALL_FLOAT>
+        $<$<BOOL:${QCBOR_DISABLE_NON_INTEGER_LABELS}>:QCBOR_DISABLE_NON_INTEGER_LABELS>
         $<$<BOOL:${QCBOR_DISABLE_TAGS}>:QCBOR_DISABLE_TAGS>
         $<$<BOOL:${QCBOR_DISABLE_EXP_AND_MANTISSA}>:QCBOR_DISABLE_EXP_AND_MANTISSA>
         $<$<BOOL:${QCBOR_DISABLE_ENCODE_USAGE_GUARDS}>:QCBOR_DISABLE_ENCODE_USAGE_GUARDS>
@@ -78,19 +81,20 @@ target_compile_definitions(qcbor
         $<$<BOOL:${USEFULBUF_DISABLE_STREAMING}>:USEFULBUF_DISABLE_STREAMING>
 )
 
-if (BUILD_SHARED_LIBS)
+if (BUILD_SHARED_LIBS AND NOT MSVC)
     target_compile_options(qcbor PRIVATE -Os)
 endif()
 
-# The math library is needed for floating-point support.
-# To avoid need for it #define QCBOR_DISABLE_FLOAT_HW_USE
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    # Using GCC
-    target_link_libraries(qcbor
-        PRIVATE
-            $<$<NOT:$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>>:m>
-    )
+
+if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
+    include(CheckSymbolExists)
+    check_symbol_exists(pow "math.h" QCBOR_HAVE_MATH)
+    if(NOT QCBOR_HAVE_MATH)
+        target_link_libraries(qcbor PUBLIC m)
+    endif()
 endif()
+
+
 
 set(HEADERS
     inc/qcbor/qcbor.h
