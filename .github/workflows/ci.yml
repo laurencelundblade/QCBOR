@@ -56,7 +56,7 @@ jobs:
       run: |
         set -ex
         IFD="${{ matrix.ifdef }}"
-        if [ $IFD = "" ]; then
+        if [ -z "$IFD" ]; then
           CONDITIONAL=""
         else
           CONDITIONAL="CMD_LINE=-D${IFD}"
@@ -92,7 +92,7 @@ jobs:
         shell: bash
         run: |
           IFD="${{ matrix.ifdef }}"
-          if [ $IFD = "" ]; then
+          if [ -z "$IFD" ]; then
             CONDITIONAL=""
           else
             CONDITIONAL="-D${IFD}=ON"
