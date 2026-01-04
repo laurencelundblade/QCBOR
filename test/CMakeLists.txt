@@ -10,13 +10,13 @@
 cmake_minimum_required(VERSION 3.15)
 
 # Validate value of BUILD_QCBOR_TEST config option
-if ((NOT BUILD_QCBOR_TEST STREQUAL "LIB") AND (NOT BUILD_QCBOR_TEST STREQUAL "APP"))
+if (NOT (BUILD_QCBOR_TEST STREQUAL "LIB" OR BUILD_QCBOR_TEST STREQUAL "APP"))
     message(FATAL_ERROR "QCBOR | Invalid Config: BUILD_QCBOR_TEST=${BUILD_QCBOR_TEST}")
 endif()
 
-add_library(qcbor_test STATIC)
+add_library(qcbor_test_lib STATIC)
 
-target_sources(qcbor_test
+target_sources(qcbor_test_lib
     PRIVATE
         float_tests.c
         half_to_double_from_rfc7049.c
@@ -26,15 +26,18 @@ target_sources(qcbor_test
         UsefulBuf_Tests.c
 )
 
-target_include_directories(qcbor_test
-    PUBLIC
-        .
+target_link_libraries(qcbor_test_lib
     PRIVATE
-        ../inc
+        qcbor
 )
 
-target_compile_definitions(qcbor_test
+target_include_directories(qcbor
     PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_compile_definitions(qcbor_test_lib
+    PRIVATE
         $<$<BOOL:${QCBOR_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
         $<$<BOOL:${QCBOR_DISABLE_PREFERRED_FLOAT}>:QCBOR_DISABLE_PREFERRED_FLOAT>
         $<$<BOOL:${USEFULBUF_DISABLE_ALL_FLOAT}>:USEFULBUF_DISABLE_ALL_FLOAT>
@@ -48,14 +51,15 @@ target_compile_definitions(qcbor_test
         $<$<BOOL:${USEFULBUF_DISABLE_STREAMING}>:USEFULBUF_DISABLE_STREAMING>
 )
 
-target_link_libraries(qcbor_test
-    PRIVATE
-        qcbor
-        # The math library is needed for floating-point support.
-        # To avoid need for it #define QCBOR_DISABLE_FLOAT_HW_USE
-        # Using GCC
-        $<$<AND:$<STREQUAL:${CMAKE_C_COMPILER_ID},"GNU">,$<NOT:$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>>>:m>
-)
+# Portable handling of the math library, the only special library dependency QCBOR has
+if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
+    include(CheckSymbolExists)
+    check_symbol_exists(ldexp "math.h" QCBOR_TEST_HAVE_MATH)
+    if(NOT QCBOR_TEST_HAVE_MATH)
+        target_link_libraries(qcbor_test_lib PUBLIC m)
+    endif()
+endif()
+
 
 if (BUILD_QCBOR_TEST STREQUAL "APP")
     add_executable(qcbortest)
@@ -68,15 +72,10 @@ if (BUILD_QCBOR_TEST STREQUAL "APP")
             ../ub-example.c
     )
 
-    target_include_directories(qcbortest
-        PRIVATE
-            ../
-    )
-
     target_link_libraries(qcbortest
         PRIVATE
             qcbor
-            qcbor_test
+            qcbor_test_lib
     )
 
     message(STATUS "Adding test qcbortest")

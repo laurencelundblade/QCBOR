@@ -16,9 +16,8 @@ project(qcbor
 )
 
 
-# TODO: does this really have three values? Is the test suite really a library?
+set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
 
-option(BUILD_QCBOR_TEST  "Build QCBOR test suite [OFF, LIB, APP]" OFF)
 option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
 # BUILD_SHARED_LIBS is a built-in global CMake flag
 #    The shared library is not made by default because of platform
@@ -99,24 +98,10 @@ endif()
 
 
 
-set(HEADERS
-    inc/qcbor/qcbor.h
-    inc/qcbor/qcbor_common.h
-    inc/qcbor/qcbor_private.h
-    inc/qcbor/qcbor_encode.h
-    inc/qcbor/qcbor_decode.h
-    inc/qcbor/qcbor_number_decode.h
-    inc/qcbor/qcbor_main_decode.h
-    inc/qcbor/qcbor_tag_decode.h
-    inc/qcbor/qcbor_spiffy_decode.h
-    inc/qcbor/UsefulBuf.h
-)
-
 set_target_properties(
     qcbor PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
-        PUBLIC_HEADER "${HEADERS}"
         POSITION_INDEPENDENT_CODE ON
 )
 
@@ -136,7 +121,11 @@ install(
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(
+    DIRECTORY inc/qcbor
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 
