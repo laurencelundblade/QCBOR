@@ -1,11 +1,20 @@
+# ci.yml -- Configuration QCBOR continuous integration for github workflow
+#
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# See BSD-3-Clause license in README.md
+#
+
 name: CI
 
 on: [push, pull_request]
 
 
-
-# Fan out for the two compilers
 # Fan out disabling on feature at a time -- too slow to do the full combo fan out
+# Use make for Linux and cmake for windows to exercise both make configurations
+
 jobs:
   main:
     strategy:
@@ -46,9 +55,8 @@ jobs:
         set -ex
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y build-essential cmake  ${{ matrix.c-compiler }} 
+        apt-get install -y build-essential ${{ matrix.c-compiler }} 
         echo "CC=${{ matrix.c-compiler }}" >> $GITHUB_ENV
-    
 
     - name: Build QCBOR
       run: |
@@ -112,10 +120,4 @@ jobs:
             Write-Error "Test binary not found: $exe"
           }
           & $exe 
-
-
-
-
-#          CONDITIONAL="${{ matrix.ifdef == '' ? '' : $matrix.idef + '=ON' }}"
-#          CONDITIONAL="${{ matrix.ifdef + '=ON' }}"
 
