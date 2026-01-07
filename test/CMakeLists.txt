@@ -62,7 +62,6 @@ if (BUILD_QCBOR_TEST STREQUAL "APP")
         PRIVATE
             ../cmd_line_main.c
             ../example.c
-            ../tag-examples.c
             ../ub-example.c
     )
 
