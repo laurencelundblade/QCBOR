@@ -14,6 +14,11 @@ if (NOT (BUILD_QCBOR_TEST STREQUAL "LIB" OR BUILD_QCBOR_TEST STREQUAL "APP"))
     message(FATAL_ERROR "QCBOR | Invalid Config: BUILD_QCBOR_TEST=${BUILD_QCBOR_TEST}")
 endif()
 
+
+# =========================================================================
+#    Build the test cases as a library
+# =========================================================================
+
 add_library(qcbor_test_lib STATIC)
 
 target_sources(qcbor_test_lib
@@ -36,7 +41,7 @@ target_include_directories(qcbor
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-# Portable handling of the math library, the only special library dependency QCBOR has
+# Portable handling of the math library on which some test cases rely
 if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
     include(CheckSymbolExists)
     check_symbol_exists(ldexp "math.h" QCBOR_TEST_HAVE_MATH)
@@ -45,6 +50,10 @@ if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
     endif()
 endif()
 
+
+# =========================================================================
+#    Build app to run the test cases
+# =========================================================================
 
 if (BUILD_QCBOR_TEST STREQUAL "APP")
     add_executable(qcbortest)
