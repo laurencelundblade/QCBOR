@@ -15,22 +15,19 @@ project(qcbor
     VERSION 2.0.0
 )
 
+# =========================================================================
+#    Configuration
+# =========================================================================
 
 set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
 
 option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
+
 # BUILD_SHARED_LIBS is a built-in global CMake flag
 #    The shared library is not made by default because of platform
 #    variability For example MacOS and Linux behave differently and some
 #    IoT OS's don't support them at all.
 option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
-
-# Configuration:
-#   Floating-point support (see README.md for more information)
-#option(QCBOR_DISABLE_FLOAT_HW_USE     "Eliminate dependency on FP hardware and FP instructions" OFF)
-#option(QCBOR_DISABLE_FLOAT_PREFERRED  "Eliminate support for half-precision and CBOR preferred serialization" OFF)
-#option(QCBOR_DISABLE_FLOAT_ALL        "Eliminate floating-point support completely" OFF)
-# TODO: backwards compatibility for these?? Maybe not since this is 2.x
 
 option(QCBOR_DISABLE_FLOAT_HW_USE              "Eliminate dependency on FP libraries, hardware and instructions" OFF)
 option(QCBOR_DISABLE_PREFERRED_FLOAT           "Eliminate support for half-precision and CBOR preferred serialization" OFF)
@@ -50,7 +47,20 @@ if (BUILD_QCBOR_WARN)
 endif()
 
 
+# =========================================================================
+#    building qcbor library 
+# =========================================================================
+
 add_library(qcbor)
+
+add_library(qcbor::qcbor ALIAS qcbor)
+
+set_target_properties(
+    qcbor PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        POSITION_INDEPENDENT_CODE ON
+)
 
 target_sources(qcbor
     PRIVATE
@@ -64,9 +74,6 @@ target_sources(qcbor
         src/qcbor_err_to_str.c
         src/UsefulBuf.c
 )
-
-add_library(qcbor::qcbor ALIAS qcbor)
-
 
 target_compile_definitions(qcbor
     PUBLIC
@@ -96,15 +103,6 @@ if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
     endif()
 endif()
 
-
-
-set_target_properties(
-    qcbor PROPERTIES
-        VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR}
-        POSITION_INDEPENDENT_CODE ON
-)
-
 target_include_directories(qcbor
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
@@ -112,6 +110,19 @@ target_include_directories(qcbor
 )
 
 
+# =========================================================================
+#    Make the test code
+# =========================================================================
+
+if (NOT BUILD_QCBOR_TEST STREQUAL "OFF")
+    enable_testing()
+    add_subdirectory(test)
+endif()
+
+
+# =========================================================================
+#    install qcbor library 
+# =========================================================================
 
 include(GNUInstallDirs)
 
@@ -128,18 +139,16 @@ install(
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-
 install(
     EXPORT qcborTargets
     NAMESPACE qcbor::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
 )
 
-if (NOT BUILD_QCBOR_TEST STREQUAL "OFF")
-    enable_testing()
-    add_subdirectory(test)
-endif()
 
+# =========================================================================
+#    install cmake package info
+# =========================================================================
 
 include(CMakePackageConfigHelpers)
 
