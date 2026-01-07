@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # Copyright (c) 2022-2023, Arm Limited. All rights reserved.
-# Copyright (c) 2025, Laurence Lundblade All rights reserved.
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -12,89 +12,154 @@ cmake_minimum_required(VERSION 3.15)
 project(qcbor
     DESCRIPTION "QCBOR"
     LANGUAGES C
-    VERSION 1.6
+    VERSION 2.0.0
 )
 
+# =========================================================================
+#    Configuration
+# =========================================================================
+
 set(BUILD_QCBOR_TEST  "OFF"  CACHE STRING "Build QCBOR test suite [OFF, LIB, APP]")
-set(BUILD_QCBOR_WARN   OFF   CACHE BOOL   "Compile with the warning flags used in the QCBOR release process")
+
+option(BUILD_QCBOR_WARN  "Compile with the warning flags used in the QCBOR release process" OFF)
+
 # BUILD_SHARED_LIBS is a built-in global CMake flag
 #    The shared library is not made by default because of platform
 #    variability For example MacOS and Linux behave differently and some
 #    IoT OS's don't support them at all.
-set(BUILD_SHARED_LIBS  OFF   CACHE BOOL   "Build shared libraries instead of static ones")
+option(BUILD_SHARED_LIBS  "Build shared libraries instead of static ones" OFF)
 
-# Configuration:
-#   Floating-point support (see README.md for more information)
-set(QCBOR_OPT_DISABLE_FLOAT_HW_USE     OFF  CACHE BOOL "Eliminate dependency on FP hardware and FP instructions")
-set(QCBOR_OPT_DISABLE_FLOAT_PREFERRED  OFF  CACHE BOOL "Eliminate support for half-precision and CBOR preferred serialization")
-set(QCBOR_OPT_DISABLE_FLOAT_ALL        OFF  CACHE BOOL "Eliminate floating-point support completely")
+option(QCBOR_DISABLE_FLOAT_HW_USE              "Eliminate dependency on FP libraries, hardware and instructions" OFF)
+option(QCBOR_DISABLE_PREFERRED_FLOAT           "Eliminate support for half-precision and CBOR preferred serialization" OFF)
+option(USEFULBUF_DISABLE_ALL_FLOAT             "Eliminate floating-point support completely" OFF)
+option(QCBOR_DISABLE_NON_INTEGER_LABELS        "Disable all label types except integers" OFF)
+option(QCBOR_DISABLE_TAGS                      "Disable all tag encoding and decoding" OFF)
+option(QCBOR_DISABLE_EXP_AND_MANTISSA          "Disable big float and decimal fraction tags" OFF)
+option(QCBOR_DISABLE_ENCODE_USAGE_GUARDS       "Disable (safely) encoding usage error checking" OFF)
+option(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS "Disable encoding and decoding of indefinite-length strings" OFF)
+option(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  "Disable encoding and decoding of indefinite-length arrays and maps" OFF)
 
 if (BUILD_QCBOR_WARN)
     # Compile options applying to all targets in current directory and below
     add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
 endif()
 
+
+# =========================================================================
+#    building qcbor library 
+# =========================================================================
+
 add_library(qcbor)
 
-target_sources(qcbor
-    PRIVATE
-        src/ieee754.c
-        src/qcbor_decode.c
-        src/qcbor_encode.c
-        src/qcbor_err_to_str.c
-        src/UsefulBuf.c
-)
+add_library(qcbor::qcbor ALIAS qcbor)
 
-target_include_directories(qcbor
-    PUBLIC
-        inc
-    PRIVATE
-        src
-)
-
-target_compile_definitions(qcbor
-    PRIVATE
-        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
-        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_PREFERRED}>:QCBOR_DISABLE_PREFERRED_FLOAT>
-        $<$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_ALL}>:USEFULBUF_DISABLE_ALL_FLOAT>
-)
-
-if (BUILD_SHARED_LIBS)
-    target_compile_options(qcbor PRIVATE -Os -fPIC)
-endif()
-
-# The math library is needed for floating-point support.
-# To avoid need for it #define QCBOR_DISABLE_FLOAT_HW_USE
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    # Using GCC
-    target_link_libraries(qcbor
-        PRIVATE
-            $<$<NOT:$<BOOL:${QCBOR_OPT_DISABLE_FLOAT_HW_USE}>>:m>
-    )
-endif()
-
-set(HEADERS
-    inc/qcbor/qcbor.h
-    inc/qcbor/qcbor_common.h
-    inc/qcbor/qcbor_private.h
-    inc/qcbor/qcbor_encode.h
-    inc/qcbor/qcbor_decode.h
-    inc/qcbor/qcbor_spiffy_decode.h
-    inc/qcbor/UsefulBuf.h
-)
 set_target_properties(
     qcbor PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
-        PUBLIC_HEADER "${HEADERS}"
+        POSITION_INDEPENDENT_CODE ON
 )
-include(GNUInstallDirs)
-install(
-    TARGETS qcbor
-    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/qcbor"
+
+target_sources(qcbor
+    PRIVATE
+        src/qcbor_encode.c
+        src/ieee754.c
+        src/qcbor_decode.c
+        src/qcbor_err_to_str.c
+        src/UsefulBuf.c
 )
+
+target_compile_definitions(qcbor
+    PUBLIC
+        $<$<BOOL:${QCBOR_DISABLE_FLOAT_HW_USE}>:QCBOR_DISABLE_FLOAT_HW_USE>
+        $<$<BOOL:${QCBOR_DISABLE_PREFERRED_FLOAT}>:QCBOR_DISABLE_PREFERRED_FLOAT>
+        $<$<BOOL:${USEFULBUF_DISABLE_ALL_FLOAT}>:USEFULBUF_DISABLE_ALL_FLOAT>
+        $<$<BOOL:${QCBOR_DISABLE_NON_INTEGER_LABELS}>:QCBOR_DISABLE_NON_INTEGER_LABELS>
+        $<$<BOOL:${QCBOR_DISABLE_TAGS}>:QCBOR_DISABLE_TAGS>
+        $<$<BOOL:${QCBOR_DISABLE_EXP_AND_MANTISSA}>:QCBOR_DISABLE_EXP_AND_MANTISSA>
+        $<$<BOOL:${QCBOR_DISABLE_ENCODE_USAGE_GUARDS}>:QCBOR_DISABLE_ENCODE_USAGE_GUARDS>
+        $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS>
+        $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
+)
+
+if (BUILD_SHARED_LIBS AND NOT MSVC)
+    target_compile_options(qcbor PRIVATE -Os)
+endif()
+
+# Portable handling of the math library, the only special library dependency QCBOR has
+if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
+    include(CheckSymbolExists)
+    check_symbol_exists(pow "math.h" QCBOR_HAVE_MATH)
+    if(NOT QCBOR_HAVE_MATH)
+        target_link_libraries(qcbor PUBLIC m)
+    endif()
+endif()
+
+target_include_directories(qcbor
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+        $<INSTALL_INTERFACE:include>
+)
+
+
+# =========================================================================
+#    Make the test code
+# =========================================================================
 
 if (NOT BUILD_QCBOR_TEST STREQUAL "OFF")
     enable_testing()
     add_subdirectory(test)
 endif()
+
+
+# =========================================================================
+#    install qcbor library 
+# =========================================================================
+
+include(GNUInstallDirs)
+
+install(
+    TARGETS qcbor
+    EXPORT qcborTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(
+    DIRECTORY inc/qcbor
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(
+    EXPORT qcborTargets
+    NAMESPACE qcbor::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
+)
+
+
+# =========================================================================
+#    install cmake package info
+# =========================================================================
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+    cmake/qcborConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/qcborConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/qcborConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/qcborConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/qcborConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
+)
+
