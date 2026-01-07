@@ -186,7 +186,7 @@ install_so: libqcbor.so
 	ln -sf libqcbor.so.1 $(DESTDIR)$(PREFIX)/lib/libqcbor.so
 	ln -sf libqcbor.so.1.0.0 $(DESTDIR)$(PREFIX)/lib/libqcbor.so.1
 
-uninstall: libqcbor.a $(PUBLIC_INTERFACE)
+uninstall:
 	$(RM) -d $(DESTDIR)$(PREFIX)/include/qcbor/*
 	$(RM) -d $(DESTDIR)$(PREFIX)/include/qcbor/
 	$(RM) $(addprefix $(DESTDIR)$(PREFIX)/lib/, \
