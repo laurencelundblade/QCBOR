@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.15)
 project(qcbor
     DESCRIPTION "QCBOR"
     LANGUAGES C
-    VERSION 2.0.0
+    VERSION 1.6.0
 )
 
 # =========================================================================
