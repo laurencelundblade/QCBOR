@@ -1,9 +1,20 @@
+# ci.yml -- Configuration QCBOR continuous integration for github workflow
+#
+# Copyright (c) 2024-2026, Laurence Lundblade. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# See BSD-3-Clause license in README.md
+#
+
 name: CI
 
 on: [push, pull_request]
 
-# Fan out for the two compilers
+
 # Fan out disabling on feature at a time -- too slow to do the full combo fan out
+# Use make for Linux and cmake for windows to exercise both make configurations
+
 jobs:
   main:
     strategy:
@@ -11,12 +22,21 @@ jobs:
       matrix:
         c-compiler: [gcc, clang]
 
-        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
-                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
-                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
-                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
-                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE,
-                -DUSEFULBUF_DISABLE_STREAMING ]
+        # This list is both cmake config and C preprocessor symbols; the same name is reused
+        # This list is used for all jobs, but has to be in some matrix because it is not a scalar
+        ifdef: &ifdef-array
+          - ""
+          - QCBOR_DISABLE_NON_INTEGER_LABELS
+          - QCBOR_DISABLE_TAGS
+          - USEFULBUF_DISABLE_ALL_FLOAT
+          - QCBOR_DISABLE_FLOAT_HW_USE
+          - QCBOR_DISABLE_PREFERRED_FLOAT
+          - QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+          - QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+          - QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+          - QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+          - QCBOR_DISABLE_DECODE_CONFORMANCE
+          - USEFULBUF_DISABLE_STREAMING
 
         config:
         - os-image: ubuntu-latest
@@ -35,14 +55,19 @@ jobs:
         set -ex
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y build-essential cmake  ${{ matrix.c-compiler }} 
+        apt-get install -y build-essential ${{ matrix.c-compiler }} 
         echo "CC=${{ matrix.c-compiler }}" >> $GITHUB_ENV
-    
 
     - name: Build QCBOR
       run: |
         set -ex
-        make warn CMD_LINE=${{ matrix.ifdef }}
+        IFD="${{ matrix.ifdef }}"
+        if [ -z "$IFD" ]; then
+          CONDITIONAL=""
+        else
+          CONDITIONAL="CMD_LINE=-D${IFD}"
+        fi
+        make warn $CONDITIONAL
 
     - name: Run tests
       run: ./qcbortest
@@ -54,12 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-
-        ifdef: ["", -DQCBOR_DISABLE_NON_INTEGER_LABELS, -DQCBOR_DISABLE_TAGS,
-                -DUSEFULBUF_DISABLE_ALL_FLOAT, -DQCBOR_DISABLE_FLOAT_HW_USE,
-                -DQCBOR_DISABLE_PREFERRED_FLOAT, -DQCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
-                -DQCBOR_DISABLE_ENCODE_USAGE_GUARDS, -DQCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS,
-                -DQCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS, -DQCBOR_DISABLE_DECODE_CONFORMANCE ]
+        ifdef: *ifdef-array
 
     env:
       ARCH: x64
@@ -77,10 +97,16 @@ jobs:
       - name: Configure (CMake → VS solution)
         shell: bash
         run: |
+          IFD="${{ matrix.ifdef }}"
+          if [ -z "$IFD" ]; then
+            CONDITIONAL=""
+          else
+            CONDITIONAL="-D${IFD}=ON"
+          fi
+          ARCH="${{ env.ARCH }}" 
           cmake -S . -B build -DBUILD_QCBOR_TEST=APP \
-            -G "Visual Studio 17 2022" -A ${{ env.ARCH }} \
-            -DCMAKE_C_FLAGS="${{ matrix.ifdef }}" \
-            -DCMAKE_CXX_FLAGS="${{ matrix.ifdef }}"
+            -G "Visual Studio 17 2022" -A "$ARCH" \
+            "$CONDITIONAL"
 
       - name: Build
         run: cmake --build build 
