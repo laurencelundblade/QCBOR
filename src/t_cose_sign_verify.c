@@ -203,7 +203,7 @@ verify_one_signature(struct t_cose_sign_verify_ctx       *me,
 {
     struct t_cose_signature_verify *verifier;
     enum t_cose_err_t               return_value;
-    QCBORSaveDecodeCursor           saved_cursor;
+    QCBORSavedDecodeCursor          saved_cursor;
     struct t_cose_parameter        *tmp_sig_param_list;
     struct t_cose_parameter        *best_sig_param_list;
     int                             param_count;

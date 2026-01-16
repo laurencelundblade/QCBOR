@@ -71,7 +71,7 @@ decrypt_one_recipient(struct t_cose_encrypt_dec_ctx      *me,
 {
     struct t_cose_recipient_dec *rcpnt_decoder;
     enum t_cose_err_t            return_value;
-    QCBORSaveDecodeCursor        saved_cursor;
+    QCBORSavedDecodeCursor       saved_cursor;
 
     QCBORDecode_SaveCursor(cbor_decoder, &saved_cursor);
 

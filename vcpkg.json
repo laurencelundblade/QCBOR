@@ -1,0 +1,8 @@
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "builtin-baseline": "37dcabc43809a960f41758e00e615cc6e26e8bbf",
+  "dependencies": [
+    "openssl"
+  ]
+}
