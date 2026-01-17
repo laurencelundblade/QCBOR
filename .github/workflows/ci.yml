@@ -252,7 +252,8 @@ jobs:
         ref: ${{ matrix.qcbor-version }}
         path: QCBOR
 
-    - name: Configure QCBOR
+    - name: Configure Q        qcbor-version: [master, dev]
+CBOR
       shell: bash
       run: |
         cd QCBOR
@@ -305,6 +306,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        qcbor-version: [master, dev]
+
         # TODO: add OPenSSL back in when we figure out why it is broken
         crypto: [ Test, MbedTLS ]
     
@@ -350,7 +353,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: laurencelundblade/QCBOR
-          ref: master
+          ref: ${{ matrix.qcbor-version }}
           path: QCBOR
 
       - name: Configure QCBOR Win
