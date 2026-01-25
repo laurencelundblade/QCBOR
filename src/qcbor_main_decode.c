@@ -730,7 +730,7 @@ QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeM
 
    /* See if it could have been encoded shorter */
    if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
-      ToSmaller = IEEE754_SingleToHalf(uSingle, true);
+      ToSmaller = IEEE754_SingleToHalf(uSingle);
       if(ToSmaller.uSize != sizeof(float)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
       }
@@ -760,7 +760,7 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
 
    /* See if it could have been encoded shorter */
    if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
-      ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
+      ToSmaller = IEEE754_DoubleToSmaller(d, true);
       if(ToSmaller.uSize != sizeof(double)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
       }
