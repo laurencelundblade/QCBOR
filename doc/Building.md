@@ -2,42 +2,47 @@
 @anchor Building
 ## Building
 
-The library is built solely from the src and inc directores. The inc directory
-contains the public interface. The test app and such are in other
-directories.
+The library is built solely from the src and inc directores. The inc
+directory contains the public interface. The test app and such are in
+other directories.
 
-There is a basic makefile that will build the library and command
-line test app. CMake is also available, please read
-the "Building with CMake" section for more information.
+There is a basic makefile that will build the library and command line
+test app. CMake is also available, please read the "Building with
+CMake" section for more information.
 
 QCBOR will compile and fully function without any build configuration
 or set up. It is 100% portable.
 
-There are a number of C preprocessor #defines that can be set.
-Their primary purpose is to reduce library object code sizes
-by disabling features.  A couple slightly improve performance.
-See the comment sections on "Configuration" in inc/UsefulBuf.h and
-the pre processor defines that start with QCBOR_DISABLE_XXX.
+There are a number of C preprocessor #defines that can be set.  Their
+primary purpose is to reduce library object code sizes by disabling
+features.  A couple slightly improve performance.  See the comment
+sections on "Configuration" in inc/UsefulBuf.h and the pre processor
+defines that start with QCBOR_DISABLE_XXX.
 
 The test directory includes the tests that are nearly as portable as
 the main implementation.  If your development environment doesn't
-support UNIX style command line and make, you should be able to make a
+support a UNIX style command line and make, you should be able to make a
 simple project and add the test files to it.  Then just call
 RunTests() to invoke them all.
 
 ### Building with CMake
 
-CMake can also be used to build QCBOR and the test application. Having the root
-`CMakeLists.txt` file, QCBOR can be easily integrated with your project's
-existing CMake environment. The result of the build process is a static library,
-to build a shared library instead you must add the
-`-DBUILD_SHARED_LIBS=ON` option at the CMake configuration step.
-The tests can be built into a simple command line application to run them as it
-was mentioned before; or it can be built as a library to be integrated with your
-development environment.
-The `BUILD_QCBOR_TEST` CMake option can be used for building the tests, it can
-have three values: `APP`, `LIB` or `OFF` (default, test are not included in the
-build).
+A modern cmake configuration is provided in CMakeLists.txt that can
+build, test and install QCBOR. The installation includes cmake package
+files for easy installation, use of the QCBOR library by cmake-based
+and non-cmake-based dependents and integration into a larger
+cmake-based project.
+
+Generally, no configuration is needed, but there are a few build
+options:
+
+| Option                 | Description
+|:-----------------------|:----------------------------------------------------------------
+| -DBUILD_SHARED_LIBS=ON | Builds shared lib instead of static.
+| -DBUILD_QCBOR_WARN=ON  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
+| -DBUILD_QCBOR_TEST=APP | Builds the tests as an executable. Tests are off by default.
+| -DBUILD_QCBOR_TEST=LIB | Builds the tests as a library.
+| -DQCBOR_DISABLE_XXX=ON | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
 
 Building the QCBOR library:
 
@@ -47,24 +52,22 @@ cd <QCBOR_base_folder>
 cmake -S . -B <build_folder>
 # Building the project
 cmake --build <build_folder>
+# Install in /usr/local
+cmake --install <build_folder>
 ```
 
 Building and running the QCBOR test app:
+
 ```bash
 cd <QCBOR_base_folder>
 # Configuring the project and generating a native build system
 cmake -S . -B <build_folder> -DBUILD_QCBOR_TEST=APP
-# Building the project
+# Building the projecty
 cmake --build <build_folder>
 # Running the test app
-.<build_folder>/test/qcbortest
+<build_folder>/test/qcbortest
 ```
 
-To enable all the compiler warnings that are used in the QCBOR release process
-you can use the `BUILD_QCBOR_WARN` option at the CMake configuration step:
-```bash
-cmake -S . -B <build_folder> -DBUILD_QCBOR_WARN=ON
-```
 
 ### Floating Point Support & Configuration
 
@@ -150,30 +153,21 @@ possible.
 
 #### Compiler options
 
-Compilers support a number of options that control
-which float-point related code is generated. For example,
-it is usually possible to give options to the compiler to avoid all
-floating-point hardware and instructions, to use software
-and replacement libraries instead. These are usually
-bigger and slower, but these options may still be useful
-in getting QCBOR to run in some environments in
-combination with `QCBOR_DISABLE_FLOAT_HW_USE`.
-In particular, `-mfloat-abi=soft`, disables use of
- hardware instructions for the float and double
- types in C for some architectures.
+Compilers support a number of options that control which float-point
+related code is generated. For example, it is usually possible to give
+options to the compiler to avoid all floating-point hardware and
+instructions, to use software and replacement libraries instead. These
+are usually bigger and slower, but these options may still be useful
+in getting QCBOR to run in some environments in combination with
+`QCBOR_DISABLE_FLOAT_HW_USE`.  In particular, `-mfloat-abi=soft`,
+disables use of hardware instructions for the float and double types
+in C for some architectures.
 
 #### CMake options
 
-If you are using CMake, it can also be used to configure the floating-point
-support. These options can be enabled by adding them to the CMake configuration
-step and setting their value to 'ON' (True). The following table shows the
-available options and the associated #defines.
-
-    | CMake option                      | #define                       |
-    |-----------------------------------|-------------------------------|
-    | QCBOR_OPT_DISABLE_FLOAT_HW_USE    | QCBOR_DISABLE_FLOAT_HW_USE    |
-    | QCBOR_OPT_DISABLE_FLOAT_PREFERRED | QCBOR_DISABLE_PREFERRED_FLOAT |
-    | QCBOR_OPT_DISABLE_FLOAT_ALL       | USEFULBUF_DISABLE_ALL_FLOAT   |
+Previously, some QCBOR_OPT_DISABLE_XXX options were provided. They have
+been replaced with QCBOR_DISABLE_XXX and expanded to cover all features
+disables. See below.
 
 @anchor CodeSize
 ## Code Size
@@ -184,11 +178,11 @@ for smallest but not for largest. Smallest is the library functions for a
 protocol with strings, integers, arrays, maps and Booleans, but not floats
 and standard tag types.
 
-    |               | smallest | largest |
-    |---------------|----------|---------|
-    | encode only   |          |         |
-    | decode only   |          |         |
-    | combined      |          |         |
+|               | smallest | largest |
+|---------------|----------|---------|
+| encode only   |          |         |
+| decode only   |          |         |
+| combined      |          |         |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -247,17 +241,19 @@ the CPU, the compiler, configuration, which functions are
 use and so on.
 
 
-    | #define                                 | Saves |
-    | ----------------------------------------| ------|
-    | QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |       |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |       |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |       |
-    | QCBOR_DISABLE_EXP_AND_MANTISSA          |       |
-    | QCBOR_DISABLE_PREFERRED_FLOAT           |       |
-    | QCBOR_DISABLE_FLOAT_HW_USE              |       |
-    | QCBOR_DISABLE_TAGS                      |       |
-    | QCBOR_DISABLE_NON_INTEGER_LABELS        |       |
-    | USEFULBUF_DISABLE_ALL_FLOAT             |       |
+| #define                                 | Saves |
+| ----------------------------------------| ------|
+| QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |       |
+| QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |       |
+| QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |       |
+| QCBOR_DISABLE_EXP_AND_MANTISSA          |       |
+| QCBOR_DISABLE_PREFERRED_FLOAT           |       |
+| QCBOR_DISABLE_FLOAT_HW_USE              |       |
+| QCBOR_DISABLE_TAGS                      |       |
+| QCBOR_DISABLE_NON_INTEGER_LABELS        |       |
+| USEFULBUF_DISABLE_ALL_FLOAT             |       |
+| QCBOR_DISABLE_DECODE_CONFORMANCE        |       |
+| USEFULBUF_DISABLE_STREAMING             |       |
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
 disable any encoding features, just some error checking.  Disable it
@@ -292,35 +288,41 @@ QCBOR_DISABLE_EXP_AND_MANTISSA disables the decoding of decimal
 fractions and big floats.
 
 @anchor QCBOR_DISABLE_TAGS
-QCBOR_DISABLE_TAGS disables all CBOR tag decoding. If the input has
-a single tag, the unrecoverable error, @ref QCBOR_ERR_TAGS_DISABLED, occurs.
-The decoder is suitable only for protocols that
-have no tags. This reduces the size of the core of the decoder,
-particularly QCBORDecode_VGetNext(), by a about 500 bytes.
-"Borrowed" tag content formats (e.g. an epoch-based date
-without the tag number), can still be processed. See @ref Disabilng-Tag-Decoding.
+QCBOR_DISABLE_TAGS disables all CBOR tag decoding. If the input has a
+single tag, the unrecoverable error, @ref QCBOR_ERR_TAGS_DISABLED,
+occurs.  The decoder is suitable only for protocols that have no
+tags. This reduces the size of the core of the decoder, particularly
+QCBORDecode_VGetNext(), by a about 500 bytes.  "Borrowed" tag content
+formats (e.g. an epoch-based date without the tag number), can still
+be processed. See @ref Disabilng-Tag-Decoding.
 
-QCBOR_DISABLE_NON_INTEGER_LABELS causes any label that doesn't
-fit in an int64_t to result in a QCBOR_ERR_MAP_LABEL_TYPE error.
-This also disables QCBOR_DECODE_MODE_MAP_AS_ARRAY and
+QCBOR_DISABLE_NON_INTEGER_LABELS causes any label that doesn't fit in
+an int64_t to result in a QCBOR_ERR_MAP_LABEL_TYPE error.  This also
+disables QCBOR_DECODE_MODE_MAP_AS_ARRAY and
 QCBOR_DECODE_MODE_MAP_STRINGS_ONLY. It is fairly common for CBOR-based
 protocols to use only small integers as labels.
 
+QCBOR_DISABLE_DECODE_CONFORMANCE removes the decode features
+that the input conforms in a particular way, such as that it
+is deterministic of dCBOR.
+
+USEFULBUF_DISABLE_STREAMING removes the encode streaming features.
+
 See the discussion above on floating-point.
 
- ### Size of spiffy decode
+### Size of spiffy decode
 
- When creating a decode implementation, there is a choice of whether
- or not to use spiffy decode features or to just use
- QCBORDecode_GetNext().
+When creating a decode implementation, there is a choice of whether
+or not to use spiffy decode features or to just use
+QCBORDecode_GetNext().
 
- The implementation using spiffy decode will be simpler resulting in
- the calling code being smaller, but the amount of code brought in
- from the QCBOR library will be larger. Basic use of spiffy decode
- brings in about 2KB of object code.  If object code size is not a
- concern, then it is probably better to use spiffy decode because it
- is less work, there is less complexity and less testing to worry
- about.
+The implementation using spiffy decode will be simpler resulting in
+the calling code being smaller, but the amount of code brought in
+from the QCBOR library will be larger. Basic use of spiffy decode
+brings in about 2KB of object code.  If object code size is not a
+concern, then it is probably better to use spiffy decode because it
+is less work, there is less complexity and less testing to worry
+about.
 
  If code size is a concern, then use of QCBORDecode_GetNext() will
  probably result in smaller overall code size for simpler CBOR
