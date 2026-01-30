@@ -666,7 +666,7 @@ FloatValuesTests(void)
 
       /* Non-preferred encode of double */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
+      QCBOREncode_AddDoubleRaw(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 20, uErr);;
@@ -1006,7 +1006,7 @@ NaNPayloadsTest(void)
          /* NaN Encode of Not Preferred */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddDoubleNoPreferred(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
+         QCBOREncode_AddDoubleRaw(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
          uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex+100, 13, uErr);;
@@ -1126,7 +1126,7 @@ NaNPayloadsTest(void)
          /* NaN Encode of Not Preferred */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddFloatNoPreferred(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
+         QCBOREncode_AddFloatRaw(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
          uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex+100, 32, uErr);;
@@ -1407,27 +1407,27 @@ GeneralFloatEncodeTests(void)
 
    QCBOREncode_AddDouble(&EC, 0.0);
    QCBOREncode_AddDouble(&EC, 3.14);
-   QCBOREncode_AddDoubleNoPreferred(&EC, 0.0);
-   QCBOREncode_AddDoubleNoPreferred(&EC, NAN);
-   QCBOREncode_AddDoubleNoPreferred(&EC, INFINITY);
+   QCBOREncode_AddDoubleRaw(&EC, 0.0);
+   QCBOREncode_AddDoubleRaw(&EC, NAN);
+   QCBOREncode_AddDoubleRaw(&EC, INFINITY);
 
    QCBOREncode_AddFloat(&EC, 0.0);
    QCBOREncode_AddFloat(&EC, 3.14f);
-   QCBOREncode_AddFloatNoPreferred(&EC, 0.0f);
-   QCBOREncode_AddFloatNoPreferred(&EC, NAN);
-   QCBOREncode_AddFloatNoPreferred(&EC, INFINITY);
+   QCBOREncode_AddFloatRaw(&EC, 0.0f);
+   QCBOREncode_AddFloatRaw(&EC, NAN);
+   QCBOREncode_AddFloatRaw(&EC, INFINITY);
 
    QCBOREncode_OpenMap(&EC);
 
    QCBOREncode_AddDoubleToMapN(&EC, 100, 0.0);
    QCBOREncode_AddDoubleToMapN(&EC, 101, 3.1415926);
    QCBOREncode_AddDoubleToMap(&EC, "euler", 2.71828182845904523536);
-   QCBOREncode_AddDoubleNoPreferredToMapN(&EC, 105, 0.0);
+   QCBOREncode_AddDoubleRawToMapN(&EC, 105, 0.0);
 
    QCBOREncode_AddFloatToMapN(&EC, 102, 0.0f);
    QCBOREncode_AddFloatToMapN(&EC, 103, 3.1415926f);
    QCBOREncode_AddFloatToMap(&EC, "euler2", 2.71828182845904523536f);
-   QCBOREncode_AddFloatNoPreferredToMapN(&EC, 106, 0.0f);
+   QCBOREncode_AddFloatRawToMapN(&EC, 106, 0.0f);
 
    QCBOREncode_CloseMap(&EC);
    QCBOREncode_CloseArray(&EC);
