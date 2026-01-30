@@ -42,7 +42,7 @@ options:
 | -DBUILD_QCBOR_WARN=ON  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
 | -DBUILD_QCBOR_TEST=APP | Builds the tests as an executable. Tests are off by default.
 | -DBUILD_QCBOR_TEST=LIB | Builds the tests as a library.
-| -DQCBOR_DISABLE_XXX=ON | Disables feature XXX to reduce code size. See descriptions below.
+| -DQCBOR_DISABLE_XXX=ON | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
 
 Building the QCBOR library:
 
@@ -165,8 +165,8 @@ in C for some architectures.
 
 #### CMake options
 
-Previously some QCBOR_OPT_DISABLE_XXX options were provided. They have
-been replaces with QCBOR_DISABLE_XXX and expanded to cover all features
+Previously, some QCBOR_OPT_DISABLE_XXX options were provided. They have
+been replaced with QCBOR_DISABLE_XXX and expanded to cover all features
 disables. See below.
 
 @anchor CodeSize
