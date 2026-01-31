@@ -243,17 +243,22 @@ the pre processor defines that start with QCBOR_DISABLE_XXX.
 
 ### Building with CMake
 
-CMake can also be used to build QCBOR and the test application. Having the root
-`CMakeLists.txt` file, QCBOR can be easily integrated with your project's
-existing CMake environment. The result of the build process is a static library,
-to build a shared library instead you must add the
-`-DBUILD_SHARED_LIBS=ON` option at the CMake configuration step.
-The tests can be built into a simple command line application to run them as it
-was mentioned before; or it can be built as a library to be integrated with your
-development environment.
-The `BUILD_QCBOR_TEST` CMake option can be used for building the tests, it can
-have three values: `APP`, `LIB` or `OFF` (default, test are not included in the
-build).
+A modern cmake configuration is provided in CMakeLists.txt that can
+build, test and install QCBOR. The installation includes cmake package
+files for easy installation, use of the QCBOR library by cmake-based
+and non-cmake-based dependents and integration into a larger
+cmake-based project.
+
+Generally, no configuration is needed, but there are a few build
+options:
+
+| Option                 | Description
+|:-----------------------|:----------------------------------------------------------------
+| -DBUILD_SHARED_LIBS=ON | Builds shared lib instead of static.
+| -DBUILD_QCBOR_WARN=ON  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
+| -DBUILD_QCBOR_TEST=APP | Builds the tests as an executable. Tests are off by default.
+| -DBUILD_QCBOR_TEST=LIB | Builds the tests as a library.
+| -DQCBOR_DISABLE_XXX=ON | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
 
 Building the QCBOR library:
 
@@ -263,23 +268,20 @@ cd <QCBOR_base_folder>
 cmake -S . -B <build_folder>
 # Building the project
 cmake --build <build_folder>
+# Install in /usr/local
+cmake --install <build_folder>
 ```
 
 Building and running the QCBOR test app:
+
 ```bash
 cd <QCBOR_base_folder>
 # Configuring the project and generating a native build system
 cmake -S . -B <build_folder> -DBUILD_QCBOR_TEST=APP
-# Building the project
+# Building the projecty
 cmake --build <build_folder>
 # Running the test app
-.<build_folder>/test/qcbortest
-```
-
-To enable all the compiler warnings that are used in the QCBOR release process
-you can use the `BUILD_QCBOR_WARN` option at the CMake configuration step:
-```bash
-cmake -S . -B <build_folder> -DBUILD_QCBOR_WARN=ON
+<build_folder>/test/qcbortest
 ```
 
 ### Floating Point Support & Configuration
@@ -378,18 +380,13 @@ In particular, `-mfloat-abi=soft`, disables use of
  hardware instructions for the float and double
  types in C for some architectures.
 
+
 #### CMake options
 
-If you are using CMake, it can also be used to configure the floating-point
-support. These options can be enabled by adding them to the CMake configuration
-step and setting their value to 'ON' (True). The following table shows the
-available options and the associated #defines.
+Previously, some QCBOR_OPT_DISABLE_XXX options were provided. They have
+been replaced with QCBOR_DISABLE_XXX and expanded to cover all features
+disables. See below.
 
-    | CMake option                      | #define                       |
-    |-----------------------------------|-------------------------------|
-    | QCBOR_OPT_DISABLE_FLOAT_HW_USE    | QCBOR_DISABLE_FLOAT_HW_USE    |
-    | QCBOR_OPT_DISABLE_FLOAT_PREFERRED | QCBOR_DISABLE_PREFERRED_FLOAT |
-    | QCBOR_OPT_DISABLE_FLOAT_ALL       | USEFULBUF_DISABLE_ALL_FLOAT   |
 
 ## Code Size
 
@@ -399,11 +396,11 @@ for smallest but not for largest. Smallest is the library functions for a
 protocol with strings, integers, arrays, maps and Booleans, but not floats
 and standard tag types.
 
-    |               | smallest | largest |
-    |---------------|----------|---------|
-    | encode only   |      850 |    2200 |
-    | decode only   |     1550 |   13300 |
-    | combined      |     2500 |   15500 |
+|               | smallest | largest |
+|---------------|----------|---------|
+| encode only   |      850 |    2200 |
+| decode only   |     1550 |   13300 |
+| combined      |     2500 |   15500 |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -449,18 +446,18 @@ and standard tag types.
 Here's the list of all features that can be disabled to save object
 code. The amount saved is an approximation.
 
-    | #define                                 | Saves |
-    | ----------------------------------------| ------|
-    | QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |   150 |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |   400 |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |   200 |
-    | QCBOR_DISABLE_UNCOMMON_TAGS             |   100 |
-    | QCBOR_DISABLE_EXP_AND_MANTISSA          |   400 |
-    | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
-    | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
-    | QCBOR_DISABLE_TAGS                      |   400 |
-    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   140 |
-    | USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
+| #define                                 | Saves |
+| ----------------------------------------| ------|
+| QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |   150 |
+| QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |   400 |
+| QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |   200 |
+| QCBOR_DISABLE_UNCOMMON_TAGS             |   100 |
+| QCBOR_DISABLE_EXP_AND_MANTISSA          |   400 |
+| QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
+| QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
+| QCBOR_DISABLE_TAGS                      |   400 |
+| QCBOR_DISABLE_NON_INTEGER_LABELS        |   140 |
+| USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
 
 QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
 disable any encoding features, just some error checking.  Disable it
@@ -507,7 +504,7 @@ protocols to use only small integers as labels.
 
 See the discussion above on floating-point.
 
- ### Size of spiffy decode
+### Size of spiffy decode
 
  When creating a decode implementation, there is a choice of whether
  or not to use spiffy decode features or to just use
