@@ -239,21 +239,26 @@ C pre processor macros that can be #defined in order to:
  * remove features to reduce code size
 
 See the comment sections on "Configuration" in inc/UsefulBuf.h and
-the pre processor defines that start with QCBOR_DISABLE_XXX.
+the pre processor defines that start with `QCBOR_DISABLE_XXX`.
 
 ### Building with CMake
 
-CMake can also be used to build QCBOR and the test application. Having the root
-`CMakeLists.txt` file, QCBOR can be easily integrated with your project's
-existing CMake environment. The result of the build process is a static library,
-to build a shared library instead you must add the
-`-DBUILD_SHARED_LIBS=ON` option at the CMake configuration step.
-The tests can be built into a simple command line application to run them as it
-was mentioned before; or it can be built as a library to be integrated with your
-development environment.
-The `BUILD_QCBOR_TEST` CMake option can be used for building the tests, it can
-have three values: `APP`, `LIB` or `OFF` (default, test are not included in the
-build).
+A modern cmake configuration is provided in CMakeLists.txt that can
+build, test and install QCBOR. The installation includes cmake package
+files for easy installation, use of the QCBOR library by cmake-based
+and non-cmake-based dependents and integration into a larger
+cmake-based project.
+
+Generally, no configuration is needed, but there are a few build
+options:
+
+| Cmake Option             | Description
+|:-------------------------|:----------------------------------------------------------------
+| `-DBUILD_SHARED_LIBS=ON` | Builds shared lib instead of static.
+| `-DBUILD_QCBOR_WARN=ON`  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
+| `-DBUILD_QCBOR_TEST=APP` | Builds the tests as an executable. Tests are off by default.
+| `-DBUILD_QCBOR_TEST=LIB` | Builds the tests as a library.
+| `-DQCBOR_DISABLE_XXX=ON` | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
 
 Building the QCBOR library:
 
@@ -263,23 +268,20 @@ cd <QCBOR_base_folder>
 cmake -S . -B <build_folder>
 # Building the project
 cmake --build <build_folder>
+# Install in /usr/local
+cmake --install <build_folder>
 ```
 
 Building and running the QCBOR test app:
+
 ```bash
 cd <QCBOR_base_folder>
 # Configuring the project and generating a native build system
 cmake -S . -B <build_folder> -DBUILD_QCBOR_TEST=APP
-# Building the project
+# Building the projecty
 cmake --build <build_folder>
 # Running the test app
-.<build_folder>/test/qcbortest
-```
-
-To enable all the compiler warnings that are used in the QCBOR release process
-you can use the `BUILD_QCBOR_WARN` option at the CMake configuration step:
-```bash
-cmake -S . -B <build_folder> -DBUILD_QCBOR_WARN=ON
+<build_folder>/test/qcbortest
 ```
 
 ### Floating Point Support & Configuration
@@ -375,35 +377,24 @@ bigger and slower, but these options may still be useful
 in getting QCBOR to run in some environments in
 combination with `QCBOR_DISABLE_FLOAT_HW_USE`.
 In particular, `-mfloat-abi=soft`, disables use of
- hardware instructions for the float and double
- types in C for some architectures.
+hardware instructions for the float and double
+types in C for some architectures.
 
-#### CMake options
 
-If you are using CMake, it can also be used to configure the floating-point
-support. These options can be enabled by adding them to the CMake configuration
-step and setting their value to 'ON' (True). The following table shows the
-available options and the associated #defines.
-
-    | CMake option                      | #define                       |
-    |-----------------------------------|-------------------------------|
-    | QCBOR_OPT_DISABLE_FLOAT_HW_USE    | QCBOR_DISABLE_FLOAT_HW_USE    |
-    | QCBOR_OPT_DISABLE_FLOAT_PREFERRED | QCBOR_DISABLE_PREFERRED_FLOAT |
-    | QCBOR_OPT_DISABLE_FLOAT_ALL       | USEFULBUF_DISABLE_ALL_FLOAT   |
 
 ## Code Size
 
 These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
-All QCBOR_DISABLE_XXX are set and compiler stack frame checking is disabled
+All `QCBOR_DISABLE_XXX` are set and compiler stack frame checking is disabled
 for smallest but not for largest. Smallest is the library functions for a
 protocol with strings, integers, arrays, maps and Booleans, but not floats
 and standard tag types.
 
-    |               | smallest | largest |
-    |---------------|----------|---------|
-    | encode only   |      850 |    2200 |
-    | decode only   |     1550 |   13300 |
-    | combined      |     2500 |   15500 |
+|               | smallest | largest |
+|---------------|----------|---------|
+| encode only   |      850 |    2200 |
+| decode only   |     1550 |   13300 |
+| combined      |     2500 |   15500 |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -449,20 +440,20 @@ and standard tag types.
 Here's the list of all features that can be disabled to save object
 code. The amount saved is an approximation.
 
-    | #define                                 | Saves |
-    | ----------------------------------------| ------|
-    | QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |   150 |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |   400 |
-    | QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |   200 |
-    | QCBOR_DISABLE_UNCOMMON_TAGS             |   100 |
-    | QCBOR_DISABLE_EXP_AND_MANTISSA          |   400 |
-    | QCBOR_DISABLE_PREFERRED_FLOAT           |   900 |
-    | QCBOR_DISABLE_FLOAT_HW_USE              |    50 |
-    | QCBOR_DISABLE_TAGS                      |   400 |
-    | QCBOR_DISABLE_NON_INTEGER_LABELS        |   140 |
-    | USEFULBUF_DISABLE_ALL_FLOAT             |   950 |
+| #define                                   | Saves |
+| ------------------------------------------| ------|
+| `QCBOR_DISABLE_ENCODE_USAGE_GUARDS`       |   150 |
+| `QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` |   400 |
+| `QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`  |   200 |
+| `QCBOR_DISABLE_UNCOMMON_TAGS`             |   100 |
+| `QCBOR_DISABLE_EXP_AND_MANTISSA`          |   400 |
+| `QCBOR_DISABLE_PREFERRED_FLOAT`           |   900 |
+| `QCBOR_DISABLE_FLOAT_HW_USE`              |    50 |
+| `QCBOR_DISABLE_TAGS`                      |   400 |
+| `QCBOR_DISABLE_NON_INTEGER_LABELS`        |   140 |
+| `USEFULBUF_DISABLE_ALL_FLOAT`             |   950 |
 
-QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
+`QCBOR_DISABLE_ENCODE_USAGE_GUARDS` affects encoding only.  It doesn't
 disable any encoding features, just some error checking.  Disable it
 when you are confident that an encoding implementation is complete and
 correct.
@@ -480,34 +471,34 @@ with the same API, except to decode indefinite-length strings a
 storage allocator must be configured.
 
 To reduce the size of the decoder define
-QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS particularly if you are not
+`QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` particularly if you are not
 configuring a storage allocator.
 
 Further reduction can be by defining
-QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS which will result in an error
+`QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS` which will result in an error
 when an indefinite-length map or array arrives for decoding.
 
-QCBOR_DISABLE_UNCOMMON_TAGS disables the decoding of explicit tags for
+`QCBOR_DISABLE_UNCOMMON_TAGS` disables the decoding of explicit tags for
 base 64, regex, UUID and MIME data. This just disables the automatic
 recognition of these from a major type 6 tag.
 
-QCBOR_DISABLE_EXP_AND_MANTISSA disables the decoding of decimal
+`QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
 fractions and big floats.
 
-QCBOR_DISABLE_TAGS disables all decoding of CBOR tags. If the input has
+`QCBOR_DISABLE_TAGS` disables all decoding of CBOR tags. If the input has
 a single tag, the error is unrecoverable so it is suitable only for protocols that
 have no tags. "Borrowed" tag content formats (e.g. an epoch-based date
 without the tag number), can still be processed.
 
-QCBOR_DISABLE_NON_INTEGER_LABELS causes any label that doesn't
-fit in an int64_t to result in a QCBOR_ERR_MAP_LABEL_TYPE error.
-This also disables QCBOR_DECODE_MODE_MAP_AS_ARRAY and 
-QCBOR_DECODE_MODE_MAP_STRINGS_ONLY. It is fairly common for CBOR-based
+`QCBOR_DISABLE_NON_INTEGER_LABELS` causes any label that doesn't
+fit in an int64_t to result in a `QCBOR_ERR_MAP_LABEL_TYPE` error.
+This also disables `QCBOR_DECODE_MODE_MAP_AS_ARRAY` and 
+`QCBOR_DECODE_MODE_MAP_STRINGS_ONLY`. It is fairly common for CBOR-based
 protocols to use only small integers as labels.
 
 See the discussion above on floating-point.
 
- ### Size of spiffy decode
+### Size of spiffy decode
 
  When creating a decode implementation, there is a choice of whether
  or not to use spiffy decode features or to just use
@@ -557,5 +548,5 @@ EAT and CWT.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
 Copyright (c) 2021-2023, Arm Limited. All rights reserved.
