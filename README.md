@@ -377,15 +377,9 @@ bigger and slower, but these options may still be useful
 in getting QCBOR to run in some environments in
 combination with `QCBOR_DISABLE_FLOAT_HW_USE`.
 In particular, `-mfloat-abi=soft`, disables use of
- hardware instructions for the float and double
- types in C for some architectures.
+hardware instructions for the float and double
+types in C for some architectures.
 
-
-#### CMake options
-
-Previously, some QCBOR_OPT_DISABLE_XXX options were provided. They have
-been replaced with QCBOR_DISABLE_XXX and expanded to cover all features
-disables. See below.
 
 
 ## Code Size
