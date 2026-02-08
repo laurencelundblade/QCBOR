@@ -2,28 +2,29 @@
 @anchor Building
 ## Building
 
-The library is built solely from the src and inc directores. The inc
-directory contains the public interface. The test app and such are in
-other directories.
+The QCBOR library source is solely in the `src` and `inc` directories. The
+`inc` directory contains the public API. The other files and
+directories contain tests, documentation, examples, and such.
 
-There is a basic makefile that will build the library and command line
-test app. CMake is also available, please read the "Building with
-CMake" section for more information.
+QCBOR can be built using `make` with the `Makefile` or with `cmake`
+using `CMakeLists.txt`.
 
-QCBOR will compile and fully function without any build configuration
-or set up. It is 100% portable.
+QCBOR compiles and operates correctly without any build-time
+configuration or setup. It is designed to be fully portable across the
+majority of platforms.
 
-There are a number of C preprocessor #defines that can be set.  Their
-primary purpose is to reduce library object code sizes by disabling
-features.  A couple slightly improve performance.  See the comment
-sections on "Configuration" in inc/UsefulBuf.h and the pre processor
-defines that start with QCBOR_DISABLE_XXX.
+A number of C preprocessor `#define` options are available. Their
+primary purpose is to reduce object code size by disabling optional
+features, with a small number also providing modest performance
+improvements.  See the “Configuration” comments in inc/UsefulBuf.h, as
+well as the preprocessor symbols beginning with `QCBOR_DISABLE_XXX`.
 
-The test directory includes the tests that are nearly as portable as
-the main implementation.  If your development environment doesn't
-support a UNIX style command line and make, you should be able to make a
-simple project and add the test files to it.  Then just call
-RunTests() to invoke them all.
+The test directory contains the test suite, which is nearly as
+portable as QCBOR itself. If your development environment does not
+support a UNIX-style command line, you can create a simple project and
+add the test source files directly. Invoking RunTests() will execute
+the full test suite.
+
 
 ### Building with CMake
 
@@ -36,21 +37,21 @@ cmake-based project.
 Generally, no configuration is needed, but there are a few build
 options:
 
-| Option                 | Description
-|:-----------------------|:----------------------------------------------------------------
-| -DBUILD_SHARED_LIBS=ON | Builds shared lib instead of static.
-| -DBUILD_QCBOR_WARN=ON  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
-| -DBUILD_QCBOR_TEST=APP | Builds the tests as an executable. Tests are off by default.
-| -DBUILD_QCBOR_TEST=LIB | Builds the tests as a library.
-| -DQCBOR_DISABLE_XXX=ON | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
+| Option                   | Description
+|:-------------------------|:----------------------------------------------------------------
+| `-DBUILD_SHARED_LIBS=ON` | Builds shared lib instead of static.
+| `-DBUILD_QCBOR_WARN=ON`  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
+| `-DBUILD_QCBOR_TEST=APP` | Builds the tests as an executable. Tests are off by default.
+| `-DBUILD_QCBOR_TEST=LIB` | Builds the tests as a library.
+| `-DQCBOR_DISABLE_XXX=ON` | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
 
 Building the QCBOR library:
 
-```bash
+```sh
 cd <QCBOR_base_folder>
-# Configuring the project and generating a native build system
+# Configure the project and generate build set up
 cmake -S . -B <build_folder>
-# Building the project
+# Build the project
 cmake --build <build_folder>
 # Install in /usr/local
 cmake --install <build_folder>
@@ -58,131 +59,30 @@ cmake --install <build_folder>
 
 Building and running the QCBOR test app:
 
-```bash
+```sh
 cd <QCBOR_base_folder>
-# Configuring the project and generating a native build system
+# Configure the project and generate build set up
 cmake -S . -B <build_folder> -DBUILD_QCBOR_TEST=APP
-# Building the projecty
+# Build the project
 cmake --build <build_folder>
-# Running the test app
+# Run the test app
 <build_folder>/test/qcbortest
 ```
-
-
-### Floating Point Support & Configuration
-
-By default, all QCBOR floating-point features are enabled:
-
-* Encoding and decoding of basic float types, single and double-precision
-* Encoding and decoding of half-precision with conversion to/from single
-  and double-precision
-* Preferred serialization of floating-point
-* Floating point dates
-* Methods that can convert big numbers, decimal fractions and other numbers
-  to/from floating-point
-
-If full floating-point is not needed, the following #defines can be
-used to reduce object code size and dependency.
-
-See discussion in qcbor_encode.h for other details.
-
-#### #define QCBOR_DISABLE_FLOAT_HW_USE
-
-This removes dependency on:
-
-* Floating-point hardware and floating-point instructions
-* `<math.h>` and `<fenv.h>`
-* The math library (libm, -lm)
-
-For most limited environments, this removes enough floating-point
-dependencies to be able to compile and run QCBOR.
-
-Note that this does not remove use of the types double and float from
-QCBOR, but it limits QCBOR's use of them to converting the encoded
-byte stream to them and copying them. Converting and copying them
-usually don't require any hardware, libraries or includes. The C
-compiler takes care of it on its own.
-
-QCBOR uses its own implementation of half-precision float-pointing
-that doesn't depend on math libraries. It uses masks and shifts
-instead. Thus, even with this define, half-precision encoding and
-decoding works.
-
-When this is defined, the QCBOR functionality lost is minimal and only
-for decoding:
-
-* Decoding floating-point format dates are not handled
-* There is no conversion between floats and integers when decoding. For
-  example, QCBORDecode_GetUInt64ConvertAll() will be unable to convert
-  to and from float-point.
-* Floats will be unconverted to double when decoding.
-
-No interfaces are disabled or removed with this define.  If input that
-requires floating-point conversion or functions are called that
-request floating-point conversion, an error code like
-`QCBOR_ERR_HW_FLOAT_DISABLED` will be returned.
-
-This saves only a small amount of object code. The primary purpose for
-defining this is to remove dependency on floating point hardware and
-libraries.
-
-
-#### #define QCBOR_DISABLE_PREFERRED_FLOAT
-
-This eliminates support of:
-- encode/decode of half-precision
-- shortest-form encoding of floats
-- QCBORDecode_GetNumberConvertPrecisely()
-
-This saves about 1KB of object code, though much of this can be saved
-by not calling any functions to encode doubles or floats or
-QCBORDecode_GetNumberConvertPrecisely()
-
-With this defined, single and double-precision floating-point numbers
-can still be encoded and decoded. Some conversion of floating-point to
-and from integers, big numbers and such is also supported. Floating-point
-dates are still supported.
-
-
-#### #define USEFULBUF_DISABLE_ALL_FLOAT
-
-This eliminates floating point support completely (along with related function
-headers). This is useful if the compiler options deny the usage of floating
-point operations completely, and the usage of a soft floating point ABI is not
-possible.
-
-#### Compiler options
-
-Compilers support a number of options that control which float-point
-related code is generated. For example, it is usually possible to give
-options to the compiler to avoid all floating-point hardware and
-instructions, to use software and replacement libraries instead. These
-are usually bigger and slower, but these options may still be useful
-in getting QCBOR to run in some environments in combination with
-`QCBOR_DISABLE_FLOAT_HW_USE`.  In particular, `-mfloat-abi=soft`,
-disables use of hardware instructions for the float and double types
-in C for some architectures.
-
-#### CMake options
-
-Previously, some QCBOR_OPT_DISABLE_XXX options were provided. They have
-been replaced with QCBOR_DISABLE_XXX and expanded to cover all features
-disables. See below.
 
 @anchor CodeSize
 ## Code Size
 
 These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
-All QCBOR_DISABLE_XXX are set and compiler stack frame checking is disabled
+All `QCBOR_DISABLE_XXX` are set and compiler stack frame checking is disabled
 for smallest but not for largest. Smallest is the library functions for a
 protocol with strings, integers, arrays, maps and Booleans, but not floats
 and standard tag types.
 
-|               | smallest | largest |
-|---------------|----------|---------|
-| encode only   |          |         |
-| decode only   |          |         |
-| combined      |          |         |
+|               | smallest  | largest |
+|---------------|-----------|---------|
+| encode only   |   TODO    |  TODO   |
+| decode only   |   TODO    |  TODO   |
+| combined      |   TODO    |  TODO   |
 
  From the table above, one can see that the amount of code pulled in
  from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
@@ -225,40 +125,42 @@ and standard tag types.
 
 ### Disabling Features
 
-The main control over the amount of QCBOR code that gets linked
-is through which QCBOR functions are used. Linking against a
-library or dead stripping will eliminate all code not explicitly
-called.
+The primary control over the amount of QCBOR code that is linked into
+an application is in which functions are actually used. When linking
+against a library, or when dead-code stripping is enabled, any code
+that is not explicitly referenced will not be linked. For, example
+never calling number conversion functions will result in less linked
+code.
 
-In addition to using fewer QCBOR functions, the following #defines
-can be set to further reduce code size. For example,
-QCBOR_DISABLE_ENCODE_USAGE_GUARDS will reduce the size
-of many common encoding functions by performing less error
-checking (but not compromising any code safety).
+In addition to minimizing the set of QCBOR functions used, the
+following preprocessor `#define` options can be set to further reduce
+code size. For example, defining `QCBOR_DISABLE_NON_INTEGER_LABELS`
+reduces the decoder size and can be set when building the library for
+protocols that use only integer map labels.
 
-The amounts saved listed below are approximate. They depends on
-the CPU, the compiler, configuration, which functions are
-use and so on.
+The code-size reductions listed below are approximate. Actual savings
+depend on factors such as the target CPU, compiler, compiler options,
+build configuration, and the specific QCBOR functions used.
 
 
-| #define                                 | Saves |
-| ----------------------------------------| ------|
-| QCBOR_DISABLE_ENCODE_USAGE_GUARDS       |       |
-| QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS |       |
-| QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  |       |
-| QCBOR_DISABLE_EXP_AND_MANTISSA          |       |
-| QCBOR_DISABLE_PREFERRED_FLOAT           |       |
-| QCBOR_DISABLE_FLOAT_HW_USE              |       |
-| QCBOR_DISABLE_TAGS                      |       |
-| QCBOR_DISABLE_NON_INTEGER_LABELS        |       |
-| USEFULBUF_DISABLE_ALL_FLOAT             |       |
-| QCBOR_DISABLE_DECODE_CONFORMANCE        |       |
-| USEFULBUF_DISABLE_STREAMING             |       |
+| #define                                   |  Saves |
+| ------------------------------------------| -------|
+| `QCBOR_DISABLE_ENCODE_USAGE_GUARDS`       |  TODO  |
+| `QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` |  TODO  |
+| `QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`  |  TODO  |
+| `QCBOR_DISABLE_EXP_AND_MANTISSA`          |  TODO  |
+| `QCBOR_DISABLE_PREFERRED_FLOAT`           |  TODO  |
+| `QCBOR_DISABLE_FLOAT_HW_USE`              |  TODO  |
+| `USEFULBUF_DISABLE_ALL_FLOAT`             |  TODO  |
+| `QCBOR_DISABLE_TAGS`                      |  TODO  |
+| `QCBOR_DISABLE_NON_INTEGER_LABELS`        |  TODO  |
+| `QCBOR_DISABLE_DECODE_CONFORMANCE`        |  TODO  |
+| `USEFULBUF_DISABLE_STREAMING`             |  TODO  |
 
-QCBOR_DISABLE_ENCODE_USAGE_GUARDS affects encoding only.  It doesn't
-disable any encoding features, just some error checking.  Disable it
-when you are confident that an encoding implementation is complete and
-correct.
+`QCBOR_DISABLE_ENCODE_USAGE_GUARDS` affects encoding only. It doesn't
+disable any encoding features, just extra error checking that helps
+debugging.  Disable it when you are confident that an encoding
+implementation is complete and correct.
 
 Indefinite lengths are a feature of CBOR that makes encoding simpler
 and the decoding more complex. They allow the encoder to not have to
@@ -273,62 +175,73 @@ with the same API, except to decode indefinite-length strings a
 storage allocator must be configured.
 
 To reduce the size of the decoder define
-QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS particularly if you are not
+`QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` particularly if you are not
 configuring a storage allocator.
 
 Further reduction can be by defining
-QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS which will result in an error
+`QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS` which will result in an error
 when an indefinite-length map or array arrives for decoding.
 
-QCBOR_DISABLE_UNCOMMON_TAGS is removed from QCBOR v2. It didn't save
+`QCBOR_DISABLE_UNCOMMON_TAGS` is removed from QCBOR v2. It didn't save
 very much and you can get the same effect by not installing
 the tag content handlers.
 
-QCBOR_DISABLE_EXP_AND_MANTISSA disables the decoding of decimal
+`QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
 fractions and big floats.
 
+The options for disabling floating-point are detailed in the section
+on @ref Floating-Point. In short, `QCBOR_DISABLE_PREFERRED_FLOAT`
+eliminates a lot of floating-point related code, particularly
+half-precision support, `QCBOR_DISABLE_FLOAT_HW_USE` eliminates
+dependency on the math library and `<math.h>`, and
+`USEFULBUF_DISABLE_ALL_FLOAT` eliminates all float-point dependency,
+such that the types double and float aren't used.
+
 @anchor QCBOR_DISABLE_TAGS
-QCBOR_DISABLE_TAGS disables all CBOR tag decoding. If the input has a
-single tag, the unrecoverable error, @ref QCBOR_ERR_TAGS_DISABLED,
-occurs.  The decoder is suitable only for protocols that have no
-tags. This reduces the size of the core of the decoder, particularly
-QCBORDecode_VGetNext(), by a about 500 bytes.  "Borrowed" tag content
-formats (e.g. an epoch-based date without the tag number), can still
-be processed. See @ref Disabilng-Tag-Decoding.
 
-QCBOR_DISABLE_NON_INTEGER_LABELS causes any label that doesn't fit in
-an int64_t to result in a QCBOR_ERR_MAP_LABEL_TYPE error.  This also
-disables QCBOR_DECODE_MODE_MAP_AS_ARRAY and
-QCBOR_DECODE_MODE_MAP_STRINGS_ONLY. It is fairly common for CBOR-based
-protocols to use only small integers as labels.
+`QCBOR_DISABLE_TAGS` disables decoding of all CBOR tags. If the input
+contains any tag, an unrecoverable error (@ref
+QCBOR_ERR_TAGS_DISABLED) is raised.  When this option is enabled, the
+decoder is suitable only for protocols that do not use CBOR tags.
 
-QCBOR_DISABLE_DECODE_CONFORMANCE removes the decode features
-that the input conforms in a particular way, such as that it
-is deterministic of dCBOR.
+Setting `QCBOR_DISABLE_TAGS` reduces the size of the decoder core —
+particularly QCBORDecode_VGetNext() — by approximately 500 bytes.
 
-USEFULBUF_DISABLE_STREAMING removes the encode streaming features.
+“Borrowed” tag content formats (for example, an epoch-based date
+encoded without the corresponding tag number) can still be
+decoded. See @ref Disabling-Tag-Decoding for additional details.
 
-See the discussion above on floating-point.
+`QCBOR_DISABLE_NON_INTEGER_LABELS` causes any label that doesn't fit
+in an int64_t to result in a @ref QCBOR_ERR_MAP_LABEL_TYPE error.
+This also disables `QCBOR_DECODE_MODE_MAP_AS_ARRAY` and
+`QCBOR_DECODE_MODE_MAP_STRINGS_ONLY`. It is fairly common for
+CBOR-based protocols to use only small integers as labels.
+
+`QCBOR_DISABLE_DECODE_CONFORMANCE` removes the decode features that
+the input conforms in a particular way, such as that it is
+deterministic of dCBOR.
+
+`USEFULBUF_DISABLE_STREAMING` removes the encode streaming features.
+
 
 ### Size of spiffy decode
 
-When creating a decode implementation, there is a choice of whether
-or not to use spiffy decode features or to just use
+When creating a decode implementation, there is a choice of whether or
+not to use spiffy decode features or to just use
 QCBORDecode_GetNext().
 
 The implementation using spiffy decode will be simpler resulting in
-the calling code being smaller, but the amount of code brought in
-from the QCBOR library will be larger. Basic use of spiffy decode
-brings in about 2KB of object code.  If object code size is not a
-concern, then it is probably better to use spiffy decode because it
-is less work, there is less complexity and less testing to worry
-about.
+the calling code being smaller, but the amount of code brought in from
+the QCBOR library will be larger. Basic use of spiffy decode brings in
+about 2KB of object code.  If object code size is not a concern, then
+it is probably better to use spiffy decode because it is less work,
+there is less complexity and less testing to worry about.
 
- If code size is a concern, then use of QCBORDecode_GetNext() will
- probably result in smaller overall code size for simpler CBOR
- protocols. However, if the CBOR protocol is complex then use of
- spiffy decode may reduce overall code size.  An example of a complex
- protocol is one that involves decoding a lot of maps or maps that
- have many data items in them.  The overall code may be smaller
- because the general purpose spiffy decode map processor is the one
- used for all the maps.
+If code size is a concern, then use of QCBORDecode_GetNext() will
+probably result in smaller overall code size for simpler CBOR
+protocols. However, if the CBOR protocol is complex then use of spiffy
+decode may reduce overall code size.  An example of a complex protocol
+is one that involves decoding a lot of maps or maps that have many
+data items in them.  The overall code may be smaller because the
+general purpose spiffy decode map processor is the one used for all
+the maps.
