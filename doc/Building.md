@@ -28,11 +28,11 @@ the full test suite.
 
 ### Building with CMake
 
-A modern cmake configuration is provided in CMakeLists.txt that can
-build, test and install QCBOR. The installation includes cmake package
-files for easy installation, use of the QCBOR library by cmake-based
-and non-cmake-based dependents and integration into a larger
-cmake-based project.
+A modern CMake configuration is provided in CMakeLists.txt that can
+build, test, and install QCBOR. The installation includes CMake package
+files for easy installation, use of the QCBOR library by CMake-based
+and non-CMake-based dependents, and integration into a larger
+CMake-based project.
 
 Generally, no configuration is needed, but there are a few build
 options:
@@ -43,7 +43,7 @@ options:
 | `-DBUILD_QCBOR_WARN=ON`  | Compiler warnings are off by default; this turns on the warnins used in QCBOR continuous integration.
 | `-DBUILD_QCBOR_TEST=APP` | Builds the tests as an executable. Tests are off by default.
 | `-DBUILD_QCBOR_TEST=LIB` | Builds the tests as a library.
-| `-DQCBOR_DISABLE_XXX=ON` | Disables feature XXX to reduce code size. See descriptions below. The name of the cmake option is the same as the #define.
+| `-DQCBOR_DISABLE_XXX=ON` | Disables feature XXX to reduce code size. See descriptions below. The name of the CMake option is the same as the `#define`.
 
 Building the QCBOR library:
 
@@ -71,6 +71,8 @@ cmake --build <build_folder>
 
 @anchor CodeSize
 ## Code Size
+
+TODO: The sizes in this section need to be updated for QCBOR v2.
 
 These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
 All `QCBOR_DISABLE_XXX` are set and compiler stack frame checking is disabled
@@ -128,7 +130,7 @@ and standard tag types.
 The primary control over the amount of QCBOR code that is linked into
 an application is in which functions are actually used. When linking
 against a library, or when dead-code stripping is enabled, any code
-that is not explicitly referenced will not be linked. For, example
+that is not explicitly referenced will not be linked. For example,
 never calling number conversion functions will result in less linked
 code.
 
@@ -143,7 +145,7 @@ depend on factors such as the target CPU, compiler, compiler options,
 build configuration, and the specific QCBOR functions used.
 
 
-| #define                                   |  Saves |
+| `#define`                                 |  Saves |
 | ------------------------------------------| -------|
 | `QCBOR_DISABLE_ENCODE_USAGE_GUARDS`       |  TODO  |
 | `QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` |  TODO  |
@@ -164,26 +166,26 @@ implementation is complete and correct.
 
 Indefinite lengths are a feature of CBOR that makes encoding simpler
 and the decoding more complex. They allow the encoder to not have to
-know the length of a string, map or array when they start encoding
+know the length of a string, map, or array when they start encoding
 it. Their main use is when encoding has to be done on a very
-constrained device.  Conversely when decoding on a very constrained
+constrained device.  Conversely, when decoding on a very constrained
 device, it is good to prohibit use of indefinite lengths so the
 decoder can be smaller.
 
 The QCBOR decode API processes both definite and indefinite lengths
-with the same API, except to decode indefinite-length strings a
+with the same API, except that to decode indefinite-length strings, a
 storage allocator must be configured.
 
-To reduce the size of the decoder define
-`QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` particularly if you are not
+To reduce the size of the decoder, define
+`QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS`, particularly if you are not
 configuring a storage allocator.
 
-Further reduction can be by defining
-`QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS` which will result in an error
+Further reduction can be acheived by defining
+`QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`, which will result in an error
 when an indefinite-length map or array arrives for decoding.
 
 `QCBOR_DISABLE_UNCOMMON_TAGS` is removed from QCBOR v2. It didn't save
-very much and you can get the same effect by not installing
+very much, and you can get the same effect by not installing
 the tag content handlers.
 
 `QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
@@ -191,7 +193,7 @@ fractions and big floats.
 
 The options for disabling floating-point are detailed in the section
 on @ref Floating-Point. In short, `QCBOR_DISABLE_PREFERRED_FLOAT`
-eliminates a lot of floating-point related code, particularly
+eliminates a lot of floating-point-related code, particularly
 half-precision support, `QCBOR_DISABLE_FLOAT_HW_USE` eliminates
 dependency on the math library and `<math.h>`, and
 `USEFULBUF_DISABLE_ALL_FLOAT` eliminates all float-point dependency,
@@ -226,22 +228,22 @@ deterministic of dCBOR.
 
 ### Size of spiffy decode
 
-When creating a decode implementation, there is a choice of whether or
-not to use spiffy decode features or to just use
-QCBORDecode_GetNext().
+When implementing a protocol decoder, you can choose between using the
+spiffy decode features or using the lower-level API,
+QCBORDecode_VGetNext() API.
 
-The implementation using spiffy decode will be simpler resulting in
-the calling code being smaller, but the amount of code brought in from
-the QCBOR library will be larger. Basic use of spiffy decode brings in
-about 2KB of object code.  If object code size is not a concern, then
-it is probably better to use spiffy decode because it is less work,
-there is less complexity and less testing to worry about.
+Using spiffy decode generally results in a simpler implementation. The
+calling code is smaller and easier to write, understand, and test. The
+tradeoff is that more code from the QCBOR library is linked in: basic
+use of spiffy decode adds approximately 2 KB of object code. If object
+code size is not a concern, spiffy decode is usually the better choice
+due to reduced development effort, lower complexity, and simpler
+testing.
 
-If code size is a concern, then use of QCBORDecode_GetNext() will
-probably result in smaller overall code size for simpler CBOR
-protocols. However, if the CBOR protocol is complex then use of spiffy
-decode may reduce overall code size.  An example of a complex protocol
-is one that involves decoding a lot of maps or maps that have many
-data items in them.  The overall code may be smaller because the
-general purpose spiffy decode map processor is the one used for all
-the maps.
+If code size is a concern, using QCBORDecode_VGetNext() will often
+produce a smaller overall binary for simple CBOR protocols. However,
+for more complex protocols, spiffy decode may actually reduce total
+code size. This is especially true for protocols that decode many
+maps, or maps with many entries, where the shared, general-purpose
+spiffy decode map processing logic replaces repeated hand-written
+decoding code.
