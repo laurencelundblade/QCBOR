@@ -134,7 +134,7 @@ struct IEEE754_ToInt {
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
+IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
 
 
 /**
@@ -150,7 +150,7 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
  * This handles all subnormals and NaN payloads.
  */
 IEEE754_union
-IEEE754_SingleToHalf(uint32_t uSingle, int bNoNanPayloads);
+IEEE754_SingleToHalf(uint32_t uSingle);
 
 
 /**

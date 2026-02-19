@@ -821,7 +821,7 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
    uint32_t   uSingle;
 
    /* Set error code for when no case in the switch matches. This
-    * never actually happens because, but the compiler and the code
+    * never actually happens, but the compiler and the code
     * coverage tool don't know this. */
    uErr = QCBOR_ERR_UNSUPPORTED;
 

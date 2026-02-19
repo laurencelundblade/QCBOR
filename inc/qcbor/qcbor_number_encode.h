@@ -59,75 +59,7 @@ extern "C" {
  * @file qcbor_number_encode.h
  *
  * This file contains functions for encoding numbers.
- *
- * @anchor Floating-Point
- *
- * ## Floating-Point
- *
- * By default QCBOR fully supports IEEE 754 floating-point:
- *  - Encode/decode of double, single and half-precision
- *  - CBOR preferred serialization of floating-point
- *  - Floating-point epoch dates
- *
- * For the most part, the type double is used in the interface for
- * floating-point values. In the default configuration, all decoded
- * floating-point values are returned as a double.
- *
- * With CBOR preferred serialization, the encoder outputs the smallest
- * representation of the double or float that preserves precision. Zero,
- * and infinity are always encoded as a half-precision, each taking
- * just 3 bytes. This reduces the number of bytes needed to encode
- * double and single-precision, especially if zero and infinity are
- * frequently used. NaN is always output as a half-precision
- * quiet NaN.
- *
- * To avoid use of preferred serialization in the standard configuration
- * when encoding, use QCBOREncode_AddDoubleRaw() or
- * QCBOREncode_AddFloatRaw().
- *
- * This implementation of floating-point preferred serialization and
- * half-precision is independent of the CPU floating-point hardware or
- * any floating-point library from the compiler.  Instead, an internal
- * implementation that solely uses bit shifts and masks is used.
- *
- * Several compile-time options can reduce the library size and
- * dependencies. Internal dependencies are already minimized, so
- * little floating-point code is linked unless explicitly used. During
- * encoding, no floating-point code is linked unless called; during
- * decoding, only a small amount is linked.
- *
- * Defining QCBOR_DISABLE_PREFERRED_FLOAT can reduce
- * object code by as much a 2.5KB. The effect is:
- * - No preferred serialization encoding of float-point numbers
- * - Half-precision decoding is disabled -- decoding attempts will fail
- * - Single-precision values are not converted to double during decoding
- * - dCBOR number processing via QCBORDecode_GetNumberConvertPrecisely()
- *   is disabled
- * - Floating-point decode conformance checks for dCBOR and others are disabled
- *
- * On CPUs without floating-point hardware, define
- * QCBOR_DISABLE_FLOAT_HW_USE to elimate the possibility of the compiler
- * adding large software emulation libraries.  On CPUs with
- * floating-point hardware, defining it can still save up to 1.5 KB of
- * object code and removes the dependency on <math.h>.
- *
- * When QCBOR_DISABLE_FLOAT_HW_USE is defined:
- * - Decoding of floating-point dates is not possible
- * - Decode conversions involving floating-point are disabled
- *
- * If both QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
- * are defined:
- * - Single-precision and double-precision values can only be encoded/decoded
- *   as-is (no conversions between them).
- *
- * If USEFULBUF_DISABLE_ALL_FLOAT is defined, then floating-point
- * support is completely disabled:
- * - No double or float types are used anywhere
- * - Decoding functions return @ref QCBOR_ERR_ALL_FLOAT_DISABLED if a
- *   floating-point value is encountered
- * - Encoding functions for floating-point values are unavailable
  */
-
 
 
 /**
@@ -1138,6 +1070,16 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
+/* replicated from ieee754.h which is not publicly installed so
+ * AddDoubeRaw() can be inlined */
+int
+IEEE754_DoubleHasNaNPayload(double dNum);
+
+int
+IEEE754_SingleHasNaNPayload(uint32_t uSingle);
+
+
+
 /** @private See qcbor_main_number_encode.c */
 void
 QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum);
@@ -1292,6 +1234,10 @@ QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
+   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
+      return;
+   }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    QCBOREncode_Private_AddDoubleRaw(pMe, dNum);
@@ -1359,6 +1305,12 @@ QCBOREncode_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
+      return;
+   }
+   uint32_t u32_fNum;
+   u32_fNum = UsefulBufUtil_CopyFloatToUint32(fNum);
+   if(IEEE754_SingleHasNaNPayload(u32_fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+      pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */

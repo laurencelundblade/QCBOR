@@ -229,8 +229,9 @@ enum QCBOREncodeConfig {
 
    /** By default QCBOR will error with @ref QCBOR_ERR_NOT_ALLOWED
     * when trying to encode a double or float NaN that has a payload
-    * because NaN payloads are not very interoperable. With this set,
-    * NaN payloads can be encoded.
+    * as a warning because it is very uncommon and not very
+    * interoperable to convey NaNs with payloads in protocols.
+    * To disable this checking, set this option.
     */
    QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD = 0x02,
 

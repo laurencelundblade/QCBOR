@@ -245,7 +245,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
           * number significand.
           */
          uDoubleSignificand = uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-         dResult = IEEE754_AssembleDouble(nIsNegative,
+         dResult = IEEE754_AssembleDouble(0,
                                           uDoubleSignificand,
                                           DOUBLE_EXPONENT_INF_OR_NAN);
       } else {
@@ -408,7 +408,7 @@ IEEE754_SingleToHalf(const uint32_t uSingle)
          /* --- NAN --- */
          /* The comment on NaNs in IEEE754_DoubleToSingle() applies here */
          result.uSize  = IEEE754_UNION_IS_HALF;
-         result.uValue = IEEE754_AssembleHalf(nIsNegative,
+         result.uValue = IEEE754_AssembleHalf(0,
                                               HALF_QUIET_NAN_BIT,
                                               HALF_EXPONENT_INF_OR_NAN);
       }
@@ -589,7 +589,7 @@ IEEE754_DoubleToSingle(const double d)
           * serialization.
           */
          Result.uSize  = IEEE754_UNION_IS_SINGLE;
-         Result.uValue = IEEE754_AssembleSingle(nIsNegative,
+         Result.uValue = IEEE754_AssembleSingle(0,
                                                 SINGLE_QUIET_NAN_BIT,
                                                 SINGLE_EXPONENT_INF_OR_NAN);
       }
