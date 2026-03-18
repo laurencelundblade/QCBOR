@@ -251,10 +251,14 @@ typedef enum {
     */
    QCBOR_DECODE_ONLY_REDUCED_FLOATS = 0x80,
 
+    /** NaN payloads in the input will error with @ref QCBOR_ERR_NAN_PAYLOAD unless this is set.
+     */
+   QCBOR_DECODE_ALLOW_NAN_PAYLOADS = 0x100,
+
    /** dCBOR allows only the simple types true, false and NULL
     * This enforces that.
     */
-   QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES = 0x100,
+   QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES = 0x200,
 
    /**
     * This checks that the input is encoded with preferred

@@ -1,6 +1,54 @@
 
 @anchor BigNumbers
 
+# Floating-Point
+
+## NaN
+
+QCBOR can do lots of NaN stuff for you, but just don't. Really, don't.
+Redesign your protocol to use NULL instead. 
+
+If you are thinking about NaN payloads, really, really don't. 
+Try some meditation or medication. Join a cult. A cult is probably
+better than NaN payloads. Rethink your life. I've wasted part of my 
+life on NaN payloads. You should not.
+
+### Encoding
+
+QCBOREncode_AddDouble() and QCBOREncode_AddSingle() will encode a NaN without a payload
+for you. They will adhere to preferred-plus serialization and 
+reduce the NaN to half-precision.
+
+They will error out with @ref QCBOR_ERR_NOT_ALLOWED if the NaN has
+a payload unless you set @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD,
+but you shouldn't do that because NaN payloads are bad. They
+suck you in and waste your time. There are better life choices.
+Trust me.
+
+You can also use QCBOREncode_AddDoubleRaw() and QCBOREncode_AddSingleRaw().
+They will not reduce NaNs to half-precision. If you want to output
+NaN paylaod they also require @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
+to output.  There is no method to output half-precision raw.
+
+### Decoding
+
+QCBORDecode_VGetNext() will decode NaNs without payloads.
+They will be returned as a double-precision NaN.
+
+Trying to decode NaN with a payload will result in @ref QCBOR_ERR_NAN_PAYLOAD
+unless @ref QCBOR_DECODE_ALLOW_NAN_PAYLOADS is set. If it is 
+set the NaN will be returned with the payload. Half and single-precision
+NaNs with payload will be widened to double-precision.
+
+The same is true for QCBORDecode_GetDouble().
+
+Decode-and-convert functions that operate on floats will return
+errors if the float is a NaN of any sort.
+
+TODO: test and document the Get functions that convert
+floating-point.
+
+
 # Big Numbers
 
 ## Basics

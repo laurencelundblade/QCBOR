@@ -943,10 +943,13 @@ IEEE754_DoubleHasNaNPayload(const double d)
    /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
    const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
+
 
    if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN &&
       uDoubleSignificand != 0 &&
-      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
+      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT &&
+      !bIsNegative) {
       return 1;
    } else {
       return 0;
@@ -962,12 +965,16 @@ IEEE754_SingleHasNaNPayload(const uint32_t uSingle)
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint32_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
+
 
    if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
       uSingleSignificand != 0 &&
-      uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
+      uSingleSignificand != SINGLE_QUIET_NAN_BIT &&
+      !bIsNegative) {
       return 1;
    } else {
       return 0;
    }
 }
+

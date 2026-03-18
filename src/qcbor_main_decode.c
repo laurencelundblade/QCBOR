@@ -688,6 +688,13 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 {
    struct IEEE754_ToInt ToInt;
 
+   if(!(uConfigFlags & QCBOR_DECODE_ALLOW_NAN_PAYLOADS)) {
+      /* Make sure there is no NaN payload */
+      if(IEEE754_DoubleHasNaNPayload(d)) {
+         return QCBOR_ERR_NAN_PAYLOAD;
+      }
+   }
+
    /* Only need to check for conversion to integer because
     * half-precision is always preferred serialization. Don't
     * need special checker for half-precision because whole
@@ -710,26 +717,28 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uconfigFlags)
+QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uConfigFlags)
 {
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
-   if(uconfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
+   if(!(uConfigFlags & QCBOR_DECODE_ALLOW_NAN_PAYLOADS)) {
+      /* Make sure there is no NaN payload */
+      if(IEEE754_SingleHasNaNPayload(uSingle)) {
+         return QCBOR_ERR_NAN_PAYLOAD;
+      }
+   }
+
+   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       /* See if it could have been encoded as an integer */
       ToInt = IEEE754_SingleToInt(uSingle);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
-
-      /* Make sure there is no NaN payload */
-      if(IEEE754_SingleHasNaNPayload(uSingle)) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
-      }
    }
 
-   /* See if it could have been encoded shorter */
-   if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
+   if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
+      /* See if it could have been encoded shorter */
       ToSmaller = IEEE754_SingleToHalf(uSingle);
       if(ToSmaller.uSize != sizeof(float)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
@@ -746,20 +755,23 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
+   if(!(uConfigFlags & QCBOR_DECODE_ALLOW_NAN_PAYLOADS)) {
+      /* Make sure there is no NaN payload */
+      if(IEEE754_DoubleHasNaNPayload(d)) {
+         return QCBOR_ERR_NAN_PAYLOAD;
+      }
+   }
+
    if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
       /* See if it could have been encoded as an integer */
       ToInt = IEEE754_DoubleToInt(d);
       if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
          return QCBOR_ERR_DCBOR_CONFORMANCE;
       }
-      /* Make sure there is no NaN payload */
-      if(IEEE754_DoubleHasNaNPayload(d)) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
-      }
    }
 
-   /* See if it could have been encoded shorter */
    if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
+      /* See if it could have been encoded shorter */
       ToSmaller = IEEE754_DoubleToSmaller(d, true);
       if(ToSmaller.uSize != sizeof(double)) {
          return QCBOR_ERR_PREFERRED_CONFORMANCE;
@@ -775,7 +787,8 @@ static QCBORError
 QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -788,7 +801,8 @@ static QCBORError
 QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uConfigFlags)
 {
    (void)uSingle;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -799,7 +813,8 @@ static QCBORError
 QCBORDecode_Private_DoubleConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;

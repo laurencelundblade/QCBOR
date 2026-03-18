@@ -2620,7 +2620,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 57) {
+      if(nIndex == 25) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -10818,21 +10818,21 @@ int32_t BoolTest(void)
 }
 
 
-
+/* The expected error code varies with the compile time options */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#define PREFERRED_ERR    QCBOR_ERR_PREFERRED_CONFORMANCE
-#define DCBOR_FLOAT_ERR  QCBOR_ERR_DCBOR_CONFORMANCE
-#define HALF_FLOAT_ERR   QCBOR_ERR_DCBOR_CONFORMANCE
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-#define PREFERRED_ERR    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
-#define DCBOR_FLOAT_ERR  QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
-#define HALF_FLOAT_ERR   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+  #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+    #define PREFERRED_ERR    QCBOR_ERR_PREFERRED_CONFORMANCE
+    #define DCBOR_FLOAT_ERR  QCBOR_ERR_DCBOR_CONFORMANCE
+    #define HALF_FLOAT_ERR   QCBOR_ERR_DCBOR_CONFORMANCE
+  #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+    #define PREFERRED_ERR    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
+    #define DCBOR_FLOAT_ERR  QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
+    #define HALF_FLOAT_ERR   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+  #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #else /* ! USEFULBUF_DISABLE_ALL_FLOAT */
-#define PREFERRED_ERR    QCBOR_ERR_ALL_FLOAT_DISABLED
-#define DCBOR_FLOAT_ERR  QCBOR_ERR_ALL_FLOAT_DISABLED
-#define HALF_FLOAT_ERR   QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define PREFERRED_ERR    QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define DCBOR_FLOAT_ERR  QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define HALF_FLOAT_ERR   QCBOR_ERR_ALL_FLOAT_DISABLED
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
@@ -10979,32 +10979,32 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "NAN half with payload (signaling)",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x7e\x01", 3},
-      HALF_FLOAT_ERR
+      QCBOR_ERR_NAN_PAYLOAD
    },
    { "NAN single with payload (signaling)",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfa\x7f\xc0\x00\x01", 5},
-      DCBOR_FLOAT_ERR
+      QCBOR_ERR_NAN_PAYLOAD
    },
    { "NAN double with payload (signaling)",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x01", 9},
-      DCBOR_FLOAT_ERR
+      QCBOR_ERR_NAN_PAYLOAD
    },
    { "NAN half with some payload",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x7e\x80", 3},
-      HALF_FLOAT_ERR
+      QCBOR_ERR_NAN_PAYLOAD
    },
    { "NAN single with some payload",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfa\x7f\xc4\x00\x00", 5},
-      DCBOR_FLOAT_ERR
+      QCBOR_ERR_NAN_PAYLOAD
    },
    { "NAN double with some payload",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfb\x7f\xf8\x01\x01\x00\x00\x00\x00", 9},
-      DCBOR_FLOAT_ERR
+      QCBOR_ERR_NAN_PAYLOAD
    },
 
    /* --- Floats that should be integers --- */
@@ -11461,11 +11461,11 @@ PreciseNumbersDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &PreciseNumberConversions[uTestIndex];
 
-      if(uTestIndex == 18) {
+      if(uTestIndex == 3) {
          uErr = 99; // For break point only
       }
 
-      QCBORDecode_Init(&DCtx, pTest->CBOR, 0);
+      QCBORDecode_Init(&DCtx, pTest->CBOR, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
       QCBORDecode_CompatibilityV1(&DCtx);
 
       QCBORDecode_GetNumberConvertPrecisely(&DCtx, &Item);

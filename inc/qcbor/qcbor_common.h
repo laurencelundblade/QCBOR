@@ -40,7 +40,7 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+//#define QCBOR_DISABLE_PREFERRED_FLOAT
 //#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 #ifdef __cplusplus
@@ -619,6 +619,9 @@ typedef enum {
 
    /** A tag number is expected, but missing. */
    QCBOR_ERR_MISSING_TAG_NUMBER = 91,
+
+   /** NaN payloads are an error unless explicitly allowed by @ref QCBOR_DECODE_ALLOW_NAN_PAYLOADS */
+   QCBOR_ERR_NAN_PAYLOAD = 92,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

@@ -191,7 +191,7 @@ NaNExperiments(void)
 
 
 /* Returns 0 if OK, 1 if not */
- int32_t
+int32_t
 HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
 {
 #ifdef QCBOR_COMPARE_TO_HW_CONVERSION
@@ -231,7 +231,7 @@ HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
 }
 
 /* Returns 0 if OK, 1 if not */
-static int32_t
+int32_t
 HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
 {
 #ifdef QCBOR_COMPARE_TO_HW_CONVERSION
@@ -772,6 +772,7 @@ FloatValuesTests(void)
    return 0;
 }
 
+/* encode the double in four different modes and get the four expected encodings */
 
 /* Can't use the types double and float here because there's no compile
  * time initializer in C to construct NaNs.
@@ -783,12 +784,12 @@ FloatValuesTests(void)
 struct NaNTestCase {
    uint64_t    uDouble; /* Converted to double in test */
    uint32_t    uSingle; /* Converted to single in test */
-   uint64_t    uExpectedDouble;
+   uint64_t    uExpectedDouble; /* expected decode of preferred */
    uint32_t    uExpectedSingle;
-   UsefulBufC  Preferred;
-   UsefulBufC  NotPreferred;
-   UsefulBufC  Deterministic;
-   UsefulBufC  DCBOR;
+   UsefulBufC  Preferred; /* Encoded preferred */
+   UsefulBufC  NotPreferred; /* Encoded raw */
+   UsefulBufC  Deterministic; /* Encoded deterministic */
+   UsefulBufC  DCBOR; /* Encoded dCBOR */
 };
 
 /* Always four lines per test case so shell scripts can process into
@@ -814,75 +815,71 @@ static const struct NaNTestCase NaNTestCases[] =  {
     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
-#if 0
    /* double negative qNaN -- shortens to half */
    {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
-    DOUBLE_SIGN_MASK| DOUBLE_NAN_BITS | DOUBLE_QNAN,  0,
+    DOUBLE_NAN_BITS  | DOUBLE_QNAN,              0,
     {"\xF9\x7E\x00", 3},                         {"\xFB\xFF\xF8\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
-#endif
 
    /* double sNaN with payload of rightmost bit set -- no shorter encoding */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,        0,
     {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9},
     {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
-#if 0
    /* double negative sNaN with payload of rightmost bit set -- no shorter encoding */
    {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,        0,
     {"\xF9\x7E\x00", 3},    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9},
     {"\xF9\x7E\x00", 3},    {"\xF9\x7E\x00", 3}},
-#endif
 
    /* double qNaN with 9 leftmost payload bits set -- shortens to half */
    {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
-    {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,  0,
+    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 10 rightmost payload bits set -- no shorter encoding */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x03ff,      0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x03ff,      0,
-    {"\xF9\xFE\x00", 3},   {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,      0,
+    {"\xF9\x7E\x00", 3},   {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9},
     {"\xF9\xFE\x00", 3},   {"\xF9\x7E\x00", 3}},
 
    /* double qNaN with 22 leftmost payload bits set -- shortens to single */
    {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_NAN_BITS | 0x7fffff,
-    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,  SINGLE_NAN_BITS | 0x7fffff,
+    {"\xF9\x7E\x00", 3},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* double negative qNaN with 22 leftmost payload bits set -- shortens to single */
    {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
-    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xFB\xFF\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
+     DOUBLE_NAN_BITS | DOUBLE_QNAN ,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
+    {"\xF9\x7E\x00", 3},                 {"\xFB\xFF\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 23rd leftmost payload bit set -- shortens to single */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  SINGLE_NAN_BITS | 0x01,
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,  SINGLE_NAN_BITS | 0x01,
+    {"\xF9\x7E\x00", 3},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with randomly chosen bit pattern -- shortens to single */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  SINGLE_NAN_BITS | 0x21ebe2,
-    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
-    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,  SINGLE_NAN_BITS | 0x21ebe2,
+    {"\xF9\x7E\x00", 3},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* double sNaN with 23 leftmost payload bits set -- no shorter encoding */
    {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
-    {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9},
-    {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xF9\x7E\x00", 3}},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,  0,
+    {"\xF9\x7E\x00", 3}, {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9},
+    {"\xF9\x7E\x00", 3}, {"\xF9\x7E\x00", 3}},
 
    /* double qNaN with all bits set -- no shorter encoding */
    {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
-    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xF9\x7E\x00", 3}},
+    DOUBLE_NAN_BITS | DOUBLE_QNAN ,  0,
+    {"\xF9\x7E\x00", 3}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xF9\x7E\x00", 3}, {"\xF9\x7E\x00", 3}},
 
    /* single qNaN with payload 0x00 -- shortens to half */
    {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN,
@@ -894,158 +891,38 @@ static const struct NaNTestCase NaNTestCases[] =  {
 
    /* single sNan with payload 0x01 -- no shorter encoding */
    {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x01,
-    DOUBLE_NAN_BITS | (0x01 << 29),              0,
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFA\x7F\x80\x00\x01", 5},
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
+      DOUBLE_NAN_BITS | DOUBLE_QNAN,              0,
+    {"\xF9\x7E\x00", 3},                 {"\xFA\x7F\x80\x00\x01", 5},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* single qNaN with 9 bit payload -- shortens to half */
    {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN | 0x3fe000,
-    DOUBLE_NAN_BITS | ((SINGLE_QNAN | 0x3fe000ULL) << 29),   0,
-    {"\xF9\x7F\xFF", 3},                         {"\xFA\x7F\xFF\xE0\x00", 5},
-    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
+      DOUBLE_NAN_BITS | DOUBLE_QNAN,   0,
+    {"\xF9\x7E\x00", 3},                         {"\xFA\x7F\xFF\xE0\x00", 5},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* single qNaN with 10 bit payload -- no shorter encoding */
    {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN | 0x3ff000,
-    DOUBLE_NAN_BITS | ((SINGLE_QNAN | 0x3ff000ULL) << 29), 0,
-    {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xFA\x7F\xFF\xF0\x00", 5},
-    {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
+      DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
+    {"\xF9\x7E\x00", 3},                 {"\xFA\x7F\xFF\xF0\x00", 5},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* single sNaN with 9 bit payload -- shortens to half */
    {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3fe000,
-    DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3fe000ULL) << 29), 0,
-    {"\xF9\x7D\xFF", 3},                         {"\xFA\x7F\xBF\xE0\x00", 5},
-    {"\xF9\x7D\xFF", 3},                         {"\xF9\x7E\x00", 3}},
+      DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
+    {"\xF9\x7E\x00", 3},                         {"\xFA\x7F\xBF\xE0\x00", 5},
+    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
 
    /* single sNaN with 10 bit payload -- no shorter encoding */
    {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3ff000,
-    DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3ff000ULL) << 29), 0,
-    {"\xFA\x7F\xBF\xF0\x00", 5},                 {"\xFA\x7F\xBF\xF0\x00", 5},
-    {"\xFA\x7F\xBF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
+      DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
+    {"\xF9\x7E\x00", 3},                 {"\xFA\x7F\xBF\xF0\x00", 5},
+    {"\xF9\x7E\x00", 3},                 {"\xF9\x7E\x00", 3}},
 
    /* List terminator */
    {0, 0, 0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
 
-static const struct NaNTestCase NaNTestCasesPreferred[] =  {
-   /* Reminder: DOUBLE_NAN_BITS | x00 is INFINITY, not a NaN */
-
-   /* double qNaN -- shortens to half */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
-    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
-
-#if 0
-   /* double negative qNaN -- shortens to half */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
-    {"\xF9\x7E\x00", 3},                         {"\xFB\xFF\xF8\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
-#endif
-
-   /* double sNaN with payload of rightmost bit set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-      {"\xF9\x7E\x00", 3}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9},
-      {"\xF9\x7E\x00", 3}, {"\xF9\x7E\x00", 3}},
-
-#if 0
-   /* double negative sNaN with payload of rightmost bit set -- no shorter encoding */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9},
-    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
-#endif
-
-   /* double qNaN with 9 leftmost payload bits set -- shortens to half */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
-    {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with 10 rightmost payload bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x03ff,      0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x03ff,      0,
-    {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9},
-    {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* double qNaN with 22 leftmost payload bits set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_NAN_BITS | 0x7fffff,
-    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double negative qNaN with 22 leftmost payload bits set -- shortens to single */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
-    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xFB\xFF\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with 23rd leftmost payload bit set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  SINGLE_NAN_BITS | 0x01,
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with randomly chosen bit pattern -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  SINGLE_NAN_BITS | 0x21ebe2,
-    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
-    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with 23 leftmost payload bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
-    {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9},
-    {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* double qNaN with all bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
-    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* single qNaN with payload 0x00 -- shortens to half */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
-    {"\xF9\x7E\x00", 3},                         {"\xFA\x7F\xC0\x00\x00", 5},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* sNan with payload 0x00 is not a NaN, it's infinity */
-
-   /* single sNan with payload 0x01 -- no shorter encoding */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x01,
-    DOUBLE_NAN_BITS | (0x01 << 29),              0,
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFA\x7F\x80\x00\x01", 5},
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* single qNaN with 9 bit payload -- shortens to half */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN | 0x3fe000,
-    DOUBLE_NAN_BITS | ((SINGLE_QNAN | 0x3fe000ULL) << 29),   0,
-    {"\xF9\x7F\xFF", 3},                         {"\xFA\x7F\xFF\xE0\x00", 5},
-    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* single qNaN with 10 bit payload -- no shorter encoding */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN | 0x3ff000,
-    DOUBLE_NAN_BITS | ((SINGLE_QNAN | 0x3ff000ULL) << 29), 0,
-    {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xFA\x7F\xFF\xF0\x00", 5},
-    {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* single sNaN with 9 bit payload -- shortens to half */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3fe000,
-    DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3fe000ULL) << 29), 0,
-    {"\xF9\x7D\xFF", 3},                         {"\xFA\x7F\xBF\xE0\x00", 5},
-    {"\xF9\x7D\xFF", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* single sNaN with 10 bit payload -- no shorter encoding */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3ff000,
-    DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3ff000ULL) << 29), 0,
-    {"\xFA\x7F\xBF\xF0\x00", 5},                 {"\xFA\x7F\xBF\xF0\x00", 5},
-    {"\xFA\x7F\xBF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* List terminator */
-   {0, 0, 0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
-};
 
 
 /* Public function. See float_tests.h */
@@ -1062,8 +939,6 @@ NaNPayloadsTest(void)
    QCBORItem                    Item;
    uint64_t                     uDecoded;
 
-   (void)NaNTestCasesPreferred;
-
    /* Test a variety of NaNs with payloads */
    for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
       pNaNTestCase = &NaNTestCases[uTestIndex];
@@ -1073,7 +948,7 @@ NaNPayloadsTest(void)
       }
 
       if(pNaNTestCase->uDouble) {
-         /* NaN Encode of Preferred */
+         /* ---- NaN Encode Preferred ---- */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
@@ -1084,21 +959,14 @@ NaNPayloadsTest(void)
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
             return MakeTestResultCode(uTestIndex, 11, 200);
-         }/*
-         if(CompareToCarsten(pNaNTestCase->uDouble, TestOutput, pNaNTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex, 12, 200);
-         }*/
+         }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
             return MakeTestResultCode(uTestIndex, 122, 200);
          }
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
-/*
-         if(HWCheckFloatToDouble(pNaNTestCase->uDouble, pNaNTestCase->uSingle)) {
-            return MakeTestResultCode(uTestIndex, 121, 200);
-         } */
 
-         /* NaN Encode of Not Preferred */
+         /* ---- NaN Encode Not Preferred ---- */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddDoubleRaw(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
@@ -1110,16 +978,15 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex, 14, 200);
          }
 
-         /* NaN Decode of Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         /* ---- NaN Decode of Preferred ---- */
+         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex, 15, uErr);
          }
          uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-         if(uDecoded != pNaNTestCase->uDouble) {
+         if(uDecoded != pNaNTestCase->uExpectedDouble) {
             return MakeTestResultCode(uTestIndex, 11, 200);
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -1150,9 +1017,8 @@ NaNPayloadsTest(void)
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         /* NaN Decode of Not Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         /* --- NaN Decode of Not Preferred ---- */
+         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex, 22, uErr);
@@ -1162,9 +1028,10 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex, 23, 200);
          }
 
-         /* Deterministic NaN Encode */
+
+         /* ---- Deterministic NaN Encode ---- */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC | QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
          uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
          if(uErr != QCBOR_SUCCESS) {
@@ -1180,7 +1047,7 @@ NaNPayloadsTest(void)
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         /* NaN Encode of DCBOR */
+         /* ---- NaN Encode of DCBOR ---- */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR | QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
@@ -1199,8 +1066,8 @@ NaNPayloadsTest(void)
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
       } else {
-         /* --- uSingle tests ---- */
-         /* NaN Encode of Preferred */
+         /* ==== uSingle tests ==== */
+         /* ---- NaN Encode of Preferred ---- */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddFloat(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
@@ -1218,7 +1085,7 @@ NaNPayloadsTest(void)
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         /* NaN Encode of Not Preferred */
+         /* ---- NaN Encode of Not Preferred ---- */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          QCBOREncode_AddFloatRaw(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
@@ -1230,8 +1097,9 @@ NaNPayloadsTest(void)
             return MakeTestResultCode(uTestIndex, 33, 200);
          }
 
-         /* NaN Decode of Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
+
+         /* ---- NaN Decode of Preferred ---- */
+         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
@@ -1255,30 +1123,20 @@ NaNPayloadsTest(void)
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
+
+#ifdef QCBOR_DISABLE_PREFERRED_FLOAT
          /* NaN Decode of Not Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex, 38, uErr);
          }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-         if(uDecoded != pNaNTestCase->uExpectedDouble) {
-            return MakeTestResultCode(uTestIndex, 39, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(pNaNTestCase->NotPreferred.len == 5) {
-            uint32_t uDecoded22 = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
-            if(uDecoded22 != pNaNTestCase->uSingle) {
-               return MakeTestResultCode(uTestIndex, 40, 200);
-            }
+         uint32_t uDecoded22 = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
+         if(uDecoded22 != pNaNTestCase->uSingle) {
+            return MakeTestResultCode(uTestIndex, 40, 200);
          }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-         if(HWCheckDoubleToFloat(pNaNTestCase->uSingle, pNaNTestCase->uExpectedDouble)) {
-            return MakeTestResultCode(uTestIndex, 401, 200);
-         }
 
          /* Deterministic NaN Encode */
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
@@ -1369,7 +1227,7 @@ HalfPrecisionAgainstRFCCodeTest(void)
       /* Now parse the hand-constructed CBOR. This will invoke the
        * conversion to a float
        */
-      QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), 0);
+      QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
       QCBORDecode_GetNext(&DC, &Item);
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
          return -1;

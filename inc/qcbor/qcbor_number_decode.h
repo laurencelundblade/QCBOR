@@ -499,7 +499,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
  *
  * Doubles -- All other numbers are returned as double with type
  * @ref QCBOR_TYPE_DOUBLE, except for a special class of large negative
- * integers described below.
+ * integers described below. NaNs are also returned as doubles.
  *
  * 65-bit negative integers -- Negative integers in the range -(2^63 + 1)
  * down to -(2^64) may exceed the 52-bit precision of IEEE 754
