@@ -7054,8 +7054,6 @@ QCBORError CBTest2(void *pCallbackCtx, const QCBORItem *pItem)
 }
 
 
-
-
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
