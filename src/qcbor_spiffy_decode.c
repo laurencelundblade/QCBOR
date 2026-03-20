@@ -851,7 +851,9 @@ QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
    QCBORItem Item;
    uErr = QCBORDecode_GetNext(pMe, &Item);
    if(uErr != QCBOR_SUCCESS) {
-      *pItem = Item;
+      if(pItem != NULL) {
+         *pItem = Item;
+      }
       goto Done;
    }
 
