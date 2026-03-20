@@ -1,7 +1,7 @@
 # Guidelines from https://docs.fedoraproject.org/en-US/packaging-guidelines/CMake/
 
 Name: qcbor
-Version: 1.6
+Version: 1.6.1
 Release: 0%{?dist}
 Summary: A CBOR encoder/decoder library
 URL: https://github.com/laurencelundblade/QCBOR
@@ -53,6 +53,9 @@ Development files needed to build and link to the QCBOR library.
 
 
 %changelog
+* Nov 12 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6.1
+- Modernize cmake build and install
+- Minor QCBORDecode_EnteryArray() error handling bugfix
 * Nov 12 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6
 - Better Windows/MSVC support
 - Bug fix for GetArray() and GetMap()
