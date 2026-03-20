@@ -7425,6 +7425,14 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_TAGS) {
       return 4801;
    }
+
+   /* Again with a NULL pItem for extra check */
+   QCBORDecode_Init(&DCtx, (UsefulBufC){"\xD8\xE0\xD8\xE1\xD8\xE2\xD8\xE3\xD8\xE4\x80", 11}, 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_TAGS) {
+      return 4802;
+   }
+
 #endif
 
 

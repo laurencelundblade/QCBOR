@@ -4136,7 +4136,8 @@ QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
                                            const uint8_t       uType,
                                            QCBORItem          *pItem)
 {
-    QCBORError uErr;
+   QCBORError uErr;
+   QCBORItem  Item;
 
    /* Must only be called on maps and arrays. */
    if(pMe->uLastError != QCBOR_SUCCESS) {
@@ -4145,10 +4146,11 @@ QCBORDecode_Private_EnterBoundedMapOrArray(QCBORDecodeContext *pMe,
    }
 
    /* Get the data item that is the map or array being entered. */
-   QCBORItem Item;
    uErr = QCBORDecode_GetNext(pMe, &Item);
    if(uErr != QCBOR_SUCCESS) {
-      *pItem = Item;
+      if(pItem) {
+         *pItem = Item;
+      }
       goto Done;
    }
 
