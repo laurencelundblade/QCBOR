@@ -53,10 +53,10 @@ Development files needed to build and link to the QCBOR library.
 
 
 %changelog
-* Nov 12 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6.1
+* March 20, 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6.1
 - Modernize cmake build and install
 - Minor QCBORDecode_EnteryArray() error handling bugfix
-* Nov 12 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6
+* Nov 12 2025 Laurence Lundblade <lgl@island-resort.com> - 1.6
 - Better Windows/MSVC support
 - Bug fix for GetArray() and GetMap()
 - Fix gcc warnings
