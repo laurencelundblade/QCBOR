@@ -3,6 +3,8 @@
 
 # Floating-Point
 
+## TODO -- more floating point doc
+
 ## NaN
 
 QCBOR can do lots of NaN stuff for you, but just don't. Really, don't.
@@ -10,7 +12,7 @@ Redesign your protocol to use NULL instead.
 
 If you are thinking about NaN payloads, really, really don't. 
 Try some meditation or medication. Join a cult. A cult is probably
-better than NaN payloads. Rethink your life. I've wasted part of my 
+better than NaN payloads. I've wasted part of my 
 life on NaN payloads. You should not.
 
 ### Encoding

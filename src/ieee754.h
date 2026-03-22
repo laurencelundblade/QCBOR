@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.h -- Conversion between half, double & single-precision floats
  *
- * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *

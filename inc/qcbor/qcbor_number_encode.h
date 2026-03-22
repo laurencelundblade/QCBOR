@@ -1365,8 +1365,8 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddDoubleRawToMapSZ(QCBOREncodeContext *pMe,
-                                        const char         *szLabel,
-                                        const double        dNum)
+                                const char         *szLabel,
+                                const double        dNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddDoubleRaw(pMe, dNum);
@@ -1380,8 +1380,8 @@ QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLab
 
 static inline void
 QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pMe,
-                                       const int64_t       nLabel,
-                                       const double        dNum)
+                               const int64_t       nLabel,
+                               const double        dNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddDoubleRaw(pMe, dNum);
@@ -1389,8 +1389,8 @@ QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddFloatRawToMapSZ(QCBOREncodeContext *pMe,
-                                       const char         *szLabel,
-                                       const float         dNum)
+                               const char         *szLabel,
+                               const float         dNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddFloatRaw(pMe, dNum);
@@ -1404,8 +1404,8 @@ QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabe
 
 static inline void
 QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pMe,
-                                      const int64_t       nLabel,
-                                      const float         dNum)
+                              const int64_t       nLabel,
+                              const float         dNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddFloatRaw(pMe, dNum);

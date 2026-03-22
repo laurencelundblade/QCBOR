@@ -2,7 +2,7 @@
  * qcbor_common -- Common definitions for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -43,7 +43,7 @@
 //#define QCBOR_DISABLE_PREFERRED_FLOAT
 //#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 //#define QCBOR_DISABLE_DECODE_CONFORMANCE
-#define USEFULBUF_DISABLE_ALL_FLOAT
+//#define USEFULBUF_DISABLE_ALL_FLOAT
 
 
 #ifdef __cplusplus
@@ -496,7 +496,7 @@ typedef enum {
    QCBOR_ERR_FLOAT_NOT_REDUCED = 56,
 
    /** A simple type other than true, false or null was encountered
-       and ref QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES is set. */
+    * and ref QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES is set. */
    QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE = 57,
 
    /** Conformance checking requested, preferred serialization

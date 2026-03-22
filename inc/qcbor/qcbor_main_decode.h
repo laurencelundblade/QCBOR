@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -233,7 +233,7 @@ typedef enum {
    QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS = 0x08,
 
    /** @ref QCBOR_ERR_INDEF_LENGTH on indefinite length strings,
-       arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+    * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
    QCBOR_DECODE_MODE_NO_INDEF_LENGTH = 0x10,
 
    /** @ref QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT when the CBOR

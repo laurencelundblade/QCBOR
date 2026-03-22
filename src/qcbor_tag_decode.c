@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_tag_decode.c -- Tag content decoders
  *
- * Copyright (c) 2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2025-2026, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
