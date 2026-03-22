@@ -979,7 +979,7 @@ NaNPayloadsTest(void)
          }
 
          /* ---- NaN Decode of Preferred ---- */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
+         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uErr != QCBOR_SUCCESS) {
@@ -1018,7 +1018,7 @@ NaNPayloadsTest(void)
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
          /* --- NaN Decode of Not Preferred ---- */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
+         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex, 22, uErr);
@@ -1099,7 +1099,7 @@ NaNPayloadsTest(void)
 
 
          /* ---- NaN Decode of Preferred ---- */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
+         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
          QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
@@ -1126,7 +1126,7 @@ NaNPayloadsTest(void)
 
 #ifdef QCBOR_DISABLE_PREFERRED_FLOAT
          /* NaN Decode of Not Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
+         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
          uErr = QCBORDecode_GetNext(&DCtx, &Item);
          if(uErr != QCBOR_SUCCESS) {
             return MakeTestResultCode(uTestIndex, 38, uErr);
@@ -1227,7 +1227,7 @@ HalfPrecisionAgainstRFCCodeTest(void)
       /* Now parse the hand-constructed CBOR. This will invoke the
        * conversion to a float
        */
-      QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), QCBOR_DECODE_ALLOW_NAN_PAYLOADS);
+      QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
       QCBORDecode_GetNext(&DC, &Item);
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
          return -1;

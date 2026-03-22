@@ -1985,6 +1985,8 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
          /* +1 because negative big numbers are encoded one less than actual */
          *pBigNumber = QCBORDecode_Private_UIntToBigNumber(Item.val.uint64 + 1, BigNumberBuf);
       }
+   } else {
+      // TODO: seems like big number conformace is required here
    }
 
    return uResult;
