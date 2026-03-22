@@ -792,8 +792,8 @@ static QCBORError
 QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS |
-                      QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;

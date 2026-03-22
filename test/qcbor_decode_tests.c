@@ -2620,7 +2620,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 57) {
+      if(nIndex == 25) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -10821,22 +10821,32 @@ int32_t BoolTest(void)
 /* The expected error code varies with the compile time options */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
   #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-    #define PREFERRED_ERR    QCBOR_ERR_NOT_SHORTEST_FLOAT
-    #define DCBOR_FLOAT_ERR  QCBOR_ERR_FLOAT_NOT_REDUCED
-    #define HALF_FLOAT_ERR   QCBOR_ERR_FLOAT_NOT_REDUCED
-    #define HALF_NAN_PAYLOAD QCBOR_ERR_NAN_PAYLOAD
+    #define PREFERRED_ERR     QCBOR_ERR_NOT_SHORTEST_FLOAT
+    #define DCBOR_FLOAT_ERR   QCBOR_ERR_FLOAT_NOT_REDUCED
+    #define HALF_FLOAT_ERR    QCBOR_ERR_FLOAT_NOT_REDUCED
+    #define HALF_NAN_PAYLOAD  QCBOR_ERR_NAN_PAYLOAD
+    #define NOT_SHORTEST_FLOAT QCBOR_ERR_NOT_SHORTEST_FLOAT
+    #define NAN_PAYLOAD       QCBOR_ERR_NAN_PAYLOAD
+
 
   #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-    #define PREFERRED_ERR    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
-    #define DCBOR_FLOAT_ERR  QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
-    #define HALF_FLOAT_ERR   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
-    #define HALF_NAN_PAYLOAD QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+    #define PREFERRED_ERR     QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
+    #define DCBOR_FLOAT_ERR   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
+    #define HALF_FLOAT_ERR    QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+    #define HALF_NAN_PAYLOAD  QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+    #define NOT_SHORTEST_FLOAT QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
+    #define NAN_PAYLOAD       QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE
+
+
   #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 #else /* ! USEFULBUF_DISABLE_ALL_FLOAT */
-  #define PREFERRED_ERR    QCBOR_ERR_ALL_FLOAT_DISABLED
-  #define DCBOR_FLOAT_ERR  QCBOR_ERR_ALL_FLOAT_DISABLED
-  #define HALF_FLOAT_ERR   QCBOR_ERR_ALL_FLOAT_DISABLED
-  #define HALF_NAN_PAYLOAD QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define PREFERRED_ERR     QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define DCBOR_FLOAT_ERR   QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define HALF_FLOAT_ERR    QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define HALF_NAN_PAYLOAD  QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define NOT_SHORTEST_FLOAT QCBOR_ERR_ALL_FLOAT_DISABLED
+  #define NAN_PAYLOAD       QCBOR_ERR_ALL_FLOAT_DISABLED
+
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
@@ -10928,72 +10938,72 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "1.5 single should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\x3f\xc0\x00\x00", 5},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "1.5 double should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfb\x3f\xf8\x00\x00\x00\x00\x00\x00", 9},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "8388607.0 double should be single",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xFB\x41\x5F\xFF\xFF\xC0\x00\x00\x00", 9},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "3.0517578125E-5 double should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "255.875 single should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\x43\x7f\xe0\x00", 5},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "INFINITY single should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\x7f\x80\x00\x00", 5},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "INFINITY double should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfb\x7f\xf0\x00\x00\x00\x00\x00\x00", 9},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "-INFINITY single should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\xff\x80\x00\x00", 5},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "-INFINITY double should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfb\xff\xf0\x00\x00\x00\x00\x00\x00", 9},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "NAN single should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfa\x7f\xc0\x00\x00", 5},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "NAN double should be half",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x00", 9},
-      QCBOR_ERR_NOT_SHORTEST_FLOAT
+      NOT_SHORTEST_FLOAT
    },
    { "NAN half with payload (signaling)",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xf9\x7e\x01", 3},
-      QCBOR_ERR_NAN_PAYLOAD
+      HALF_NAN_PAYLOAD
    },
    { "NAN single with payload (signaling)",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfa\x7f\xc0\x00\x01", 5},
-      QCBOR_ERR_NAN_PAYLOAD
+      NAN_PAYLOAD
    },
    { "NAN double with payload (signaling)",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x01", 9},
-      QCBOR_ERR_NAN_PAYLOAD
+      NAN_PAYLOAD
    },
    { "NAN half with some payload",
       QCBOR_DECODE_MODE_DCBOR,
@@ -11003,12 +11013,12 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "NAN single with some payload",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfa\x7f\xc4\x00\x00", 5},
-      QCBOR_ERR_NAN_PAYLOAD
+      NAN_PAYLOAD
    },
    { "NAN double with some payload",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xfb\x7f\xf8\x01\x01\x00\x00\x00\x00", 9},
-      QCBOR_ERR_NAN_PAYLOAD
+      NAN_PAYLOAD
    },
 
    /* --- Floats that should be integers --- */

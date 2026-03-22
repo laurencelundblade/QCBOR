@@ -42,6 +42,9 @@
 
 //#define QCBOR_DISABLE_PREFERRED_FLOAT
 //#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+//#define QCBOR_DISABLE_DECODE_CONFORMANCE
+#define USEFULBUF_DISABLE_ALL_FLOAT
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -472,27 +475,35 @@ typedef enum {
     *  occurred in the decode input. */
    QCBOR_ERR_TAGS_DISABLED = 51,
 
-   // TODO: maybe reduce number of conformance codes to not use up unrecoverable errors
+   /** Indefinite lengths are disallowed by
+    * @ref QCBOR_DECODE_MODE_NO_INDEF_LENGTH */
+   QCBOR_ERR_INDEF_LENGTH = 52,
 
-   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not
-    * encoded in shortest form, or indefinite lengths are used. */
-//   QCBOR_ERR_PREFERRED_CONFORMANCE = 52,
+   /** @ref QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT is set and
+    * an item with non-shortest-length argument was decoded. */
+   QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT = 53,
 
-   /** Decoded CBOR does not conform to deterministic encoding. This
-    * occurs when a map is not sorted. Other deterministic issues are
-    * reported as @ref QCBOR_ERR_PREFERRED_CONFORMANCE. */
-  // QCBOR_ERR_DETERMINISTIC_CONFORMANCE = 53,
+   /** @ref QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT is set and a float
+    * that wasn't encoded in the shortest form was decoded. */
+   QCBOR_ERR_NOT_SHORTEST_FLOAT = 54,
 
-   /** Decoded CBOR does not conform to dCBOR. Floating point numbers are not reduced to integers.
-    * Other issues are reported as either @ref QCBOR_ERR_DETERMINISTIC_CONFORMANCE or
-    * @ref QCBOR_ERR_PREFERRED_CONFORMANCE. */
-//   QCBOR_ERR_DCBOR_CONFORMANCE = 54,
-
-   /** A map is unsorted and should be for deterministic encoding or dCBOR. */
+   /** A map is unsorted and @ref QCBOR_DECODE_MODE_ONLY_SORTED_MAPS
+    * is set. */
    QCBOR_ERR_UNSORTED = 55,
 
-   /** Conformance checking requested, preferred serialization disabled, float in the input. */
-   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 56,
+   /** Non-reduced floats disallowed by
+    * @ref QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS */
+   QCBOR_ERR_FLOAT_NOT_REDUCED = 56,
+
+   /** A simple type other than true, false or null was encountered
+       and ref QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES is set. */
+   QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE = 57,
+
+   /** Conformance checking requested, preferred serialization
+    * disabled, float in the input. */
+   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 58,
+
+   // TODO: is conformance check failure really an uncrecoverable error?
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59
 
@@ -622,21 +633,6 @@ typedef enum {
 
    /** NaN payloads are an error unless explicitly allowed by @ref QCBOR_DECODE_ALLOW_NAN_PAYLOADS */
    QCBOR_ERR_NAN_PAYLOAD = 92,
-
-   /** Indefinite lengths are disallowed by QCBOR_DECODE_NO_INDEF_LENGTH */
-   QCBOR_ERR_INDEF_LENGTH = 93,
-
-   /** Non-reduced floats disallowed by QCBOR_DECODE_ONLY_REDUCED_FLOATS */
-   QCBOR_ERR_FLOAT_NOT_REDUCED = 94,
-
-   /** Other than basic simples are disallowed by @ref QCBOR_DECODE_ONLY_BASIC_SIMPLE_VALUES */
-   QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE = 95,
-
-   /** Other than basic simples are disallowed by @ref QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT */
-   QCBOR_ERR_NOT_SHORTEST_FLOAT = 96,
-
-   /** Other than basic simples are disallowed by @ref QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT */
-   QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT = 97,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
