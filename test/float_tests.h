@@ -34,6 +34,7 @@ int32_t HalfPrecisionAgainstRFCCodeTest(void);
  */
 int32_t FloatValuesTests(void);
 
+int32_t FloatDecodeTest(void);
 
 /*
  * This tests encoding and decoding of floating-point NaNs.

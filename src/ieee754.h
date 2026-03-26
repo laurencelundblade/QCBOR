@@ -131,7 +131,7 @@ struct IEEE754_ToInt {
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 IEEE754_union
 IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
@@ -147,7 +147,7 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 IEEE754_union
 IEEE754_SingleToHalf(uint32_t uSingle);

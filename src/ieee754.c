@@ -245,7 +245,7 @@ IEEE754_HalfToDouble(uint16_t uHalfPrecision)
           * number significand.
           */
          uDoubleSignificand = uHalfSignificand << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-         dResult = IEEE754_AssembleDouble(0,
+         dResult = IEEE754_AssembleDouble(nIsNegative,
                                           uDoubleSignificand,
                                           DOUBLE_EXPONENT_INF_OR_NAN);
       } else {
@@ -523,7 +523,7 @@ IEEE754_AssembleSingle(int      nIsNegative,
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 static IEEE754_union
 IEEE754_DoubleToSingle(const double d)
@@ -945,15 +945,23 @@ IEEE754_DoubleHasNaNPayload(const double d)
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
    const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
 
-
-   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN &&
-      uDoubleSignificand != 0 &&
-      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT &&
-      !bIsNegative) {
-      return 1;
-   } else {
+   if(nDoubleUnbiasedExponent != DOUBLE_EXPONENT_INF_OR_NAN) {
+      return 0; /* Definitely not a NaN */
+   }
+   if(uDoubleSignificand == 0) {
+      /* It is infinity, so not a NaN */
       return 0;
    }
+   /* It's known to be a NaN */
+   if(bIsNegative) {
+      /* A sign bit is a form of payload */
+      return 1;
+   }
+   if(uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
+      /* Not a quite NaN so it has a payload */
+      return 1;
+   }
+   return 0;
 }
 
 
@@ -967,14 +975,23 @@ IEEE754_SingleHasNaNPayload(const uint32_t uSingle)
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
    const uint32_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
 
-
-   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
-      uSingleSignificand != 0 &&
-      uSingleSignificand != SINGLE_QUIET_NAN_BIT &&
-      !bIsNegative) {
-      return 1;
-   } else {
+   if(nSingleUnbiasedExponent != SINGLE_EXPONENT_INF_OR_NAN) {
+      return 0; /* Definitely not a NaN */
+   }
+   if(uSingleSignificand == 0) {
+      /* It is infinity, so not a NaN */
       return 0;
    }
+   /* It's known to be a NaN */
+   if(bIsNegative) {
+      /* A sign bit is a form of payload */
+      return 1;
+   }
+   if(uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
+      /* Not a quite NaN so it has a payload */
+      return 1;
+   }
+
+   return 0;
 }
 
