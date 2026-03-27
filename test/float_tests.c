@@ -813,28 +813,71 @@ struct FloatDecodeTestCase {
 };
 
 
+/* Not that happy that the ifdefs result in such variance in
+ * test results.  Maybe some redesign is needed. */
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-    #define SUCCESS_WITH_PREFERRED    QCBOR_SUCCESS
-    #define EXPECTED_FOR_SINGLE       QCBOR_TYPE_DOUBLE
-    #define HALF_NAN_PAYLOAD_ERR      QCBOR_ERR_NAN_PAYLOAD
-    #define NAN_PAYLOAD_CHECK         QCBOR_ERR_NAN_PAYLOAD
-    #define NAN_PAYLOAD_TYPE_DOUBLE   QCBOR_TYPE_NONE
-    #define NAN_PAYLOAD_TYPE_SINGLE   QCBOR_TYPE_NONE
+   #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+
+      #define SUCCESS_WITH_PREFERRED    QCBOR_SUCCESS
+      #define EXPECTED_FOR_SINGLE       QCBOR_TYPE_DOUBLE
+      #define HALF_NAN_PAYLOAD_ERR      QCBOR_ERR_NAN_PAYLOAD
+      #define HALF_NAN_TYPE             QCBOR_TYPE_NONE
+
+      #define NAN_PAYLOAD_CHECK         QCBOR_ERR_NAN_PAYLOAD
+      #define NAN_PAYLOAD_TYPE_DOUBLE   QCBOR_TYPE_NONE
+      #define NAN_PAYLOAD_TYPE_SINGLE   QCBOR_TYPE_NONE
+
+   #else
+      #define SUCCESS_WITH_PREFERRED   QCBOR_SUCCESS
+
+      /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
+      #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_DOUBLE
+
+      /* QCBOR_DISABLE_DECODE_CONFORMANCE results in success not nan error */
+      #define HALF_NAN_PAYLOAD_ERR     QCBOR_SUCCESS
+      #define HALF_NAN_TYPE            QCBOR_TYPE_DOUBLE
+
+      /* No NaN checking with QCBOR_DISABLE_DECODE_CONFORMANCE, so good NaNs succeed */
+      #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
+      #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
+      #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_DOUBLE
+
+   #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
 #else
-    /* Things that succeed, but are disabled with PREFERRED_FLOAT_DISABLED like half-precision */
-    #define SUCCESS_WITH_PREFERRED   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+   #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
 
-    /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
-    #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_FLOAT
+      /* Things that succeed, but are disabled with PREFERRED_FLOAT_DISABLED like half-precision */
+      #define SUCCESS_WITH_PREFERRED   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
 
-    /* PREFERRED_FLOAT_DISABLED results in disabled error, not nan error */
-    #define HALF_NAN_PAYLOAD_ERR     QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
+      #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_FLOAT
 
-    /* No NaN checking with PREFERRED_FLOAT_DISABLED, so good NaNs succeed */
-    #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
-    #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
-    #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_FLOAT
+      /* PREFERRED_FLOAT_DISABLED results in disabled error, not nan error */
+      #define HALF_NAN_PAYLOAD_ERR     QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define HALF_NAN_TYPE            QCBOR_TYPE_NONE
+
+      /* No NaN checking with PREFERRED_FLOAT_DISABLED, so good NaNs succeed */
+      #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
+      #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
+      #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_FLOAT
+
+   #else
+      #define SUCCESS_WITH_PREFERRED   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+
+      /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
+      #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_FLOAT
+
+      /* QCBOR_DISABLE_DECODE_CONFORMANCE results in success not nan error */
+      #define HALF_NAN_PAYLOAD_ERR     QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define HALF_NAN_TYPE            QCBOR_TYPE_NONE
+
+      /* No NaN checking with QCBOR_DISABLE_DECODE_CONFORMANCE, so good NaNs succeed */
+      #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
+      #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
+      #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_FLOAT
+
+   #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
@@ -863,9 +906,10 @@ static const struct FloatDecodeTestCase FloatDecodeTestCases[] =  {
 
    // half-NaN with a payload that errors out
    { QCBOR_DECODE_MODE_NORMAL, {"\xF9\x7E\x01", 3},
-      HALF_NAN_PAYLOAD_ERR, QCBOR_TYPE_NONE,
-      0.0,  0,
-      0.0f, 0},
+      HALF_NAN_PAYLOAD_ERR, HALF_NAN_TYPE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN | (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS)),
+      0.0f, 0
+   },
 
    // half-NaN with a payload that converts to double
    { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xF9\x7F\xFF", 3},
@@ -909,18 +953,18 @@ static const struct FloatDecodeTestCase FloatDecodeTestCases[] =  {
       0.0f, 0
    },
 
-   // single NaN with last payload bit set, errors out
+   // 10. single NaN with last payload bit set, errors out
    { QCBOR_DECODE_MODE_NORMAL, {"\xFA\x7F\x80\x00\x01", 5},
       NAN_PAYLOAD_CHECK, NAN_PAYLOAD_TYPE_SINGLE,
-      0.0,  0ULL,
+      0.0,  DOUBLE_NAN_BITS | (0x1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS)),
       0.0f, SINGLE_NAN_BITS | 0x01UL
    },
 
    // single negative quet NaN with last payload bit set, errors out
    { QCBOR_DECODE_MODE_NORMAL, {"\xFA\xFF\xC0\x00\x00", 5},
       NAN_PAYLOAD_CHECK, NAN_PAYLOAD_TYPE_SINGLE,
-      0.0,  0,
-      0.0f, SINGLE_SIGN_MASK |SINGLE_NAN_BITS | SINGLE_QNAN},
+      0.0,  DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN,
+      0.0f, SINGLE_SIGN_MASK | SINGLE_NAN_BITS | SINGLE_QNAN},
 
    // single NaN with last payload bit set, doesn't error out
    { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFA\x7F\x80\x00\x01", 5},
