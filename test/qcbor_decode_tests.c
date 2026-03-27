@@ -620,7 +620,7 @@ static const uint8_t pValidMapEncoded[] = {
    0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73 };
 
 
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && !defined(QCBOR_DISABLE_NON_INTEGER_LABELS)
 // Same as above, but with indefinite lengths.
 static const uint8_t pValidMapIndefEncoded[] = {
    0xbf, 0x6d, 0x66, 0x69, 0x72, 0x73, 0x74, 0x20,
@@ -643,7 +643,7 @@ static const uint8_t pValidMapIndefEncoded[] = {
    0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x73, 0x74,
    0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x73,
    0xff, 0xff};
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS && ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
 
 static int32_t ParseOrderedArray(const uint8_t *pEncoded,
@@ -12042,7 +12042,6 @@ int32_t CursorTests(void)
    int                nIndex;
    int64_t            nDecodedInt;
    int32_t            nErr;
-   uint64_t           uTagNumber;
 
 
    // Improvement: rewrite so this can run with only integer labels
@@ -12362,7 +12361,6 @@ int32_t CursorTests(void)
                     0);
    QCBORDecode_EnterMap(&DCtx, &Item);
    QCBORSavedDecodeCursor SaveCursor;
-   QCBORSavedDecodeCursor SaveCursor2;
    QCBORDecode_SaveCursor(&DCtx, &SaveCursor);
    QCBORDecode_EnterMap(&DCtx, &Item); /* Causes error */
    QCBORDecode_GetInt64InMapSZ(&DCtx, "first integer" , &nDecodedInt);
@@ -12406,6 +12404,10 @@ int32_t CursorTests(void)
    }
 
 #ifndef QCBOR_DISABLE_TAGS
+   uint64_t           uTagNumber;
+   QCBORSavedDecodeCursor SaveCursor2;
+
+
    QCBORDecode_Init(&DCtx,
                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
                      QCBOR_DECODE_MODE_NORMAL);

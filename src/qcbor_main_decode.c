@@ -945,6 +945,9 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
                           QCBORItem             *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
+#if defined(USEFULBUF_DISABLE_ALL_FLOAT) || defined (QCBOR_DISABLE_DECODE_CONFORMANCE)
+   (void)uConfigFlags;
+#endif
 
    /* uAdditionalInfo is 5 bits from the initial byte. Compile time
     * checks above make sure uAdditionalInfo values line up with

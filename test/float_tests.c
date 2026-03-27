@@ -993,7 +993,7 @@ static const struct FloatDecodeTestCase FloatDecodeTestCases[] =  {
       3.40282347E+38f,        0
    },
 
-   {0, {NULL, 0}, 0, 0.0, 0 }
+   {0, {NULL, 0}, QCBOR_SUCCESS, 0, 0.0, 0, 0.0f, 0 }
 };
 
 int32_t
