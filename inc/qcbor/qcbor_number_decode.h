@@ -270,7 +270,7 @@ QCBORDecode_GetUInt64InMapSZ(QCBORDecodeContext *pCtx,
  * If floating-point HW use is disabled this will set
  * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
  * encountered. If preferred serialization support is disabled, this will set
- * @ref QCBOR_ERR_HALF_PRECISION_DISABLED if a half-precision number
+ * @ref QCBOR_ERR_PREFERRED_FLOAT_DISABLED if a half-precision number
  * is encountered.
  *
  * If floating-point usage is disabled this will set

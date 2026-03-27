@@ -41,6 +41,21 @@ option(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  "Disable encoding and decoding of
 option(QCBOR_DISABLE_DECODE_CONFORMANCE        "Exclude all decode conformance checking features" OFF)
 option(USEFULBUF_DISABLE_STREAMING             "Exclude features for streaming encoding" OFF)
 
+# This is backwards compatibility for float-related cmake options -- decided
+# to just make the cmake option the same as the #define
+if(DEFINED QCBOR_OPT_DISABLE_PREFERRED_FLOAT)
+    set(QCBOR_DISABLE_PREFERRED_FLOAT ${QCBOR_OPT_DISABLE_PREFERRED_FLOAT} CACHE BOOL "xx" FORCE)
+endif()
+
+if(DEFINED QCBOR_OPT_DISABLE_ALL_FLOAT)
+    set(USEFULBUF_DISABLE_ALL_FLOAT ${QCBOR_OPT_DISABLE_ALL_FLOAT} CACHE BOOL "xx" FORCE)
+endif()
+
+if(DEFINED QCBOR_OPT_DISABLE_FLOAT_HW_USE)
+    set(QCBOR_DISABLE_FLOAT_HW_USE ${QCBOR_OPT_DISABLE_FLOAT_HW_USE} CACHE BOOL "xx" FORCE)
+endif()
+
+
 if (BUILD_QCBOR_WARN)
     # Compile options applying to all targets in current directory and below
     add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual)
