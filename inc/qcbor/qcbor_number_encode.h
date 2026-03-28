@@ -239,8 +239,8 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  * QCBOR library was built. In that case, this functions the same as
  * QCBOREncode_AddDoubleNoPreferred().
  *
- * See also QCBOREncode_AddDoubleNoPreferred(), QCBOREncode_AddFloat()
- * and QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+ * See also QCBOREncode_AddDoubleRaw(), QCBOREncode_AddFloat()
+ * and QCBOREncode_AddFloatNoRaw() and @ref Floating-Point.
  */
 static void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
@@ -292,7 +292,7 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  * Error handling is the same as QCBOREncode_AddInt64().
  *
  * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
- * QCBOREncode_AddFloatNoPreferred() and @ref Floating-Point.
+ * QCBOREncode_AddFloatRaw() and @ref Floating-Point.
  */
 static void
 QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pCtx, double dNum);
@@ -816,9 +816,9 @@ QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64
 static inline void
 QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum);
 
-/** @deprecated Use QCBOREncode_AddDoubleRaw() nstead. */
+/** @deprecated Use QCBOREncode_AddfloatRaw() nstead. */
 static inline void
-QCBOREncode_AddSingleNoPreferred(QCBOREncodeContext *pMe, const double dNum);
+QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float dNum);
 
 /** @deprecated Use QCBOREncode_AddDoubleToMapSZ() instead. */
 static void

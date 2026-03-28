@@ -25,7 +25,7 @@ QCBOR primarily uses the type `double` in its API because converting
 from `float` to `double` never loses precision or range.
 
 If, however, you are using QCBOR in an environment with no support for
-float-point at all, compile QCBOR with `USEFULBUF_DISABLE_ALL_FLOAT`
+floating-point at all, compile QCBOR with `USEFULBUF_DISABLE_ALL_FLOAT`
 macro defined. In this configuration, all support is removed including
 the use of the types `double` and `float` in the interface.
 
@@ -124,9 +124,9 @@ TODO: dates?
 
 ### Float Decoding
 
-Most commonly, floats are decoded with GetNext().
-This decodes double, single and half-precision and return the value as a double.
-GetDouble() works same way.
+Most commonly, floats are decoded with QCBORDecode_VGetNext().  This
+decodes double, single and half-precision and return the value as a
+double.  QCBORDecode_GetDouble() works same way.
 
 If the float to be decoded is a NaN with a payload, the double
 returned will include the payload bits.  TODO: describe how they are
@@ -181,24 +181,28 @@ design of CBOR.  See the appendix in draft-cbor-serialization for
 detailed background information.
 
 The large majority of applications can just not use NaNs at all.
-Their primary purpose is local use inside to represent the result of
+Their primary purpose is local use to represent the result of
 division by zero.  They are not usually transmitted in protocols.
 
-One use for them in protocols is to indicate an absent value.  NULL
-can be used instead.  It also works in JSON, where NaN does not.
+One use for them in protocols is to indicate an absent value.  Null
+can be used instead.  Null also works in JSON, where NaN does not.
 
-The simplest case of a NaN in a protocol is a queit NaN.  While NaN's
+The simplest case of a NaN in a protocol is a quiet NaN.  While NaNs
 with payloads carry extra bits, a quiet NaN does not.  All the
-serializations for CBOR and versions of QCBOR handle this just fine.
-Just pass NAN to AddDouble().  GetDouble() returns a NAN.
+serializations for CBOR and versions of QCBOR handle quiet just fine.
+Just pass a quiet NaN to QCBOREncode_AddDouble() to encode. 
+ QCBORDecode_VGetNext() and QCBORDecode_GetDouble() will return a decoded 
+ quiet NaN.
 
-All the complicatations arise when NaNs have payloads, when they carry
-extra bits.  The recommendation is to not make use of NaN payloads,
-but if you must, read on.
+Complicatations arise when NaNs have payloads, when they carry extra
+bits, they are not quiet NaNs.  The recommendation is to not make use
+of NaN payloads, but if you must, read on.
 
-Because Nan's with payloads are so seldom and poorly supported in most
-CBOR libraries and even in C compilers, you must enable there use for
-each instance of the encoder or decoder by setting XXX and XXX.
+Because NaNs with payloads are so seldom and poorly supported in most
+CBOR libraries and even in C compilers, QCBOR discourages there use
+and you must enable there use in QCBOR for each instance of the
+encoder or decoder by setting @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
+and @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS.
 
 To encode a NaN with a payload, first you must construct it.  The C
 language doesn't have library or languages facilities to do it, so you
@@ -208,13 +212,19 @@ familiarity with the details of IEEE 754.
 In QCBOR v2, call QCBORENcode_AddDoubleRaw() or
 QCBORENcode_AddFloatRaw() to encode the double or float you
 constructed with a NaN payload.  QCBORDecode_GetNext() and
-QCBORDEcode_GetDouble() will return NaNs with payloads.
+QCBORDEcode_GetDouble() will return NaNs with payloads if they have
+been allowed.
 
 NaN handling in QCBOR v1 is in accordance with RFC 8949, particularly
-preferred serialization.  In v2 it is in accordance with
+preferred serialization.  In QCBOR v2 it is in accordance with
 draft-cbor-serialization, particularly ordinary serialization.  The
-difference is solely in how NaNs with payloads, non-trivial NaNs are
-handled.
+difference is solely in how NaNs with payloads, (aka non-trivial NaNs)
+are handled.
+
+If you are thinking about NaN payloads, really, really don't. 
+Try some meditation or medication. Join a cult. A cult is probably
+better than NaN payloads. I've wasted part of my 
+life on NaN payloads. You should not.
 
 
 ## Compile-Time Floating-Point Configuration
@@ -310,56 +320,6 @@ in C for some architectures.
  
 
 @anchor BigNumbers
-
-# Floating-Point
-
-## TODO -- more floating point doc
-
-## NaN
-
-QCBOR can do lots of NaN stuff for you, but just don't. Really, don't.
-Redesign your protocol to use NULL instead. 
-
-If you are thinking about NaN payloads, really, really don't. 
-Try some meditation or medication. Join a cult. A cult is probably
-better than NaN payloads. I've wasted part of my 
-life on NaN payloads. You should not.
-
-### Encoding
-
-QCBOREncode_AddDouble() and QCBOREncode_AddSingle() will encode a NaN without a payload
-for you. They will adhere to preferred-plus serialization and 
-reduce the NaN to half-precision.
-
-They will error out with @ref QCBOR_ERR_NOT_ALLOWED if the NaN has
-a payload unless you set @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD,
-but you shouldn't do that because NaN payloads are bad. They
-suck you in and waste your time. There are better life choices.
-Trust me.
-
-You can also use QCBOREncode_AddDoubleRaw() and QCBOREncode_AddSingleRaw().
-They will not reduce NaNs to half-precision. If you want to output
-NaN paylaod they also require @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
-to output.  There is no method to output half-precision raw.
-
-### Decoding
-
-QCBORDecode_VGetNext() will decode NaNs without payloads.
-They will be returned as a double-precision NaN.
-
-Trying to decode NaN with a payload will result in @ref QCBOR_ERR_NAN_PAYLOAD
-unless @ref QCBOR_DECODE_ALLOW_NAN_PAYLOADS is set. If it is 
-set the NaN will be returned with the payload. Half and single-precision
-NaNs with payload will be widened to double-precision.
-
-The same is true for QCBORDecode_GetDouble().
-
-Decode-and-convert functions that operate on floats will return
-errors if the float is a NaN of any sort.
-
-TODO: test and document the Get functions that convert
-floating-point.
-
 
 # Big Numbers
 
