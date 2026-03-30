@@ -174,6 +174,8 @@ in a error integer values encoded as floats are encountered.  This is
 part of the dCBOR requirements.
 
 
+@anchor NaNs
+
 ## NaNs
 
 NaNs have been a subtle, complicated and controversial issue in the
@@ -191,8 +193,7 @@ The simplest case of a NaN in a protocol is a quiet NaN.  While NaNs
 with payloads carry extra bits, a quiet NaN does not.  All the
 serializations for CBOR and versions of QCBOR handle quiet just fine.
 Just pass a quiet NaN to QCBOREncode_AddDouble() to encode. 
- QCBORDecode_VGetNext() and QCBORDecode_GetDouble() will return a decoded 
- quiet NaN.
+QCBORDecode_VGetNext() and QCBORDecode_GetDouble() will return a decoded quiet NaN.
 
 Complicatations arise when NaNs have payloads, when they carry extra
 bits, they are not quiet NaNs.  The recommendation is to not make use

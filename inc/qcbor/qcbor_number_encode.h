@@ -195,52 +195,56 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This encodes using preferred serialization, selectively encoding
- * the input floating-point number as either double-precision,
- * single-precision or half-precision. Infinity and 0 are always
- * encoded as half-precision. The reduction to single-precision or
- * half-precision is only performed if there is no loss or precision.
+ * This function performs preferred serialization of floating-point
+ * values. It encodes a number using the smallest format that
+ * preserves its exact value: double-, single-, or
+ * half-precision. Reduction to single- or half-precision is only
+ * applied when no precision is lost. The special values Infinity,
+ * NaN, and 0 are always encoded as half-precision.
  *
- * Typically, a NaN is a "quiet NaN" with no payload. The @c NAN
- * constant defined in <math.h> is the quiet NaN with no payload. This
- * uses preferred serilization which reduces NaN to half-precision.
+ * Half-precision values occupy 2 bytes--half the size of
+ * single-precision and one quarter of double-precisio--so this
+ * optimization can significantly reduce encoded output size,
+ * especially when 0, Infinity, or NaN appear frequently.
  *
- * If the input to this is a NaN with a payload, this will error
- * with @ref QCBOR_ERR_NOT_ALLOWED unless
- * @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
- * is configured in which case it will silently output
- * a half-precision quiet NaN regardless of the NaN
- * payload.
+ * Floating-point decoding (the functions QCBORDecode_GetNext() and
+ * QCBORDecode_GetDouble()) return double-precision, reversing this
+ * reduction.
  *
- * If NaNs with payloads must be output use
- * QCBOREncode_AddDoubleRaw().
+ * The input @c dNum may be @c NAN (as defined in <math.h>), which is
+ * the common and generally supported "quiet NaN".  It is always
+ * encoded with half-precision.
  *
- * Half-precision floating-point numbers take up 2 bytes, half that of
- * single-precision, one quarter of double-precision. This can reduce
- * the size of encoded output a lot, especially if the values 0,
- * infinity and NaN occur frequently.
+ * Other NaN forms (e.g., signaling NaNs, non-trivial NaNs, or NaNs
+ * with payloads) must be encoded using QCBOREncode_AddDoubleRaw(),
+ * not this function. If such a NaN is passed, this function returns
+ * @ref QCBOR_ERR_NOT_ALLOWED. If @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
+ * is enabled, any NaN input is accepted; however, it is still encoded
+ * as a half-precision quiet NaN. This function never outputs any NaN
+ * representation other than the quiet NaN. See @ref NaNs for more
+ * details.
  *
- * QCBOR decoding returns double-precision, reversing this reduction.
+ * By default, this function emits only CBOR major type 7
+ * (floating-point). If @ref QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION or
+ * @ref QCBOR_ENCODE_CONFIG_DCBOR is used to enable dCBOR mode,
+ * floating-point values that are exact integers are instead encoded
+ * as CBOR major types 0 or 1. This unifies integer and floating-point
+ * representations so that each numeric value has a single canonical
+ * encoding.
  *
- * Normally this outputs only CBOR major type 7.  If
- * QCBOREncode_SerializationdCBOR() is called to enter dCBOR mode,
- * floating-point inputs that are whole integers are further reduced
- * to CBOR type 0 and 1. This is a unification of the floating-point
- * and integer number spaces such that there is only one encoding of
- * any numeric value. Note that this will result in the whole integers
- * from -(2^63+1) to -(2^64) being encode as CBOR major type 1 which
- * can't be directly decoded into an int64_t or uint64_t. See
- * QCBORDecode_GetNumberConvertPrecisely(), a good method to use to
- * decode dCBOR.
+ * Note that integers in the range -(2^63+1) to -(2^64) will be
+ * encoded as CBOR major type 1, which cannot be directly decoded into
+ * int64_t or uint64_t. For these cases, use
+ * QCBORDecode_GetNumberConvertPrecisely() when decoding dCBOR.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
- * It is possible that preferred serialization is disabled when the
- * QCBOR library was built. In that case, this functions the same as
- * QCBOREncode_AddDoubleNoPreferred().
+ * If the QCBOR library is built with preferred serialization
+ * disabled, this function behaves identically to
+ * QCBOREncode_AddDoubleRaw().
  *
- * See also QCBOREncode_AddDoubleRaw(), QCBOREncode_AddFloat()
- * and QCBOREncode_AddFloatNoRaw() and @ref Floating-Point.
+ * See also QCBOREncode_AddFloat(), QCBOREncode_AddDoubleRaw(), and
+ * @ref Floating-Point.
  */
 static void
 QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
@@ -260,11 +264,12 @@ QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNu
  * @param[in] pCtx  The encoding context to add the single to.
  * @param[in] fNum  The single-precision number to add.
  *
- * This is identical to QCBOREncode_AddDouble() except the input is
- * single-precision. It includes support dCBOR the same as QCBOREncode_AddDouble().
+ * This function is identical to QCBOREncode_AddDouble(), except that
+ * it takes a single-precision input. It provides the same support for
+ * dCBOR as QCBOREncode_AddDouble().
  *
- * See also QCBOREncode_AddDouble(), QCBOREncode_AddDoubleRaw(),
- * and QCBOREncode_AddFloatRaw() and @ref Floating-Point.
+ * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloatRaw() and
+ * @ref Floating-Point.
  */
 static void
 QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float fNum);
@@ -284,15 +289,19 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * Output a double-precision float straight-through with no checking or
- * processing for preferred serialization, dCBOR or other.
+ * Outputs a double-precision floating-point value without applying
+ * preferred serialization, dCBOR transformations, or any other size
+ * or type reduction.
  *
- * Use this if you wish to output double-precisions NaNs with payloads.
+ * If @c dNum is a @c NaN that is not a quiet NaN, the function
+ * returns @ref QCBOR_ERR_NOT_ALLOWED. If @ref  QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
+ * is enabled, any NaN value--including signaling NaNs and NaNs with
+ * payloads--is accepted and encoded as-is.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
- * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
- * QCBOREncode_AddFloatRaw() and @ref Floating-Point.
+ * See also QCBOREncode_AddFloatRaw(), QCBOREncode_AddDouble(),
+ * @ref Floating-Point and @ref NaNs.
  */
 static void
 QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pCtx, double dNum);
@@ -312,15 +321,11 @@ QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double 
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] fNum  The single-precision number to add.
  *
- * Output a single-precision float straight-through with no checking or
- * processing for preferred serializtion, dCBOR or other.
+ * This is identical to QCBOREncode_AddDoubleRaw() except the input is
+ * single-precision.
  *
- * Use this if you wish to output single-precisions NaNs with payloads.
- *
- * Error handling is the same as QCBOREncode_AddInt64().
- *
- * See also QCBOREncode_AddDouble(), QCBOREncode_AddFloat(), and
- * QCBOREncode_AddDoubleRaw() and @ref Floating-Point.
+ * See also QCBOREncode_AddDoubleRaw(), QCBOREncode_AddFloat(),
+ * @ref Floating-Point and @ref NaNs.
  */
 static void
 QCBOREncode_AddFloatRaw(QCBOREncodeContext *pCtx, float fNum);
@@ -828,11 +833,11 @@ QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double
 static void
 QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
 
-/** @deprecated Use QCBOREncode_AddDoubleNoPreferredToMapSZ() instead. */
+/** @deprecated Use QCBOREncode_AddDoubleRawToMapSZ() instead. */
 static void
 QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
 
-/** @deprecated Use QCBOREncode_AddFloatNoPreferredToMapSZ() instead. */
+/** @deprecated Use QCBOREncode_AddFloatRawToMapSZ() instead. */
 static void
 QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
