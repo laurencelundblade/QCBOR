@@ -98,13 +98,13 @@ serialization.
 ### Float Encoding
 
 The main means for encoding is QCBOREncode_AddDouble().  It will
-produce ordinary serialization, the most compact form.  This wide
+produce preferred-plus serialization, the most compact form.  This is wide
 spread practice and decodable by all but the most incapable CBOR
 libraries.
 
 QCBOREncode_AddFloat() is also available, mostly to avoid a cast from
-float to double, should you use flaot in your code.  It also does
-ordinary serialization.
+float to double, should you use float in your code.  It also does
+preferred-plus serialization.
 
 QCBOREncode_AddDoubleRaw() and QCBOREncode_AddFloatRaw() always output
 the IEEE 754 type they are named for.  They do no processing at all.
@@ -122,17 +122,16 @@ big numbers and integers.
 TODO: dates?
 
 
+@anchor Floating-Point-Decode
+
 ### Float Decoding
 
 Most commonly, floats are decoded with QCBORDecode_VGetNext().  This
-decodes double, single and half-precision and return the value as a
-double.  QCBORDecode_GetDouble() works same way.
+decodes double, single and half-precision and returns the value as a
+double.  QCBORDecode_GetDouble() works same way. NaN and inifinity
+are supported. See @ref NaNs.
 
-If the float to be decoded is a NaN with a payload, the double
-returned will include the payload bits.  TODO: describe how they are
-shifted.
-
-GetNext() can decode big floats if the tag handler,
+QCBORDecode_VGetNext() can decode big floats if the tag handler,
 QCBORDecode_ExpMantissaTagCB(), for it is installed.  They are
 returned in the structure QCBORExpAndMantissa.
 
@@ -178,54 +177,67 @@ part of the dCBOR requirements.
 
 ## NaNs
 
-NaNs have been a subtle, complicated and controversial issue in the
-design of CBOR.  See the appendix in draft-cbor-serialization for
-detailed background information.
+NaNs have been a subtle, complicated, and controversial issue in the
+design of CBOR. For detailed background, see the appendix in
+draft-cbor-serialization.
 
-The large majority of applications can just not use NaNs at all.
-Their primary purpose is local use to represent the result of
-division by zero.  They are not usually transmitted in protocols.
+Most protocols don't use NaNs, and they can be generally ignored.  If
+decoding a floating-point value yields NAN (see <math.h>), it can be
+usually considered an error. That said, QCBOR provides good support
+for NaNs.
 
-One use for them in protocols is to indicate an absent value.  Null
-can be used instead.  Null also works in JSON, where NaN does not.
+The simplest case is a quiet NaN. Unlike NaNs with payloads, quiet
+NaNs do not carry extra bits. All CBOR serialization types and all
+versions of QCBOR support quiet NaNs, which are represented by the
+constant NAN from <math.h>.
 
-The simplest case of a NaN in a protocol is a quiet NaN.  While NaNs
-with payloads carry extra bits, a quiet NaN does not.  All the
-serializations for CBOR and versions of QCBOR handle quiet just fine.
-Just pass a quiet NaN to QCBOREncode_AddDouble() to encode. 
-QCBORDecode_VGetNext() and QCBORDecode_GetDouble() will return a decoded quiet NaN.
+Complications arise with NaNs that include payloads (sometimes called
+non-trivial NaNs). These carry extra bits and are not widely
+supported.  The recommendation is not to make use of NaN payloads, but
+if you must, read on.
 
-Complicatations arise when NaNs have payloads, when they carry extra
-bits, they are not quiet NaNs.  The recommendation is to not make use
-of NaN payloads, but if you must, read on.
-
-Because NaNs with payloads are so seldom and poorly supported in most
-CBOR libraries and even in C compilers, QCBOR discourages there use
-and you must enable there use in QCBOR for each instance of the
-encoder or decoder by setting @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
+Because NaNs with payloads are rarely used and inconsistently
+supported across CBOR libraries and programming languages, QCBOR
+discourages their use. Support must be explicitly enabled on a
+per-instance basis by setting @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
 and @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS.
 
-To encode a NaN with a payload, first you must construct it.  The C
-language doesn't have library or languages facilities to do it, so you
-have to do it manually with shifts and masks.  This requires
-familiarity with the details of IEEE 754.
+To encode a NaN with a payload, you must first construct it manually.
+The C language does not provide standard facilities for this, so it
+requires bit-level manipulation using shifts and masks, along with a
+solid understanding of IEEE 754 floating-point representation.
 
-In QCBOR v2, call QCBORENcode_AddDoubleRaw() or
-QCBORENcode_AddFloatRaw() to encode the double or float you
-constructed with a NaN payload.  QCBORDecode_GetNext() and
-QCBORDEcode_GetDouble() will return NaNs with payloads if they have
+In QCBOR v2, use QCBOREncode_AddDoubleRaw() or
+QCBOREncode_AddFloatRaw() to encode a float or double containing a NaN
+payload. On decoding, QCBORDecode_VGetNext() and
+QCBORDecode_GetDouble() will return NaNs with payloads if they have
 been allowed.
 
-NaN handling in QCBOR v1 is in accordance with RFC 8949, particularly
-preferred serialization.  In QCBOR v2 it is in accordance with
-draft-cbor-serialization, particularly ordinary serialization.  The
-difference is solely in how NaNs with payloads, (aka non-trivial NaNs)
-are handled.
+NaN handling differs slightly between QCBOR versions. QCBOR v1 follows
+RFC 8949, particularly its “preferred serialization” rules. QCBOR v2
+follows draft-cbor-serialization, including “preferred-plus
+serialization.” The distinction primarily affects how NaNs with
+payloads are treated.
 
-If you are thinking about NaN payloads, really, really don't. 
-Try some meditation or medication. Join a cult. A cult is probably
-better than NaN payloads. I've wasted part of my 
-life on NaN payloads. You should not.
+If you are thinking about NaN payloads, really, really don't.  Try
+some meditation or medication. Join a cult. A cult is probably better
+than NaN payloads. I've wasted part of my life on NaN payloads. You
+should not.
+
+### Protocol Design
+
+It is my opinion that protocols should avoid NaNs.
+
+Instead, use null to indicate that a value is absent or invalid.  This
+approach is consistent with how missing or erroneous values are
+represented for CBOR integers, and it aligns with JSON, which does not
+support NaNs. If a protocol is intended to work across both CBOR and
+JSON, null is the more portable and interoperable choice.
+
+Even more so, protocols should avoid non-trivial NaNs. Other protocol
+structures can easily be invented to do what they do. Non-trivial NaN
+support is poor in most programming languages, unevenly supported in
+CBOR libraries, and doesn't work in JSON.
 
 
 ## Compile-Time Floating-Point Configuration

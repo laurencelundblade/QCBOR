@@ -346,6 +346,12 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
  * single-precision or double-precision floating-point value. If not
  * @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
  *
+ * NaN and +/- Infinity are supported.
+ *
+ * By default anything but a quiet NaN will result in @ref QCBOR_ERR_NAN_PAYLOAD. If
+ * @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS is configured, all NaNs (signaling, non-trivial or with payload)
+ * are decoded and returned. See @ref NaNs.
+ *
  * If floating-point HW use is disabled this will set
  * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
  * encountered. If preferred serialization support is disabled, this will set
