@@ -817,29 +817,47 @@ static void
 QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-/** @deprecated Use QCBOREncode_AddDoubleRaw() nstead. */
-static inline void
-QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum);
-
-/** @deprecated Use QCBOREncode_AddfloatRaw() nstead. */
-static inline void
-QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float dNum);
-
 /** @deprecated Use QCBOREncode_AddDoubleToMapSZ() instead. */
 static void
 QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
 
-/** @deprecated Use QCBOREncode_AddFloatToMapSZ() instead. */
-static void
-QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+/** @deprecated Use QCBOREncode_AddDoubleRaw() nstead. */
+static inline void
+QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum);
 
 /** @deprecated Use QCBOREncode_AddDoubleRawToMapSZ() instead. */
 static void
 QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
 
+/** @deprecated Use QCBOREncode_AddDoubleRawToMapN() nstead. */
+static void
+QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, double dNum);
+
+/** @deprecated Use QCBOREncode_AddDoubleRawToMapSZ() nstead. */
+static void
+QCBOREncode_AddDoubleNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, double dNum);
+
+/** @deprecated Use QCBOREncode_AddFloatToMapSZ() instead. */
+static void
+QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+
+/** @deprecated Use QCBOREncode_AddFloatRaw() nstead. */
+static inline void
+QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, float fNum);
+
 /** @deprecated Use QCBOREncode_AddFloatRawToMapSZ() instead. */
 static void
 QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+
+/** @deprecated Use QCBOREncode_AddFloatRawToMapN() nstead. */
+static void
+QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, float fNum);
+
+/** @deprecated Use QCBOREncode_AddFloatRawToMapSZ() nstead. */
+static void
+QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, float fNum);
+
+
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
@@ -1271,17 +1289,6 @@ QCBOREncode_AddDoubleToMapSZ(QCBOREncodeContext *pMe,
    QCBOREncode_AddDouble(pMe, dNum);
 }
 
-static inline void
-QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
-{
-   QCBOREncode_AddDoubleRaw(pMe, dNum);
-}
-
-static inline void
-QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
-{
-   QCBOREncode_AddDoubleToMapSZ(pMe, szLabel, dNum);
-}
 
 static inline void
 QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pMe,
@@ -1323,13 +1330,6 @@ QCBOREncode_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
    QCBOREncode_Private_AddFloatRaw(pMe, fNum);
 }
 
-
-static inline void
-QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
-{
-   QCBOREncode_AddFloatRaw(pMe, fNum);
-}
-
 static inline void
 QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 {
@@ -1354,12 +1354,6 @@ QCBOREncode_AddFloatToMapSZ(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddFloatToMap(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
-{
-   QCBOREncode_AddFloatToMapSZ(pMe, szLabel, fNum);
-}
-
-static inline void
 QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pMe,
                            const int64_t       nLabel,
                            const float         fNum)
@@ -1375,12 +1369,6 @@ QCBOREncode_AddDoubleRawToMapSZ(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddDoubleRaw(pMe, dNum);
-}
-
-static inline void
-QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
-{
-   QCBOREncode_AddDoubleRawToMapSZ(pMe, szLabel, dNum);
 }
 
 static inline void
@@ -1402,12 +1390,6 @@ QCBOREncode_AddFloatRawToMapSZ(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
-{
-   QCBOREncode_AddFloatRawToMapSZ(pMe, szLabel, fNum);
-}
-
-static inline void
 QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pMe,
                               const int64_t       nLabel,
                               const float         dNum)
@@ -1415,6 +1397,8 @@ QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddFloatRaw(pMe, dNum);
 }
+
+
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
@@ -1833,6 +1817,69 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pMe,
 /* ========================================================================= *
  *    BEGINNING OF INLINES FOR DEPRECATED FUNCTIONS                          *
  * ========================================================================= */
+static inline void
+QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
+{
+   QCBOREncode_AddDoubleToMapSZ(pMe, szLabel, dNum);
+}
+
+static inline void
+QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
+{
+   QCBOREncode_AddDoubleRaw(pMe, dNum);
+}
+
+static inline void
+QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
+{
+   QCBOREncode_AddDoubleRawToMapSZ(pMe, szLabel, dNum);
+}
+
+static inline void
+QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe,
+                                       const int64_t       nLabel,
+                                       const double        dNum)
+{
+   QCBOREncode_AddDoubleRawToMapN(pMe, nLabel, dNum);
+}
+
+static inline void
+QCBOREncode_AddDoubleNoPreferredToMapSZ(QCBOREncodeContext *pMe,
+                                       const char          *szLabel,
+                                       const double        dNum)
+{
+   QCBOREncode_AddDoubleRawToMapSZ(pMe, szLabel, dNum);
+}
+
+static inline void
+QCBOREncode_AddFloatToMap(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
+{
+   QCBOREncode_AddFloatToMapSZ(pMe, szLabel, fNum);
+}
+
+static inline void
+QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
+{
+   QCBOREncode_AddFloatRaw(pMe, fNum);
+}
+
+static inline void
+QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
+{
+   QCBOREncode_AddFloatRawToMapSZ(pMe, szLabel, fNum);
+}
+
+static inline void
+QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, float fNum)
+{
+   QCBOREncode_AddFloatRawToMapN(pMe, nLabel, fNum);
+}
+
+static inline void
+QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
+{
+   QCBOREncode_AddFloatRawToMapSZ(pMe, szLabel, fNum);
+}
 
 
 static inline void /* Deprecated */
