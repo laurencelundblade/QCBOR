@@ -646,14 +646,13 @@ IEEE754_DoubleToSingle(const double d)
 
 /* Public function; see ieee754.h */
 IEEE754_union
-IEEE754_DoubleToSmaller(const double d,
-                        const int    bAllowHalfPrecision)
+IEEE754_DoubleToSmaller(const double d)
 {
    IEEE754_union result;
 
    result = IEEE754_DoubleToSingle(d);
 
-   if(result.uSize == IEEE754_UNION_IS_SINGLE && bAllowHalfPrecision) {
+   if(result.uSize == IEEE754_UNION_IS_SINGLE) {
       /* Cast to uint32_t is OK, because value was just successfully
        * converted to single. */
       result = IEEE754_SingleToHalf((uint32_t)result.uValue);

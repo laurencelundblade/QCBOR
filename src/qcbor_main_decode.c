@@ -777,7 +777,7 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
 
    if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT) {
       /* See if it could have been encoded shorter */
-      ToSmaller = IEEE754_DoubleToSmaller(d, true);
+      ToSmaller = IEEE754_DoubleToSmaller(d);
       if(ToSmaller.uSize != sizeof(double)) {
          return QCBOR_ERR_NOT_SHORTEST_FLOAT;
       }

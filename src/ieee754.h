@@ -33,15 +33,10 @@
  * This conforms to IEEE 754-2008, but note that it doesn't specify
  * conversions, just the encodings.
  *
- * This is complete, supporting +/- infinity, +/- zero, subnormals and
- * NaN payloads. NaN significands, which contain the NaN payload, are
- * shortened by dropping the right most bits if they are zero and
- * shifting to the right. If the rightmost bits are not zero the
- * shortening is not performed. When converting from smaller to
- * larger, the significand is shifted left and zero-padded. This is
- * what is specified by CBOR preferred serialization. There is no
- * special handling of silent and quiet NaNs.  They are treated as
- * part of the significand.
+ * This supports +/- inifinity, +/-0, subnormals and some NaNs.
+ * For conversions from smaller to larger, NaN payloads are
+ * supported. Conversion from larger to smaller always
+ * results in a half-precision quiet NaN.
  *
  * A previous version of this was usable as a general library for
  * conversion. This version is reduced to what is needed for CBOR.
@@ -123,8 +118,6 @@ struct IEEE754_ToInt {
  * @brief Convert a double to either single or half-precision.
  *
  * @param[in] d                    The value to convert.
- * @param[in] bAllowHalfPrecision  If true, convert to either half or
- *                                 single precision.
  *
  * @returns Unconverted value, or value converted to single or half-precision.
  *
@@ -134,7 +127,7 @@ struct IEEE754_ToInt {
  * This handles all subnormals.
  */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision);
+IEEE754_DoubleToSmaller(double d);
 
 
 /**

@@ -124,7 +124,7 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
       }
    }
 
-   FloatResult = IEEE754_DoubleToSmaller(dNum, true);
+   FloatResult = IEEE754_DoubleToSmaller(dNum);
 
    QCBOREncode_Private_AddType7(pMe,
                                 (uint8_t)FloatResult.uSize,
