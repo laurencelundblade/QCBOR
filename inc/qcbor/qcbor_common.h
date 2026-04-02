@@ -40,11 +40,6 @@
 #ifndef qcbor_common_h
 #define qcbor_common_h
 
-//#define QCBOR_DISABLE_PREFERRED_FLOAT
-//#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-//#define QCBOR_DISABLE_DECODE_CONFORMANCE
-//#define USEFULBUF_DISABLE_ALL_FLOAT
-
 
 #ifdef __cplusplus
 extern "C" {

@@ -801,6 +801,8 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pCtx,
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
+
+
 /* ========================================================================= *
  *    BEGINNING OF DEPRECATED FUNCTION DECLARATIONS                          *
  *                                                                           *
@@ -856,7 +858,6 @@ QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, f
 /** @deprecated Use QCBOREncode_AddFloatRawToMapSZ() nstead. */
 static void
 QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, float fNum);
-
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
@@ -1093,11 +1094,11 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
-/* replicated from ieee754.h which is not publicly installed so
- * AddDoubeRaw() can be inlined */
+/** @private See src/ieee754.h .c  (so AddDoubeRaw() can be inlined) */
 int
 IEEE754_DoubleHasNaNPayload(double dNum);
 
+/** @private See src/ieee754.h .c */
 int
 IEEE754_SingleHasNaNPayload(uint32_t uSingle);
 
@@ -1232,9 +1233,6 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uin
 }
 
 
-
-
-
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 
 /**
@@ -1264,6 +1262,24 @@ QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    QCBOREncode_Private_AddDoubleRaw(pMe, dNum);
+}
+
+static inline void
+QCBOREncode_AddDoubleRawToMapSZ(QCBOREncodeContext *pMe,
+                                const char         *szLabel,
+                                const double        dNum)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_AddDoubleRaw(pMe, dNum);
+}
+
+static inline void
+QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pMe,
+                               const int64_t       nLabel,
+                               const double        dNum)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_AddDoubleRaw(pMe, dNum);
 }
 
 static inline void
@@ -1360,24 +1376,6 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pMe,
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddFloat(pMe, fNum);
-}
-
-static inline void
-QCBOREncode_AddDoubleRawToMapSZ(QCBOREncodeContext *pMe,
-                                const char         *szLabel,
-                                const double        dNum)
-{
-   QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddDoubleRaw(pMe, dNum);
-}
-
-static inline void
-QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pMe,
-                               const int64_t       nLabel,
-                               const double        dNum)
-{
-   QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddDoubleRaw(pMe, dNum);
 }
 
 static inline void
