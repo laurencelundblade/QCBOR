@@ -37,12 +37,6 @@ int32_t FloatValuesTests(void);
 int32_t FloatDecodeTest(void);
 
 /*
- * This tests encoding and decoding of floating-point NaNs.
- */
-int32_t NaNPayloadsTest(void);
-
-
-/*
  * This calls each and every method for encoding
  * floating-point numbers.
  */

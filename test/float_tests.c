@@ -1193,7 +1193,7 @@ static const uint8_t spExpectedFloatsNoHalf[] = {
 int32_t
 GeneralFloatEncodeTests(void)
 {
-   /* See FloatNumberTests() for tests that really cover lots of float values.
+   /* See the tests above that covers the float values more thoroughly.
     * Add new tests for new values or decode modes there.
     * This test is primarily to cover all the float encode methods. */
 
@@ -1261,7 +1261,7 @@ GeneralFloatEncodeTests(void)
 int32_t
 GeneralFloatDecodeTests(void)
 {
-   /* See FloatNumberTests() for tests that really covers the float values.
+   /* See the tests above that covers the float values more thoroughly.
     * This is retained to cover GetDouble() and decode of a single 0 */
 
    QCBORItem          Item;
