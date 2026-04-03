@@ -935,7 +935,7 @@ IEEE754_UintToDouble(const uint64_t uInt, const int nIsNegative)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_DoubleHasNaNPayload(const double d)
+IEEE754_DoubleIsNonTrivialNaN(const double d)
 {
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
@@ -966,7 +966,7 @@ IEEE754_DoubleHasNaNPayload(const double d)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_SingleHasNaNPayload(const uint32_t uSingle)
+IEEE754_SingleIsNonTrivialNaN(const uint32_t uSingle)
 {
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */

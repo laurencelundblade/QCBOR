@@ -91,7 +91,7 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
    uint64_t             uNegValue;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_DoubleIsNonTrivialNaN(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
@@ -150,7 +150,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 
     const uint32_t uSingle = UsefulBufUtil_CopyFloatToUint32(fNum);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_SingleHasNaNPayload(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleIsNonTrivialNaN(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }

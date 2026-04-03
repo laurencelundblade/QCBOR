@@ -695,7 +695,7 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
    if(!(uConfigFlags & QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS)) {
       /* Make sure there is no NaN payload */
-      if(IEEE754_DoubleHasNaNPayload(d)) {
+      if(IEEE754_DoubleIsNonTrivialNaN(d)) {
          return QCBOR_ERR_NAN_PAYLOAD;
       }
    }
@@ -729,7 +729,7 @@ QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeM
 
    if(!(uConfigFlags & QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS)) {
       /* Make sure there is no NaN payload */
-      if(IEEE754_SingleHasNaNPayload(uSingle)) {
+      if(IEEE754_SingleIsNonTrivialNaN(uSingle)) {
          return QCBOR_ERR_NAN_PAYLOAD;
       }
    }
@@ -762,7 +762,7 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
 
    if(!(uConfigFlags & QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS)) {
       /* Make sure there is no NaN payload */
-      if(IEEE754_DoubleHasNaNPayload(d)) {
+      if(IEEE754_DoubleIsNonTrivialNaN(d)) {
          return QCBOR_ERR_NAN_PAYLOAD;
       }
    }

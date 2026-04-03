@@ -1011,7 +1011,7 @@ FloatDecodeTest(void)
    for(uTestIndex = 0; FloatDecodeTestCases[uTestIndex].Encoded.len != 0; uTestIndex++) {
       pTestCase = &FloatDecodeTestCases[uTestIndex];
 
-      if(uTestIndex == 10) {
+      if(uTestIndex == 15) {
          uErr = 0; /* For setting a break point */
       }
 

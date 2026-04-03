@@ -1096,11 +1096,11 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
 
 /** @private See src/ieee754.h .c  (so AddDoubeRaw() can be inlined) */
 int
-IEEE754_DoubleHasNaNPayload(double dNum);
+IEEE754_DoubleIsNonTrivialNaN(double dNum);
 
 /** @private See src/ieee754.h .c */
 int
-IEEE754_SingleHasNaNPayload(uint32_t uSingle);
+IEEE754_SingleIsNonTrivialNaN(uint32_t uSingle);
 
 
 
@@ -1255,7 +1255,7 @@ QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
-   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_DoubleIsNonTrivialNaN(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
@@ -1337,7 +1337,7 @@ QCBOREncode_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
    }
    uint32_t u32_fNum;
    u32_fNum = UsefulBufUtil_CopyFloatToUint32(fNum);
-   if(IEEE754_SingleHasNaNPayload(u32_fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleIsNonTrivialNaN(u32_fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }

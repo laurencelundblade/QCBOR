@@ -231,6 +231,7 @@ typedef enum {
     /** NaN payloads in the input will error with
      * @ref QCBOR_ERR_NAN_PAYLOAD unless this is set. */
    QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS = 0x08,
+   // QCBOR_DECODE_MODE_ALLOW_NON_TRIVIAL_NAN = 0x08,
 
    /** @ref QCBOR_ERR_INDEF_LENGTH on indefinite length strings,
     * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
