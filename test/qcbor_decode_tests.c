@@ -11092,14 +11092,12 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xd9\x00\xff\x00", 4},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
-#if 0
 #if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "tag number on label not shortest-form",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xA3\xC1\x00\x61\x61\xD8\x01\x00\x61\x62\xD9\x00\x01\x00\x61\x63", 16},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
-#endif
 #endif
 
    /* --- Indefinite lengths --- */
@@ -11191,13 +11189,11 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xa1\xa1\x00\x01\x02", 5},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
-#if 0
    { "map with map label with non-preferred part",
       QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
-#endif
    { "map without enough entries",
       QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa2\x00\x00", 3},

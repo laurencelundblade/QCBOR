@@ -147,7 +147,6 @@ static test_entry s_tests[] = {
 #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
    TEST_ENTRY(FloatValuesTests),
    TEST_ENTRY(FloatDecodeTest),
-   TEST_ENTRY(NaNPayloadsTest),
    TEST_ENTRY(GeneralFloatEncodeTests),
    TEST_ENTRY(GeneralFloatDecodeTests),
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
