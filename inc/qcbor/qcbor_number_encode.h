@@ -1815,6 +1815,8 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pMe,
 /* ========================================================================= *
  *    BEGINNING OF INLINES FOR DEPRECATED FUNCTIONS                          *
  * ========================================================================= */
+#ifndef USEFULBUF_DISABLE_ALL_FLOAT
+
 static inline void
 QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
 {
@@ -1878,6 +1880,7 @@ QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLa
 {
    QCBOREncode_AddFloatRawToMapSZ(pMe, szLabel, fNum);
 }
+#endif /* !USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 static inline void /* Deprecated */
