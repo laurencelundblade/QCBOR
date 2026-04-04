@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.c -- floating-point conversion for half, double & single-precision
  *
- * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -367,10 +367,9 @@ IEEE754_AssembleHalf(int      nIsNegative,
 
 /*  Public function; see ieee754.h */
 IEEE754_union
-IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
+IEEE754_SingleToHalf(const uint32_t uSingle)
 {
    IEEE754_union result;
-   uint32_t      uDroppedBits;
    int           nExponentDifference;
    int           nShiftAmount;
    uint32_t      uHalfSignificand;
@@ -406,37 +405,12 @@ IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
          result.uSize  = IEEE754_UNION_IS_HALF;
          result.uValue = IEEE754_AssembleHalf(nIsNegative, 0, HALF_EXPONENT_INF_OR_NAN);
       } else {
-         if(bNoNaNPayload) {
-            /* --- REQUIRE CANNONICAL NAN --- */
-            result.uSize  = IEEE754_UNION_IS_HALF;
-            result.uValue = IEEE754_AssembleHalf(nIsNegative,
-                                                 HALF_QUIET_NAN_BIT,
-                                                 HALF_EXPONENT_INF_OR_NAN);
-         } else {
-            /* The NaN can only be converted if no significand bits are lost
-             * per RFC 8949 section 4.1 that defines Preferred
-             * Serializaton. Note that Deterministically Encode CBOR in
-             * section 4.2 allows for some variation of this rule, but at
-             * the moment this implementation is of Preferred
-             * Serialization, not deterministic encoding. As of December 2023, we are also
-             * expecting an update to deterministic encoding. This code may need to be
-             * updated.
-             */
-            uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
-            if(uDroppedBits == 0) {
-               /* --- IS CONVERTABLE NAN --- */
-               uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-               result.uSize  = IEEE754_UNION_IS_HALF;
-               result.uValue = IEEE754_AssembleHalf(nIsNegative,
-                                                    uHalfSignificand,
-                                                    HALF_EXPONENT_INF_OR_NAN);
-
-            } else {
-               /* --- IS UNCONVERTABLE NAN --- */
-               result.uSize   = IEEE754_UNION_IS_SINGLE;
-               result.uValue  = uSingle;
-            }
-         }
+         /* --- NAN --- */
+         /* The comment on NaNs in IEEE754_DoubleToSingle() applies here */
+         result.uSize  = IEEE754_UNION_IS_HALF;
+         result.uValue = IEEE754_AssembleHalf(0,
+                                              HALF_QUIET_NAN_BIT,
+                                              HALF_EXPONENT_INF_OR_NAN);
       }
    } else {
       /* ---- REGULAR NUMBER ---- */
@@ -549,7 +523,7 @@ IEEE754_AssembleSingle(int      nIsNegative,
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 static IEEE754_union
 IEEE754_DoubleToSingle(const double d)
@@ -598,28 +572,26 @@ IEEE754_DoubleToSingle(const double d)
                                                 0,
                                                 SINGLE_EXPONENT_INF_OR_NAN);
       } else {
-         /* The NaN can only be converted if no payload bits are lost
-          * per RFC 8949 section 4.1 that defines Preferred
-          * Serializaton. Note that Deterministically Encode CBOR in
-          * section 4.2 allows for some variation of this rule, but at
-          * the moment this implementation is of Preferred
-          * Serialization, not deterministic encoding. As of December 2023, we are also
-          * expecting an update to deterministic encoding. This code may need to be
-          * updated.
+         /* --- NaN --- */
+
+         /* This converts all NaNs to single precision regardless of
+          * their payload (the bits in the significand).
+          *
+          * This has been a controversial matter in the CBOR WG.
+          * It's generally accepted that for preferred serialization
+          * defined in RFC 8949, that NaN payloads are allowed and
+          * that they should be converted to shortest length, but this
+          * has been overridden by a consensus that they should be
+          * all downgraded to quiet NaNs. This consensus is expressed
+          * in the up coming CBOR serialization draft and is expected
+          * to become a standard. That is what this implementation does.
+          * Previous versions of QCBOR aligned with RFC 8949 preferred
+          * serialization.
           */
-         uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
-         if(uDroppedBits == 0) {
-            /* --- IS CONVERTABLE NAN --- */
-            uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
-            Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(nIsNegative,
-                                                   uSingleSignificand,
-                                                   SINGLE_EXPONENT_INF_OR_NAN);
-         } else {
-           /* --- IS UNCONVERTABLE NAN --- */
-           Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-           Result.uValue  = uDouble;
-         }
+         Result.uSize  = IEEE754_UNION_IS_SINGLE;
+         Result.uValue = IEEE754_AssembleSingle(0,
+                                                SINGLE_QUIET_NAN_BIT,
+                                                SINGLE_EXPONENT_INF_OR_NAN);
       }
    } else {
       /* ---- REGULAR NUMBER ---- */
@@ -674,18 +646,16 @@ IEEE754_DoubleToSingle(const double d)
 
 /* Public function; see ieee754.h */
 IEEE754_union
-IEEE754_DoubleToSmaller(const double d,
-                        const int    bAllowHalfPrecision,
-                        const int    bNoNanPayload)
+IEEE754_DoubleToSmaller(const double d)
 {
    IEEE754_union result;
 
    result = IEEE754_DoubleToSingle(d);
 
-   if(result.uSize == IEEE754_UNION_IS_SINGLE && bAllowHalfPrecision) {
+   if(result.uSize == IEEE754_UNION_IS_SINGLE) {
       /* Cast to uint32_t is OK, because value was just successfully
        * converted to single. */
-      result = IEEE754_SingleToHalf((uint32_t)result.uValue, bNoNanPayload);
+      result = IEEE754_SingleToHalf((uint32_t)result.uValue);
    }
 
    return result;
@@ -965,38 +935,62 @@ IEEE754_UintToDouble(const uint64_t uInt, const int nIsNegative)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_DoubleHasNaNPayload(const double d)
+IEEE754_DoubleIsNonTrivialNaN(const double d)
 {
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
    const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
 
-   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN &&
-      uDoubleSignificand != 0 &&
-      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
-      return 1;
-   } else {
+   if(nDoubleUnbiasedExponent != DOUBLE_EXPONENT_INF_OR_NAN) {
+      return 0; /* Definitely not a NaN */
+   }
+   if(uDoubleSignificand == 0) {
+      /* It is infinity, so not a NaN */
       return 0;
    }
+   /* It's known to be a NaN */
+   if(bIsNegative) {
+      /* A sign bit is a form of payload */
+      return 1;
+   }
+   if(uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
+      /* Not a quite NaN so it has a payload */
+      return 1;
+   }
+   return 0;
 }
 
 
 /* Public function; see ieee754.h */
 int
-IEEE754_SingleHasNaNPayload(const uint32_t uSingle)
+IEEE754_SingleIsNonTrivialNaN(const uint32_t uSingle)
 {
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint32_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
 
-   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
-      uSingleSignificand != 0 &&
-      uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
-      return 1;
-   } else {
+   if(nSingleUnbiasedExponent != SINGLE_EXPONENT_INF_OR_NAN) {
+      return 0; /* Definitely not a NaN */
+   }
+   if(uSingleSignificand == 0) {
+      /* It is infinity, so not a NaN */
       return 0;
    }
+   /* It's known to be a NaN */
+   if(bIsNegative) {
+      /* A sign bit is a form of payload */
+      return 1;
+   }
+   if(uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
+      /* Not a quite NaN so it has a payload */
+      return 1;
+   }
+
+   return 0;
 }
+

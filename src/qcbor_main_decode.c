@@ -335,21 +335,26 @@ QCBOR_Private_DecodeHead(UsefulInputBuf  *pUInBuf,
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
       /* If requested, check that argument is in preferred form */
-      if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
+      if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT) {
          uint64_t uMinArgument;
 
+         /* Never have to check for shortest arg when nAdditionalInfo < LEN_IS_ONE_BYTE
+          * no matter what the major type is because the arg is the shortest possible. */
          if(nAdditionalInfo == LEN_IS_ONE_BYTE) {
+            /* Do not have to check the major type because this
+             * us never a float and this check is required for everything but float */
             if(uArgument < 24) {
-               uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+               uReturn = QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT;
                goto Done;
             }
          } else {
             if(nTmpMajorType != CBOR_MAJOR_TYPE_SIMPLE) {
-               /* Check only if not a floating-point number */
+               /* The non-float simple types are handled above, so this
+                * is never checking floats. */
                int nArgLen = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE - 1];
                uMinArgument = UINT64_MAX >> ((int)sizeof(uint64_t) - nArgLen) * 8;
                if(uArgument <= uMinArgument) {
-                  uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+                  uReturn = QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT;
                   goto Done;
                }
             }
@@ -365,8 +370,8 @@ QCBOR_Private_DecodeHead(UsefulInputBuf  *pUInBuf,
       goto Done;
    } else {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-      if(uConfigFlags & QCBOR_DECODE_NO_INDEF_LENGTH && nAdditionalInfo == LEN_IS_INDEFINITE) {
-         uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+      if(uConfigFlags & QCBOR_DECODE_MODE_NO_INDEF_LENGTH && nAdditionalInfo == LEN_IS_INDEFINITE) {
+         uReturn = QCBOR_ERR_INDEF_LENGTH;
          goto Done;
       }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -688,6 +693,13 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 {
    struct IEEE754_ToInt ToInt;
 
+   if(!(uConfigFlags & QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS)) {
+      /* Make sure there is no NaN payload */
+      if(IEEE754_DoubleIsNonTrivialNaN(d)) {
+         return QCBOR_ERR_NAN_PAYLOAD;
+      }
+   }
+
    /* Only need to check for conversion to integer because
     * half-precision is always preferred serialization. Don't
     * need special checker for half-precision because whole
@@ -698,10 +710,10 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
     * The only thing allowed here is a double/half-precision that
     * can't be converted to anything but a double.
     */
-   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
+   if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS) {
       ToInt = IEEE754_DoubleToInt(d);
       if(ToInt.type != QCBOR_TYPE_DOUBLE) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
+         return QCBOR_ERR_FLOAT_NOT_REDUCED;
       }
    }
 
@@ -710,29 +722,31 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
 
 
 static QCBORError
-QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uconfigFlags)
+QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uConfigFlags)
 {
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
-   if(uconfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
-      /* See if it could have been encoded as an integer */
-      ToInt = IEEE754_SingleToInt(uSingle);
-      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
-      }
-
+   if(!(uConfigFlags & QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS)) {
       /* Make sure there is no NaN payload */
-      if(IEEE754_SingleHasNaNPayload(uSingle)) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      if(IEEE754_SingleIsNonTrivialNaN(uSingle)) {
+         return QCBOR_ERR_NAN_PAYLOAD;
       }
    }
 
-   /* See if it could have been encoded shorter */
-   if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
-      ToSmaller = IEEE754_SingleToHalf(uSingle, true);
+   if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS) {
+      /* See if it could have been encoded as an integer */
+      ToInt = IEEE754_SingleToInt(uSingle);
+      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
+         return QCBOR_ERR_FLOAT_NOT_REDUCED;
+      }
+   }
+
+   if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT) {
+      /* See if it could have been encoded shorter */
+      ToSmaller = IEEE754_SingleToHalf(uSingle);
       if(ToSmaller.uSize != sizeof(float)) {
-         return QCBOR_ERR_PREFERRED_CONFORMANCE;
+         return QCBOR_ERR_NOT_SHORTEST_FLOAT;
       }
    }
 
@@ -746,23 +760,26 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
    struct IEEE754_ToInt ToInt;
    IEEE754_union        ToSmaller;
 
-   if(uConfigFlags & QCBOR_DECODE_ONLY_REDUCED_FLOATS) {
-      /* See if it could have been encoded as an integer */
-      ToInt = IEEE754_DoubleToInt(d);
-      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
-      }
+   if(!(uConfigFlags & QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS)) {
       /* Make sure there is no NaN payload */
-      if(IEEE754_DoubleHasNaNPayload(d)) {
-         return QCBOR_ERR_DCBOR_CONFORMANCE;
+      if(IEEE754_DoubleIsNonTrivialNaN(d)) {
+         return QCBOR_ERR_NAN_PAYLOAD;
       }
    }
 
-   /* See if it could have been encoded shorter */
-   if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
-      ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
+   if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS) {
+      /* See if it could have been encoded as an integer */
+      ToInt = IEEE754_DoubleToInt(d);
+      if(ToInt.type == IEEE754_ToInt_IS_INT || ToInt.type == IEEE754_ToInt_IS_UINT) {
+         return QCBOR_ERR_FLOAT_NOT_REDUCED;
+      }
+   }
+
+   if(uConfigFlags & QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT) {
+      /* See if it could have been encoded shorter */
+      ToSmaller = IEEE754_DoubleToSmaller(d);
       if(ToSmaller.uSize != sizeof(double)) {
-         return QCBOR_ERR_PREFERRED_CONFORMANCE;
+         return QCBOR_ERR_NOT_SHORTEST_FLOAT;
       }
    }
 
@@ -775,7 +792,8 @@ static QCBORError
 QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -788,7 +806,8 @@ static QCBORError
 QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeMode uConfigFlags)
 {
    (void)uSingle;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -799,7 +818,8 @@ static QCBORError
 QCBORDecode_Private_DoubleConformance(const double d, const QCBORDecodeMode uConfigFlags)
 {
    (void)d;
-   if(uConfigFlags & (QCBOR_DECODE_ONLY_REDUCED_FLOATS | QCBOR_DECODE_ONLY_PREFERRED_NUMBERS)) {
+   if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
+                      QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
       return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
@@ -821,7 +841,7 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
    uint32_t   uSingle;
 
    /* Set error code for when no case in the switch matches. This
-    * never actually happens because, but the compiler and the code
+    * never actually happens, but the compiler and the code
     * coverage tool don't know this. */
    uErr = QCBOR_ERR_UNSUPPORTED;
 
@@ -925,6 +945,9 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
                           QCBORItem             *pDecodedItem)
 {
    QCBORError uReturn = QCBOR_SUCCESS;
+#if defined(USEFULBUF_DISABLE_ALL_FLOAT) || defined (QCBOR_DISABLE_DECODE_CONFORMANCE)
+   (void)uConfigFlags;
+#endif
 
    /* uAdditionalInfo is 5 bits from the initial byte. Compile time
     * checks above make sure uAdditionalInfo values line up with
@@ -957,9 +980,9 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         if((uConfigFlags & QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES) &&
+         if((uConfigFlags & QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES) &&
             nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
-            uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            uReturn = QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
             goto Done;
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -977,9 +1000,9 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
 
       default: /* 0-19 */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         if((uConfigFlags & QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES) &&
+         if((uConfigFlags & QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES) &&
             (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
-            uReturn = QCBOR_ERR_DCBOR_CONFORMANCE;
+            uReturn = QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
             goto Done;
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -2217,7 +2240,7 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(uErr == QCBOR_SUCCESS &&
-      pMe->uDecodeMode & QCBOR_DECODE_ONLY_SORTED_MAPS &&
+      pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_SORTED_MAPS &&
       pDecodedItem->uDataType == QCBOR_TYPE_MAP) {
       /* Traverse map checking sort order and for duplicates */
       uErr = QCBORDecode_Private_CheckMap(pMe, pDecodedItem);
@@ -2226,7 +2249,7 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
 
 #ifndef QCBOR_DISABLE_TAGS
    if(uErr == QCBOR_SUCCESS &&
-      !(pMe->uDecodeMode & QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS) &&
+      !(pMe->uDecodeMode & QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS) &&
       pDecodedItem->auTagNumbers[0] != CBOR_TAG_INVALID16) {
       /* Not QCBOR v1 mode; there are tag numbers -- check they were consumed */
       if(uOffset != pMe->uTagNumberCheckOffset ||
@@ -2722,7 +2745,7 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
 void
 QCBORDecode_CompatibilityV1(QCBORDecodeContext *pMe)
 {
-   pMe->uDecodeMode |= QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
+   pMe->uDecodeMode |= QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
 #endif /* ! QCBOR_DISABLE_TAGS */

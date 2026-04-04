@@ -87,12 +87,11 @@ void
 QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
 {
    IEEE754_union        FloatResult;
-   bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
    uint64_t             uNegValue;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_DoubleHasNaNPayload(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_DoubleIsNonTrivialNaN(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
@@ -119,17 +118,13 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
             return;
          case IEEE754_ToInt_NaN:
             dNum = NAN;
-            bNoNaNPayload = true;
             break;
-         default:
          case IEEE754_ToInt_NO_CONVERSION:
-            bNoNaNPayload = true;
+            break;
       }
-   } else  {
-      bNoNaNPayload = false;
    }
 
-   FloatResult = IEEE754_DoubleToSmaller(dNum, true, bNoNaNPayload);
+   FloatResult = IEEE754_DoubleToSmaller(dNum);
 
    QCBOREncode_Private_AddType7(pMe,
                                 (uint8_t)FloatResult.uSize,
@@ -150,13 +145,12 @@ void
 QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
 {
    IEEE754_union        FloatResult;
-   bool                 bNoNaNPayload;
    struct IEEE754_ToInt IntResult;
    uint64_t             uNegValue;
 
     const uint32_t uSingle = UsefulBufUtil_CopyFloatToUint32(fNum);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(IEEE754_SingleHasNaNPayload(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleIsNonTrivialNaN(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
@@ -183,17 +177,13 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
             return;
          case IEEE754_ToInt_NaN:
             fNum = NAN;
-            bNoNaNPayload = true;
             break;
-         default:
          case IEEE754_ToInt_NO_CONVERSION:
-            bNoNaNPayload = true;
+            break;
       }
-   } else  {
-      bNoNaNPayload = false;
    }
 
-   FloatResult = IEEE754_SingleToHalf(uSingle, bNoNaNPayload);
+   FloatResult = IEEE754_SingleToHalf(uSingle);
 
    QCBOREncode_Private_AddType7(pMe,
                                 (uint8_t)FloatResult.uSize,

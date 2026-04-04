@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_tag_decode.c -- Tag content decoders
  *
- * Copyright (c) 2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2025-2026, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -329,7 +329,7 @@ QCBORDecode_Private_CheckTagAndType(QCBORDecodeContext          *pMe,
    enum QCBORDecodeTagReq  uTagReq;
    uint64_t                uTagNumber;
 
-   const bool bModeQCBORv1 = pMe->uDecodeMode & QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
+   const bool bModeQCBORv1 = pMe->uDecodeMode & QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS;
 
    if(bModeQCBORv1) {
       uTagReq = (enum QCBORDecodeTagReq)((int)uTagReqArg & ~QCBOR_TAG_REQUIREMENT_ALLOW_ADDITIONAL_TAGS);

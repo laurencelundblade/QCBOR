@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -229,8 +229,9 @@ enum QCBOREncodeConfig {
 
    /** By default QCBOR will error with @ref QCBOR_ERR_NOT_ALLOWED
     * when trying to encode a double or float NaN that has a payload
-    * because NaN payloads are not very interoperable. With this set,
-    * NaN payloads can be encoded.
+    * as a warning because it is very uncommon and not very
+    * interoperable to convey NaNs with payloads in protocols.
+    * To disable this checking, set this option.
     */
    QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD = 0x02,
 
@@ -259,8 +260,8 @@ enum QCBOREncodeConfig {
    QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS = 0x08,
 
    /** This disallows non-preferred floating number encoding,
-    * QCBOREncode_AddFloatNoPreferred() and
-    * QCBOREncode_AddDoubleNoPreferred().  It is not possible to disable
+    * QCBOREncode_AddFloatRaw() and
+    * QCBOREncode_AddDoubleRaw().  It is not possible to disable
     * preferred serialization of type 0 and type 1 integers in QCBOR. */
    QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS = 0x10,
 
@@ -286,8 +287,8 @@ enum QCBOREncodeConfig {
     * QCBOR produces preferred serialization by default.
     *
     * The non-preferred methods are:
-    * QCBOREncode_AddFloatNoPreferred(),
-    * QCBOREncode_AddDoubleNoPreferred(),
+    * QCBOREncode_AddFloatRaw(),
+    * QCBOREncode_AddDoubleRaw(),
     * QCBOREncode_OpenArrayIndefiniteLength(),
     * QCBOREncode_CloseArrayIndefiniteLength(),
     * QCBOREncode_OpenMapIndefiniteLength(),

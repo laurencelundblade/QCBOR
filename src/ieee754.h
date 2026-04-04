@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.h -- Conversion between half, double & single-precision floats
  *
- * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
@@ -33,15 +33,10 @@
  * This conforms to IEEE 754-2008, but note that it doesn't specify
  * conversions, just the encodings.
  *
- * This is complete, supporting +/- infinity, +/- zero, subnormals and
- * NaN payloads. NaN significands, which contain the NaN payload, are
- * shortened by dropping the right most bits if they are zero and
- * shifting to the right. If the rightmost bits are not zero the
- * shortening is not performed. When converting from smaller to
- * larger, the significand is shifted left and zero-padded. This is
- * what is specified by CBOR preferred serialization. There is no
- * special handling of silent and quiet NaNs.  They are treated as
- * part of the significand.
+ * This supports +/- inifinity, +/-0, subnormals and some NaNs.
+ * For conversions from smaller to larger, NaN payloads are
+ * supported. Conversion from larger to smaller always
+ * results in a half-precision quiet NaN.
  *
  * A previous version of this was usable as a general library for
  * conversion. This version is reduced to what is needed for CBOR.
@@ -123,18 +118,16 @@ struct IEEE754_ToInt {
  * @brief Convert a double to either single or half-precision.
  *
  * @param[in] d                    The value to convert.
- * @param[in] bAllowHalfPrecision  If true, convert to either half or
- *                                 single precision.
  *
  * @returns Unconverted value, or value converted to single or half-precision.
  *
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 IEEE754_union
-IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
+IEEE754_DoubleToSmaller(double d);
 
 
 /**
@@ -147,10 +140,10 @@ IEEE754_DoubleToSmaller(double d, int bAllowHalfPrecision, int bNoNaNPayload);
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 IEEE754_union
-IEEE754_SingleToHalf(uint32_t uSingle, int bNoNanPayloads);
+IEEE754_SingleToHalf(uint32_t uSingle);
 
 
 /**
@@ -219,38 +212,35 @@ IEEE754_UintToDouble(uint64_t uInt, int uIsNegative);
 
 
 /**
- * @brief Tests whether NaN is "quiet" vs having a payload.
+ * @brief Tests whether NaN is other than a positive quiet NaN.
  *
  * @param[in] dNum   Double number to test.
  *
- * @returns 0 if a quiet NaN, 1 if it has a payload.
+ * @returns 0 if a non-trvial Nan, 1 if not.
  *
- * A quiet NaN is usually represented as 0x7ff8000000000000. That is
- * the significand bits are 0x8000000000000. If the significand bits
- * are other than 0x8000000000000 it is considered to have a NaN
- * payload.
+ * A trivial NaN is:
+ *  - a NaN
+ *  - sign bit doesn't indicate negative
+ *  - the highest bit of the significand is 1 and the rest are zero.
  *
- * Note that 0x7ff8000000000000 is not specified in a standard, but it
- * is commonly implemented and chosen by CBOR as the best way to
- * represent a NaN.
+ * That is, a NaN not represented by 0x7ff8000000000000.
  */
-int
-IEEE754_DoubleHasNaNPayload(double dNum);
-
+ int
+IEEE754_DoubleIsNonTrivialNaN(double dNum);
 
 
 /**
- * @brief Tests whether NaN is "quiet" vs having a payload.
+ * @brief Tests whether NaN is other than a positive quiet NaN.
  *
  * @param[in] uSingle  type @c float bits copied to a uint32_t.
  *
- * @returns 0 if a quiet NaN, 1 if it has a payload.
+ * @returns 0 if a non-trvial Nan, 1 if not.
  *
- * See IEEE754_DoubleHasNaNPayload(). A single precision quiet NaN
+ * See IEEE754_DoubleIsNonTrivialNaN(). A single precision quiet NaN
  * is 0x7fc00000.
  */
 int
-IEEE754_SingleHasNaNPayload(uint32_t uSingle);
+IEEE754_SingleIsNonTrivialNaN(uint32_t uSingle);
 
 
 #endif /* ieee754_h */

@@ -20,7 +20,7 @@
 #include "qcbor/qcbor_number_decode.h"
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #include <math.h> /* For INFINITY and NAN and isnan() */
-#endif
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
 /* This is off because it is affected by varying behavior of CPUs,
@@ -190,6 +190,7 @@ NaNExperiments(void)
 #endif /* NAN_EXPERIMENT */
 
 
+#ifdef HW_FLOAT_CHECK
 /* Returns 0 if OK, 1 if not */
 static int32_t
 HWCheckFloatToDouble(const uint64_t uDoubleToConvert, uint32_t uExpectedSingle)
@@ -268,33 +269,7 @@ HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
 #endif /* QCBOR_COMPARE_TO_HW_CONVERSION */
    return 0;
 }
-
-
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-/* Returns 0 if OK, 1 if not */
-static int32_t
-CompareToCarsten(const uint64_t uDouble, const UsefulBufC TestOutput, const UsefulBufC Expected)
-{
-   if(Expected.len == 3) {
-      /* Just works for double to half now */
-      int uFloat16 = try_float16_encode(uDouble);
-      uint8_t CarstenEncoded[3];
-      CarstenEncoded[0] = 0xf9;
-      CarstenEncoded[1] = (uint8_t)((uFloat16 & 0xff00) >> 8);
-      CarstenEncoded[2] = (uint8_t)(uFloat16 & 0xff);
-
-      UsefulBufC CarstenEncodedUB;
-      CarstenEncodedUB.len = 3;
-      CarstenEncodedUB.ptr = CarstenEncoded;
-
-      if(UsefulBuf_Compare(TestOutput, CarstenEncodedUB)) {
-         return 1;
-      }
-   }
-
-   return 0;
-}
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* HW_FLOAT_CHECK */
 
 
 struct FloatTestCase {
@@ -631,9 +606,6 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex, 2, 200);
       }
 
-      if(CompareToCarsten(UsefulBufUtil_CopyDoubleToUint64(pTestCase->dNumber), TestOutput, pTestCase->Preferred)) {
-         return MakeTestResultCode(uTestIndex, 3, 200);
-      }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       if(UsefulBuf_Compare(TestOutput, pTestCase->NotPreferred)) {
          return MakeTestResultCode(uTestIndex, 4, 200);
@@ -655,9 +627,6 @@ FloatValuesTests(void)
             return MakeTestResultCode(uTestIndex, 11, 200);
          }
 
-         if(CompareToCarsten(UsefulBufUtil_CopyDoubleToUint64(pTestCase->dNumber), TestOutput, pTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex, 12, 200);
-         }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          /* no non-preferred serialization for singles to check against */
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -666,7 +635,7 @@ FloatValuesTests(void)
 
       /* Non-preferred encode of double */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
-      QCBOREncode_AddDoubleNoPreferred(&EnCtx, pTestCase->dNumber);
+      QCBOREncode_AddDoubleRaw(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 20, uErr);;
@@ -805,444 +774,285 @@ FloatValuesTests(void)
 }
 
 
-/* Can't use the types double and float here because there's no compile
- * time initializer in C to construct NaNs.
+/*
 
- * The tests: encode the double in the 4 different ways and see the result is as expected
- *            encode the single in the 4 different ways and see the result is as expected
- *            decode the preferred and non-preferred (deterministic is always the same as preferred; DCBOR is not reversable)
+ Encode (lots of modes/methods to check)
+   Double and Single
+      Preferred, Deterministic, dCBOR, Raw
  */
-struct NaNTestCase {
-   uint64_t    uDouble; /* Converted to double in test */
-   uint32_t    uSingle; /* Converted to single in test */
-   uint64_t    uExpectedDouble;
-   uint32_t    uExpectedSingle;
-   UsefulBufC  Preferred;
-   UsefulBufC  NotPreferred;
-   UsefulBufC  Deterministic;
-   UsefulBufC  DCBOR;
-};
 
-/* Always four lines per test case so shell scripts can process into
- * other formats.
- *
- * C string literals are used because they are the shortest
- * notation. They are used __with a length__ . Null termination
- * doesn't work because there are bytes with value zero.
- *
- * While the deterministic and dCBOR standards are not complete as of mid-2025,
- * they are unlikely to change, so the tests here are likely correct.
- */
-/* This assumes that the signficand of a float is made up of the qNaN bit and
- * the payload. The qNaN bit is the most signficant. If not a qNaN, then it
- * is an sNaN. For an sNaN not to be the floating point value, its significand
- * must be non-zero. */
-static const struct NaNTestCase NaNTestCases[] =  {
-   /* Reminder: DOUBLE_NAN_BITS | x00 is INFINITY, not a NaN */
 
-   /* double qNaN -- shortens to half */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
-    {"\xF9\x7E\x00", 3},                         {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* double negative qNaN -- shortens to half */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN, 0,
-    DOUBLE_SIGN_MASK| DOUBLE_NAN_BITS | DOUBLE_QNAN,  0,
-    {"\xF9\xFE\x00", 3},                         {"\xFB\xFF\xF8\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\xFE\x00", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with payload of rightmost bit set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9},
-    {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* double negative sNaN with payload of rightmost bit set -- no shorter encoding */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,        0,
-    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9},
-    {"\xFB\xFF\xF0\x00\x00\x00\x00\x00\x01", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* double qNaN with 9 leftmost payload bits set -- shortens to half */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL,  0,
-    {"\xF9\x7F\xFF", 3},                         {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
-    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with 10 rightmost payload bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x03ff,      0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x03ff,      0,
-    {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9},
-    {"\xFB\x7F\xF0\x00\x00\x00\x00\x03\xFF", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* double qNaN with 22 leftmost payload bits set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_NAN_BITS | 0x7fffff,
-    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xFB\x7F\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\x7F\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double negative qNaN with 22 leftmost payload bits set -- shortens to single */
-   {DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  0,
-    DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,  SINGLE_SIGN_MASK | SINGLE_NAN_BITS | 0x7fffff,
-    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xFB\xFF\xFF\xFF\xFF\xE0\x00\x00\x00", 9},
-    {"\xFA\xFF\xFF\xFF\xFF", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with 23rd leftmost payload bit set -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x0000020000000ULL,  SINGLE_NAN_BITS | 0x01,
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFB\x7F\xF0\x00\x00\x20\x00\x00\x00", 9},
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with randomly chosen bit pattern -- shortens to single */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x43d7c40000000ULL,  SINGLE_NAN_BITS | 0x21ebe2,
-    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xFB\x7F\xF4\x3D\x7C\x40\x00\x00\x00", 9},
-    {"\xFA\x7F\xA1\xEB\xE2", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* double sNaN with 23 leftmost payload bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x7fffff0000000ULL,  0,
-    {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9},
-    {"\xFB\x7F\xF7\xFF\xFF\xF0\x00\x00\x00", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* double qNaN with all bits set -- no shorter encoding */
-   {DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,  0,
-    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
-    {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xF9\x7E\x00", 3}},
-
-   /* single qNaN with payload 0x00 -- shortens to half */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN,
-    DOUBLE_NAN_BITS | DOUBLE_QNAN,               0,
-    {"\xF9\x7E\x00", 3},                         {"\xFA\x7F\xC0\x00\x00", 5},
-    {"\xF9\x7E\x00", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* sNan with payload 0x00 is not a NaN, it's infinity */
-
-   /* single sNan with payload 0x01 -- no shorter encoding */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x01,
-    DOUBLE_NAN_BITS | (0x01 << 29),              0,
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xFA\x7F\x80\x00\x01", 5},
-    {"\xFA\x7F\x80\x00\x01", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* single qNaN with 9 bit payload -- shortens to half */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN | 0x3fe000,
-    DOUBLE_NAN_BITS | ((SINGLE_QNAN | 0x3fe000ULL) << 29),   0,
-    {"\xF9\x7F\xFF", 3},                         {"\xFA\x7F\xFF\xE0\x00", 5},
-    {"\xF9\x7F\xFF", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* single qNaN with 10 bit payload -- no shorter encoding */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_QNAN | 0x3ff000,
-    DOUBLE_NAN_BITS | ((SINGLE_QNAN | 0x3ff000ULL) << 29), 0,
-    {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xFA\x7F\xFF\xF0\x00", 5},
-    {"\xFA\x7F\xFF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* single sNaN with 9 bit payload -- shortens to half */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3fe000,
-    DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3fe000ULL) << 29), 0,
-    {"\xF9\x7D\xFF", 3},                         {"\xFA\x7F\xBF\xE0\x00", 5},
-    {"\xF9\x7D\xFF", 3},                         {"\xF9\x7E\x00", 3}},
-
-   /* single sNaN with 10 bit payload -- no shorter encoding */
-   {0,                                           SINGLE_NAN_BITS | SINGLE_SNAN | 0x3ff000,
-    DOUBLE_NAN_BITS | ((SINGLE_SNAN | 0x3ff000ULL) << 29), 0,
-    {"\xFA\x7F\xBF\xF0\x00", 5},                 {"\xFA\x7F\xBF\xF0\x00", 5},
-    {"\xFA\x7F\xBF\xF0\x00", 5},                 {"\xF9\x7E\x00", 3}},
-
-   /* List terminator */
-   {0, 0, 0, 0, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
+struct FloatDecodeTestCase {
+   QCBORDecodeMode  decodeMode;
+   UsefulBufC       Encoded; /* CBOR input for the test */
+   QCBORError       uErr;
+   uint8_t          uDataType;
+   double           dExpectedDouble; /* If this is 0.0, compared to uExpectedDouble instead */
+   uint64_t         uExpectedDouble; /* Use this for NaNs because C comparison for equality doesn't work for NaNs */
+   float            fExpectedSingle;
+   uint32_t         uExpectedSingle;
 };
 
 
-/* Public function. See float_tests.h */
+/* Not that happy that the ifdefs result in such variance in
+ * test results.  Maybe some redesign is needed. */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+   #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+
+      #define SUCCESS_WITH_PREFERRED    QCBOR_SUCCESS
+      #define EXPECTED_FOR_SINGLE       QCBOR_TYPE_DOUBLE
+      #define HALF_NAN_PAYLOAD_ERR      QCBOR_ERR_NAN_PAYLOAD
+      #define HALF_NAN_TYPE             QCBOR_TYPE_NONE
+
+      #define NAN_PAYLOAD_CHECK         QCBOR_ERR_NAN_PAYLOAD
+      #define NAN_PAYLOAD_TYPE_DOUBLE   QCBOR_TYPE_NONE
+      #define NAN_PAYLOAD_TYPE_SINGLE   QCBOR_TYPE_NONE
+
+   #else
+      #define SUCCESS_WITH_PREFERRED   QCBOR_SUCCESS
+
+      /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
+      #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_DOUBLE
+
+      /* QCBOR_DISABLE_DECODE_CONFORMANCE results in success not nan error */
+      #define HALF_NAN_PAYLOAD_ERR     QCBOR_SUCCESS
+      #define HALF_NAN_TYPE            QCBOR_TYPE_DOUBLE
+
+      /* No NaN checking with QCBOR_DISABLE_DECODE_CONFORMANCE, so good NaNs succeed */
+      #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
+      #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
+      #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_DOUBLE
+
+   #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+#else
+   #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+
+      /* Things that succeed, but are disabled with PREFERRED_FLOAT_DISABLED like half-precision */
+      #define SUCCESS_WITH_PREFERRED   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+
+      /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
+      #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_FLOAT
+
+      /* PREFERRED_FLOAT_DISABLED results in disabled error, not nan error */
+      #define HALF_NAN_PAYLOAD_ERR     QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define HALF_NAN_TYPE            QCBOR_TYPE_NONE
+
+      /* No NaN checking with PREFERRED_FLOAT_DISABLED, so good NaNs succeed */
+      #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
+      #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
+      #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_FLOAT
+
+   #else
+      #define SUCCESS_WITH_PREFERRED   QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+
+      /* with PREFERRED_FLOAT_DISABLED, there's no conversion from single to double */
+      #define EXPECTED_FOR_SINGLE      QCBOR_TYPE_FLOAT
+
+      /* QCBOR_DISABLE_DECODE_CONFORMANCE results in success not nan error */
+      #define HALF_NAN_PAYLOAD_ERR     QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define HALF_NAN_TYPE            QCBOR_TYPE_NONE
+
+      /* No NaN checking with QCBOR_DISABLE_DECODE_CONFORMANCE, so good NaNs succeed */
+      #define NAN_PAYLOAD_CHECK        QCBOR_SUCCESS
+      #define NAN_PAYLOAD_TYPE_DOUBLE  QCBOR_TYPE_DOUBLE
+      #define NAN_PAYLOAD_TYPE_SINGLE  QCBOR_TYPE_FLOAT
+
+   #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+static const struct FloatDecodeTestCase FloatDecodeTestCases[] =  {
+   // Half-precision quiet NaN
+   { QCBOR_DECODE_MODE_NORMAL, {"\xF9\x7E\x00", 3},
+      SUCCESS_WITH_PREFERRED, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN,
+      0.0f, 0
+   },
+
+   // Single-precision quiet NaN
+   { QCBOR_DECODE_MODE_NORMAL, {"\xFA\x7F\xC0\x00\x00", 5},
+      QCBOR_SUCCESS, EXPECTED_FOR_SINGLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN,
+      0.0f, SINGLE_NAN_BITS | SINGLE_QNAN
+   },
+
+   // Double-precision quiet NaN
+   { QCBOR_DECODE_MODE_NORMAL, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_SUCCESS, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN,
+      0.0f, 0
+   },
+
+   // half-NaN with a payload that errors out
+   { QCBOR_DECODE_MODE_NORMAL, {"\xF9\x7E\x01", 3},
+      HALF_NAN_PAYLOAD_ERR, HALF_NAN_TYPE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN | (0x01ULL << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS)),
+      0.0f, 0
+   },
+
+   // half-NaN with a payload that converts to double
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xF9\x7F\xFF", 3},
+      SUCCESS_WITH_PREFERRED, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | (0x3FFULL << (DOUBLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS)),
+      0.0f, 0
+   },
+
+   // Double Nan with a payload that errors out
+   { QCBOR_DECODE_MODE_NORMAL, {"\xFB\x7F\xF8\x00\x00\x00\x00\x00\x01", 9},
+      NAN_PAYLOAD_CHECK, NAN_PAYLOAD_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x01,
+      0.0f, 0
+   },
+
+   // Double NaN with a payload that is returned successfully
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFB\x7F\xF0\x00\x00\x00\x00\x00\x01", 9},
+      QCBOR_SUCCESS, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_SNAN | 0x01,
+      0.0f, 0
+   },
+
+   // Double signed SNaN with that is returned successfully
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFB\xFF\xF8\x00\x00\x00\x00\x00\x00", 9},
+      QCBOR_SUCCESS, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN,
+      0.0f, 0
+   },
+
+   // double qNaN with 9 leftmost payload bits set
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFB\x7F\xFF\xFC\x00\x00\x00\x00\x00", 9},
+      QCBOR_SUCCESS, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7fc0000000000ULL ,
+      0.0f, 0
+   },
+
+   // double qNaN with 9 leftmost payload bits set
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFB\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+      QCBOR_SUCCESS, QCBOR_TYPE_DOUBLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffffffffffULL,
+      0.0f, 0
+   },
+
+   // 10. single NaN with last payload bit set, errors out
+   { QCBOR_DECODE_MODE_NORMAL, {"\xFA\x7F\x80\x00\x01", 5},
+      NAN_PAYLOAD_CHECK, NAN_PAYLOAD_TYPE_SINGLE,
+      0.0,  DOUBLE_NAN_BITS | (0x1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS)),
+      0.0f, SINGLE_NAN_BITS | 0x01UL
+   },
+
+   // single negative quet NaN with last payload bit set, errors out
+   { QCBOR_DECODE_MODE_NORMAL, {"\xFA\xFF\xC0\x00\x00", 5},
+      NAN_PAYLOAD_CHECK, NAN_PAYLOAD_TYPE_SINGLE,
+      0.0,  DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_QNAN,
+      0.0f, SINGLE_SIGN_MASK | SINGLE_NAN_BITS | SINGLE_QNAN},
+
+   // single NaN with last payload bit set, doesn't error out
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFA\x7F\x80\x00\x01", 5},
+      QCBOR_SUCCESS, EXPECTED_FOR_SINGLE,
+      0.0, DOUBLE_NAN_BITS | DOUBLE_SNAN | (0x1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS)),
+      0.0, SINGLE_NAN_BITS | SINGLE_SNAN | 0x1UL },
+
+   // single negative NaN with last payload bit set
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFA\xFF\x80\x00\x01", 5},
+      QCBOR_SUCCESS, EXPECTED_FOR_SINGLE,
+      0.0, DOUBLE_SIGN_MASK | DOUBLE_NAN_BITS | DOUBLE_SNAN | (0x1ULL << (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS)) ,
+      0.0, SINGLE_SIGN_MASK | SINGLE_NAN_BITS | SINGLE_SNAN | 0x1UL
+   },
+
+   // single NaN with all payload bits set
+   { QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS, {"\xFA\x7F\xFF\xFF\xFF", 5},
+      QCBOR_SUCCESS, EXPECTED_FOR_SINGLE,
+      0.0,  DOUBLE_NAN_BITS | DOUBLE_QNAN | 0x7ffffe0000000ULL,
+      0.0f, SINGLE_NAN_BITS | SINGLE_QNAN | 0x7fffff
+   },
+
+   // Largest single precision
+   { QCBOR_DECODE_MODE_NORMAL, {"\xFA\x7F\x7F\xFF\xFF", 5},
+      QCBOR_SUCCESS, EXPECTED_FOR_SINGLE,
+      3.4028234663852886E+38, 0,
+      3.40282347E+38f,        0
+   },
+
+   {0, {NULL, 0}, QCBOR_SUCCESS, 0, 0.0, 0, 0.0f, 0 }
+};
+
 int32_t
-NaNPayloadsTest(void)
+FloatDecodeTest(void)
 {
-   const struct NaNTestCase    *pNaNTestCase;
-   unsigned int                 uTestIndex;
-   QCBORError                   uErr;
-   QCBOREncodeContext           EnCtx;
-   MakeUsefulBufOnStack(        TestOutBuffer, 20);
-   UsefulBufC                   TestOutput;
-   QCBORDecodeContext           DCtx;
-   QCBORItem                    Item;
-   uint64_t                     uDecoded;
+   unsigned int                      uTestIndex;
+   const struct FloatDecodeTestCase *pTestCase;
+   QCBORError                        uErr;
+   QCBORDecodeContext                DCtx;
+   QCBORItem                         Item;
+   uint64_t                          uDecoded;
+   uint32_t                          uDecoded32;
 
-   /* Test a variety of NaNs with payloads */
-   for(uTestIndex = 0; NaNTestCases[uTestIndex].Preferred.len != 0; uTestIndex++) {
-      pNaNTestCase = &NaNTestCases[uTestIndex];
 
-      if(uTestIndex == 7) {
-         uErr = 99; /* For setting break points for a particular test */
+   for(uTestIndex = 0; FloatDecodeTestCases[uTestIndex].Encoded.len != 0; uTestIndex++) {
+      pTestCase = &FloatDecodeTestCases[uTestIndex];
+
+      if(uTestIndex == 15) {
+         uErr = 0; /* For setting a break point */
       }
 
-      if(pNaNTestCase->uDouble) {
-         /* NaN Encode of Preferred */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 10, uErr);;
-         }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex+100, 11, 200);
-         }
-         if(CompareToCarsten(pNaNTestCase->uDouble, TestOutput, pNaNTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex+100, 12, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 122, 200);
-         }
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+      QCBORDecode_Init(&DCtx, pTestCase->Encoded, pTestCase->decodeMode);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
 
-         if(HWCheckFloatToDouble(pNaNTestCase->uDouble, pNaNTestCase->uSingle)) {
-            return MakeTestResultCode(uTestIndex+100, 121, 200);
+      if(uErr != pTestCase->uErr) {
+         return MakeTestResultCode(uTestIndex, 1, uErr);
+      }
+
+      if(uErr == QCBOR_SUCCESS) {
+         if(Item.uDataType != pTestCase->uDataType) {
+            return MakeTestResultCode(uTestIndex, 2, 0);
          }
 
-         /* NaN Encode of Not Preferred */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddDoubleNoPreferred(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 13, uErr);;
-         }
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 14, 200);
-         }
+         switch(pTestCase->uDataType) {
+            case QCBOR_TYPE_DOUBLE:
+               if(pTestCase->dExpectedDouble != 0.0) {
+                  if(Item.val.dfnum != pTestCase->dExpectedDouble) {
+                     return MakeTestResultCode(uTestIndex, 3, 0);
+                  }
+               } else {
+                  /* Always use this for NaN since C comparison doesn't work for NaN */
+                  uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
+                  if(uDecoded != pTestCase->uExpectedDouble) {
+                     return MakeTestResultCode(uTestIndex, 4, 0);
+                  }
+               }
+               break;
 
-         /* NaN Decode of Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         uErr = QCBORDecode_GetNext(&DCtx, &Item);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 15, uErr);
-         }
-         uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-         if(uDecoded != pNaNTestCase->uDouble) {
-            return MakeTestResultCode(uTestIndex+100, 11, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(pNaNTestCase->Preferred.len == 9) {
-            if(uErr != QCBOR_SUCCESS) {
-               return MakeTestResultCode(uTestIndex+100, 17, uErr);
-            }
+            case QCBOR_TYPE_FLOAT:
+               if(pTestCase->fExpectedSingle != 0.0f) {
+                  if(Item.val.fnum != pTestCase->fExpectedSingle) {
+                     return MakeTestResultCode(uTestIndex, 13, 0);
+                  }
+               } else {
+                  /* Always use this for NaN since C comparison doesn't work for NaN */
+                  uDecoded32 = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
+                  if(uDecoded32 != pTestCase->uExpectedSingle) {
+                     return MakeTestResultCode(uTestIndex, 4, 0);
+                  }
+               }
+               break;
 
-            uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-            if(uDecoded != pNaNTestCase->uDouble) {
-               return MakeTestResultCode(uTestIndex+100, 18, 200);
-            }
-         } else if(pNaNTestCase->Preferred.len == 5) {
-            if(Item.uDataType != QCBOR_TYPE_FLOAT) {
-               return MakeTestResultCode(uTestIndex, 19, 0);
-            }
+            default:
+               return MakeTestResultCode(uTestIndex, 10, 0);
 
-            uint32_t uDecoded2x = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
-
-            if(uDecoded2x != pNaNTestCase->uExpectedSingle) {
-               return MakeTestResultCode(uTestIndex, 20, 0);
-            }
-         } else {
-            /* Serialized to half precision */
-            if(Item.uDataType != QCBOR_TYPE_NONE) {
-               return MakeTestResultCode(uTestIndex, 21, 0);
-            }
          }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         /* NaN Decode of Not Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         uErr = QCBORDecode_GetNext(&DCtx, &Item);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 22, uErr);
-         }
-         uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-         if(uDecoded != pNaNTestCase->uDouble) {
-            return MakeTestResultCode(uTestIndex+100, 23, 200);
-         }
-
-         /* Deterministic NaN Encode */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 24, uErr);;
-         }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex+100, 241, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 25, 200);
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         /* NaN Encode of DCBOR */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR | QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddDouble(&EnCtx, UsefulBufUtil_CopyUint64ToDouble(pNaNTestCase->uDouble));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 26, uErr);;
-         }
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->DCBOR)) {
-            return MakeTestResultCode(uTestIndex+100, 27, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
-            return MakeTestResultCode(uTestIndex+100, 28, uErr);
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
       } else {
-         /* --- uSingle tests ---- */
-         /* NaN Encode of Preferred */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddFloat(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 29, uErr);;
+         if(Item.uDataType != QCBOR_TYPE_NONE) {
+            return MakeTestResultCode(uTestIndex, 5, 0);
          }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Preferred)) {
-            return MakeTestResultCode(uTestIndex+100, 30, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 31, 200);
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         /* NaN Encode of Not Preferred */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddFloatNoPreferred(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 32, uErr);;
-         }
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 33, 200);
-         }
-
-         /* NaN Decode of Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->Preferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         uErr = QCBORDecode_GetNext(&DCtx, &Item);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 34, uErr);
-         }
-         uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-         if(uDecoded != pNaNTestCase->uExpectedDouble) {
-            return MakeTestResultCode(uTestIndex+100, 35, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(pNaNTestCase->Preferred.len == 5) {
-            uint32_t uDecoded2x = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
-            if(uDecoded2x != pNaNTestCase->uSingle) {
-               return MakeTestResultCode(uTestIndex+100, 36, 200);
-            }
-         } else {
-            if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
-               return MakeTestResultCode(uTestIndex+100, 37, 200);
-            }
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         /* NaN Decode of Not Preferred */
-         QCBORDecode_Init(&DCtx, pNaNTestCase->NotPreferred, 0);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         uErr = QCBORDecode_GetNext(&DCtx, &Item);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 38, uErr);
-         }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         uDecoded = UsefulBufUtil_CopyDoubleToUint64(Item.val.dfnum);
-         if(uDecoded != pNaNTestCase->uExpectedDouble) {
-            return MakeTestResultCode(uTestIndex+100, 39, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(pNaNTestCase->NotPreferred.len == 5) {
-            uint32_t uDecoded22 = UsefulBufUtil_CopyFloatToUint32(Item.val.fnum);
-            if(uDecoded22 != pNaNTestCase->uSingle) {
-               return MakeTestResultCode(uTestIndex+100, 40, 200);
-            }
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         if(HWCheckDoubleToFloat(pNaNTestCase->uSingle, pNaNTestCase->uExpectedDouble)) {
-            return MakeTestResultCode(uTestIndex+100, 401, 200);
-         }
-
-         /* Deterministic NaN Encode */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC| QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddFloat(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 41, uErr);;
-         }
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->Deterministic)) {
-            return MakeTestResultCode(uTestIndex+100, 42, 200);
-         }
-#else /* ! #ifndef QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->NotPreferred)) {
-            return MakeTestResultCode(uTestIndex+100, 43, 200);
-         }
-#endif /* ! #ifndef QCBOR_DISABLE_PREFERRED_FLOAT */
-
-         /* NaN Encode of DCBOR */
-         QCBOREncode_Init(&EnCtx, TestOutBuffer);
-         QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR | QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
-         QCBOREncode_AddFloat(&EnCtx, UsefulBufUtil_CopyUint32ToFloat(pNaNTestCase->uSingle));
-         uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-         if(uErr != QCBOR_SUCCESS) {
-            return MakeTestResultCode(uTestIndex+100, 44, uErr);;
-         }
-         if(UsefulBuf_Compare(TestOutput, pNaNTestCase->DCBOR)) {
-            return MakeTestResultCode(uTestIndex+100, 45, 200);
-         }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-         if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
-            return MakeTestResultCode(uTestIndex+100, 46, uErr);
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       }
    }
-
-   /* Special one-off for 100% coverage */
-   QCBOREncode_Init(&EnCtx, TestOutBuffer);
-   QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
-   QCBOREncode_AddFloat(&EnCtx, 0);
-   uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   if(uErr != QCBOR_SUCCESS) {
-      return MakeTestResultCode(199, 100, uErr);;
-   }
-   if(UsefulBuf_Compare(TestOutput, UsefulBuf_FROM_SZ_LITERAL("\x00"))) {
-      return MakeTestResultCode(199, 101, 200);
-   }
-#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
-   if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
-      return MakeTestResultCode(uTestIndex+100, 261, uErr);
-   }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
    return 0;
 }
+
+
 
 
 /* Public function. See float_tests.h */
@@ -1274,7 +1084,7 @@ HalfPrecisionAgainstRFCCodeTest(void)
       /* Now parse the hand-constructed CBOR. This will invoke the
        * conversion to a float
        */
-      QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), 0);
+      QCBORDecode_Init(&DC, UsefulOutBuf_OutUBuf(&UOB), QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
       QCBORDecode_GetNext(&DC, &Item);
       if(Item.uDataType != QCBOR_TYPE_DOUBLE) {
          return -1;
@@ -1383,7 +1193,7 @@ static const uint8_t spExpectedFloatsNoHalf[] = {
 int32_t
 GeneralFloatEncodeTests(void)
 {
-   /* See FloatNumberTests() for tests that really cover lots of float values.
+   /* See the tests above that covers the float values more thoroughly.
     * Add new tests for new values or decode modes there.
     * This test is primarily to cover all the float encode methods. */
 
@@ -1407,27 +1217,27 @@ GeneralFloatEncodeTests(void)
 
    QCBOREncode_AddDouble(&EC, 0.0);
    QCBOREncode_AddDouble(&EC, 3.14);
-   QCBOREncode_AddDoubleNoPreferred(&EC, 0.0);
-   QCBOREncode_AddDoubleNoPreferred(&EC, NAN);
-   QCBOREncode_AddDoubleNoPreferred(&EC, INFINITY);
+   QCBOREncode_AddDoubleRaw(&EC, 0.0);
+   QCBOREncode_AddDoubleRaw(&EC, NAN);
+   QCBOREncode_AddDoubleRaw(&EC, INFINITY);
 
    QCBOREncode_AddFloat(&EC, 0.0);
    QCBOREncode_AddFloat(&EC, 3.14f);
-   QCBOREncode_AddFloatNoPreferred(&EC, 0.0f);
-   QCBOREncode_AddFloatNoPreferred(&EC, NAN);
-   QCBOREncode_AddFloatNoPreferred(&EC, INFINITY);
+   QCBOREncode_AddFloatRaw(&EC, 0.0f);
+   QCBOREncode_AddFloatRaw(&EC, NAN);
+   QCBOREncode_AddFloatRaw(&EC, INFINITY);
 
    QCBOREncode_OpenMap(&EC);
 
    QCBOREncode_AddDoubleToMapN(&EC, 100, 0.0);
    QCBOREncode_AddDoubleToMapN(&EC, 101, 3.1415926);
    QCBOREncode_AddDoubleToMap(&EC, "euler", 2.71828182845904523536);
-   QCBOREncode_AddDoubleNoPreferredToMapN(&EC, 105, 0.0);
+   QCBOREncode_AddDoubleRawToMapN(&EC, 105, 0.0);
 
    QCBOREncode_AddFloatToMapN(&EC, 102, 0.0f);
    QCBOREncode_AddFloatToMapN(&EC, 103, 3.1415926f);
    QCBOREncode_AddFloatToMap(&EC, "euler2", 2.71828182845904523536f);
-   QCBOREncode_AddFloatNoPreferredToMapN(&EC, 106, 0.0f);
+   QCBOREncode_AddFloatRawToMapN(&EC, 106, 0.0f);
 
    QCBOREncode_CloseMap(&EC);
    QCBOREncode_CloseArray(&EC);
@@ -1451,7 +1261,7 @@ GeneralFloatEncodeTests(void)
 int32_t
 GeneralFloatDecodeTests(void)
 {
-   /* See FloatNumberTests() for tests that really covers the float values.
+   /* See the tests above that covers the float values more thoroughly.
     * This is retained to cover GetDouble() and decode of a single 0 */
 
    QCBORItem          Item;

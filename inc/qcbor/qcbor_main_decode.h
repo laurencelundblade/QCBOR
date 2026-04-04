@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -226,35 +226,46 @@ typedef enum {
     *  @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.  See
     *  @ref v2-Tag-Decoding and QCBORDecode_CompatibilityV1().
     */
-   QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS = 0x04,
+   QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS = 0x04,
 
-   /** Error out on indefinite length strings, arrays and maps. */
-   QCBOR_DECODE_NO_INDEF_LENGTH = 0x08,
+    /** NaN payloads in the input will error with
+     * @ref QCBOR_ERR_NAN_PAYLOAD unless this is set. */
+   QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS = 0x08,
+   // QCBOR_DECODE_MODE_ALLOW_NON_TRIVIAL_NAN = 0x08,
 
-   /** Error out if integers or floats are encoded as
-    *  non-preferred. */
-   QCBOR_DECODE_ONLY_PREFERRED_NUMBERS = 0x10,
+   /** @ref QCBOR_ERR_INDEF_LENGTH on indefinite length strings,
+    * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+   QCBOR_DECODE_MODE_NO_INDEF_LENGTH = 0x10,
+
+   /** @ref QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT when the CBOR
+    * argument is not shortest length. The CBOR argument is used for
+    * encoded integers, string lengths, array lengths, map lengths and
+    * simple types.  See @ref QCBOR_DECODE_MODE_PREFERRED. */
+   QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT = 0x20,
+
+    /** @ref QCBOR_ERR_NOT_SHORTEST_FLOAT when floats aren't
+     * serialized with the shortest form that doesn't lose
+     * precision. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+    QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT = 0x40,
 
    /** If big numbers that will fit into normal integers are
     *  encountered error XXX will occur. This is to comply with big
-    *  number preferred serialization. */
-   QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS = 0x20,
+    *  number preferred serialization. TODO: fix this*/
+   QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS = 0x80,
 
-   /** If maps are not sorted, error @ref QCBOR_ERR_UNSORTED
-    *  occurs. This is makes map decoding take more CPU time, but that
-    *  is probably only of consequence with big maps on small CPUs. */
-   QCBOR_DECODE_ONLY_SORTED_MAPS = 0x40,
+   /** @ref QCBOR_ERR_UNSORTED if a map is not sorted. See
+    * @ref QCBOR_DECODE_MODE_DETERMINISTIC. */
+   QCBOR_DECODE_MODE_ONLY_SORTED_MAPS = 0x100,
 
-   /** If whole number floats are present (they are not encoded as
-    * integers), error @ref QCBOR_ERR_DCBOR_CONFORMANCE occurs. This
-    * is as required for dCBOR.
-    */
-   QCBOR_DECODE_ONLY_REDUCED_FLOATS = 0x80,
+   /** @ref QCBOR_ERR_FLOAT_NOT_REDUCED if whole number floats are
+    * present (they are not encoded as integers). See
+    * @ref QCBOR_DECODE_MODE_DCBOR. */
+   QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS = 0x200,
 
-   /** dCBOR allows only the simple types true, false and NULL
-    * This enforces that.
-    */
-   QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES = 0x100,
+   /** @ref QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE is a simple value is
+    * other than true, false or null, the same as JSON. See
+    * @ref QCBOR_DECODE_MODE_DCBOR. */
+   QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES = 0x400,
 
    /**
     * This checks that the input is encoded with preferred
@@ -266,10 +277,12 @@ typedef enum {
     * of definite-length encoding only, integers, including string
     * lengths and tags, must be in shortest form, and floating-point
     * numbers must be reduced to shortest form all the way to
-    * half-precision. */
-   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_NO_INDEF_LENGTH |
-                                 QCBOR_DECODE_ONLY_PREFERRED_NUMBERS |
-                                 QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS,
+    * half-precision.
+    * TODO: update text above*/
+   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_MODE_NO_INDEF_LENGTH |
+                                 QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT |
+                                 QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT |
+                                 QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS,
 
    /** This checks that maps in the input are sorted by label as
     * described in RFC 8949 section 4.2.1.  This also performs
@@ -278,15 +291,20 @@ typedef enum {
     * for large inputs on slow CPUs.
     *
     * This also performs all the checks that
-    * @ref QCBOR_DECODE_MODE_PREFERRED does. */
+    * @ref QCBOR_DECODE_MODE_PREFERRED does.
+    * todo: update text above*/
    QCBOR_DECODE_MODE_DETERMINISTIC = QCBOR_DECODE_MODE_PREFERRED |
-                                     QCBOR_DECODE_ONLY_SORTED_MAPS,
+                                     QCBOR_DECODE_MODE_ONLY_SORTED_MAPS,
 
-   /** This requires integer-float unification. It performs all the checks that
-    * @ref QCBOR_DECODE_MODE_DETERMINISTIC does. */
+   /** dCBOR is a special-use serialization whose primary requirement
+    * in addition to @ref QCBOR_DECODE_MODE_DETERMINISTIC is that the
+    * float and integer number spaces are unified.  It also restricts
+    * the simple types to true, false and null.  Last, it disallows
+    * NaNs with payloads, but QCBOR does that by default. See
+    * draft-mcnally-deterministic-cbor. */
    QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_DETERMINISTIC |
-                             QCBOR_DECODE_ONLY_REDUCED_FLOATS |
-                             QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES,
+                             QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
+                             QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES,
 
 } QCBORDecodeMode;
 
@@ -431,10 +449,10 @@ typedef enum {
 /** Type for the simple value undef. */
 #define QCBOR_TYPE_UNDEF         23
 
-/** Type for a floating-point number. Data is in @c val.fnum. */
+/** Type for a floating-point number. Data is in @c val.fnum.  See @ref Floating-Point-Decode. */
 #define QCBOR_TYPE_FLOAT         26
 
-/** Type for a double floating-point number. Data is in @c val.dfnum. */
+/** Type for a double floating-point number. Data is in @c val.dfnum. See @ref Floating-Point-Decode. */
 #define QCBOR_TYPE_DOUBLE        27
 
 /** Special type for integers between -2^63 - 1 to -2^64 that
