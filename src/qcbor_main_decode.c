@@ -2076,7 +2076,6 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
 {
    QCBORError uErr;
    QCBORItem  Item;
-   uint8_t    uLevel;
    uint32_t   uLabelOffset;
 
    /* Get the label and consume it, should it be complex */
@@ -2087,8 +2086,7 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
       goto Done;
    }
    *puLabelLen = uLabelOffset - *puLabelStart;
-   *puNestLevel = Item.uNextNestLevel;
-   uErr = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, puNestLevel);
 
 Done:
    return uErr;

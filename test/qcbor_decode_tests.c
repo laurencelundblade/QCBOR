@@ -11250,6 +11250,22 @@ DecodeConformanceTests(void)
       return -5000;
    }
 
+   /* See about a nested map */
+   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa1\x04\xa2\x01\x00\x00\x00"), QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNSORTED) {
+      return -5001;
+   }
+
+   /* See about a nested map */
+   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xbf\x04\xbf\x01\x00\x00\x00\xff\xff"), QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNSORTED) {
+      return -5002;
+   }
+
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
 
