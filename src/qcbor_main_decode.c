@@ -2238,6 +2238,7 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
 }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
+
 QCBORError
 QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
                                   QCBORError          uErr,

@@ -11207,7 +11207,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
 };
 
 
-static UsefulBufC CorrectlySorted[] = {
+static const UsefulBufC CorrectlySorted[] = {
    /* Super simple map with two items, labeled 0 and 1 */
    {"\xa2\x00\x00\x01\x01", 5},
    /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
@@ -11218,12 +11218,15 @@ static UsefulBufC CorrectlySorted[] = {
    {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
 #endif
    {"\xa0", 1},
+   {"\xa1\x00\xa0", 3},
 #if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
    {"\xbf\xff", 2},
-#endif
+   {"\xbf\x00\xbf\xff\xff", 5},
+   {"\xbf\x00\xbf\xff\xff", 5},
+   {"\xa1\x00\xbf\xff", 4},
+#endif /* !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) */
    NULLUsefulBufCConst
 };
-
 
 
 int32_t 
@@ -11232,39 +11235,57 @@ DecodeConformanceTests(void)
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
    QCBORError         uErr;
-   uint32_t           uTestIndex;
+   uint32_t           uIndex;
 
-   for(uTestIndex = 0; !UsefulBuf_IsNULLC(CorrectlySorted[uTestIndex]); uTestIndex++) {
-      QCBORDecode_Init(&DCtx, CorrectlySorted[uTestIndex], QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
+   for(uIndex = 0; !UsefulBuf_IsNULLC(CorrectlySorted[uIndex]); uIndex++) {
+      QCBORDecode_Init(&DCtx, CorrectlySorted[uIndex], QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
 
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
-         return MakeTestResultCode(1, uTestIndex, uErr);
+         return MakeTestResultCode(1, uIndex, uErr);
       }
    }
 
    /* Make sure EnterMap is handling errors too */
-   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_DETERMINISTIC);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"),
+                    QCBOR_DECODE_MODE_DETERMINISTIC);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
       return -5000;
    }
 
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_SZ_LITERAL("\x45\xa2\x00\x00\x00\x00"),
+                    QCBOR_DECODE_MODE_DETERMINISTIC);
+   QCBORDecode_EnterBstrWrapped(&DCtx, QCBOR_TAG_REQUIREMENT_NOT_A_TAG, NULL);
+   QCBORDecode_EnterMap(&DCtx, &Item);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
+      return -5000;
+   }
+
+
    /* See about a nested map */
-   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa1\x04\xa2\x01\x00\x00\x00"), QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_SZ_LITERAL("\xa1\x04\xa2\x01\x00\x00\x00"),
+                    QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
    QCBORDecode_EnterMap(&DCtx, &Item);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNSORTED) {
       return -5001;
    }
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    /* See about a nested map */
-   QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xbf\x04\xbf\x01\x00\x00\x00\xff\xff"), QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
+   QCBORDecode_Init(&DCtx,
+                    UsefulBuf_FROM_SZ_LITERAL("\xbf\x04\xbf\x01\x00\x00\x00\xff\xff"),
+                    QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
    QCBORDecode_EnterMap(&DCtx, &Item);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNSORTED) {
       return -5002;
    }
+#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
