@@ -2087,7 +2087,7 @@ QCBORDecode_Private_GetLabelAndConsume(QCBORDecodeContext *pMe,
       goto Done;
    }
    *puLabelLen = uLabelOffset - *puLabelStart;
-   *puNestLevel = Item.uNestingLevel;
+   *puNestLevel = Item.uNextNestLevel;
    uErr = QCBORDecode_Private_ConsumeItem(pMe, &Item, NULL, &uLevel);
 
 Done:
@@ -2104,7 +2104,7 @@ Done:
  */
 static QCBORError
 QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
-                              const uint8_t       uNestLevel,
+                              const uint8_t       uMapNestLevel,
                               const size_t        uCompareLabelStart,
                               const size_t        uCompareLabelLen)
 {
@@ -2117,20 +2117,13 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
    const UsefulInputBuf     Save        = pMe->InBuf;
 
-   do {
+   while(1) {
       uErr = QCBORDecode_Private_GetLabelAndConsume(pMe,
                                                     &uLevel,
                                                     &uLabelStart,
                                                     &uLabelLen);
       if(uErr != QCBOR_SUCCESS) {
-         if(uErr == QCBOR_ERR_NO_MORE_ITEMS) {
-            uErr = QCBOR_SUCCESS; /* Successful end */
-         }
          break;
-      }
-
-      if(uLevel != uNestLevel) {
-         break; /* Successful end of loop */
       }
 
       /* This check for dups works for labels that are preferred
@@ -2151,7 +2144,11 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
          uErr = QCBOR_ERR_DUPLICATE_LABEL;
          break;
       }
-   } while (1);
+
+      if(uLevel < uMapNestLevel) {
+         break; /* Successful end of loop */
+      }
+   }
 
    pMe->nesting = SaveNesting;
    pMe->InBuf   = Save;
@@ -2162,14 +2159,20 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
 
 /* This does sort order and duplicate detection on a map. The map and all
  * its members must be in preferred serialization so the comparisons
- * work correctly.
+ * work correctly. (TODO: is this true?)
  */
 static QCBORError
 QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToCheck)
 {
-   QCBORError uErr;
-   uint8_t    uNestLevel;
-   size_t     offset2, offset1, length2, length1;
+   QCBORError  uErr;
+   uint8_t     uNestLevel;
+   size_t      offset2, offset1, length2, length1;
+
+   if(pMapToCheck->uNextNestLevel <= pMapToCheck->uNestingLevel) {
+      /* The map is empty so nothing to do. Also the loop below doesn't work
+       * on empty maps. */
+      return QCBOR_SUCCESS;
+   }
 
    const QCBORDecodeNesting SaveNesting = pMe->nesting;
    const UsefulInputBuf Save = pMe->InBuf;
@@ -2179,11 +2182,14 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
     * each adjacent pair for correct ordering. It also calls CheckDup
     * on each one which also runs over the remaining items in the map
     * checking for duplicates. So duplicate checking runs in n^2.
+    *
+    * The ordering of steps in the loop is specific and a bit subtle.
+    * This is partly to avoid calling GetLabelAndConsume() twice.
     */
-
    offset2 = SIZE_MAX;
-   length2 = SIZE_MAX; // To avoid uninitialized warning
+   length2 = SIZE_MAX; /* avoid uninitialized warning */
    while(1) {
+      /* Get the next member of the map */
       uErr = QCBORDecode_Private_GetLabelAndConsume(pMe,
                                                     &uNestLevel,
                                                     &offset1,
@@ -2192,23 +2198,28 @@ QCBORDecode_Private_CheckMap(QCBORDecodeContext *pMe, const QCBORItem *pMapToChe
          break;
       }
 
+      if(offset2 == SIZE_MAX) {
+         /* Only one item fetched the first time through, so skip compare */
+         goto SkipOrderCompare;
+      }
+
+      /* Our main purpose -- compare labels. The comparison is done on
+       * encoded labels per section 4.2.1 of RFC 8949 */
+      if(UsefulInputBuf_Compare(&(pMe->InBuf), offset2, length2, offset1, length1) > 0) {
+         uErr = QCBOR_ERR_UNSORTED;
+         break;
+      }
+
+   SkipOrderCompare:
       if(uNestLevel < pMapToCheck->uNextNestLevel) {
-         break; /* Successful exit from loop */
+         /* Success: Last item fetched from map and none were out of order. */
+         break;
       }
 
-      if(offset2 != SIZE_MAX) {
-         /* Check that the labels are ordered. Check is not done the
-          * first time through the loop when offset2 is unset. Since
-          * this does comparison of the items in encoded form they
-          * must be preferred serialization encoded. See RFC 8949
-          * 4.2.1.
-          */
-         if(UsefulInputBuf_Compare(&(pMe->InBuf), offset2, length2, offset1, length1) > 0) {
-            uErr = QCBOR_ERR_UNSORTED;
-            break;
-         }
-      }
-
+      /* This compares the item just fetched (uOffset1, lenght) to the
+       * rest in the map looking for duplicate lables. This comes
+       * after the check for last item, because it is not necessary to
+       * check the last item is a duplicate. */
       uErr = QCBORDecode_Private_CheckDups(pMe,
                                            pMapToCheck->uNextNestLevel,
                                            offset1,

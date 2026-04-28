@@ -11208,14 +11208,15 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
 
 
 static UsefulBufC CorrectlySorted[] = {
+   /* Super simple map with two items, labeled 0 and 1 */
+   {"\xa2\x00\x00\x01\x01", 5},
    /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
     * the sort order of the map without checking the preferred serialization of the
     * map items, so this test passes. */
    {"\xa4\x01\x61\x61\xf9\x3C\x00\x61\x62\xFA\x3F\x80\x00\x00\x61\x63\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00\x61\x64", 27},
-   {"\xa3\x00\x61\x61\x01\x61\x62\xa3\x0c\x61\x78\x0b\x61\x79\x0a\x61\x7a\x61\x63", 19},
    {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
-   {"\xa2\x00\x00\x01\x01", 5},
-   {"\xA0", 1},
+   {"\xa0", 1},
+   {"\xbf\xff", 2},
    NULLUsefulBufCConst
 };
 
@@ -11229,8 +11230,8 @@ DecodeConformanceTests(void)
    QCBORError         uErr;
    uint32_t           uTestIndex;
 
-   for(uTestIndex = 0; UsefulBuf_IsNULLC(CorrectlySorted[uTestIndex]); uTestIndex++) {
-      QCBORDecode_Init(&DCtx, CorrectlySorted[uTestIndex], QCBOR_DECODE_MODE_DETERMINISTIC);
+   for(uTestIndex = 0; !UsefulBuf_IsNULLC(CorrectlySorted[uTestIndex]); uTestIndex++) {
+      QCBORDecode_Init(&DCtx, CorrectlySorted[uTestIndex], QCBOR_DECODE_MODE_ONLY_SORTED_MAPS);
 
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {
@@ -11238,13 +11239,12 @@ DecodeConformanceTests(void)
       }
    }
 
-   /* Make sure EnterMap is handling errors */
+   /* Make sure EnterMap is handling errors too */
    QCBORDecode_Init(&DCtx,UsefulBuf_FROM_SZ_LITERAL("\xa2\x00\x00\x00\x00"), QCBOR_DECODE_MODE_DETERMINISTIC);
    QCBORDecode_EnterMap(&DCtx, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_DUPLICATE_LABEL) {
       return -5000;
    }
-
 
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));
