@@ -11213,10 +11213,14 @@ static UsefulBufC CorrectlySorted[] = {
    /* This one is correctly sorted, but is not correct preferred serialization. QCBOR checks
     * the sort order of the map without checking the preferred serialization of the
     * map items, so this test passes. */
+#if !defined(QCBOR_DISABLE_PREFERRED_FLOAT) && !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
    {"\xa4\x01\x61\x61\xf9\x3C\x00\x61\x62\xFA\x3F\x80\x00\x00\x61\x63\xFB\x3F\xF0\x00\x00\x00\x00\x00\x00\x61\x64", 27},
    {"\xA3\xE0\x61\x61\xF5\x61\x62\xFB\x3F\xF1\x99\x99\x99\x99\x99\x9A\x61\x63", 18},
+#endif
    {"\xa0", 1},
+#if !defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS)
    {"\xbf\xff", 2},
+#endif
    NULLUsefulBufCConst
 };
 
