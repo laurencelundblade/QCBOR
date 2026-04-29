@@ -70,6 +70,8 @@ static test_entry2 s_tests2[] = {
 
 
 static test_entry s_tests[] = {
+   TEST_ENTRY(SerializationExampleDecode),
+   TEST_ENTRY(SerializationExampleEncode),
    TEST_ENTRY(BigNumEncodeTests),
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    TEST_ENTRY(DecodeConformanceTests),

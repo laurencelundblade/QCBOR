@@ -4672,3 +4672,1622 @@ int32_t EncodeIndefiniteStringsTest(void)
    return 0;
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+
+
+/*  call back to encode the value
+ *  says what type of serialization it did.
+ *  in: Encoder context; out: type of serialization */
+
+enum SrlType {General, PreferredPlus, Deterministic};
+
+/* This encodes the item. There is often many of these for a given
+ * item for different methods of encoding and for different
+ * serializations. */
+typedef int (SrlEncodeCB)(QCBOREncodeContext *CB, enum SrlType *pnType);
+
+/* Decode an item. If nExpected is not QCBOR_SUCCESS, the decode
+ *  should fail with a decode check error. The tests cases
+ * used with this are always well-formed and valid. */
+typedef int (SrlDecodeCB)(QCBORDecodeContext *CB, QCBORError nExpected);
+
+
+
+struct SrlExample {
+   const char *description;
+
+   SrlEncodeCB *CBs[10];
+   SrlDecodeCB *DecodeCBs[10];
+
+   // Don't include the EDN, since it isn't useful
+   UsefulBufC general_serializations[10];
+   UsefulBufC preferred_plus_serializations[10];
+   UsefulBufC deterministic_serializations[10];
+};
+
+
+/* Not sure how to handle serialization type variation
+ - pass in serialization type
+ - set it up outside; can you?
+
+test in general mode -- decodes everything
+ test in pp checking -- mode succeed on
+
+ */
+static int
+SrlDec_Zero(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   int64_t    nValue;
+
+   QCBORDecode_GetInt64ConvertAll(pDCtx, QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIG_NUM, &nValue);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(nValue != 0) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+static int
+SrlDec_Three(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   int64_t    nValue;
+
+   QCBORDecode_GetInt64ConvertAll(pDCtx, QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIG_NUM, &nValue);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(nValue != 3) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+
+
+static int
+SrlEnc_Zero(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddInt64(pECtx, 0);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_Three(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddInt64(pECtx, 3);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+/*static int
+SrlEnc_Zero2(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTBigNumberRaw(pECtx, QCBOR_ENCODE_AS_TAG, false, SZLiteralToUsefulBufC(""));
+   *pT = General;
+   return 0;
+}
+ */
+
+
+static int
+SrlEnc_ByteString(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddBytes(pECtx, SZLiteralToUsefulBufC("\x01\x02\x03"));
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_MapDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZStringToMapN(pECtx, 1, "x");
+   QCBOREncode_AddSZStringToMapN(pECtx, 2, "y");
+   QCBOREncode_AddSZStringToMapN(pECtx, 3, "z");
+   QCBOREncode_CloseMap(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_MapSzDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddInt64ToMapSZ(pECtx, "abc", 1);
+   QCBOREncode_AddInt64ToMapSZ(pECtx, "def", 2);
+   QCBOREncode_AddInt64ToMapSZ(pECtx, "ghi", 3);
+   QCBOREncode_CloseMap(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_MapGen1(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZStringToMapN(pECtx, 1, "x");
+   QCBOREncode_AddSZStringToMapN(pECtx, 3, "z");
+   QCBOREncode_AddSZStringToMapN(pECtx, 2, "y");
+   QCBOREncode_CloseMap(pECtx);
+   *pT = General;
+   return 0;
+}
+
+static int
+SrlEnc_MapDet2(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZStringToMapN(pECtx, 1, "x");
+   QCBOREncode_AddSZStringToMapN(pECtx, 3, "z");
+   QCBOREncode_AddSZStringToMapN(pECtx, 2, "y");
+   QCBOREncode_CloseAndSortMap(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_ArrayDef(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenArray(pECtx);
+   QCBOREncode_AddInt64(pECtx, 1);
+   QCBOREncode_AddInt64(pECtx, 2);
+   QCBOREncode_AddInt64(pECtx, 3);
+   QCBOREncode_CloseArray(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_ArrayIndef(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenArrayIndefiniteLength(pECtx);
+   QCBOREncode_AddInt64(pECtx, 1);
+   QCBOREncode_AddInt64(pECtx, 2);
+   QCBOREncode_AddInt64(pECtx, 3);
+   QCBOREncode_CloseArrayIndefiniteLength(pECtx);
+   *pT = General;
+   return 0;
+}
+
+
+static int
+SrlEnc_Minus25(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddInt64(pECtx, -25);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_MinusInfinity(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, -INFINITY);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_HalfSubnormal(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 3.0517578125E-5);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_SingleSubnormal(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 5.8774717541114375E-39);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_Single(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, -16777216.0);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_FloatZero(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 0.0);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+
+
+static int
+SrlEnc_TextString(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddSZString(pECtx, "hi there");
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_BigNum(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTBigNumber(pECtx, QCBOR_ENCODE_AS_TAG, false,
+                             (UsefulBufC){ (uint8_t[]){0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 12});
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_NaN(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, NAN);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_DoubleSubnormal(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, -5.0e-324);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_Double(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 1.7976931348623157e+308);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_Half(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 65504.0);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_True(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddBool(pECtx, true);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_Simple111(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddSimple(pECtx, 111);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_65BitNeg(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   // -18446742974197923840 with sign changed and one subtracted
+   QCBOREncode_AddNegativeUInt64(pECtx, 18446742974197923839ULL);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_EpochDate(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTDateEpoch(pECtx, QCBOR_ENCODE_AS_TAG, 1776614355);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_StringDate(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTDateString(pECtx, QCBOR_ENCODE_AS_TAG, "2026-04-19T03:59:15Z");
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_NaNPayload(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   uint64_t uNaNPayload = (0x1ffULL << (52 - 10)) + /* Payload 0x01ff shifted for double */
+                          (0x7ffULL << 52); /* exponent indiciating NaN */
+
+   QCBOREncode_AddDoubleRaw(pECtx, UsefulBufUtil_CopyUint64ToDouble(uNaNPayload));
+   *pT = General;
+   return 0;
+}
+
+
+
+
+
+#include <qcbor/qcbor_spiffy_decode.h>
+
+static int
+SrlDec_Array(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   int64_t    nValue;
+   QCBORItem  Item;
+
+   /* This decodes both definite and indefinite-length arrays */
+   QCBORDecode_EnterArray(pDCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_ARRAY) {
+      if(nResult == QCBOR_SUCCESS) {
+         return 1;
+      } else {
+         return 0; /* Supposed to fail */
+      }
+   }
+   QCBORDecode_GetInt64(pDCtx, &nValue);
+   QCBORDecode_GetInt64(pDCtx, &nValue);
+   QCBORDecode_GetInt64(pDCtx, &nValue);
+   QCBORDecode_ExitArray(pDCtx);
+
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(nValue != 3) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_Bytes(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   UsefulBufC Bytes;
+
+   /* This can decode both definite an indefinite length strings
+    * because the MemPool is installed. */
+   QCBORDecode_GetByteString(pDCtx, &Bytes);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(UsefulBuf_Compare(Bytes, SZLiteralToUsefulBufC("\x01\x02\x03"))) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+static int
+SrlDec_TextString(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   UsefulBufC Bytes;
+
+   /* This can decode both definite an indefinite length strings
+    * because the MemPool is installed. */
+   QCBORDecode_GetTextString(pDCtx, &Bytes);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(UsefulBuf_Compare(Bytes, SZLiteralToUsefulBufC("hi there"))) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+
+
+ int /* TODO: re enable when map sort checking bug is fixed */
+SrlDec_Map(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   QCBORItem  Item;
+   UsefulBufC TextString;
+
+   /* This decodes both definite and indefinite-length maps */
+   QCBORDecode_EnterMap(pDCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_MAP) {
+      if(nResult == QCBOR_SUCCESS) {
+         return 1;
+      } else {
+         return 0; /* Supposed to fail */
+      }
+   }
+
+   QCBORDecode_GetTextStringInMapN(pDCtx, 2, &TextString);
+
+   QCBORDecode_ExitMap(pDCtx);
+
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(UsefulBuf_Compare(TextString, SZLiteralToUsefulBufC("y"))) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+
+
+ int
+SrlDec_Minus25(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   int64_t    nValue;
+
+   QCBORDecode_GetInt64ConvertAll(pDCtx, QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIG_NUM, &nValue);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(nValue != -25) {
+         return 1;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+
+
+static int
+SrlDec_NegInfinity(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != -INFINITY) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+
+
+static int
+SrlDec_QuietNaN(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(!isnan(dNum)) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+/*
+
+ Never called for preferred and deterministic because there are none.
+
+ Suceeds for general.
+
+ */
+static int
+SrlDec_NaNPayload(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+   uint64_t   uNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(!isnan(dNum)) {
+        return 1;
+     }
+      uNum = UsefulBufUtil_CopyDoubleToUint64(dNum);
+      uint64_t uNaNPayload = (0x1ffULL << (52 - 10)) + /* Payload 0x01ff shifted for double */
+                             (0x7ffULL << 52); /* exponent indiciating NaN */
+      if(uNum != uNaNPayload) {
+         return 4;
+      }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+
+static int
+SrlDec_DoubleSubnormal(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != -5.0e-324) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+static int
+SrlDec_Double(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != 1.7976931348623157e+308) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+static int
+SrlDec_HalfSubnormal(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != 3.0517578125E-5) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_Half(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != 65504.0) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_SingleSubnormal(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != 5.8774717541114375E-39) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_Single(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != -16777216.0) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+static int
+SrlDec_FloatZero(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   double     dNum;
+
+   QCBORDecode_GetDouble(pDCtx, &dNum);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(dNum != 0.0) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_True(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   bool       b;
+
+   QCBORDecode_GetBool(pDCtx, &b);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(b != true) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_Simple111(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   uint8_t   uSimple;
+
+   QCBORDecode_GetSimple(pDCtx, &uSimple);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(uSimple != 111) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+static int
+SrlDec_65BitNeg(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   QCBORItem  Item;
+
+   QCBORDecode_VGetNext(pDCtx, &Item);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
+        // -18446742974197923840 with sign changed and one subtracted
+        Item.val.uint64 != 18446742974197923839ULL) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_EpochDate(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   int64_t    nTime;
+
+   QCBORDecode_GetTEpochDate(pDCtx, QCBOR_TAG_REQUIREMENT_TAG, &nTime);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(nTime != 1776614355) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+static int
+SrlDec_StringDate(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   UsefulBufC Date;
+
+   QCBORDecode_GetTDateString(pDCtx, QCBOR_TAG_REQUIREMENT_TAG, &Date);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+     if(UsefulBuf_Compare(Date, UsefulBuf_FromSZ("2026-04-19T03:59:15Z"))) {
+        return 1;
+     }
+   } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+   }
+
+   return 0;
+}
+
+
+
+
+ int
+SrlDec_BigNum(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   UsefulBufC Bytes;
+   MakeUsefulBufOnStack(BN, 100);
+   bool bIsNegative;
+
+   /* This can decode both definite an indefinite length strings
+    * because the MemPool is installed. */
+   QCBORDecode_GetTBigNumber(pDCtx, QCBOR_TAG_REQUIREMENT_TAG, BN, &Bytes, &bIsNegative);
+   uErr = QCBORDecode_GetError(pDCtx);
+   if(nResult == QCBOR_SUCCESS) {
+      if(UsefulBuf_Compare(Bytes, SZLiteralToUsefulBufC("\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"))) {
+         return 1;
+      }
+      if(bIsNegative) {
+         return 3;
+      }
+   } else {
+      if(uErr == QCBOR_SUCCESS) {
+         return 2;
+      }
+   }
+
+   return 0;
+}
+
+
+struct SrlExample all_tests[] = {
+   /* float_double_subnormal.edn */
+   {
+      .CBs = {SrlEnc_DoubleSubnormal, NULL},
+      .DecodeCBs = {SrlDec_DoubleSubnormal, NULL},
+
+      .description = "Double-precision negative subnormal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfb, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfb, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_double.edn */
+   {
+      .CBs = {SrlEnc_Double, NULL},
+      .DecodeCBs = {SrlDec_Double, NULL},
+
+      .description = "Double-precision normal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfb, 0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfb, 0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_half_subnormal.edn */
+   {
+      .CBs = {SrlEnc_HalfSubnormal, NULL},
+      .DecodeCBs = {SrlDec_HalfSubnormal, NULL},
+
+      .description = "Half-precision subnormal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0x38, 0x00, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xf9, 0x02, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x02, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x02, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+   
+   /* float_half.edn */
+   {
+      .CBs = {SrlEnc_Half, NULL},
+      .DecodeCBs = {SrlDec_Half, NULL},
+
+      .description = "half-precision normal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x40, 0xef, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0x47, 0x7f, 0xe0, 0x00}, 5 },
+         { (uint8_t[]){0xf9, 0x7b, 0xff}, 3 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x7b, 0xff}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x7b, 0xff}, 3 },
+         { NULL, 0 },
+      },
+   },
+   
+   /* float_nan_payload.edn */
+   {
+      .CBs = {SrlEnc_NaNPayload, NULL},
+      .DecodeCBs = {SrlDec_NaNPayload, NULL},
+
+      .description = " Floating-point NaN with payload/significand 0x1ff",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0x7d, 0xff}, 3 },
+         { (uint8_t[]){0xfa, 0x7f, 0xbf, 0xe0, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0x7f, 0xf7, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { NULL, 0 },
+      },
+   },
+   
+   /* float_neg_infinity.edn */
+   {
+      .CBs = {SrlEnc_MinusInfinity, NULL},
+      .DecodeCBs = {SrlDec_NegInfinity, NULL},
+
+      .description = "Negative Infinity",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0xfc, 0x00}, 3 },
+         { (uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0xfc, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0xfc, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+   
+   /* float_quiet_nan.edn */
+   {
+      .CBs = {SrlEnc_NaN, NULL},
+      .DecodeCBs = {SrlDec_QuietNaN, NULL},
+
+      .description = "Floating-point quiet NaN",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0x7e, 0x00}, 3 },
+         { (uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0x7f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x7e, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x7e, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_single_subnormal.edn */
+   {
+      .CBs = {SrlEnc_SingleSubnormal, NULL},
+      .DecodeCBs = {SrlDec_SingleSubnormal, NULL},
+
+      .description = "Single-precision subnormal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0x00, 0x40, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfa, 0x00, 0x40, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfa, 0x00, 0x40, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+   },
+
+    /* float_single.edn */
+   {
+      .CBs = {SrlEnc_Single, NULL},
+      .DecodeCBs = {SrlDec_Single, NULL},
+
+      .description = "Single-precision normal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0xc1, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0xcb, 0x80, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfa, 0xcb, 0x80, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfa, 0xcb, 0x80, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+   },
+    /* float_zero.edn */
+   {
+      .CBs = {SrlEnc_FloatZero, NULL},
+      .DecodeCBs = {SrlDec_FloatZero, NULL},
+
+      .description = "Floating-point positive zero",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0x00, 0x00}, 3 },
+         { (uint8_t[]){0xfa, 0x00, 0x00, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x00, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x00, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+
+   /* array.edn */
+   {
+      .CBs = {SrlEnc_ArrayDef, SrlEnc_ArrayIndef, NULL},
+      .DecodeCBs = {SrlDec_Array, NULL},
+
+      .description = "The array [1, 2, 3]",
+      .general_serializations = {
+         { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+         { (uint8_t[]){0x9f, 0x01, 0x02, 0x03, 0xff}, 5 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+   },
+
+   /* byte_string.edn */
+   {
+      .CBs = {SrlEnc_ByteString, NULL},
+      .DecodeCBs = {SrlDec_Bytes, NULL},
+
+      .description = "The byte string of length 3: 0x010203",
+      .general_serializations = {
+         { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+         { (uint8_t[]){0x5f, 0x41, 0x01, 0x42, 0x02, 0x03, 0xff}, 7 },
+         { (uint8_t[]){0x5f, 0x58, 0x01, 0x01, 0x5a, 0x00, 0x00, 0x00, 0x02, 0x02, 0x03, 0xff}, 12 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+   },
+
+   /* map.edn */
+   {
+      .CBs = {SrlEnc_MapDet, SrlEnc_MapDet2, SrlEnc_MapGen1, NULL},
+      .DecodeCBs = {/*SrlDec_Map,*/ NULL},
+
+      .description = "Map with three items. Note that map order is never significant in th data model in CBOR",
+      .general_serializations = {
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78}, 10 },
+         { (uint8_t[]){0xbf, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0xff}, 11 },
+         { (uint8_t[]){0xa3, 0x1a, 0x00, 0x00, 0x00, 0x03, 0x61, 0x7a, 0x19, 0x00, 0x02, 0x61, 0x79, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x61, 0x78}, 24 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78}, 10 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a}, 10 },
+         { NULL, 0 },
+      },
+   },
+
+   // -----
+   /* map_strings.edn */
+   {
+       .CBs = {SrlEnc_MapSzDet, NULL},
+       .DecodeCBs = { NULL},
+
+        .description = "Three item map with string keys. Note that map order is never significant in the data model in CBOR",
+        .general_serializations = {
+            { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+            { (uint8_t[]){0xbf, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0xff}, 16 },
+            { (uint8_t[]){0xbf, 0x7f, 0x61, 0x61, 0x62, 0x62, 0x63, 0xff, 0x01, 0x7f, 0x62, 0x64, 0x65, 0x61, 0x66, 0xff, 0x02, 0x7f, 0x63, 0x67, 0x68, 0x69, 0xff, 0x03, 0xff}, 25 },
+            { NULL, 0 },
+        },
+        .preferred_plus_serializations = {
+            { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+            { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+            { (uint8_t[]){0xbf, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0xff}, 16 },
+            { NULL, 0 },
+        },
+        .deterministic_serializations = {
+            { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+            { NULL, 0 },
+        },
+    },
+
+
+   /* minus_twenty_five.edn */
+   {
+      .CBs = {SrlEnc_Minus25, NULL},
+      .DecodeCBs = { NULL},
+
+       .description = "The integer -25",
+       .general_serializations = {
+           { (uint8_t[]){0x38, 0x18}, 2 },
+           { (uint8_t[]){0x39, 0x00, 0x18}, 3 },
+           { (uint8_t[]){0x3a, 0x00, 0x00, 0x00, 0x18}, 5 },
+           { (uint8_t[]){0x3b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18}, 9 },
+           { (uint8_t[]){0xc3, 0x42, 0x00, 0x18}, 4 },
+           { NULL, 0 },
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0x38, 0x18}, 2 },
+           { NULL, 0 },
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0x38, 0x18}, 2 },
+           { NULL, 0 },
+       },
+   },
+    /* positive_bignum.edn */
+   {
+      .CBs = {SrlEnc_BigNum, NULL},
+      .DecodeCBs = {NULL, NULL},
+
+       .description = "The integer 2^96 -1, which can only be represented by a big number",
+       .general_serializations = {
+           { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+           { (uint8_t[]){0xc2, 0x4e, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 16 },
+           { NULL, 0 }, // TODO add one with indefinite length string
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+           { NULL, 0 },
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+           { NULL, 0 },
+       },
+   },
+   /* negative_bignum.edn */
+  {
+     .CBs = {SrlEnc_NegBigNum, NULL},
+     .DecodeCBs = {NULL, NULL},
+
+      .description = "-18446744073709551617",
+      .general_serializations = {
+          { (uint8_t[]){0xc3, 0x49, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 11 },
+          { (uint8_t[]){0xc2, 0x4e, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 16 },
+          { NULL, 0 }, // TODO add one with indefinite length string
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xc3, 0x49, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 11 },
+          { NULL, 0 },
+      },
+      .deterministic_serializations = {
+          { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+          { NULL, 0 },
+      },
+  },
+
+
+   /* text_string.edn */
+   {
+      .CBs = {SrlEnc_TextString, NULL},
+      .DecodeCBs = {SrlDec_TextString, NULL},
+
+       .description = "The text string 'hi there'",
+       .general_serializations = {
+           { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+           { (uint8_t[]){0x7f, 0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65, 0xff}, 11 },
+           { (uint8_t[]){0x7f, 0x64, 0x68, 0x69, 0x20, 0x74, 0x64, 0x68, 0x65, 0x72, 0x65, 0xff}, 12 },
+           { (uint8_t[]){0x7f, 0x79, 0x00, 0x04, 0x68, 0x69, 0x20, 0x74, 0x7B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x68, 0x65, 0x72, 0x65, 0xff}, 22 },
+
+          { NULL, 0 },
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+           { NULL, 0 },
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+           { NULL, 0 },
+       },
+   },
+
+   /* three.edn */
+   {
+      .CBs = {SrlEnc_Three, NULL},
+      .DecodeCBs = {SrlDec_Three, NULL},
+
+      .description = "The integer 3",
+      .general_serializations = {
+         { (uint8_t[]){0x03}, 1 },
+         { (uint8_t[]){0x18, 0x03}, 2 },
+         { (uint8_t[]){0x19, 0x00, 0x03}, 3 },
+         { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x03}, 5 },
+         { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, 9 },
+// TODO:         { (uint8_t[]){0xc2, 0x42, 0x00, 0x03}, 4 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x03}, 1 },
+            { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x03}, 1 },
+         { NULL, 0 },
+      },
+   },
+
+   /* zero.edn */
+   {
+      .CBs = {SrlEnc_Zero, /* TODO: SrlEnc_Zero2,*/ NULL},
+      .DecodeCBs = {SrlDec_Zero, NULL},
+
+      .description = "The integer 0",
+      .general_serializations = {
+         { (uint8_t[]){0x00}, 1 },
+         { (uint8_t[]){0x18, 0x00}, 2 },
+         { (uint8_t[]){0x19, 0x00, 0x00}, 3 },
+         { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+// TODO:            { (uint8_t[]){0xc2, 0x42, 0x00, 0x00}, 4 },
+// TODO:            { (uint8_t[]){0xc2, 0x40}, 2 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x00}, 1 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x00}, 1 },
+         { NULL, 0 },
+      },
+   },
+
+   /* true.edn */
+   {
+      .CBs = {SrlEnc_True,  NULL},
+      .DecodeCBs = {SrlDec_True, NULL},
+      
+       .description = "The simple value true",
+       .general_serializations = {
+           { (uint8_t[]){0xf5}, 1 },
+           { NULL, 0 }
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0xf5}, 1 },
+           { NULL, 0 }
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0xf5}, 1 },
+           { NULL, 0 }
+       },
+   },
+
+   /* simple111.edn */
+   {
+       .CBs = {SrlEnc_Simple111,  NULL},
+       .DecodeCBs = {SrlDec_Simple111, NULL},
+
+        .description = "The simple value 111",
+        .general_serializations = {
+            { (uint8_t[]){0xf8, 0x6f}, 2 },
+            { NULL, 0 },
+        },
+        .preferred_plus_serializations = {
+            { (uint8_t[]){0xf8, 0x6f}, 2 },
+            { NULL, 0 },
+        },
+        .deterministic_serializations = {
+            { (uint8_t[]){0xf8, 0x6f}, 2 },
+            { NULL, 0 },
+        },
+   },
+
+   /* 65-bit-neg.edn */
+   {
+      .CBs = {SrlEnc_65BitNeg,  NULL},
+      .DecodeCBs = {SrlDec_65BitNeg, NULL},
+
+       .description = "Large negative integer (doesn't fit in int64_t)",
+       .general_serializations = {
+           { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+           { NULL, 0 },
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+           { NULL, 0 },
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+           { NULL, 0 },
+       },
+   },
+
+   /* date-epoch-tag.edn */
+    {
+       .CBs = {SrlEnc_EpochDate,  NULL},
+       .DecodeCBs = {SrlDec_EpochDate, NULL},
+
+        .description = "An epoch date",
+        .general_serializations = {
+            { (uint8_t[]){0xc1, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 6 },
+            { (uint8_t[]){0xd8, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 7 },
+            { (uint8_t[]){0xd9, 0x00, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 8 },
+            { (uint8_t[]){0xda, 0x00, 0x00, 0x00, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 10 },
+            { (uint8_t[]){0xdb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 14 },
+            { (uint8_t[]){0xc1, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x69, 0xe4, 0xfb, 0xd3}, 10 },
+            { NULL, 0 },
+        },
+        .preferred_plus_serializations = {
+            { (uint8_t[]){0xc1, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 6 },
+            { NULL, 0 },
+        },
+        .deterministic_serializations = {
+            { (uint8_t[]){0xc1, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 6 },
+            { NULL, 0 },
+        },
+    },
+   /* date-string-tag.edn */
+   {
+      .CBs = {SrlEnc_StringDate,  NULL},
+      .DecodeCBs = {SrlDec_StringDate, NULL},
+
+      .description = "A date string",
+      .general_serializations = {
+         { (uint8_t[]){0xc0, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 22 },
+         { (uint8_t[]){0xd8, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 23 },
+         { (uint8_t[]){0xd9, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 24 },
+         { (uint8_t[]){0xda, 0x00, 0x00, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 26 },
+         { (uint8_t[]){0xdb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 30 },
+         { (uint8_t[]){0xc0, 0x7f, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a, 0xff}, 24 },
+         { (uint8_t[]){0xc0, 0x7f, 0x62, 0x32, 0x30, 0x72, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a, 0xff}, 25 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xc0, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 22 },
+             { NULL, 0 },
+         },
+      .deterministic_serializations = {
+          { (uint8_t[]){0xc0, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 22 },
+            { NULL, 0 },
+      },
+   },
+
+   /* End Marker */
+   {
+      .description = NULL,
+   }
+};
+
+
+
+int32_t
+SerializationExampleEncode(void)
+{
+   QCBOREncodeContext       ECtx;
+   UsefulBuf_MAKE_STACK_UB( OutputBuf, 100);
+   size_t                   nExampleIndex;
+   size_t                   nCallbackIndex;
+   enum SrlType             t;
+   int                      err;
+   UsefulBufC               Output;
+   SrlEncodeCB                *pfEncodeCallback;
+
+   /* Loop over all the examples */
+   for(nExampleIndex = 0; ; nExampleIndex++) {
+      struct SrlExample Exmpl = all_tests[nExampleIndex];
+      if(Exmpl.description == NULL) {
+         break;
+      }
+
+      /* Loop over all test call backs */
+      for(nCallbackIndex = 0; ; nCallbackIndex++) {
+         pfEncodeCallback = Exmpl.CBs[nCallbackIndex];
+         if(pfEncodeCallback == NULL) {
+            break;
+         }
+
+         QCBOREncode_Init(&ECtx, OutputBuf);
+         QCBOREncode_Config(&ECtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         err = (*pfEncodeCallback)(&ECtx, &t);
+         if(err != QCBOR_SUCCESS) {
+            return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);
+         }
+         QCBOREncode_Finish(&ECtx, &Output);
+
+         /* Select set of expected serializations */
+         UsefulBufC *pExpected;
+         switch(t) {
+            case General: pExpected = Exmpl.general_serializations; break;
+            case PreferredPlus: pExpected = Exmpl.preferred_plus_serializations; break;
+            case Deterministic: pExpected = Exmpl.deterministic_serializations; break;
+            default: return 88;
+         }
+
+         /* See if the output was one of the expected serializations */
+         for(int k = 0; k < 10; k++) {
+            UsefulBufC Ex = pExpected[k];
+            if(Ex.len == 0) {
+               return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, 0);
+            }
+            if(!UsefulBuf_Compare(Output, Ex)) {
+               break; /* Success */
+            }
+         }
+      }
+   }
+
+   return 0;
+}
+
+
+static int32_t
+DecodeLooper(UsefulBufC *pTested, UsefulBufC *pAllowed, SrlDecodeCB *pfDecodeCallback, QCBORDecodeMode nMode)
+{
+   int                 nCallBackResult;
+   QCBORError          uErr;
+   QCBORDecodeContext  DCtx;
+   int                 nTestInputIndex, nAllowedIndex;
+
+   /* Loop over all the CBOR encoded test inputs */
+   for(nTestInputIndex = 0; nTestInputIndex < 10; nTestInputIndex++) {
+      UsefulBufC Ex = pTested[nTestInputIndex];
+      if(Ex.len == 0) {
+         return 0;
+      }
+
+      uErr = QCBOR_SUCCESS;
+      /* Now determine if it is allowed or not */
+      if(pAllowed != NULL) {
+         for(nAllowedIndex = 0; nAllowedIndex < 10; nAllowedIndex++) {
+            UsefulBufC Allowed = pAllowed[nAllowedIndex];
+            if(Allowed.len == 0) {
+               uErr = QCBOR_ERR_NOT_ALLOWED;
+               break;
+            }
+            if(!UsefulBuf_Compare(Allowed, Ex)) {
+               break;
+            }
+         }
+      }
+
+      QCBORDecode_Init(&DCtx, Ex, nMode);
+      QCBORDecode_InstallTagDecoders(&DCtx, QCBORDecode_TagDecoderTablev1, NULL);
+      MakeUsefulBufOnStack(MemPool, 200);
+      QCBORDecode_SetMemPool(&DCtx, MemPool, false);
+      nCallBackResult = (*pfDecodeCallback)(&DCtx, uErr);
+      if(nCallBackResult != 0) {
+         return nCallBackResult;
+      }
+   }
+
+   return 0;
+}
+
+int32_t
+SerializationExampleDecode(void)
+{
+   size_t                   nExampleIndex;
+   size_t                   nCallbackIndex;
+   int                      err;
+   SrlDecodeCB                *pfDecodeCallback;
+
+   /* Loop over all the examples */
+   for(nExampleIndex = 0; ; nExampleIndex++) {
+      struct SrlExample Exmpl = all_tests[nExampleIndex];
+      if(Exmpl.description == NULL) {
+         break;
+      }
+
+      /* Loop over all test call backs */
+      for(nCallbackIndex = 0; ; nCallbackIndex++) {
+         pfDecodeCallback = Exmpl.DecodeCBs[nCallbackIndex];
+         if(pfDecodeCallback == NULL) {
+            break;
+         }
+
+         /* Operate on each of the modes */
+         /* General Serialization -- There's no checking mode here, but NaN payloads do have
+          * to be allowed (QCBOR doesn't allow NaN payloads unless explicitly allowed) */
+         err = DecodeLooper(Exmpl.general_serializations, NULL, pfDecodeCallback, QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
+         if(err) {
+            return err;
+         }
+
+         /* Preferred Plus -- put it checking mode; run with general inputs; expect success or failure depending on whether preferred*/
+         err = DecodeLooper(Exmpl.general_serializations, Exmpl.preferred_plus_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_PREFERRED);
+         if(err) {
+            return err;
+         }
+         /* Deterministic  -- put it checking mode; run with general inputs; expect success or failure depending on whether deterministic */
+         err = DecodeLooper(Exmpl.general_serializations, Exmpl.deterministic_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_DETERMINISTIC);
+         if(err) {
+            return err;
+         }
+      }
+   }
+
+   return 0;
+}
