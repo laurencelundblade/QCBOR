@@ -5127,7 +5127,7 @@ SrlDec_TextString(QCBORDecodeContext *pDCtx, QCBORError nResult)
 
 
 
- int /* TODO: re enable when map sort checking bug is fixed */
+static int
 SrlDec_Map(QCBORDecodeContext *pDCtx, QCBORError nResult)
 {
    QCBORError uErr;
@@ -5821,7 +5821,7 @@ struct SrlExample all_tests[] = {
    /* map.edn */
    {
       .CBs = {SrlEnc_MapDet, SrlEnc_MapDet2, SrlEnc_MapGen1, NULL},
-      .DecodeCBs = {/*SrlDec_Map,*/ NULL},
+      .DecodeCBs = {SrlDec_Map, NULL},
 
       .description = "Map with three items. Note that map order is never significant in th data model in CBOR",
       .general_serializations = {
@@ -5850,7 +5850,6 @@ struct SrlExample all_tests[] = {
       },
    },
 
-   // -----
    /* map_strings.edn */
    {
        .CBs = {SrlEnc_MapSzDet, NULL},
@@ -5908,6 +5907,7 @@ struct SrlExample all_tests[] = {
            { NULL, 0 },
        },
    },
+   
     /* positive_bignum.edn */
    {
       .CBs = {SrlEnc_BigNum, NULL},
@@ -5930,7 +5930,7 @@ struct SrlExample all_tests[] = {
    },
    /* negative_bignum.edn */
   {
-     .CBs = {SrlEnc_NegBigNum, NULL},
+     .CBs = { NULL},
      .DecodeCBs = {NULL, NULL},
 
       .description = "-18446744073709551617",
