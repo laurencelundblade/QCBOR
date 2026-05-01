@@ -4809,6 +4809,7 @@ SrlEnc_MapDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
 }
 
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 static int
 SrlEnc_MapSzDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
 {
@@ -4820,6 +4821,7 @@ SrlEnc_MapSzDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
    *pT = Deterministic;
    return 0;
 }
+#endif
 
 
 static int
@@ -5181,7 +5183,7 @@ SrlDec_Map(QCBORDecodeContext *pDCtx, QCBORError nResult)
 }
 
 
-
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 static int
 SrlDec_MapSz(QCBORDecodeContext *pDCtx, QCBORError nResult)
 {
@@ -5216,7 +5218,7 @@ SrlDec_MapSz(QCBORDecodeContext *pDCtx, QCBORError nResult)
 
    return 0;
 }
-
+#endif
 
 
 
@@ -5975,6 +5977,7 @@ struct SrlExample all_tests[] = {
       },
    },
 
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    /* map_strings.edn */
    {
       .CBs = {SrlEnc_MapSzDet, NULL},
@@ -6011,6 +6014,7 @@ struct SrlExample all_tests[] = {
          { NULL, 0 },
       },
    },
+#endif
 
    /* minus_twenty_five.edn */
    {
