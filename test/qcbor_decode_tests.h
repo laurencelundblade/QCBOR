@@ -340,6 +340,6 @@ int32_t CursorTests(void);
 
 int32_t TagModesFanOutTest(void);
 
-
-
+int32_t
+SerializationExampleDecode(void);
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */
