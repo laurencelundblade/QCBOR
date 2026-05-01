@@ -4859,7 +4859,7 @@ SrlEnc_ArrayDef(QCBOREncodeContext *pECtx, enum SrlType *pT)
    return 0;
 }
 
-
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 static int
 SrlEnc_ArrayIndef(QCBOREncodeContext *pECtx, enum SrlType *pT)
 {
@@ -4871,6 +4871,7 @@ SrlEnc_ArrayIndef(QCBOREncodeContext *pECtx, enum SrlType *pT)
    *pT = General;
    return 0;
 }
+#endif
 
 
 static int
@@ -4985,6 +4986,7 @@ SrlEnc_TextString(QCBOREncodeContext *pECtx, enum SrlType *pT)
    return 0;
 }
 
+#ifndef QCBOR_DISABLE_TAGS
 
 static int
 SrlEnc_BigNum(QCBOREncodeContext *pECtx, enum SrlType *pT)
@@ -5005,7 +5007,7 @@ SrlEnc_NegBigNum(QCBOREncodeContext *pECtx, enum SrlType *pT)
    *pT = Deterministic;
    return 0;
 }
-
+#endif
 
 
 
@@ -5035,6 +5037,8 @@ SrlEnc_65BitNeg(QCBOREncodeContext *pECtx, enum SrlType *pT)
    return 0;
 }
 
+#ifndef QCBOR_DISABLE_TAGS
+
 static int
 SrlEnc_EpochDate(QCBOREncodeContext *pECtx, enum SrlType *pT)
 {
@@ -5051,7 +5055,7 @@ SrlEnc_StringDate(QCBOREncodeContext *pECtx, enum SrlType *pT)
    return 0;
 }
 
-
+#endif
 
 
 
@@ -5279,7 +5283,7 @@ SrlDec_QuietNaN(QCBORDecodeContext *pDCtx, QCBORError nResult)
    QCBORDecode_GetDouble(pDCtx, &dNum);
    uErr = QCBORDecode_GetError(pDCtx);
    if(nResult == QCBOR_SUCCESS) {
-      if(uErr == QCBOR_SUCCESS) {
+      if(uErr != QCBOR_SUCCESS) {
          return 3;
       }
      if(!isnan(dNum)) {
@@ -5583,6 +5587,7 @@ SrlDec_65BitNeg(QCBORDecodeContext *pDCtx, QCBORError nResult)
    return 0;
 }
 
+#ifndef QCBOR_DISABLE_TAGS
 
 static int
 SrlDec_EpochDate(QCBORDecodeContext *pDCtx, QCBORError nResult)
@@ -5633,7 +5638,7 @@ SrlDec_StringDate(QCBORDecodeContext *pDCtx, QCBORError nResult)
    return 0;
 }
 
-
+#endif
 
 
  int
@@ -5887,13 +5892,19 @@ struct SrlExample all_tests[] = {
 
    /* array.edn */
    {
-      .CBs = {SrlEnc_ArrayDef, SrlEnc_ArrayIndef, NULL},
+      .CBs = {SrlEnc_ArrayDef,
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+         SrlEnc_ArrayIndef,
+#endif
+         NULL},
       .DecodeCBs = {SrlDec_Array, NULL},
 
       .description = "The array [1, 2, 3]",
       .general_serializations = {
          { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
          { (uint8_t[]){0x9f, 0x01, 0x02, 0x03, 0xff}, 5 },
+#endif
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -5914,8 +5925,10 @@ struct SrlExample all_tests[] = {
       .description = "The byte string of length 3: 0x010203",
       .general_serializations = {
          { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
          { (uint8_t[]){0x5f, 0x41, 0x01, 0x42, 0x02, 0x03, 0xff}, 7 },
          { (uint8_t[]){0x5f, 0x58, 0x01, 0x01, 0x5a, 0x00, 0x00, 0x00, 0x02, 0x02, 0x03, 0xff}, 12 },
+#endif
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -5941,7 +5954,9 @@ struct SrlExample all_tests[] = {
          { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a}, 10 },
          { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79}, 10 },
          { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78}, 10 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
          { (uint8_t[]){0xbf, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0xff}, 11 },
+#endif
          { (uint8_t[]){0xa3, 0x1a, 0x00, 0x00, 0x00, 0x03, 0x61, 0x7a, 0x19, 0x00, 0x02, 0x61, 0x79, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x61, 0x78}, 24 },
          { NULL, 0 },
       },
@@ -5973,8 +5988,13 @@ struct SrlExample all_tests[] = {
          { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
          { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
          { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
          { (uint8_t[]){0xbf, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0xff}, 17 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
          { (uint8_t[]){0xbf, 0x7f, 0x61, 0x61, 0x62, 0x62, 0x63, 0xff, 0x01, 0x7f, 0x62, 0x64, 0x65, 0x61, 0x66, 0xff, 0x02, 0x7f, 0x63, 0x67, 0x68, 0x69, 0xff, 0x03, 0xff}, 25 },
+#endif
+#endif
+
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -6015,6 +6035,8 @@ struct SrlExample all_tests[] = {
            { NULL, 0 },
        },
    },
+
+#ifndef QCBOR_DISABLE_TAGS
 
     /* positive_bignum.edn */
    {
@@ -6058,6 +6080,7 @@ struct SrlExample all_tests[] = {
         { NULL, 0 },
      },
   },
+#endif
 
    /* text_string.edn */
    {
@@ -6067,9 +6090,11 @@ struct SrlExample all_tests[] = {
       .description = "The text string 'hi there'",
       .general_serializations = {
          { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
          { (uint8_t[]){0x7f, 0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65, 0xff}, 11 },
          { (uint8_t[]){0x7f, 0x64, 0x68, 0x69, 0x20, 0x74, 0x64, 0x68, 0x65, 0x72, 0x65, 0xff}, 12 },
          { (uint8_t[]){0x7f, 0x79, 0x00, 0x04, 0x68, 0x69, 0x20, 0x74, 0x7B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x68, 0x65, 0x72, 0x65, 0xff}, 22 },
+#endif
 
          { NULL, 0 },
       },
@@ -6095,7 +6120,10 @@ struct SrlExample all_tests[] = {
          { (uint8_t[]){0x19, 0x00, 0x03}, 3 },
          { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x03}, 5 },
          { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, 9 },
+#ifndef QCBOR_DISABLE_TAGS
+
 // TODO: bignum conformance          { (uint8_t[]){0xc2, 0x42, 0x00, 0x03}, 4 },
+#endif
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -6120,8 +6148,11 @@ struct SrlExample all_tests[] = {
          { (uint8_t[]){0x19, 0x00, 0x00}, 3 },
          { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x00}, 5 },
          { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+#ifndef QCBOR_DISABLE_TAGS
+
 // TODO: bignum conformance            { (uint8_t[]){0xc2, 0x42, 0x00, 0x00}, 4 },
 // TODO: bignum conformance       { (uint8_t[]){0xc2, 0x40}, 2 },
+#endif
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -6194,6 +6225,7 @@ struct SrlExample all_tests[] = {
       },
    },
 
+#ifndef QCBOR_DISABLE_TAGS
    /* date-epoch-tag.edn */
    {
       .CBs = {SrlEnc_EpochDate,  NULL},
@@ -6231,8 +6263,11 @@ struct SrlExample all_tests[] = {
          { (uint8_t[]){0xd9, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 24 },
          { (uint8_t[]){0xda, 0x00, 0x00, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 26 },
          { (uint8_t[]){0xdb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 30 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+
          { (uint8_t[]){0xc0, 0x7f, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a, 0xff}, 24 },
          { (uint8_t[]){0xc0, 0x7f, 0x62, 0x32, 0x30, 0x72, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a, 0xff}, 25 },
+#endif
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -6244,6 +6279,7 @@ struct SrlExample all_tests[] = {
             { NULL, 0 },
       },
    },
+#endif
 
    /* End Marker */
    {
@@ -6344,9 +6380,13 @@ DecodeLooper(UsefulBufC *pTested, UsefulBufC *pAllowed, SrlDecodeCB *pfDecodeCal
       }
 
       QCBORDecode_Init(&DCtx, Ex, nMode);
+#ifndef QCBOR_DISABLE_TAGS
       QCBORDecode_InstallTagDecoders(&DCtx, QCBORDecode_TagDecoderTablev1, NULL);
+#endif
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
       MakeUsefulBufOnStack(MemPool, 200);
       QCBORDecode_SetMemPool(&DCtx, MemPool, false);
+#endif
       nCallBackResult = (*pfDecodeCallback)(&DCtx, uErr);
       if(nCallBackResult != 0) {
          return nCallBackResult;
@@ -6371,6 +6411,10 @@ SerializationExampleDecode(void)
          break;
       }
 
+      if(nExampleIndex == 11) {
+         err = 1;
+      }
+
       /* Loop over all test call backs */
       for(nCallbackIndex = 0; ; nCallbackIndex++) {
          pfDecodeCallback = Exmpl.DecodeCBs[nCallbackIndex];
@@ -6383,19 +6427,19 @@ SerializationExampleDecode(void)
           * to be allowed (QCBOR doesn't allow NaN payloads unless explicitly allowed) */
          err = DecodeLooper(Exmpl.general_serializations, NULL, pfDecodeCallback, QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS);
          if(err) {
-            return err;
+            return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);
          }
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
          /* Preferred Plus -- put it checking mode; run with general inputs; expect success or failure depending on whether preferred*/
          err = DecodeLooper(Exmpl.general_serializations, Exmpl.preferred_plus_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_PREFERRED);
          if(err) {
-            return err;
+            return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);
          }
          /* Deterministic  -- put it checking mode; run with general inputs; expect success or failure depending on whether deterministic */
          err = DecodeLooper(Exmpl.general_serializations, Exmpl.deterministic_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_DETERMINISTIC);
          if(err) {
-            return err;
+            return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
