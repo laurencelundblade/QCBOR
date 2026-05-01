@@ -216,8 +216,5 @@ int32_t EncodeIndefiniteStringsTest(void);
 
 int32_t SerializationExampleEncode(void);
 
-// TODO: move this to the decode header
-int32_t
-SerializationExampleDecode(void);
 
 #endif /* defined(__QCBOR__qcbor_encode_tests__) */
