@@ -6,7 +6,7 @@ Release: 0%{?dist}
 Summary: A CBOR encoder/decoder library
 URL: https://github.com/laurencelundblade/QCBOR
 License: BSD-3-Clause
-Source0: %{URL}/archive/refs/tags/v1.5.3.tar.gz
+Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: cmake
 BuildRequires: gcc
@@ -24,7 +24,7 @@ Development files needed to build and link to the QCBOR library.
 
 
 %prep
-%setup -q -n QCBOR-1.5.3
+%setup -q -n QCBOR-%{version}
 %cmake -DBUILD_QCBOR_TEST=APP
 
 
@@ -36,41 +36,41 @@ Development files needed to build and link to the QCBOR library.
 
 
 %check
-# TODO use %ctest when supported by QCBOR config
-./%{_vpath_builddir}/test/qcbortest
+%ctest
 
 
 %files
 %license LICENSE
 %doc README.md
-%{_libdir}/*.so.*
+%{_libdir}/libqcbor.so.1{,.*}
 
 %files devel
 %license LICENSE
 %doc README.md
-%{_includedir}/qcbor
-%{_libdir}/*.so
+%{_includedir}/qcbor/
+%{_libdir}/libqcbor.so
+%{_libdir}/cmake/qcbor/
 
 
 %changelog
-* March 20, 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6.1
+* Fri Mar 20 2026 Laurence Lundblade <lgl@island-resort.com> - 1.6.1
 - Modernize cmake build and install
 - Minor QCBORDecode_EnteryArray() error handling bugfix
-* Nov 12 2025 Laurence Lundblade <lgl@island-resort.com> - 1.6
+* Wed Nov 12 2025 Laurence Lundblade <lgl@island-resort.com> - 1.6
 - Better Windows/MSVC support
 - Bug fix for GetArray() and GetMap()
 - Fix gcc warnings
 - Bug fix for OpenBstr on empty map at end of input
 - Bug fix for floating-point NaN payload conversion for preferred serialization
 - Don't use strcpy()
-* Jun 16 2025 Laurence Lundblade <lgl@island-resort.com> - 1.5.3
+* Mon Jun 16 2025 Laurence Lundblade <lgl@island-resort.com> - 1.5.3
 - Bug fix for GetArray() from empty map
 - Increase test coverage
 - Documentation improvements
-* Jun 16 2025 Laurence Lundblade <lgl@island-resort.com> - 1.5.2
+* Mon Jun 16 2025 Laurence Lundblade <lgl@island-resort.com> - 1.5.2
 - Bug fix for QCBORDecode_GetMap() and QCBORDecode_GetArray()
 - Fix warning for compilers compliant with C23 standard
 - Minor documentation fix
 - Fix for embedded platforms with partial implementations of llround()
-* Jan 8 2024 Laurence Lundblade <lgl@island-resort.com> - 1.5.1
+* Mon Jan 8 2024 Laurence Lundblade <lgl@island-resort.com> - 1.5.1
 - Initial library RPM packaging.
