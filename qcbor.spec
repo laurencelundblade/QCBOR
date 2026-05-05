@@ -42,14 +42,14 @@ Development files needed to build and link to the QCBOR library.
 %files
 %license LICENSE
 %doc README.md
-%{_libdir}/*.so.*
+%{_libdir}/libqcbor.so.1{,.*}
 
 %files devel
 %license LICENSE
 %doc README.md
-%{_includedir}/qcbor
-%{_libdir}/*.so
-%{_libdir}/cmake/qcbor
+%{_includedir}/qcbor/
+%{_libdir}/libqcbor.so
+%{_libdir}/cmake/qcbor/
 
 
 %changelog
