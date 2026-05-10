@@ -498,6 +498,8 @@ typedef enum {
     * disabled, float in the input. */
    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 58,
 
+   QCBOR_ERR_NOT_PREFERRED_BIGNUM = 59,
+
    // TODO: is conformance check failure really an uncrecoverable error?
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59

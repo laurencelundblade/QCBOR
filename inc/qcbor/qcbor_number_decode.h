@@ -582,6 +582,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
+                             bool            bPreferredCheck,
                              UsefulBuf       BigNumberBuf,
                              UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative);
@@ -601,6 +602,7 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
  */
 QCBORError
 QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
+                                        bool            bPreferredCheck,
                                         UsefulBuf       BigNumberBuf,
                                         UsefulBufC     *pBigNumber,
                                         bool           *pbIsNegative);
@@ -718,20 +720,20 @@ QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext    *pCtx,
 /** See QCBORDecode_GetTBigNumberNoPreferred(). */
 void
 QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext   *pCtx,
-                                          int64_t                nLabel,
-                                          enum QCBORDecodeTagReq uTagRequirement,
-                                          UsefulBuf              BigNumberBuf,
-                                          UsefulBufC            *pBigNumber,
-                                          bool                  *pbIsNegative);
-
-/** See QCBORDecode_GetTBigNumberNoPreferred(). */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext    *pCtx,
-                                           const char            *szLabel,
+                                           int64_t                nLabel,
                                            enum QCBORDecodeTagReq uTagRequirement,
                                            UsefulBuf              BigNumberBuf,
                                            UsefulBufC            *pBigNumber,
                                            bool                  *pbIsNegative);
+
+/** See QCBORDecode_GetTBigNumberNoPreferred(). */
+void
+QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext    *pCtx,
+                                            const char            *szLabel,
+                                            enum QCBORDecodeTagReq uTagRequirement,
+                                            UsefulBuf              BigNumberBuf,
+                                            UsefulBufC            *pBigNumber,
+                                            bool                  *pbIsNegative);
 
 
  /**

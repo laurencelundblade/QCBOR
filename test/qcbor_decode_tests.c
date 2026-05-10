@@ -5090,7 +5090,7 @@ int32_t BignumDecodeTest(void)
          return MakeTestResultCode(uTestIndex, 1, uErr);
       }
 
-      uErr = QCBORDecode_ProcessBigNumber(Item, BignumBuf, &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_ProcessBigNumber(Item, false, BignumBuf, &ResultBigNum, &bIsNeg);
       if(uErr != pTest->uErr) {
          return MakeTestResultCode(uTestIndex, 2, uErr);
       }
@@ -5107,7 +5107,7 @@ int32_t BignumDecodeTest(void)
          return MakeTestResultCode(uTestIndex, 4, 0);
       }
 
-      uErr = QCBORDecode_ProcessBigNumber(Item, (UsefulBuf){NULL, 200}, &ResultBigNum, &bIsNeg);
+      uErr = QCBORDecode_ProcessBigNumber(Item, false, (UsefulBuf){NULL, 200}, &ResultBigNum, &bIsNeg);
       if(ResultBigNum.len != pTest->ExpectedBigNum.len) {
          return MakeTestResultCode(uTestIndex, 5, uErr);
       }
@@ -8639,7 +8639,7 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      if(nIndex == 27) {
+      if(nIndex == 1) {
          uInt = 99; // For break point only
       }
 
@@ -12678,6 +12678,9 @@ SrlDec_Zero(QCBORDecodeContext *pDCtx, QCBORError nResult)
    QCBORDecode_GetInt64ConvertAll(pDCtx, QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIG_NUM, &nValue);
    uErr = QCBORDecode_GetError(pDCtx);
    if(nResult == QCBOR_SUCCESS) {
+      if(uErr != QCBOR_SUCCESS) {
+         return 3;
+      }
       if(nValue != 0) {
          return 1;
       }
@@ -12699,6 +12702,9 @@ SrlDec_Three(QCBORDecodeContext *pDCtx, QCBORError nResult)
    QCBORDecode_GetInt64ConvertAll(pDCtx, QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIG_NUM, &nValue);
    uErr = QCBORDecode_GetError(pDCtx);
    if(nResult == QCBOR_SUCCESS) {
+      if(uErr != QCBOR_SUCCESS) {
+         return 3;
+      }
       if(nValue != 3) {
          return 1;
       }
@@ -12916,8 +12922,8 @@ SrlDec_MapSz(QCBORDecodeContext *pDCtx, QCBORError nResult)
 
 #ifndef QCBOR_DISABLE_TAGS
 
-int // TODO:
-SrlDec_BigNum(QCBORDecodeContext *pDCtx, QCBORError nResult)
+static int
+SrlDec_PosBigNum(QCBORDecodeContext *pDCtx, QCBORError nResult)
 {
   QCBORError uErr;
   UsefulBufC Bytes;
@@ -12936,6 +12942,37 @@ SrlDec_BigNum(QCBORDecodeContext *pDCtx, QCBORError nResult)
         return 1;
      }
      if(bIsNegative) {
+        return 3;
+     }
+  } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+  }
+
+  return 0;
+}
+
+static int
+SrlDec_NegBigNum(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+  QCBORError uErr;
+  UsefulBufC Bytes;
+  MakeUsefulBufOnStack(BN, 100);
+  bool bIsNegative;
+
+  /* This can decode both definite an indefinite length strings
+   * because the MemPool is installed. */
+  QCBORDecode_GetTBigNumber(pDCtx, QCBOR_TAG_REQUIREMENT_TAG, BN, &Bytes, &bIsNegative);
+  uErr = QCBORDecode_GetError(pDCtx);
+  if(nResult == QCBOR_SUCCESS) {
+     if(uErr != QCBOR_SUCCESS) {
+        return 3;
+     }
+     if(UsefulBuf_Compare(Bytes, SZLiteralToUsefulBufC("\x01\x00\x00\x00\x00\x00\x00\x00\x01"))) {
+        return 1;
+     }
+     if(!bIsNegative) {
         return 3;
      }
   } else {
@@ -13315,8 +13352,8 @@ static const struct SrlDecExample SrlDecExamples[] = {
          { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x00}, 5 },
          { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
 #ifndef QCBOR_DISABLE_TAGS
-// TODO: bignum conformance            { (uint8_t[]){0xc2, 0x42, 0x00, 0x00}, 4 },
-// TODO: bignum conformance       { (uint8_t[]){0xc2, 0x40}, 2 },
+         { (uint8_t[]){0xc2, 0x42, 0x00, 0x00}, 4 },
+         { (uint8_t[]){0xc2, 0x40}, 2 },
 #endif
          { NULL, 0 },
       },
@@ -13342,7 +13379,7 @@ static const struct SrlDecExample SrlDecExamples[] = {
          { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x03}, 5 },
          { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, 9 },
 #ifndef QCBOR_DISABLE_TAGS
-// TODO: bignum conformance          { (uint8_t[]){0xc2, 0x42, 0x00, 0x03}, 4 },
+         { (uint8_t[]){0xc2, 0x42, 0x00, 0x03}, 4 },
 #endif
          { NULL, 0 },
       },
@@ -13367,7 +13404,7 @@ static const struct SrlDecExample SrlDecExamples[] = {
            { (uint8_t[]){0x3a, 0x00, 0x00, 0x00, 0x18}, 5 },
            { (uint8_t[]){0x3b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18}, 9 },
 #ifndef QCBOR_DISABLE_TAGS
-// TODO: bignum conformance           { (uint8_t[]){0xc3, 0x42, 0x00, 0x18}, 4 },
+           { (uint8_t[]){0xc3, 0x42, 0x00, 0x18}, 4 },
 #endif
            { NULL, 0 },
        },
@@ -13544,7 +13581,7 @@ static const struct SrlDecExample SrlDecExamples[] = {
 
    /* positive_bignum.edn */
    {
-      .DecodeCBs = {NULL, NULL}, // TODO: bignum conformance
+      .DecodeCBs = {SrlDec_PosBigNum, NULL},
 
        .description = "The integer 2^96 -1, which can only be represented by a big number",
        .general_serializations = {
@@ -13564,7 +13601,7 @@ static const struct SrlDecExample SrlDecExamples[] = {
 
    /* negative_bignum.edn */
    {
-     .DecodeCBs = {NULL}, // TODO: bignum conformance
+     .DecodeCBs = {SrlDec_NegBigNum, NULL},
 
      .description = "-18446744073709551617",
      .general_serializations = {

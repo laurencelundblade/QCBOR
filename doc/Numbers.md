@@ -468,6 +468,67 @@ Note that if QCBORDecode_StringsTagCB() is installed,
 QCBORDecode_GetTBigNumber(), QCBORDecode_GetTBigNumberNoPreferred()
 and QCBORDecode_GetTBigNumberRaw() all still work as documented.
 
+### APIs Overview
+
+#### Encoding
+
+QCBOREncode_AddTBigNumber(): Does preferred serialization. Offsets by one and removes leading zeros. Outputs tag number. A lot more of object code.
+
+QCBOREncode_AddTBigNumberNoPreferred(): Outputs tag number. Offsets by one and removes leading zeros. A lot of object code.
+
+QCBOREncode_AddTBigNumberRaw(): Outputs the tag number. Very little object code -- mostly inline.
+
+#### Decoding
+
+QCBORDecode_GetTBigNumber(): Offsets by one (requires output buffer). Checks for the tag number. Preferred serialization -- always returns a big number even when it was type 0 or 1 on the wire. A lot of object code.
+
+QCBORDecode_GetTBigNumberNoPreferred(): Type and tag checking. Offset by one (requires output buffer). A lot of object code.
+
+QCBORDecode_GetTBigNumberRaw(): Does type and tag checking. A small amount of object code.
+
+QCBORDecode_StringsTagCB() / GetNext(): Installed as a call back. Same as QCBORDecode_GetTBigNumberRaw().
+
+QCBORDecode_ProcessBigNumber(): Offset by one (requires output buffer). Preferred serialization. Ignores leading zeros.
+
+QCBORDecode_ProcessBigNumbernoPreferred(): Offset by one (requires output buffer). Ignores leading zeros.
+
+Tag & Type -- Outputs / Checks the tag number and major type
+
+Offset -- Handles the offset-of-1 for negative numbers. Decode functions require an output buffer, 
+because the output size may increase. Also ignores leading zeros. Decodes empty strings as 0.
+When big number conformace checking is on, errors out on leading zeros or empty string.
+
+Unification -- Values in the range of type 0 and 1 are processes as type 0 and 1
+When bit number conformance checking is on, errors out if unification is not performed.
+
+
+| Function                                | Tag & Type | Offset | Unification | Size  |
+| :-------------------------------------- | :--------: | :----: | :---------: | :---- |
+| QCBOREncode_AddTBigNumber               |    X       |    X   |      X      | Large |
+| QCBOREncode_AddTBigNumberNoPreferred    |    X       |    X   |             | Large |
+| QCBOREncode_AddTBigNumberRaw            |    X       |        |             | Small |
+
+
+| Function                                      | Tag & Type | Offset | Unification | Size  |
+| :-------------------------------------------- | :--------: | :----: | :---------: | :---- |
+| QCBORDecode_GetTBigNumber                     |    X       |    X   |      X      | Large |
+| QCBORDecode_ProcessBigNumber                  |    X       |    X   |      X      | Large |
+| QCBORDecode_GetTBigNumberNoPreferred          |    X       |    X   |             | Large |
+| QCBORDecode_ProcessBigNumbernoPreferred       |    X       |    X   |             | Large |
+| QCBORDecode_GetTBigNumberRaw                  |    X       |        |             | Small |
+| QCBORDecode_StringsTagCB                      |    X       |        |             | Small |
+| QCBORDecode_GetInt64ConvertAll                |    X       |    X   |      x      | Med   |
+| QCBORDecode_GetUInt64ConvertAll               |    X       |    X   |      x      | Med   |
+| QCBORDecode_GetDoubleConvertAll               |    X       |    X   |      x      | Med   |
+| QCBORDecode_GetTDecimalFractionBigMantissa    |    X       |    X   |      x      | Med   |
+| QCBORDecode_GetTBigFloatBigMantissa           |    X       |    X   |      x      | Med   |
+| QCBORDecode_GetTDecimalFractionBigMantissaRaw |    X       |        |      x      | Med   |
+| QCBORDecode_GetTBigFloatBigMantissaRaw        |    X       |        |      x      | Med   |
+
+X -- directly handles unification with type 0 and 1
+x -- type 0 and 1 are handled because of the function or format, but because of preferred serialization requirement. Conformance of big numbers is still checked.
+
+
 ## "Borrowed" Big Number Tag Content
 
 Like all other tag decoding functions in QCBOR, the big number tag
