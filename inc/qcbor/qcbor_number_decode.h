@@ -536,7 +536,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * @brief Decode a preferred serialization big number.
  *
  * @param[in] Item              The number to process.
- * @param [in] bPreferredCheck  If true, big must conform to preferred serialization.
+ * @param [in] bBignumConformance  If true, big must conform to preferred serialization.
  * @param[in] BigNumberBuf      The buffer to output to.
  * @param[out] pBigNumber       The resulting big number.
  * @param[in,out] pbIsNegative  The sign of the resulting big number.
@@ -548,7 +548,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * @ref QCBOR_TYPE_NEGBIGNUM.  Leading zeros are removed. The value 0
  * is always returned as a one-byte big number with the value 0x00.
  *
- *| Type |
+ * | Type |
  * | ---- |
  * | @ref QCBOR_TYPE_INT64 |
  * | @ref QCBOR_TYPE_UINT64 |
@@ -571,7 +571,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * the length of they type @ref QCBOR_TYPE_65BIT_NEG_INT plus the
  * possibility of an arithmetic carry.
  *
- * If @c bPreferredCheck is true and the item is a big number, then
+ * If @c bBignumConformance is true and the item is a big number, then
  * it will be checked for conformance with preferred serialization -- the string
  * can't be empty there must be no leading zeros, and the value
  * must not be in the range that can be encoded as type 0 or 1.
@@ -588,7 +588,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
-                             bool            bPreferredCheck,
+                             bool            bBignumConformance,
                              UsefulBuf       BigNumberBuf,
                              UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative);
@@ -608,7 +608,7 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
  */
 QCBORError
 QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
-                                        bool            bPreferredCheck,
+                                        bool            bBignumConformance,
                                         UsefulBuf       BigNumberBuf,
                                         UsefulBufC     *pBigNumber,
                                         bool           *pbIsNegative);
