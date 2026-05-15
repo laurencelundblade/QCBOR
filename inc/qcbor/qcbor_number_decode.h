@@ -536,6 +536,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * @brief Decode a preferred serialization big number.
  *
  * @param[in] Item              The number to process.
+ * @param [in] bPreferredCheck  If true, big must conform to preferred serialization.
  * @param[in] BigNumberBuf      The buffer to output to.
  * @param[out] pBigNumber       The resulting big number.
  * @param[in,out] pbIsNegative  The sign of the resulting big number.
@@ -569,6 +570,11 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * the output buffer is MIN(9, Item.val.bignum.len + 1). 9 comes from
  * the length of they type @ref QCBOR_TYPE_65BIT_NEG_INT plus the
  * possibility of an arithmetic carry.
+ *
+ * If @c bPreferredCheck is true and the item is a big number, then
+ * it will be checked for conformance with preferred serialization -- the string
+ * can't be empty there must be no leading zeros, and the value
+ * must not be in the range that can be encoded as type 0 or 1.
  *
  * The object code for this is surprisingly large at about 1KB.  This
  * is to apply the offset of one for the negative values and to

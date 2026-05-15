@@ -389,144 +389,148 @@ One purpose of this is to save some bytes, but typically only one byte
 is saved. The more important reason for this is determinism.  There is
 only one way to represent a particular value.
 
-Technically speaking, this reduction of the big number space to the
+Academically speaking, this reduction of the big number space to the
 integer space is not about serialization. It doesn't change the way
 big numbers and integers are serialized by themselves.
 
 Note, also that CBOR can encode what can be called "65-big negative
-numbers", 64 bits of precision and one bit to indicate a negative
-one. These can't be represented by 64-bit two's compliment signed
+numbers", 64 bits of precision and one bit to indicate the number is negative.
+ These can't be represented by 64-bit two's compliment signed
 integers or 64-bit unsigned integers. While many programming
 environments, like Ruby and Python that have big number support built
-in will support these, some environments like C and the CPU
-instructions do not. QCBOR big number decoding supports them with
+in will support these, some environments like C do not. Note also CPU
+instructions do not support these directly. QCBOR big number decoding supports them with
 explicit code to carry the negative number in as a uint64_t and a sign
 indicator. Big number specific preferred serialization requires
-encoding of 65-bit negative integers. Other than big numbers QCBOR
-avoids 65-big negative integers.
+encoding of 65-bit negative integers.
 
 ## QCBOR APIs
 
-The negative number offset of one and the reduction required by
-big number preferred serialization have a large effect on the QCBOR
-big number API.
+QCBOR supports big numbers in several ways. The big number decoding
+APIs are more complex than others in QCBOR because applying the
+offset-of-one for negative numbers can increase the size of the big
+number, requiring an output buffer — the only place in all of CBOR
+where this occurs.
 
 QCBOREncode_AddTBigNumber() and QCBORDecode_GetTBigNumber() are the
-most comprehensive and easiest to use APIs. They automatically take
-care of the offset of one for negative numbers and big number
-preferred serialization. Unlike most other decode APIs,
-QCBORDecode_GetTBigNumber() requires an output buffer of sufficient
-size.
+most comprehensive and easiest-to-use APIs. They automatically apply
+the offset-of-one for negative numbers and reduce to type 0 and 1 for
+preferred serialization.
 
-If the protocol being implemented does not use preferred
-serialization, then QCBOREncode_AddTBigNumberNoPreferred() and
-QCBORDecode_GetTBigNumberNoPreferred() can be used. Only tags 2 and 3
-will be output when encoding.  Type 0 and 1 integers will never be
-output. Decoding will error if type 0 and type 1 integers are
-encountered.
+The Raw() APIs do little more than handle tag numbers, serving mostly
+as inline wrappers around byte string handling. When using these, the
+offset-of-one for negative numbers must be applied manually. This is
+straightforward if values are passed to a big number math library, and
+in that case the Raw() functions may be more efficient and produce
+less object code than QCBORDecode_GetTBigNumber(). Note that
+QCBORDecode_GetTBigNumber() requires an output buffer, whereas
+QCBORDecode_GetTBigNumberRaw() does not.
 
-It is likely that any implementation for a protocol that uses big
-numbers will link in a big number library.  When that's so, it can be
-used to offset the negative numbers by one rather than the internal
-implementation that QCBOR has. If both the offset by one and the
-preferred serialization are side-stepped, the big numbers APIs become
-simple pass throughs for encoding and decoding byte strings.  This
-reduces the amount of object linked from the QCBOR library by about
-1KB.
+QCBOREncode_AddTBigNumberNoPreferred() and
+QCBORDecode_GetTBigNumberNoPreferred() apply the offset-of-one but
+process the range from -(2^64) to (2^64)−1 as big numbers rather than
+as type 0 and 1 integers.
 
-This is what QCBOREncode_AddTBigNumberRaw() and
-QCBORDecode_GetTBigNumberRaw() do. Note that decoding doesn't require
-an output buffer be supplied because the bytes off the wire can simply
-be returned. When these are used, the big number library should be
-used to add one to negative numbers before encoding and subtract one
-from negative numbers after decoding.
+QCBORDecode_VGetNext() can also decode big numbers, provided the tag
+handling callback QCBORDecode_StringsTagCB() has been configured. It
+returns a @ref QCBORItem of type @ref QCBOR_TYPE_POSBIGNUM or
+@ref QCBOR_TYPE_NEGBIGNUM — analogous to
+QCBORDecode_GetTBigNumberRaw() — without the offset-of-one
+applied. QCBORDecode_StringsTagCB() is lightweight and contributes
+little object code.
 
-Last, QCBORDecode_StringsTagCB(), @ref QCBOR_TYPE_POSBIGNUM,
-@ref QCBOR_TYPE_NEGBIGNUM, and QCBORDecode_ProcessBigNumber() need to
-be described. QCBOR's tag processing callbacks can be used to handle
-big numbers by installing QCBORDecode_StringsTagCB() for tag numbers 2
-and 3. This will result in positive and negative big numbers being
-returned in a @ref QCBORItem as QCBOR types @ref QCBOR_TYPE_POSBIGNUM and
-@ref QCBOR_TYPE_NEGBIGNUM. QCBORDecode_StringsTagCB() is very simple,
-and not much object code. Neither the offset of one for negative
-values nor preferred serialization number reduction is preformed. It is
-equivalent to QCBORDecode_GetTBigNumberRaw().
+Items returned by QCBORDecode_VGetNext() can in turn be fully
+processed with QCBORDecode_ProcessBigNumber(), which applies the
+offset-of-one (and therefore requires an output buffer), recognizes
+type 0 and 1 integers and converts them to big number representation,
+and can verify conformance with preferred serialization. It does,
+however, pull in a significant amount of object code. The reason big
+number processing via QCBORDecode_VGetNext() is split into two steps —
+unlike other tags — is precisely this output buffer requirement and
+the object code cost of full processing.
 
-QCBORDecode_ProcessBigNumber() may be used to fully process a
-@ref QCBORItem that is expected to be a big number. It will perform the
-negative offset and handle the preferred serialization number
-reduction. QCBORDecode_ProcessBigNumber() is what is used internally
-to implement QCBORDecode_GetTBigNumber() and links in a lot of
-object code. Note that QCBORDecode_ProcessBigNumber() requires an
-output buffer be supplied.
+Finally, many other QCBOR number-decoding APIs can decode and convert
+big numbers. For example, QCBORDecode_GetDoubleConvertAll() can
+convert big numbers to double-precision floats, and
+QCBORDecode_GetTDecimalFractionBigMantissa() returns a decimal
+fraction's mantissa as a big number. All of these handle the
+offset-of-one and preferred serialization unless their name ends in
+Raw().
 
-QCBORDecode_ProcessBigNumbernoPreferred() is the same as
-QCBORDecode_ProcessBigNumber() but will error out if the @ref QCBORItem
-contains anything but @ref QCBOR_TYPE_POSBIGNUM, @ref QCBOR_TYPE_NEGBIGNUM.
- 
-Note that if QCBORDecode_StringsTagCB() is installed,
-QCBORDecode_GetTBigNumber(), QCBORDecode_GetTBigNumberNoPreferred()
-and QCBORDecode_GetTBigNumberRaw() all still work as documented.
 
 ### APIs Overview
 
+The following tables list all the functions that encode and decode 
+big numbers in some way or another.
+
+The columns in the table are as follows:
+
+<dl>
+  <dt>Tag & Type</dt>
+  <dd>Outputs / Checks the tag number and CBOR major type.</dd>
+  
+  <dt>Offset</dt>
+  <dd>Handles the offset-of-1 for negative numbers. These decode functions 
+  require an output buffer because the output size may increase. Decoding 
+  ignores leading zeros and the empty string has the value 0.
+
+  When big number conformace checking is on, 
+  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS, decoding errors out
+  on leading zeros or empty string.</dd>
+
+  <dt>Integer Unification</dt>
+  <dd>This is the preferred serialization unificaton of big numbers
+  with type 0 and 1 integers. Values in the range of type 0 and 1 are encoded
+  as type 0 and 1, not big numbers.
+
+  When big number conformance checking is on,
+  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS, decoding errors out if
+  unification is not performed.e</dd>
+  
+  <dt>Size</dt>
+  <dd>A rough characterization of size of the object code linked.</dd>
+</dl>
+
+The cell indicators are as follows:
+
+<dl>
+  <dt>X</dt>
+  <dd>Directly handles unification with type 0 and 1</dd>
+  <dt>x</dt>
+  <dd>Type 0 and 1 are handled because of the tag definition, but because of
+  preferred serialization requirement, conformance of big numbers is
+  still checked.</dd>
+</dl>
+
 #### Encoding
 
-QCBOREncode_AddTBigNumber(): Does preferred serialization. Offsets by one and removes leading zeros. Outputs tag number. A lot more of object code.
-
-QCBOREncode_AddTBigNumberNoPreferred(): Outputs tag number. Offsets by one and removes leading zeros. A lot of object code.
-
-QCBOREncode_AddTBigNumberRaw(): Outputs the tag number. Very little object code -- mostly inline.
+| Function                                        | Tag & Type | Offset | Unification | Size  |
+| :---------------------------------------------- | :--------: | :----: | :---------: | :---- |
+| QCBOREncode_AddTBigNumber()                     |    X       |    X   |      X      | Large |
+| QCBOREncode_AddTBigNumberNoPreferred()          |    X       |    X   |             | Large |
+| QCBOREncode_AddTBigNumberRaw()                  |    X       |        |             | Small |
+| QCBOREncode_AddTDecimalFractionBigMantissa()    |    X       |    X   |      x      | Large |
+| QCBOREncode_AddTDecimalFractionBigMantissaRaw() |    X       |        |      x      | Med   |
+| QCBOREncode_AddTBigFloatBigMantissa()           |    X       |    X   |      x      | Large |
+| QCBOREncode_AddTBigFloatBigMantissaRaw()        |    X       |        |      x      | Med   |
 
 #### Decoding
 
-QCBORDecode_GetTBigNumber(): Offsets by one (requires output buffer). Checks for the tag number. Preferred serialization -- always returns a big number even when it was type 0 or 1 on the wire. A lot of object code.
-
-QCBORDecode_GetTBigNumberNoPreferred(): Type and tag checking. Offset by one (requires output buffer). A lot of object code.
-
-QCBORDecode_GetTBigNumberRaw(): Does type and tag checking. A small amount of object code.
-
-QCBORDecode_StringsTagCB() / GetNext(): Installed as a call back. Same as QCBORDecode_GetTBigNumberRaw().
-
-QCBORDecode_ProcessBigNumber(): Offset by one (requires output buffer). Preferred serialization. Ignores leading zeros.
-
-QCBORDecode_ProcessBigNumbernoPreferred(): Offset by one (requires output buffer). Ignores leading zeros.
-
-Tag & Type -- Outputs / Checks the tag number and major type
-
-Offset -- Handles the offset-of-1 for negative numbers. Decode functions require an output buffer, 
-because the output size may increase. Also ignores leading zeros. Decodes empty strings as 0.
-When big number conformace checking is on, errors out on leading zeros or empty string.
-
-Unification -- Values in the range of type 0 and 1 are processes as type 0 and 1
-When bit number conformance checking is on, errors out if unification is not performed.
-
-
-| Function                                | Tag & Type | Offset | Unification | Size  |
-| :-------------------------------------- | :--------: | :----: | :---------: | :---- |
-| QCBOREncode_AddTBigNumber               |    X       |    X   |      X      | Large |
-| QCBOREncode_AddTBigNumberNoPreferred    |    X       |    X   |             | Large |
-| QCBOREncode_AddTBigNumberRaw            |    X       |        |             | Small |
-
-
-| Function                                      | Tag & Type | Offset | Unification | Size  |
-| :-------------------------------------------- | :--------: | :----: | :---------: | :---- |
-| QCBORDecode_GetTBigNumber                     |    X       |    X   |      X      | Large |
-| QCBORDecode_ProcessBigNumber                  |    X       |    X   |      X      | Large |
-| QCBORDecode_GetTBigNumberNoPreferred          |    X       |    X   |             | Large |
-| QCBORDecode_ProcessBigNumbernoPreferred       |    X       |    X   |             | Large |
-| QCBORDecode_GetTBigNumberRaw                  |    X       |        |             | Small |
-| QCBORDecode_StringsTagCB                      |    X       |        |             | Small |
-| QCBORDecode_GetInt64ConvertAll                |    X       |    X   |      x      | Med   |
-| QCBORDecode_GetUInt64ConvertAll               |    X       |    X   |      x      | Med   |
-| QCBORDecode_GetDoubleConvertAll               |    X       |    X   |      x      | Med   |
-| QCBORDecode_GetTDecimalFractionBigMantissa    |    X       |    X   |      x      | Med   |
-| QCBORDecode_GetTBigFloatBigMantissa           |    X       |    X   |      x      | Med   |
-| QCBORDecode_GetTDecimalFractionBigMantissaRaw |    X       |        |      x      | Med   |
-| QCBORDecode_GetTBigFloatBigMantissaRaw        |    X       |        |      x      | Med   |
-
-X -- directly handles unification with type 0 and 1
-x -- type 0 and 1 are handled because of the function or format, but because of preferred serialization requirement. Conformance of big numbers is still checked.
+| Function                                        | Tag & Type | Offset | Unification | Size  |
+| :---------------------------------------------- | :--------: | :----: | :---------: | :---- |
+| QCBORDecode_GetTBigNumber()                     |    X       |    X   |      X      | Large |
+| QCBORDecode_ProcessBigNumber()                  |    X       |    X   |      X      | Large |
+| QCBORDecode_GetTBigNumberNoPreferred()          |    X       |    X   |             | Large |
+| QCBORDecode_ProcessBigNumberNoPreferred()       |    X       |    X   |             | Large |
+| QCBORDecode_GetTBigNumberRaw()                  |    X       |        |             | Small |
+| QCBORDecode_StringsTagCB()                      |    X       |        |             | Small |
+| QCBORDecode_GetInt64ConvertAll()                |    X       |    X   |      x      | Large |
+| QCBORDecode_GetUInt64ConvertAll()               |    X       |    X   |      x      | Large |
+| QCBORDecode_GetDoubleConvertAll()               |    X       |    X   |      x      | Large |
+| QCBORDecode_GetTDecimalFractionBigMantissa()    |    X       |    X   |      x      | Large |
+| QCBORDecode_GetTBigFloatBigMantissa()           |    X       |    X   |      x      | Large |
+| QCBORDecode_GetTDecimalFractionBigMantissaRaw() |    X       |        |      x      | Large |
+| QCBORDecode_GetTBigFloatBigMantissaRaw()        |    X       |        |      x      | Large |
 
 
 ## "Borrowed" Big Number Tag Content
@@ -549,17 +553,6 @@ On the decode side, the sign boolean becomes an input parameter rather
 than an output parameter so that QCBORDecode_GetTBigNumber() can know
 whether to apply the offset of one in case the value is negative.
 
-## Big Number Conversions
-
-QCBOR provides a number of decode functions that can convert big
-numbers to other representations like floating point. For example, see
-QCBORDecode_GetDoubleConvertAll().
-
-Note also that QCBORDecode_ProcessBigNumber() can convert integers to
-big numbers. It will work even if the protocol item is never supposed
-to be a big number. It will just happily convert any type 0 or type 1
-CBOR integer to a big number.
-
 ## Backwards Compatibility with QCBOR v1
 
 QCBOR v1 supports only the minimal pass through processing of big
@@ -570,9 +563,8 @@ QCBORDecode_GetBignum(). These are equivalent to
 QCBOREncode_AddTBigNumberRaw() and QCBORDecode_GetTBigNumberRaw().
 
 Also, in v1 @ref CBOR_TAG_POS_BIGNUM and @ref CBOR_TAG_NEG_BIGNUM are
-always processed into a @ref QCBORItem of type @ref
-QCBOR_TYPE_POSBIGNUM and @ref QCBOR_TYPE_NEGBIGNUM by an equivalent of
-QCBORDecode_StringsTagCB.
+always processed into a @ref QCBORItem of type @ref QCBOR_TYPE_POSBIGNUM
+and @ref QCBOR_TYPE_NEGBIGNUM by an equivalent of QCBORDecode_StringsTagCB.
 
 All the v1 methods for big numbers such as
 QCBOREncode_AddTPositiveBignum() and QCBORDecode_GetBignum() are fully

@@ -494,9 +494,8 @@ typedef enum {
     * and ref QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES is set. */
    QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE = 57,
 
-   /** Conformance checking requested, preferred serialization
-    * disabled, float in the input. */
-   QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 58,
+   /** Conformance checking requested, but not possible because it is disabled in some way. */
+   QCBOR_ERR_CANT_CHECK_CONFORMANCE = 58,
 
    QCBOR_ERR_NOT_PREFERRED_BIGNUM = 59,
 
