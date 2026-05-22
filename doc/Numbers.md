@@ -507,7 +507,7 @@ The cell indicators are as follows:
 | Function                                        | Tag & Type | Offset | Unification | Size  |
 | :---------------------------------------------- | :--------: | :----: | :---------: | :---- |
 | QCBOREncode_AddTBigNumber()                     |    X       |    X   |      X      | Large |
-| QCBOREncode_AddTBigNumberNoPreferred()          |    X       |    X   |             | Large |
+| QCBOREncode_AddTBigNumberNoPreferred()          |    X       |    X   |             | Large | TODO: 
 | QCBOREncode_AddTBigNumberRaw()                  |    X       |        |             | Small |
 | QCBOREncode_AddTDecimalFractionBigMantissa()    |    X       |    X   |      x      | Large |
 | QCBOREncode_AddTDecimalFractionBigMantissaRaw() |    X       |        |      x      | Med   |
@@ -520,10 +520,8 @@ The cell indicators are as follows:
 | :---------------------------------------------- | :--------: | :----: | :---------: | :---- |
 | QCBORDecode_GetTBigNumber()                     |    X       |    X   |      X      | Large |
 | QCBORDecode_ProcessBigNumber()                  |    X       |    X   |      X      | Large |
-| QCBORDecode_GetTBigNumberNoPreferred()          |    X       |    X   |             | Large |
-| QCBORDecode_ProcessBigNumberNoPreferred()       |    X       |    X   |             | Large |
 | QCBORDecode_GetTBigNumberRaw()                  |    X       |        |             | Small |
-| QCBORDecode_StringsTagCB()                      |    X       |        |             | Small |
+| QCBORDecode_StringsTagCB() / VGetNext()         |    X       |        |             | Small |
 | QCBORDecode_GetInt64ConvertAll()                |    X       |    X   |      x      | Large |
 | QCBORDecode_GetUInt64ConvertAll()               |    X       |    X   |      x      | Large |
 | QCBORDecode_GetDoubleConvertAll()               |    X       |    X   |      x      | Large |
@@ -532,6 +530,7 @@ The cell indicators are as follows:
 | QCBORDecode_GetTDecimalFractionBigMantissaRaw() |    X       |        |      x      | Large |
 | QCBORDecode_GetTBigFloatBigMantissaRaw()        |    X       |        |      x      | Large |
 
+TODO: measure code size accurately for the above functions
 
 ## "Borrowed" Big Number Tag Content
 

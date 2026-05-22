@@ -1438,6 +1438,73 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
 }
 
 
+
+
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+
+/**
+ * @brief Check big num preferred serialization conformance
+ *
+ * @param[in] BigNumber    The big number to check.
+ *
+ * @returns  @ref QCBOR_SUCCESS or error.
+ *
+ * An empty string, leading zeros and less than 8
+ * bytes are not OK.
+ */
+QCBORError
+QCBOR_Private_BigNumConformance(UsefulBufC BigNum)
+{
+   if(BigNum.len == 0) {
+      /* Empty string */
+      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
+   }
+   if(UsefulBufC_NTH_BYTE(BigNum, 0) == 0x00){
+      /* Leading zeros */
+      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
+   }
+
+   if(BigNum.len <= 8) {
+      /* Could have been encoded as type 0 or 1 */
+      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
+   }
+
+   return QCBOR_SUCCESS;
+}
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+
+/* Public function; see qcbor_tag_decode.h */
+QCBORError
+QCBORDecode_BigNumTagCB(QCBORDecodeContext *pDecodeCtx,
+                        void               *pTagDecodersContext,
+                        uint64_t            uTagNumber,
+                        QCBORItem          *pDecodedItem)
+{
+   (void)pTagDecodersContext;
+   QCBORError  uErr;
+
+   if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
+      return QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
+   }
+
+   if(uTagNumber == CBOR_TAG_POS_BIGNUM) {
+      pDecodedItem->uDataType = QCBOR_TYPE_POSBIGNUM;
+   } else {
+      pDecodedItem->uDataType = QCBOR_TYPE_NEGBIGNUM;
+   }
+
+   if(pDecodeCtx->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS) {
+      uErr = QCBOR_Private_BigNumConformance(pDecodedItem->val.bigNum);
+      if(uErr) {
+         return uErr;
+      }
+   }
+
+   return QCBOR_SUCCESS;
+}
+
+
 /* Table of CBOR tags whose content is either a text string or a byte
  * string. The table maps the CBOR tag to the QCBOR type. The high-bit
  * of uQCBORtype indicates the content should be a byte string rather
@@ -1453,8 +1520,6 @@ struct StringTagMapEntry {
 static const struct StringTagMapEntry QCBOR_Private_StringTagMap[] = {
    {CBOR_TAG_DATE_STRING,   QCBOR_TYPE_DATE_STRING},
    {CBOR_TAG_DAYS_STRING,   QCBOR_TYPE_DAYS_STRING},
-   {CBOR_TAG_POS_BIGNUM,    QCBOR_TYPE_POSBIGNUM    | IS_BYTE_STRING_BIT},
-   {CBOR_TAG_NEG_BIGNUM,    QCBOR_TYPE_NEGBIGNUM    | IS_BYTE_STRING_BIT},
    {CBOR_TAG_CBOR,          QBCOR_TYPE_WRAPPED_CBOR | IS_BYTE_STRING_BIT},
    {CBOR_TAG_URI,           QCBOR_TYPE_URI},
    {CBOR_TAG_B64URL,        QCBOR_TYPE_BASE64URL},
@@ -1515,8 +1580,8 @@ const struct QCBORTagDecoderEntry QCBORDecode_TagDecoderTablev1[] = {
    {CBOR_TAG_DATE_STRING,      QCBORDecode_StringsTagCB},
    {CBOR_TAG_DATE_EPOCH,       QCBORDecode_DateEpochTagCB},
    {CBOR_TAG_DAYS_STRING,      QCBORDecode_StringsTagCB},
-   {CBOR_TAG_POS_BIGNUM,       QCBORDecode_StringsTagCB},
-   {CBOR_TAG_NEG_BIGNUM,       QCBORDecode_StringsTagCB},
+   {CBOR_TAG_POS_BIGNUM,       QCBORDecode_BigNumTagCB},
+   {CBOR_TAG_NEG_BIGNUM,       QCBORDecode_BigNumTagCB},
    {CBOR_TAG_CBOR,             QCBORDecode_StringsTagCB},
    {CBOR_TAG_URI,              QCBORDecode_StringsTagCB},
    {CBOR_TAG_B64URL,           QCBORDecode_StringsTagCB},

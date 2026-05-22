@@ -2620,7 +2620,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 25) {
+      if(nIndex == 39) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -5078,7 +5078,7 @@ int32_t BignumDecodeTest(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       pTest = &BignumDecodeTests[uTestIndex];
 
-      if(uTestIndex == 9) {
+      if(uTestIndex == 1) {
          bIsNeg = false; /* Line of code so a break point can be set. */
       }
 
@@ -11075,6 +11075,18 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xF9\xBC\x00", 3},
       HALF_FLOAT_ERR
    },
+   /* --- Various big numbers ---*/
+   { "Empty string big number",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xc2\x40", 2},
+      QCBOR_ERR_NOT_PREFERRED_BIGNUM
+   },
+   { "Zero encodes as a big number",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xc2\x41\x00", 3},
+      QCBOR_ERR_NOT_PREFERRED_BIGNUM
+   },
+
 
    /* --- Various non-shortest-form CBOR arguments ---*/
    { "byte string length not-shortest form",
@@ -12747,17 +12759,28 @@ SrlDec_65BitNeg(QCBORDecodeContext *pDCtx, QCBORError nResult)
    QCBORError uErr;
    QCBORItem  Item;
 
+   /* VGetNext doesn't peform the check for integer unification on
+    * big numbers when in checking mode. Is this OK? It could,
+    * even though it doesn't translate and GetRaw doesn't perform the
+    * check. */
    QCBORDecode_VGetNext(pDCtx, &Item);
    uErr = QCBORDecode_GetError(pDCtx);
    if(nResult == QCBOR_SUCCESS) {
       if(uErr != QCBOR_SUCCESS) {
          return 3;
       }
-     if(Item.uDataType != QCBOR_TYPE_65BIT_NEG_INT ||
-        // -18446742974197923840 with sign changed and one subtracted
-        Item.val.uint64 != 18446742974197923839ULL) {
-        return 1;
-     }
+      if(Item.uDataType == QCBOR_TYPE_65BIT_NEG_INT) {
+         if(Item.val.uint64 != 18446742974197923839ULL) {
+            return 1;
+         }
+      } else if(Item.uDataType == QCBOR_TYPE_NEGBIGNUM) {
+         if(!UsefulBuf_Compare(UsefulBuf_SkipLeading(Item.val.bigNum, 0), SZLiteralToUsefulBufC("\xff\xff\xfe\xff\xff\xff\xff\xff"))) {
+            return 1;
+         }
+      } else {
+         return 1;
+      }
+
    } else {
      if(uErr == QCBOR_SUCCESS) {
         return 2;
@@ -12975,6 +12998,37 @@ SrlDec_NegBigNum(QCBORDecodeContext *pDCtx, QCBORError nResult)
      if(!bIsNegative) {
         return 3;
      }
+  } else {
+     if(uErr == QCBOR_SUCCESS) {
+        return 2;
+     }
+  }
+
+  return 0;
+}
+
+
+static int
+SrlDec_NegBigNum2(QCBORDecodeContext *pDCtx, QCBORError nResult)
+{
+   QCBORError uErr;
+   QCBORItem Item;
+
+  /* This can decode both definite an indefinite length strings
+   * because the MemPool is installed. */
+  QCBORDecode_VGetNext(pDCtx, &Item);
+  uErr = QCBORDecode_GetError(pDCtx);
+  if(nResult == QCBOR_SUCCESS) {
+     if(uErr != QCBOR_SUCCESS) {
+        return 3;
+     }
+     if(Item.uDataType != QCBOR_TYPE_NEGBIGNUM) {
+        return 3;
+     }
+     if(UsefulBuf_Compare(UsefulBuf_SkipLeading(Item.val.string, 0), SZLiteralToUsefulBufC("\x01\x00\x00\x00\x00\x00\x00\x00\x00"))) {
+        return 1;
+     }
+
   } else {
      if(uErr == QCBOR_SUCCESS) {
         return 2;
@@ -13425,6 +13479,10 @@ static const struct SrlDecExample SrlDecExamples[] = {
       .description = "Large negative integer (doesn't fit in int64_t)",
       .general_serializations = {
          { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+#ifndef QCBOR_DISABLE_TAGS
+         { (uint8_t[]){0xc3, 0x42, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 10 },
+         { (uint8_t[]){0xc3, 0x42, 0x00, 0x00, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 12 },
+#endif
          { NULL, 0 },
       },
       .preferred_plus_serializations = {
@@ -13601,13 +13659,13 @@ static const struct SrlDecExample SrlDecExamples[] = {
 
    /* negative_bignum.edn */
    {
-     .DecodeCBs = {SrlDec_NegBigNum, NULL},
+     .DecodeCBs = {SrlDec_NegBigNum, SrlDec_NegBigNum2, NULL},
 
      .description = "-18446744073709551617",
      .general_serializations = {
         { (uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11 },
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
         { (uint8_t[]){0xc3, 0x4c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 14 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
         { (uint8_t[]){0xc3, 0x5f, 0x45, 0x00, 0x00, 0x00, 0x00, 0x01, 0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff}, 18 },
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
         { NULL, 0 },

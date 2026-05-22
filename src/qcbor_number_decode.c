@@ -1148,71 +1148,22 @@ QCBORDecode_Private_BigNumberToDouble(const UsefulBufC BigNumber)
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 
 
-/* The big number byte string for -18446744073709551617 that can be
- * encoded as major type 1. */
+/* This is a not-cbor-encoded big number that represents the most
+ * negative number encodable as a type 1 integer, -18446744073709551616.
+ */
 static const uint8_t QCBORDecode_Private_TwoToThe64[] =
                        {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-
-/* Check for empty string and leading zeros for preferred conformance */
-static QCBORError
-QCBOR_Private_BigNumStringConformance(UsefulBufC BigNum)
-{
-   if(BigNum.len == 0) {
-      /* Empty string */
-      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-   }
-   if(UsefulBufC_NTH_BYTE(BigNum, 0) == 0x00){
-      /* Leading zeros */
-      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-   }
-   return QCBOR_SUCCESS;
-}
-
-
-/* Check for integer unification for preferred conformance for bignums */
-static QCBORError
-QCBOR_Private_BigNumIntegerConformance(UsefulBufC BigNum, bool bIsNegative)
-{
-   if(BigNum.len <= 8) {
-      /* Could have been encoded as type 0 or 1 */
-      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-   }
-
-   if(bIsNegative) {
-      const UsefulBufC TwoTo = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(QCBORDecode_Private_TwoToThe64);
-      if(!UsefulBuf_Compare(TwoTo, BigNum)) {
-         /* Special case negative */
-         return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-      }
-   }
-   return QCBOR_SUCCESS;
-
-}
-
-/* Check all aspects of preferred conformance for bignums */
-static QCBORError
-QCBOR_Private_BigNumConformance(UsefulBufC BigNum, bool bIsNegative)
-{
-   if(QCBOR_Private_BigNumStringConformance(BigNum)) {
-      /* Empty string */
-      return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-   }
-
-   return QCBOR_Private_BigNumIntegerConformance(BigNum, bIsNegative);
-}
-#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
 
 
 /**
  * @brief Convert many number types to an int64_t.
  *
- * @param[in] pItem   The item to convert.
- * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
- * @param[in] bBignumConformance  If true, perform preferred serialization conformance check.
- * @param[out] pnValue  The resulting converted value.
+ * @param[in] pItem               The item to convert.
+ * @param[in] uConvertTypes       See @ref QCBORDecodeNumberConvert.
+ * @param[in] bBignumConformance  Check preferred serialization conformance.
+ * @param[out] pnValue            The resulting converted value.
  *
  * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
  *                                    in uConvertTypes.
@@ -1232,7 +1183,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem                    *pItem,
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
             if(bBignumConformance) {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum, false)) {
+               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum)) {
                   return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
                }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1249,7 +1200,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem                    *pItem,
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
             if(bBignumConformance) {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum, false)) {
+               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum)) {
                   return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
                }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1464,7 +1415,7 @@ QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext                  *pMe,
  *
  * @param[in] pItem   The item to convert.
  * @param[in] uConvertTypes  See @ref QCBORDecodeNumberConvert.
- * @param[in] bBignumConformance  If true, perform preferred serialization conformance check.
+ * @param[in] bBignumConformance  Check preferred serialization conformance.
  * @param[out] puValue  The resulting converted value.
  *
  * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
@@ -1485,7 +1436,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
             if(bBignumConformance) {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum, false)) {
+               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum)) {
                   return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
                }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1502,7 +1453,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
             if(bBignumConformance) {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum, false)) {
+               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum)) {
                   return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
                }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1609,12 +1560,12 @@ QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext                  *pMe,
    QCBORDecode_Private_GetUInt64Convert(pMe, uConvertTypes, puValue, &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
-      // The above conversion succeeded
+      /* The above conversion succeeded */
       return;
    }
 
    if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
-      // The above conversion failed in a way that code below can't correct
+      /* The above conversion failed in a way that code below can't correct */
       return;
    }
 
@@ -1634,7 +1585,7 @@ QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
 
    QCBORDecode_Private_GetUInt64ConvertInMapN(pMe,
                                               nLabel,
@@ -1643,12 +1594,12 @@ QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext                 *pMe,
                                               &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
-      // The above conversion succeeded
+      /* The above conversion succeeded */
       return;
    }
 
    if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
-      // The above conversion failed in a way that code below can't correct
+      /* The above conversion failed in a way that code below can't correct */
       return;
    }
 
@@ -1677,12 +1628,12 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext                 *pMe,
                                                &Item);
 
    if(pMe->uLastError == QCBOR_SUCCESS) {
-      // The above conversion succeeded
+      /* The above conversion succeeded */
       return;
    }
 
    if(pMe->uLastError != QCBOR_ERR_UNEXPECTED_TYPE) {
-      // The above conversion failed in a way that code below can't correct
+      /* The above conversion failed in a way that code below can't correct */
       return;
    }
 
@@ -1699,10 +1650,10 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext                 *pMe,
 /**
  * @brief Convert many number types to a double.
  *
- * @param[in] pItem   The item to convert.
- * @param[in] uConvertTypes See @ref QCBORDecodeNumberConvert.
- * @param[in] bBignumConformance  If true, perform preferred serialization conformance check.
- * @param[out] pdValue  The resulting converted value.
+ * @param[in] pItem               The item to convert.
+ * @param[in] uConvertTypes       See @ref QCBORDecodeNumberConvert.
+ * @param[in] bBignumConformance  Check preferred serialization conformance.
+ * @param[out] pdValue            The resulting converted value.
  *
  * @retval QCBOR_ERR_UNEXPECTED_TYPE  Conversion, possible, but not requested
  *                                    in uConvertTypes.
@@ -1749,7 +1700,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
             if(bBignumConformance) {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum, true)) {
+               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum)) {
                   return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
                }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1766,7 +1717,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
          if(uConvertTypes & QCBOR_CONVERT_TYPE_BIG_NUM) {
             if(bBignumConformance) {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum, true)) {
+               if(QCBOR_Private_BigNumConformance(pItem->val.bigNum)) {
                   return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
                }
 #else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1843,7 +1794,7 @@ QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext                 *pMe,
 
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
 
    QCBORDecode_Private_GetDoubleConvert(pMe, uConvertTypes, pdValue, &Item);
 
@@ -1873,7 +1824,7 @@ QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
 
    QCBORDecode_Private_GetDoubleConvertInMapN(pMe,
                                               nLabel,
@@ -1906,8 +1857,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
-
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
 
    QCBORDecode_Private_GetDoubleConvertInMapSZ(pMe,
                                                szLabel,
@@ -2005,78 +1955,7 @@ QCBORDecode_Private_CountNonZeroBytes(uint64_t uNum)
 }
 
 
-/* Public function, see qcbor/qcbor_number_decode.h */
-QCBORError
-QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
-                                        const bool      bBignumConformance,
-                                        const UsefulBuf BigNumberBuf,
-                                        UsefulBufC     *pBigNumber,
-                                        bool           *pbIsNegative)
-{
-   size_t      uLen;
-   UsefulBufC  BigNumber;
-   int         uType;
 
-   uType = Item.uDataType;
-   if(uType == QCBOR_TYPE_BYTE_STRING) {
-      uType = *pbIsNegative ? QCBOR_TYPE_NEGBIGNUM : QCBOR_TYPE_POSBIGNUM;
-   }
-
-   static const uint8_t Zero[] = {0x00};
-   BigNumber = UsefulBuf_SkipLeading(Item.val.bigNum, 0);
-   if(BigNumber.len == 0) {
-      BigNumber = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(Zero);
-   }
-   if(bBignumConformance) {
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-      if(QCBOR_Private_BigNumStringConformance(Item.val.bigNum)) {
-         return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-      }
-#else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
-      return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
-#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
-   }
-
-   /* Compute required length so it can be returned if buffer is too small */
-   switch(uType) {
-
-      case QCBOR_TYPE_POSBIGNUM:
-         uLen = BigNumber.len;
-         break;
-
-      case QCBOR_TYPE_NEGBIGNUM:
-         uLen = BigNumber.len;
-         if(UsefulBuf_IsValue(UsefulBuf_SkipLeading(BigNumber, 0), 0xff) == SIZE_MAX) {
-            uLen++;
-         }
-         break;
-
-      default:
-         return QCBOR_ERR_UNEXPECTED_TYPE;
-   }
-
-   *pBigNumber = (UsefulBufC){NULL, uLen};
-
-   if(BigNumberBuf.len < uLen || uLen == 0 || BigNumberBuf.ptr == NULL) {
-      return BigNumberBuf.ptr == NULL ? QCBOR_SUCCESS : QCBOR_ERR_BUFFER_TOO_SMALL;
-      /* Buffer is too short or type is wrong */
-   }
-
-
-   if(uType == QCBOR_TYPE_POSBIGNUM) {
-      *pBigNumber = UsefulBuf_Copy(BigNumberBuf, BigNumber);
-      *pbIsNegative = false;
-   } else if(uType == QCBOR_TYPE_NEGBIGNUM) {
-      /* The messy one. Take the stuff in the buffer and copy it to
-       * the new buffer, adding one to it. This might be one byte
-       * bigger than the original because of the carry from adding
-       * one.*/
-      *pbIsNegative = true;
-      *pBigNumber = QCBORDecode_BigNumberCopyPlusOne(BigNumber, BigNumberBuf);
-   }
-
-   return QCBOR_SUCCESS;
-}
 
 
 /* Public function, see qcbor/qcbor_number_decode.h */
@@ -2087,40 +1966,82 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
                              UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative)
 {
-   QCBORError  uResult;
    size_t      uLen;
    int         uType;
+   bool        bIsNegative;
+   UsefulBufC  BigNumber;
+   uint64_t    uIntTmp;
 
-   /* Compute the length of the resulting big number for output buffer length check */
+   /* --- Figure out type and sign --- */
    uType = Item.uDataType;
+   bIsNegative = false;
    switch(uType) {
       case QCBOR_TYPE_POSBIGNUM:
-      case QCBOR_TYPE_NEGBIGNUM:
-      case QCBOR_TYPE_BYTE_STRING:
-         uResult = QCBORDecode_ProcessBigNumberNoPreferred(Item,
-                                                           bBignumConformance,
-                                                           BigNumberBuf,
-                                                           pBigNumber,
-                                                           pbIsNegative);
-         if(uResult) {
-            goto Done;
-         }
-         if(BigNumberBuf.ptr == NULL) {
-            /* Caller is just asking for the size */
-            goto Done;
-         }
+         break;
 
-         if(bBignumConformance) {
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-            /* leading zeros were checked in QCBORDecode_ProcessBigNumberNoPreferred() */
-            if(QCBOR_Private_BigNumIntegerConformance(*pBigNumber, *pbIsNegative)) {
-               return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
-            }
-#else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
-            return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
-#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+      case QCBOR_TYPE_NEGBIGNUM:
+         bIsNegative = true;
+         break;
+
+      case QCBOR_TYPE_BYTE_STRING:
+         bIsNegative = *pbIsNegative;
+         if(bIsNegative) {
+            uType = QCBOR_TYPE_NEGBIGNUM;
+         } else {
+            uType = QCBOR_TYPE_POSBIGNUM;
          }
-         goto Done;
+         break;
+
+      case QCBOR_TYPE_INT64:
+         if(Item.val.int64 < 0) {
+            bIsNegative = true;
+         }
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         bIsNegative = true;
+         break;
+
+      default:
+         return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+   BigNumber = NULLUsefulBufC;
+   if( uType == QCBOR_TYPE_POSBIGNUM || uType == QCBOR_TYPE_NEGBIGNUM) {
+      /* --- Check conformance --- */
+      if(bBignumConformance) {
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+         if(QCBOR_Private_BigNumConformance(Item.val.bigNum)) {
+            return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
+         }
+#else /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+         return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
+      }
+
+      /* --- Leading zeros and empty string --- */
+      static const uint8_t Zero[] = {0x00};
+      BigNumber = UsefulBuf_SkipLeading(Item.val.bigNum, 0);
+      if(BigNumber.len == 0) {
+         BigNumber = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(Zero);
+      }
+   }
+
+   /* --- Compute the output length ---- */
+   switch(uType) {
+      case QCBOR_TYPE_POSBIGNUM:
+         uLen = BigNumber.len;
+         break;
+
+      case QCBOR_TYPE_NEGBIGNUM:
+         uLen = BigNumber.len;
+         if(UsefulBuf_IsValue(BigNumber, 0xff) == SIZE_MAX) {
+            /* subtracting one, will increase the length! */
+            uLen++;
+         }
          break;
 
       case QCBOR_TYPE_INT64:
@@ -2139,46 +2060,61 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
          return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-   /* At this point we know the the value is type 0 or 1 that must be converted to a big number */
-
+   /* --- Return length, if that is the request --- */
    *pBigNumber = (UsefulBufC){NULL, uLen};
    if(BigNumberBuf.ptr == NULL) {
       /* Caller is just asking for the size */
       return QCBOR_SUCCESS;
    }
 
+   /* --- Make sure buffer is long enough --- */
    if(BigNumberBuf.len < uLen) {
       return QCBOR_ERR_BUFFER_TOO_SMALL;
    }
 
-   /* Buffer length validated; convert type 0 and 1 to big number */
-   uResult = QCBOR_SUCCESS;
+   /* --- Make it a big number --- */
+   *pbIsNegative = bIsNegative;
+   switch(uType) {
+      case QCBOR_TYPE_POSBIGNUM:
+         *pBigNumber = UsefulBuf_Copy(BigNumberBuf, BigNumber);
+         break;
 
-   if(uType == QCBOR_TYPE_UINT64) {
-      *pBigNumber = QCBORDecode_Private_UIntToBigNumber(Item.val.uint64, BigNumberBuf);
-      *pbIsNegative = false;
-   } else if(uType == QCBOR_TYPE_INT64) {
-      /* Offset of 1 for negative numbers already performed */
-      *pbIsNegative = Item.val.int64 < 0;
-       const uint64_t uIntTmp = (uint64_t)(*pbIsNegative ? -Item.val.int64 : Item.val.int64);
-      *pBigNumber = QCBORDecode_Private_UIntToBigNumber(uIntTmp, BigNumberBuf);
-   } else if(uType == QCBOR_TYPE_65BIT_NEG_INT) {
-      /* Offset of 1 for negative numbers NOT already performed */
-      *pbIsNegative = true;
-      if(Item.val.uint64 == UINT64_MAX) {
-         /* The one value that can't be done with a computation
-          * because it would overflow a uint64_t */
-         *pBigNumber = UsefulBuf_Copy(BigNumberBuf, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(QCBORDecode_Private_TwoToThe64));
-      } else {
-         /* +1 because negative big numbers are encoded one less than actual */
-         *pBigNumber = QCBORDecode_Private_UIntToBigNumber(Item.val.uint64 + 1, BigNumberBuf);
-      }
+      case QCBOR_TYPE_NEGBIGNUM:
+         /* The messy one. Take the stuff in the buffer and copy it to
+          * the new buffer, adding one to it. This might be one byte
+          * bigger than the original because of the carry from adding
+          * one.*/
+         *pBigNumber = QCBORDecode_BigNumberCopyPlusOne(BigNumber, BigNumberBuf);
+         break;
+
+      case QCBOR_TYPE_INT64:
+         /* Offset of 1 for negative numbers already performed */
+         uIntTmp = (uint64_t)(bIsNegative ? -Item.val.int64 : Item.val.int64);
+         *pBigNumber = QCBORDecode_Private_UIntToBigNumber(uIntTmp, BigNumberBuf);
+         break;
+
+      case QCBOR_TYPE_UINT64:
+         *pBigNumber = QCBORDecode_Private_UIntToBigNumber(Item.val.uint64, BigNumberBuf);
+         break;
+
+      case QCBOR_TYPE_65BIT_NEG_INT:
+         /* Offset of 1 for negative numbers NOT already performed */
+         if(Item.val.uint64 == UINT64_MAX) {
+            /* The one value that can't be done with a computation
+             * because it would overflow a uint64_t */
+            *pBigNumber = UsefulBuf_Copy(BigNumberBuf, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(QCBORDecode_Private_TwoToThe64));
+         } else {
+            /* +1 because negative big numbers are encoded one less than actual */
+            *pBigNumber = QCBORDecode_Private_UIntToBigNumber(Item.val.uint64 + 1, BigNumberBuf);
+         }
+         break;
+
+      default:
+         return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
-Done:
-   return uResult;
+   return QCBOR_SUCCESS;
 }
-
 
 
 static const uint64_t QCBORDecode_Private_BigNumberTagNumbers[] = {
@@ -2220,7 +2156,7 @@ QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext          *pMe,
                                       uTagRequirement,
                                       QCBORDecode_Private_BigNumberTypesNoPreferred,
                                       QCBORDecode_Private_BigNumberTagNumbers,
-                                      QCBORDecode_StringsTagCB,
+                                      QCBORDecode_BigNumTagCB,
                                       NULL,
                                       uOffset,
                                       pItem);
@@ -2238,37 +2174,6 @@ QCBORDecode_Private_BigNumberRawMain(QCBORDecodeContext          *pMe,
 
 
 static void
-QCBORDecode_Private_BigNumberNoPreferredMain(QCBORDecodeContext          *pMe,
-                                             const enum QCBORDecodeTagReq uTagRequirement,
-                                             QCBORItem                   *pItem,
-                                             const size_t                 uOffset,
-                                             UsefulBuf                    BigNumberBuf,
-                                             UsefulBufC                  *pBigNumber,
-                                             bool                        *pbIsNegative)
-{
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
-
-   QCBORDecode_Private_ProcessTagItem(pMe,
-                                      uTagRequirement,
-                                      QCBORDecode_Private_BigNumberTypesNoPreferred,
-                                      QCBORDecode_Private_BigNumberTagNumbers,
-                                      QCBORDecode_StringsTagCB,
-                                      NULL,
-                                      uOffset,
-                                      pItem);
-   if(pMe->uLastError) {
-      return;
-   }
-
-   pMe->uLastError = (uint8_t)QCBORDecode_ProcessBigNumberNoPreferred(*pItem,
-                                                                      bBignumConformance,
-                                                                      BigNumberBuf,
-                                                                      pBigNumber,
-                                                                      pbIsNegative);
-}
-
-
-static void
 QCBORDecode_Private_BigNumberMain(QCBORDecodeContext          *pMe,
                                   const enum QCBORDecodeTagReq uTagRequirement,
                                   QCBORItem                   *pItem,
@@ -2277,7 +2182,7 @@ QCBORDecode_Private_BigNumberMain(QCBORDecodeContext          *pMe,
                                   UsefulBufC                 *pBigNumber,
                                   bool                       *pbIsNegative)
 {
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
 
    QCBORDecode_Private_ProcessTagItem(pMe,
                                       uTagRequirement,
@@ -2359,71 +2264,7 @@ QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext          *pMe,
 }
 
 
-/* Public function, see qcbor/qcbor_number_decode.h */
-void
-QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext          *pMe,
-                                     const enum QCBORDecodeTagReq uTagRequirement,
-                                     UsefulBuf                    BigNumberBuf,
-                                     UsefulBufC                  *pBigNumber,
-                                     bool                        *pbIsNegative)
-{
-   QCBORItem  Item;
-   size_t     uOffset;
 
-   QCBORDecode_Private_GetAndTell(pMe, &Item, &uOffset);
-   QCBORDecode_Private_BigNumberNoPreferredMain(pMe,
-                                                uTagRequirement,
-                                               &Item,
-                                                uOffset,
-                                                BigNumberBuf,
-                                                pBigNumber,
-                                                pbIsNegative);
-}
-
-/* Public function, see qcbor/qcbor_number_decode.h */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext          *pMe,
-                                           const int64_t                nLabel,
-                                           const enum QCBORDecodeTagReq uTagRequirement,
-                                           UsefulBuf                    BigNumberBuf,
-                                           UsefulBufC                  *pBigNumber,
-                                           bool                        *pbIsNegative)
-{
-   QCBORItem  Item;
-   size_t     uOffset;
-
-   QCBORDecode_Private_GetItemInMapNoCheckN(pMe, nLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_BigNumberNoPreferredMain(pMe,
-                                                uTagRequirement,
-                                               &Item,
-                                                uOffset,
-                                                BigNumberBuf,
-                                                pBigNumber,
-                                                pbIsNegative);
-
-}
-
-/* Public function, see qcbor/qcbor_number_decode.h */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext          *pMe,
-                                            const char                  *szLabel,
-                                            const enum QCBORDecodeTagReq uTagRequirement,
-                                            UsefulBuf                    BigNumberBuf,
-                                            UsefulBufC                  *pBigNumber,
-                                            bool                        *pbIsNegative)
-{
-   QCBORItem  Item;
-   size_t     uOffset;
-
-   QCBORDecode_Private_GetItemInMapNoCheckSZ(pMe, szLabel, QCBOR_TYPE_ANY, &Item, &uOffset);
-   QCBORDecode_Private_BigNumberNoPreferredMain(pMe,
-                                                uTagRequirement,
-                                               &Item,
-                                                uOffset,
-                                                BigNumberBuf,
-                                                pBigNumber,
-                                                pbIsNegative);
-}
 
 
 
@@ -2740,7 +2581,7 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
    const uint8_t *qTypes;
    uint64_t       auTagNumbers[2];
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
 
    if(pMe->uLastError) {
       return;

@@ -697,94 +697,47 @@ QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext   *pCtx,
 
 
 /**
- * @brief Decode next item as a big number without preferred serialization.
+ * @brief Decode the next item as a big number with no processing.
  *
- * @param[in] pCtx              The decode context.
- * @param[in] uTagRequirement   See @ref QCBORDecodeTagReq.
- * @param[in] BigNumberBuf      The buffer to write the result into.
- * @param[out] pBigNumber       The decoded big number, most significant
- *                              byte first (network byte order).
- * @param[in,out] pbIsNegative  Set to true if the returned big number
- *                              is negative.
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
+ * @param[out] pBigNumber      The decoded big number, most significant
+ *                             byte first (network byte order).
+ * @param[out] pbIsNegative    Is @c true if the big number is negative. This
+ *                             is only valid when @c uTagRequirement is
+ *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
  *
- * This is the same as QCBORDecode_GetTBigNumber(), but will error out
- * on type 0 and 1 integers as it doesn't support the preferred
- * serialization specific for big numbers.
+ * This decodes CBOR tag numbers 2 and 3, positive and negative big
+ * numbers, as defined in [RFC 8949 section 3.4.3]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
+ *
+ * This returns the raw byte string representing the big number
+ * directly. It does not remove leading zeros, process an empty string as zero,  nor apply the required the offset of one for
+ * negative big numbers. It will error out on big numbers that have been
+ * encoded as type 0 and 1 integers as required for big number preferred
+ * serialization.
+ *
+ * This is most useful when a big number library has been linked, and
+ * it can be (trivially) used to perform the offset of one for
+ * negative numbers.
+ *
+ * This links in much less object code than
+ * QCBORDecode_GetTBigNumber().
+ *
+ * This does the same minimal processing as installing
+ * QCBORDecode_StringsTagCB() installed to handle @ref
+ * CBOR_TAG_POS_BIGNUM and @ref CBOR_TAG_NEG_BIGNUM so
+ * QCBORDecode_VGetNext() returns a @ref QCBORItem of type @ref
+ * QCBOR_TYPE_POSBIGNUM or @ref QCBOR_TYPE_POSBIGNUM
  *
  * See @ref BigNumbers for a useful overview of CBOR big numbers and
- * QCBOR's support for them. See QCBOREncode_AddTBigNumberNoPreferred(),
- * the encode counter part for this. See also QCBORDecode_GetTBigNumber()
- * and QCBORDecode_GetTBigNumberRaw().
+ * QCBOR's support for them. See QCBOREncode_AddTBigNumberRaw() for
+ * the encoding counter part. See QCBORDecode_GetTBigNumber() which
+ * does perform the offset for negative numbers and handles preferred
+ * serialization big numbers.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  */
-void
-QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext    *pCtx,
-                                     enum QCBORDecodeTagReq uTagRequirement,
-                                     UsefulBuf              BigNumberBuf,
-                                     UsefulBufC            *pBigNumber,
-                                     bool                  *pbIsNegative);
-
-/** See QCBORDecode_GetTBigNumberNoPreferred(). */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext   *pCtx,
-                                           int64_t                nLabel,
-                                           enum QCBORDecodeTagReq uTagRequirement,
-                                           UsefulBuf              BigNumberBuf,
-                                           UsefulBufC            *pBigNumber,
-                                           bool                  *pbIsNegative);
-
-/** See QCBORDecode_GetTBigNumberNoPreferred(). */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext    *pCtx,
-                                            const char            *szLabel,
-                                            enum QCBORDecodeTagReq uTagRequirement,
-                                            UsefulBuf              BigNumberBuf,
-                                            UsefulBufC            *pBigNumber,
-                                            bool                  *pbIsNegative);
-
-
- /**
-  * @brief Decode the next item as a big number with no processing.
-  *
-  * @param[in] pCtx             The decode context.
-  * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
-  * @param[out] pBigNumber      The decoded big number, most significant
-  *                             byte first (network byte order).
-  * @param[out] pbIsNegative    Is @c true if the big number is negative. This
-  *                             is only valid when @c uTagRequirement is
-  *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
-  *
-  * This decodes CBOR tag numbers 2 and 3, positive and negative big
-  * numbers, as defined in [RFC 8949 section 3.4.3]
-  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
-  *
-  * This returns the byte string representing the big number
-  * directly. It does not apply the required the offset of one for
-  * negative big numbers. It will error out big numbers that have been
-  * encoded as type 0 and 1 integer because of big number preferred
-  * serialization.
-  *
-  * This is most useful when a big number library has been linked, and
-  * it can be (trivially) used to perform the offset of one for
-  * negative numbers.
-  *
-  * This links in much less object code than
-  * QCBORDecode_GetTBigNumber() and
-  * QCBORDecode_GetTBigNumberNoPreferred().
-  *
-  * This does the same minimal processing as installing
-  * QCBORDecode_StringsTagCB() installed to handle @ref
-  * CBOR_TAG_POS_BIGNUM and @ref CBOR_TAG_NEG_BIGNUM so
-  * QCBORDecode_VGetNext() returns a @ref QCBORItem of type @ref
-  * QCBOR_TYPE_POSBIGNUM or @ref QCBOR_TYPE_POSBIGNUM
-  *
-  * See @ref BigNumbers for a useful overview of CBOR big numbers and
-  * QCBOR's support for them. See QCBOREncode_AddTBigNumberRaw() for
-  * the encoding counter part. See QCBORDecode_GetTBigNumber() which
-  * does perform the offset for negative numbers and handles preferred
-  * serialization big numbers.
-  *
-  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-  */
 void
 QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext    *pCtx,
                              enum QCBORDecodeTagReq uTagRequirement,
