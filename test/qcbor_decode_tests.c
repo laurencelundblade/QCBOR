@@ -11076,6 +11076,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       HALF_FLOAT_ERR
    },
    /* --- Various big numbers ---*/
+#ifndef QCBOR_DISABLE_TAGS
    { "Empty string big number",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xc2\x40", 2},
@@ -11086,6 +11087,13 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xc2\x41\x00", 3},
       QCBOR_ERR_NOT_PREFERRED_BIGNUM
    },
+#else
+   { "Zero encodes as a big number",
+      QCBOR_DECODE_MODE_PREFERRED,
+      {"\xc2\x41\x00", 3},
+      QCBOR_ERR_TAGS_DISABLED
+   },
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
    /* --- Various non-shortest-form CBOR arguments ---*/

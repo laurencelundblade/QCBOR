@@ -1440,8 +1440,6 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
 
 
 
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-
 /**
  * @brief Check big num preferred serialization conformance
  *
@@ -1455,6 +1453,7 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
 QCBORError
 QCBOR_Private_BigNumConformance(UsefulBufC BigNum)
 {
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(BigNum.len == 0) {
       /* Empty string */
       return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
@@ -1470,8 +1469,10 @@ QCBOR_Private_BigNumConformance(UsefulBufC BigNum)
    }
 
    return QCBOR_SUCCESS;
-}
+#else
+   return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
 #endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+}
 
 
 /* Public function; see qcbor_tag_decode.h */
@@ -1482,7 +1483,6 @@ QCBORDecode_BigNumTagCB(QCBORDecodeContext *pDecodeCtx,
                         QCBORItem          *pDecodedItem)
 {
    (void)pTagDecodersContext;
-   QCBORError  uErr;
 
    if(pDecodedItem->uDataType != QCBOR_TYPE_BYTE_STRING) {
       return QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT;
@@ -1494,12 +1494,14 @@ QCBORDecode_BigNumTagCB(QCBORDecodeContext *pDecodeCtx,
       pDecodedItem->uDataType = QCBOR_TYPE_NEGBIGNUM;
    }
 
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(pDecodeCtx->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS) {
-      uErr = QCBOR_Private_BigNumConformance(pDecodedItem->val.bigNum);
+      QCBORError uErr = QCBOR_Private_BigNumConformance(pDecodedItem->val.bigNum);
       if(uErr) {
          return uErr;
       }
    }
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
    return QCBOR_SUCCESS;
 }
