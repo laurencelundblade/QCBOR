@@ -1431,8 +1431,16 @@ QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
                                    QCBORItem               *pItem);
 
 /** @private  Semi-private used in other source files. See qcbor_tag_decode.c */
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
 QCBORError
 QCBOR_Private_BigNumConformance(UsefulBufC BigNum);
+#else
+static inline QCBORError
+QCBOR_Private_BigNumConformance(UsefulBufC BigNum){
+   return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
+}
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+
 
 
 

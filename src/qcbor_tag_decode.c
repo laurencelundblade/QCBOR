@@ -1450,15 +1450,15 @@ QCBORDecode_MIMETagCB(QCBORDecodeContext *pDecodeCtx,
  * An empty string, leading zeros and less than 8
  * bytes are not OK.
  */
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
 QCBORError
 QCBOR_Private_BigNumConformance(UsefulBufC BigNum)
 {
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(BigNum.len == 0) {
       /* Empty string */
       return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
    }
-   if(UsefulBufC_NTH_BYTE(BigNum, 0) == 0x00){
+   if(UsefulBufC_NTH_BYTE(BigNum, 0) == 0x00) {
       /* Leading zeros */
       return QCBOR_ERR_NOT_PREFERRED_BIGNUM;
    }
@@ -1469,10 +1469,10 @@ QCBOR_Private_BigNumConformance(UsefulBufC BigNum)
    }
 
    return QCBOR_SUCCESS;
-#else
-   return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
-#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
 }
+#else
+    /* Defined as degenerate inline function */
+#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
 
 /* Public function; see qcbor_tag_decode.h */
@@ -1494,14 +1494,12 @@ QCBORDecode_BigNumTagCB(QCBORDecodeContext *pDecodeCtx,
       pDecodedItem->uDataType = QCBOR_TYPE_NEGBIGNUM;
    }
 
-#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(pDecodeCtx->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS) {
       QCBORError uErr = QCBOR_Private_BigNumConformance(pDecodedItem->val.bigNum);
       if(uErr) {
          return uErr;
       }
    }
-#endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
    return QCBOR_SUCCESS;
 }

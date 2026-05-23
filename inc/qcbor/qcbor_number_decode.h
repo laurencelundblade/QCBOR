@@ -533,13 +533,14 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
 
 
 /**
- * @brief Decode a preferred serialization big number.
+ * @brief Process a preferred serialization big number.
  *
- * @param[in] Item              The number to process.
- * @param [in] bBignumConformance  If true, big must conform to preferred serialization.
- * @param[in] BigNumberBuf      The buffer to output to.
- * @param[out] pBigNumber       The resulting big number.
- * @param[in,out] pbIsNegative  The sign of the resulting big number.
+ * @param[in] Item                 The number to process.
+ * @param [in] bBignumConformance  If true, a big number input must conform to
+ *                                 preferred serialization.
+ * @param[in] BigNumberBuf         The buffer to output to.
+ * @param[out] pBigNumber          The resulting big number.
+ * @param[in,out] pbIsNegative     The sign of the resulting big number.
  *
  * This exists to process a @ref QCBORItem that is expected to be a
  * big number encoded with preferred serialization. This will turn the
@@ -572,9 +573,9 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * possibility of an arithmetic carry.
  *
  * If @c bBignumConformance is true and the item is a big number, then
- * it will be checked for conformance with preferred serialization -- the string
- * can't be empty there must be no leading zeros, and the value
- * must not be in the range that can be encoded as type 0 or 1.
+ * it will be checked for conformance with preferred serialization --
+ * the string can't be empty there must be no leading zeros, and the
+ * value must not be in the range that can be encoded as type 0 or 1.
  *
  * The object code for this is surprisingly large at about 1KB.  This
  * is to apply the offset of one for the negative values and to
@@ -582,9 +583,8 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * serialization.
  *
  * See @ref BigNumbers for a useful overview of CBOR big numbers and
- * QCBOR's support for them. See also
- * QCBORDecode_ProcessBigNumberNoPreferred(),
- * QCBORDecode_GetTBigNumber() and QCBOREncode_AddTBigNumber().
+ * QCBOR's support for them. See also  QCBORDecode_GetTBigNumber()
+ * and QCBOREncode_AddTBigNumber().
  */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
@@ -592,28 +592,6 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
                              UsefulBuf       BigNumberBuf,
                              UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative);
-
-
-/**
- * @brief Decode a big number.
- *
- * @param[in] Item    The number to process.
- * @param[in] BigNumberBuf  The buffer to output to.
- * @param[out] pBigNumber   The resulting big number.
- * @param[out] pbIsNegative  The sign of the resulting big number.
- *
- * This is the same as QCBORDecode_ProcessBigNumber(), but doesn't
- * allow @ref QCBOR_TYPE_INT64, @ref QCBOR_TYPE_UINT64 and @ref
- * QCBOR_TYPE_65BIT_NEG_INT.
- */
-QCBORError
-QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
-                                        bool            bBignumConformance,
-                                        UsefulBuf       BigNumberBuf,
-                                        UsefulBufC     *pBigNumber,
-                                        bool           *pbIsNegative);
-
-
 
 
 /**
@@ -712,9 +690,10 @@ QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext   *pCtx,
  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
  *
  * This returns the raw byte string representing the big number
- * directly. It does not remove leading zeros, process an empty string as zero,  nor apply the required the offset of one for
- * negative big numbers. It will error out on big numbers that have been
- * encoded as type 0 and 1 integers as required for big number preferred
+ * directly. It does not remove leading zeros, process an empty string
+ * as zero, nor apply the required the offset of one for negative big
+ * numbers. It will error out on big numbers that have been encoded as
+ * type 0 and 1 integers as required for big number preferred
  * serialization.
  *
  * This is most useful when a big number library has been linked, and
