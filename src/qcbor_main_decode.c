@@ -794,7 +794,7 @@ QCBORDecode_Private_HalfConformance(const double d, const QCBORDecodeMode uConfi
    (void)d;
    if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
                       QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
-      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+      return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
    }
@@ -808,7 +808,7 @@ QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeM
    (void)uSingle;
    if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
                       QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
-      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+      return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
    }
@@ -820,7 +820,7 @@ QCBORDecode_Private_DoubleConformance(const double d, const QCBORDecodeMode uCon
    (void)d;
    if(uConfigFlags & (QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
                       QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT)) {
-      return QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE;
+      return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
    } else {
       return QCBOR_SUCCESS;
    }

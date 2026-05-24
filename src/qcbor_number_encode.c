@@ -377,10 +377,10 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
                                       const bool          bNegative,
                                       const UsefulBufC    BigNumber)
 {
-   uint64_t   uInt;
-   bool       bIs2exp64;
+   uint64_t     uInt;
+   bool         bIs2exp64;
+    UsefulBufC  BigNumberNLZ;
    enum QCBORPrivateMajorType uMajorType;
-   UsefulBufC BigNumberNLZ;
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(!bPreferred && pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS) {

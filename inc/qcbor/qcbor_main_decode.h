@@ -231,7 +231,7 @@ typedef enum {
     /** NaN payloads in the input will error with
      * @ref QCBOR_ERR_NAN_PAYLOAD unless this is set. */
    QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS = 0x08,
-   // QCBOR_DECODE_MODE_ALLOW_NON_TRIVIAL_NAN = 0x08,
+   // TODO: QCBOR_DECODE_MODE_ALLOW_NON_TRIVIAL_NAN = 0x08,
 
    /** @ref QCBOR_ERR_INDEF_LENGTH on indefinite length strings,
     * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
@@ -248,9 +248,11 @@ typedef enum {
      * precision. See @ref QCBOR_DECODE_MODE_PREFERRED. */
     QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT = 0x40,
 
-   /** If big numbers that will fit into normal integers are
-    *  encountered error XXX will occur. This is to comply with big
-    *  number preferred serialization. TODO: fix this*/
+   /** Check that big numbers conform with the preferred
+    * serialization: no empty strings, no leading zeros, and values
+    * that fit within the type 0 or type 1 integer ranges are not encoded
+    * as big numbers.
+    */
    QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS = 0x80,
 
    /** @ref QCBOR_ERR_UNSORTED if a map is not sorted. See
@@ -268,7 +270,7 @@ typedef enum {
    QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES = 0x400,
 
    /**
-    * This checks that the input is encoded with preferred
+    * This checks that the input is in conformance with preferred
     * serialization. The checking is performed as each item is
     * decoded. If no QCBORDecode_GetXxx() is called for an item,
     * there's no check on that item. Preferred serialization was first

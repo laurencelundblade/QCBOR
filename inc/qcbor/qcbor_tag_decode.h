@@ -1015,8 +1015,6 @@ QCBORDecode_DaysEpochTagCB(QCBORDecodeContext *pDecodeCtx,
  *
  * This is for :
  *    @ref CBOR_TAG_DATE_STRING,
- *    @ref CBOR_TAG_POS_BIGNUM,
- *    @ref CBOR_TAG_NEG_BIGNUM,
  *    @ref CBOR_TAG_CBOR,
  *    @ref CBOR_TAG_URI,
  *    @ref CBOR_TAG_B64URL,
@@ -1037,6 +1035,31 @@ QCBORDecode_StringsTagCB(QCBORDecodeContext *pDecodeCtx,
                          uint64_t            uTagNumber,
                          QCBORItem          *pDecodedItem);
 
+
+/**
+ * @brief Decode the big number type tag
+ *
+ * @param[in] pDecodeCtx           Decode context.
+ * @param[in] pTagDecodersContext  Optional context for tag decoders.
+ * @param[in] uTagNumber           The tag number indicated for the content.
+ * @param[in,out]  pDecodedItem    The data item to convert.
+ *
+ * This maps the tag numbers @ref CBOR_TAG_POS_BIGNUM and
+ * @ref CBOR_TAG_NEG_BIGNUM to @ref QCBOR_TYPE_POSBIGNUM and
+ * @ref QCBOR_TYPE_NEGBIGNUM. The tag content must be a byte string
+ * and is returned as is. No processing for leading zeros or such is
+ * performed.
+ *
+ * This performs conformance checking when
+ * @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS is set.
+ *
+ * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
+ */
+QCBORError
+QCBORDecode_BigNumTagCB(QCBORDecodeContext *pDecodeCtx,
+                        void               *pTagDecodersContext,
+                        uint64_t            uTagNumber,
+                        QCBORItem          *pDecodedItem);
 
 /**
  * @brief Decode the MIME type tag
@@ -1396,7 +1419,7 @@ QCBORDecode_Private_GetTaggedStringInMapSZ(QCBORDecodeContext    *pMe,
                                            uint64_t               uTagNumber,
                                            UsefulBufC            *pString);
 
-/** @private  Semi-private used by public inline functions. See qcbor_tag_decode.c */
+/** @private  Semi-private used in other source files. See qcbor_tag_decode.c */
 void
 QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
                                    enum QCBORDecodeTagReq   uTagRequirement,
@@ -1406,6 +1429,19 @@ QCBORDecode_Private_ProcessTagItem(QCBORDecodeContext      *pMe,
                                    void                    *pCBCtx,
                                    size_t                   uOffset,
                                    QCBORItem               *pItem);
+
+/** @private  Semi-private used in other source files. See qcbor_tag_decode.c */
+#ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
+QCBORError
+QCBOR_Private_BigNumConformance(UsefulBufC BigNum);
+#else
+static inline QCBORError
+QCBOR_Private_BigNumConformance(UsefulBufC BigNum){
+   return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
+}
+#endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */
+
+
 
 
 
