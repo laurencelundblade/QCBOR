@@ -5139,7 +5139,7 @@ int32_t BignumDecodeTest(void)
 
    BN.uDataType = QCBOR_TYPE_ARRAY;
 
-   uErr = QCBORDecode_ProcessBigNumber(BN, true, Buf, &BBB, &bIsNegative);
+   uErr = QCBORDecode_ProcessBigNumber(BN, false, Buf, &BBB, &bIsNegative);
    if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
       return -6000;
    }
@@ -5147,7 +5147,7 @@ int32_t BignumDecodeTest(void)
    BN.uDataType = QCBOR_TYPE_POSBIGNUM;
    BN.val.bigNum = UsefulBuf_FROM_SZ_LITERAL("\x01\x02\x03\x04\x05\x06\x07\x08\x09");
 
-   uErr = QCBORDecode_ProcessBigNumber(BN, true, Buf, &BBB, &bIsNegative);
+   uErr = QCBORDecode_ProcessBigNumber(BN, false, Buf, &BBB, &bIsNegative);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
       return -6001;
    }
