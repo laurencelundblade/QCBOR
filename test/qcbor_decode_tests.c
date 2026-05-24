@@ -5082,6 +5082,7 @@ int32_t BignumDecodeTest(void)
          bIsNeg = false; /* Line of code so a break point can be set. */
       }
 
+      /* Test 1, GetNext(), then ProcessBigNumber() */
       QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
 
@@ -5112,6 +5113,7 @@ int32_t BignumDecodeTest(void)
          return MakeTestResultCode(uTestIndex, 5, uErr);
       }
 
+      /* Test 2, QCBORDecode_GetTBigNumber() */
       QCBORDecode_Init(&DCtx, pTest->Encoded, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
       QCBORDecode_GetTBigNumber(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, BignumBuf,  &ResultBigNum, &bIsNeg);
@@ -5127,7 +5129,27 @@ int32_t BignumDecodeTest(void)
       if(bIsNeg != pTest->bExpectedSign) {
          return MakeTestResultCode(uTestIndex, 8, 0);
       }
+   }
 
+   /* Special case tests of QCBORDecode_ProcessBigNumber() */
+   QCBORItem  BN;
+   MakeUsefulBufOnStack(Buf, 8);
+   UsefulBufC BBB;
+   bool bIsNegative;
+
+   BN.uDataType = QCBOR_TYPE_ARRAY;
+
+   uErr = QCBORDecode_ProcessBigNumber(BN, true, Buf, &BBB, &bIsNegative);
+   if(uErr != QCBOR_ERR_UNEXPECTED_TYPE) {
+      return -6000;
+   }
+
+   BN.uDataType = QCBOR_TYPE_POSBIGNUM;
+   BN.val.bigNum = UsefulBuf_FROM_SZ_LITERAL("\x01\x02\x03\x04\x05\x06\x07\x08\x09");
+
+   uErr = QCBORDecode_ProcessBigNumber(BN, true, Buf, &BBB, &bIsNegative);
+   if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      return -6001;
    }
 
 
@@ -11306,6 +11328,21 @@ DecodeConformanceTests(void)
       return -5002;
    }
 #endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+   /* Make sure QCBORDecode_ProcessBigNumber is doing confirmance */
+   QCBORItem  BN;
+   MakeUsefulBufOnStack(Buf, 100);
+   UsefulBufC BBB;
+   bool bIsNegative;
+
+   /* Empty string is not conformant ; other non-conformat tests elsewhere */
+   BN.uDataType = QCBOR_TYPE_POSBIGNUM;
+   BN.val.bigNum = UsefulBuf_FROM_SZ_LITERAL("");
+
+   uErr = QCBORDecode_ProcessBigNumber(BN, true, Buf, &BBB, &bIsNegative);
+   if(uErr != QCBOR_ERR_NOT_PREFERRED_BIGNUM) {
+      return -6000;
+   }
 
    return ProcessDecodeFailures(DecodeConformanceFailures,
                                 C_ARRAY_COUNT(DecodeConformanceFailures, struct DecodeFailTestInput));

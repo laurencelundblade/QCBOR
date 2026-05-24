@@ -1934,7 +1934,7 @@ QCBORDecode_Private_CountNonZeroBytes(uint64_t uNum)
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
                              const bool      bBignumConformance,
-                             UsefulBuf       BigNumberBuf,
+                             const UsefulBuf BigNumberBuf,
                              UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative)
 {
@@ -1998,8 +1998,8 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
          }
       }
 
-      /* --- Leading zeros and empty string --- */
-      static const uint8_t Zero[] = {0x00};
+      /* --- Remove leading zeros and process empty string --- */
+      const uint8_t Zero[] = {0x00};
       BigNumber = UsefulBuf_SkipLeading(Item.val.bigNum, 0);
       if(BigNumber.len == 0) {
          BigNumber = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(Zero);
@@ -2015,7 +2015,7 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
       case QCBOR_TYPE_NEGBIGNUM:
          uLen = BigNumber.len;
          if(UsefulBuf_IsValue(BigNumber, 0xff) == SIZE_MAX) {
-            /* subtracting one, will increase the length! */
+            /* 0xfffff... -- subtracting one, will increase the length! */
             uLen++;
          }
          break;
