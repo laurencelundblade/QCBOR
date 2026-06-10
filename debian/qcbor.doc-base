@@ -1,0 +1,11 @@
+Document: qcbor
+Title: QCBOR Library Manual
+Author: Laurence Lundblade
+Abstract:
+ API documentation in the form of HTML generated
+ from the API with Doxygen.
+Section: unknown
+
+Format: HTML
+Index: /usr/share/doc/qcbor/html/index.html
+Files: /usr/share/doc/qcbor/html/*.html

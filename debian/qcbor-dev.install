@@ -1,0 +1,3 @@
+usr/include/qcbor/*
+usr/lib/*/lib*.so
+usr/lib/*/cmake/qcbor/*

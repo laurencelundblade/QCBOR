@@ -1,0 +1,39 @@
+#!/usr/bin/make -f
+
+# See debhelper(7) (uncomment to enable).
+# Output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# See ENVIRONMENT in dpkg-buildflags(1).
+# Package maintainers to append CFLAGS.
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# Package maintainers to append LDFLAGS.
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf doxygen/html
+	rm -rf usr/share/doc
+
+override_dh_auto_configure:
+	dh_auto_configure -Scmake -- \
+	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	-DBUILD_SHARED_LIBS=YES \
+	-DCMAKE_INSTALL_PREFIX=/usr
+
+override_dh_auto_build:
+	dh_auto_build
+# Build Doxygen docs if the 'nodoc' build option is not set
+ifeq (,$(filter nodoc,$(DEB_BUILD_OPTIONS)))
+	(cd doxygen && doxygen)
+endif
+
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p $(CURDIR)/usr/share/doc/qcbor-doc
+	cp -rp doxygen/html $(CURDIR)/usr/share/doc/qcbor-doc/
