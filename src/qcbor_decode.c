@@ -99,7 +99,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /* Embed a version string in the library */
-const char libqcborVersionDecode[] = QCBOR_VERSION_STRING;
+const char libqcborVersionDecode[] = QCBOR_VERSION_BANNER;
 
 
 static bool
