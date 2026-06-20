@@ -119,3 +119,39 @@ jobs:
           }
           & $exe 
 
+  deb-package:
+    name: Build DEB packages on Ubuntu
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Set up OS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts quilt lintian
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Prepare environment
+        run: |
+          uscan --download-current-version
+          sudo apt build-dep -y .
+          QUILT_PATCHES=debian/patches quilt push -a
+      - name: Build
+        run: debuild --no-lintian -us -uc
+      - name: Check
+        run: |
+          set -o pipefail
+          lintian ../*.deb | tee lintian.txt
+      - name: Summarize Results
+        if: always()
+        run: |
+          echo "## lintian results:" >> $GITHUB_STEP_SUMMARY
+          echo >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat lintian.txt >> $GITHUB_STEP_SUMMARY || true
+          echo >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

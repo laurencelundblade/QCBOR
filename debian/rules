@@ -23,8 +23,9 @@ override_dh_auto_clean:
 override_dh_auto_configure:
 	dh_auto_configure -Scmake -- \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	-DBUILD_SHARED_LIBS=YES \
-	-DCMAKE_INSTALL_PREFIX=/usr
+	-DBUILD_SHARED_LIBS=ON \
+	-DBUILD_QCBOR_WARN=ON \
+	-DBUILD_QCBOR_TEST=APP
 
 override_dh_auto_build:
 	dh_auto_build
@@ -32,8 +33,3 @@ override_dh_auto_build:
 ifeq (,$(filter nodoc,$(DEB_BUILD_OPTIONS)))
 	(cd doxygen && doxygen)
 endif
-
-override_dh_auto_install:
-	dh_auto_install
-	mkdir -p $(CURDIR)/usr/share/doc/qcbor-doc
-	cp -rp doxygen/html $(CURDIR)/usr/share/doc/qcbor-doc/

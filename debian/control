@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Brian Sipos <brian.sipos@gmail.com>
 Rules-Requires-Root: no
 Build-Depends: cmake, debhelper-compat (= 13)
+Build-Depends-Indep: doxygen
 Standards-Version: 4.6.2
 Homepage: https://github.com/laurencelundblade/QCBOR
 Vcs-Browser: https://github.com/laurencelundblade/QCBOR
@@ -26,6 +27,7 @@ Description: Development files for the QCBOR library
  These are development files needed to build and link to the QCBOR library.
 
 Package: qcbor-doc
+Section: doc
 Architecture: all
 Depends: ${misc:Depends}
 Description: documentation for qcbor

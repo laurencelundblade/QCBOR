@@ -15,3 +15,38 @@ Index: QCBOR/test/CMakeLists.txt
          qcbor_decode_tests.c
          qcbor_encode_tests.c
          run_tests.c
+===================================================================
+--- QCBOR.orig/test/float_tests.h
++++ QCBOR/test/float_tests.h
+@@ -15,7 +15,7 @@
+ 
+ #include <stdint.h>
+ 
+-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
++#if 0
+ 
+ /* This tests a large number half-precision values
+  * in the conversion to/from half/double against
+===================================================================
+--- QCBOR.orig/test/float_tests.c
++++ QCBOR/test/float_tests.c
+@@ -36,7 +36,7 @@ MakeTestResultCode(uint32_t   uTestCase,
+ }
+ 
+ 
+-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
++#if 0
+ 
+ #include "half_to_double_from_rfc7049.h"
+ 
+--- QCBOR.orig/test/run_tests.c
++++ QCBOR/test/run_tests.c
+@@ -128,7 +128,7 @@ static test_entry s_tests[] = {
+     TEST_ENTRY(CBORTestIssue134),
+ #endif /* #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+ #ifndef USEFULBUF_DISABLE_ALL_FLOAT
+-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
++#if 0
+    TEST_ENTRY(HalfPrecisionAgainstRFCCodeTest),
+    TEST_ENTRY(FloatValuesTests),
+ #endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
