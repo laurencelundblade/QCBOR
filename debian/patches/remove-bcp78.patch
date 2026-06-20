@@ -1,0 +1,17 @@
+Description: Remove offending copyrighted source
+Author: Brian Sipos <brian.sipos@gmail.com>
+Origin: other
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: QCBOR/test/CMakeLists.txt
+===================================================================
+--- QCBOR.orig/test/CMakeLists.txt
++++ QCBOR/test/CMakeLists.txt
+@@ -24,7 +24,6 @@ add_library(qcbor_test_lib STATIC)
+ target_sources(qcbor_test_lib
+     PRIVATE
+         float_tests.c
+-        half_to_double_from_rfc7049.c
+         qcbor_decode_tests.c
+         qcbor_encode_tests.c
+         run_tests.c
