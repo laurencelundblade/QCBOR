@@ -18,7 +18,7 @@ Description: CBOR encoder/decoder library
  This is a comprehensive, powerful, commercial-quality CBOR encoder and decoder
  that is still suited for small devices.
 
-Package: qcbor-dev
+Package: libqcbor-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
@@ -26,7 +26,7 @@ Depends: libqcbor1 (= ${binary:Version}), ${misc:Depends}
 Description: Development files for the QCBOR library
  These are development files needed to build and link to the QCBOR library.
 
-Package: qcbor-doc
+Package: libqcbor-doc
 Section: doc
 Architecture: all
 Depends: ${misc:Depends}

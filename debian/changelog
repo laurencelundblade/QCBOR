@@ -1,4 +1,4 @@
-qcbor (1.6.1-1ubuntu1) UNRELEASED; urgency=medium
+qcbor (1.6.1-1) UNRELEASED; urgency=medium
 
   * Initial deb packaging.
 
