@@ -10,7 +10,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(qcbor
-    DESCRIPTION "QCBOR"
+    DESCRIPTION "A CBOR encoder/decoder library"
     LANGUAGES C
     VERSION 1.6.1
 )
@@ -179,3 +179,13 @@ install(
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qcbor
 )
 
+
+# =========================================================================
+#    install pkg-config file
+# =========================================================================
+configure_file(cmake/qcbor.pc.in cmake/qcbor.pc @ONLY)
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
