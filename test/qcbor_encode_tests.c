@@ -4631,7 +4631,7 @@ int32_t EncodeIndefiniteStringsTest(void)
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
    uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
-   if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) { // TODO: better error code?
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
       return 80;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */

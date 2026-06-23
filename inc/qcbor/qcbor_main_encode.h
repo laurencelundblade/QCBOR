@@ -530,7 +530,7 @@ QCBOREncode_SetStream(QCBOREncodeContext         *pCtx,
  * a problem.
  *
  * Text lines in Internet protocols (on the wire) are delimited by
- * either a CRLF or just an LF. Officially many protocols specify
+ * either a CRLF or just an LF. Officially, many protocols specify
  * CRLF, but implementations often work with either. CBOR type 3 text
  * can be either line ending, even a mixture of both.
  *
@@ -643,6 +643,8 @@ static void
 QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const char *szString);
 
 
+
+
 /**
  * @brief Add a byte string to the encoded output.
  *
@@ -661,6 +663,7 @@ QCBOREncode_AddSZStringToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, const ch
  * output.  If streaming mode is not enabled or compiled out, this is
  * the same as QCBOREncode_AddBytes().
  *
+ * TODO: document indef
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  */
@@ -687,6 +690,27 @@ QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabe
 static void
 QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
 
+/** See QCBOREncode_AddBytes(). */
+static void
+QCBOREncode_OpenIndefiniteLengthBytes(QCBOREncodeContext *pMe);
+
+/** See QCBOREncode_AddBytes(). */
+static void
+QCBOREncode_OpenIndefiniteLengthBytesInMapSZ(QCBOREncodeContext *pCtx, const char *szLabel);
+
+/** See QCBOREncode_AddBytes(). */
+static void
+QCBOREncode_OpenIndefiniteLengthBytesInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
+
+/** See QCBOREncode_AddBytes(). */
+static void
+QCBOREncode_AddIndefiniteLengthBytesChunk(QCBOREncodeContext *pMe, const UsefulBufC Text);
+
+/** See QCBOREncode_AddBytes(). */
+static void
+QCBOREncode_CloseIndefiniteLengthBytes(QCBOREncodeContext *pMe);
+
+
 
 /**
  * @brief Set up to write a byte string value directly to encoded output.
@@ -695,7 +719,7 @@ QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Use
  * @param[out] pPlace  Pointer and length of place to write byte string value.
  *
  * QCBOREncode_AddBytes() is the normal way to encode a byte string.
- * This is for special cases and by passes some of the pointer safety.
+ * This is for special cases and bypasses some of the pointer safety.
  *
  * The purpose of this is to output the bytes that make up a byte
  * string value directly to the QCBOR output buffer so you don't need
@@ -1789,22 +1813,38 @@ void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 /** @private See qcbor_main_encode.c */
-void
-QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext        *pMe,
-                                               enum QCBORPrivateMajorType uMajorType);
-/** @private See qcbor_main_encode.c */
- void
-QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext         *pMe,
-                                             const UsefulBufC            Chunk,
-                                             enum QCBORPrivateMajorType  uMajorType);
+bool QCBOREncode_Private_InIndefString(QCBOREncodeContext *pMe);
 
-
+/**
+ * @brief Semi-private method to add a chunk to an indefinite-length string.
+ *
+ * @param[in] pMe           The context to add to.
+ * @param[in] Chunk      The string chunk to add.
+ * @param[in] uMajorType     Major  type  of the chunk.
+ *
+ * Major type is text or byte string without the indefinite-length modifier and
+ * must match the type that is open. See QCBOREncode_OpenIndefiniteLengthText()
+ * and QCBOREncode_OpenIndefiniteLengthBytes().
+ *
+ * This is inlined because it reduces to nothing with QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
+ */
 static inline void
-QCBOREncode_Private_CloseIndefiniteLengthString(QCBOREncodeContext        *pMe,
-                                                enum QCBORPrivateMajorType uMajorType)
+QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext               *pMe,
+                                             const UsefulBufC                  Chunk,
+                                             const enum QCBORPrivateMajorType  uMajorType)
 {
-   QCBOREncode_Private_CloseNestingAppend(pMe, (enum QCBORPrivateMajorType)(uMajorType | QCBOR_MT_INDEF_LEN));
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(!QCBOREncode_Private_InIndefString(pMe)) {
+      pMe->uError = QCBOR_ERR_NESTED_TYPE_MISMATCH; // TODO: error code
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* This performs check for text vs byte string */
+   QCBOREncode_Private_AddBuffer(pMe, uMajorType, Chunk);
 }
+
+
 
 /**
  * @brief  Semi-private method to add simple items and floating-point.
@@ -1942,7 +1982,7 @@ QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Usefu
 static inline void
 QCBOREncode_OpenIndefiniteLengthText(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_OpenIndefiniteLengthString(pMe, QCBOR_MT_TEXT_STRING);
+   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_TEXT_STRING, SIZE_MAX);
 }
 
 static inline void
@@ -1968,7 +2008,7 @@ QCBOREncode_AddIndefiniteLengthTextChunk(QCBOREncodeContext *pMe, const UsefulBu
 static inline void
 QCBOREncode_CloseIndefiniteLengthText(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseIndefiniteLengthString(pMe, QCBOR_MT_TEXT_STRING);
+   QCBOREncode_Private_CloseNestingAppend(pMe, QCBOR_Private_WithIndefLen(QCBOR_MT_TEXT_STRING));
 }
 
 
@@ -2081,7 +2121,7 @@ QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Usef
 static inline void
 QCBOREncode_OpenIndefiniteLengthBytes(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_OpenIndefiniteLengthString(pMe, QCBOR_MT_BYTE_STRING);
+   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_BYTE_STRING, SIZE_MAX);
 }
 
 static inline void
@@ -2107,7 +2147,7 @@ QCBOREncode_AddIndefiniteLengthBytesChunk(QCBOREncodeContext *pMe, const UsefulB
 static inline void
 QCBOREncode_CloseIndefiniteLengthBytes(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_CloseIndefiniteLengthString(pMe, QCBOR_MT_BYTE_STRING);
+   QCBOREncode_Private_CloseNestingAppend(pMe, QCBOR_Private_WithIndefLen(QCBOR_MT_BYTE_STRING));
 }
 
 
@@ -2330,6 +2370,7 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
    (pMe->pfnCloseMap)(pMe);
 }
 
+// TODO: deprecated
 static inline void
 QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {
@@ -2383,6 +2424,7 @@ QCBOREncode_OpenArrayIndefiniteLengthInMapN(QCBOREncodeContext *pMe,
    QCBOREncode_OpenArrayIndefiniteLength(pMe);
 }
 
+// TODO: deprecated
 static inline void
 QCBOREncode_CloseArrayIndefiniteLength(QCBOREncodeContext *pMe)
 {

@@ -317,7 +317,8 @@ typedef enum {
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 11,
 
    /** During encoding, the type of close doesn't match what is open. Also
-    * an indefinite-length string chunk is of the wrong type. */
+    * an indefinite-length string chunk is of the wrong type or
+    * no indefinite-length string is open. */
    QCBOR_ERR_CLOSE_MISMATCH = 12,
    QCBOR_ERR_NESTED_TYPE_MISMATCH = 12,
 
