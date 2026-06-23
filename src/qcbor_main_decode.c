@@ -88,7 +88,7 @@
 
 
 /* Embed a version string in the library */
-const char libqcborVersionDecode[] = QCBOR_VERSION_BANNER;
+const char QCBORDecode_VersionString[] = QCBOR_VERSION_BANNER;
 
 
 static bool
