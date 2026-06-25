@@ -69,6 +69,32 @@ cmake --build <build_folder>
 <build_folder>/test/qcbortest
 ```
 
+@anchor VersionsAndChanges
+
+## Version and changes
+
+QCBOR uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
+The master version number appears in inc/qcbor/qcbor_common.h.  It
+also appears in CMakelists.txt, in qcbor.spec and in GitHub releases.
+
+The master change history appears in CHANGELOG.md.  The format is
+based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
+notes in GitHub releases are copied from CHANGELOG.md CHANGELOG.md and
+this convention was adopted in version 1.6.2.
+
+
+@anchor ReleasesAndPackages
+
+## Releases, Install  and Packages
+
+QCBOR is released only as source via GitHub.  Packaging and package
+releases are left up to various distros and packaging providers.
+
+CMake is well supported.  It includes the ability to do simple
+install.  It includes support for packagers.
+
+
+
 @anchor CodeSize
 ## Code Size
 
