@@ -38,6 +38,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "UsefulBuf.h"
 #include "qcbor/qcbor_common.h"
 
@@ -462,6 +463,19 @@ enum QCBORPrivateMajorType {
    QCBOR_MT_ARRAY_CHECK_ONLY = QCBOR_MT_ARRAY | QCBOR_MT_CHECK_ONLY_MAJOR,
    QCBOR_MT_MAP_CHECK_ONLY   = QCBOR_MT_MAP   | QCBOR_MT_CHECK_ONLY_MAJOR
 };
+
+
+static inline enum QCBORPrivateMajorType
+QCBOR_Private_WithIndefLen(enum QCBORPrivateMajorType uMT)
+{
+   return (enum QCBORPrivateMajorType)(uMT | QCBOR_MT_INDEF_LEN);
+}
+
+static inline bool
+QCBOR_Private_IsIndefLen(enum QCBORPrivateMajorType uMT)
+{
+   return (uMT & QCBOR_MT_INDEF_LEN) != 0;
+}
 
 
 /* The number of elements in a C array of a particular type */
