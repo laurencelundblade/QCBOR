@@ -527,18 +527,6 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
 }
 
 
-
-
-/* For indefinite length strings
- - When adding a chunk, the chunk must match what is open
- - If an indef length string is open, what is added must be right
-
- If nested and in
-
-
- */
-
-
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 /**
  * @brief Return true if nested in an indefinite-length string
@@ -564,7 +552,19 @@ bool QCBOREncode_Private_InIndefString(QCBOREncodeContext *pMe)
    return true;
 }
 
-
+/**
+ * @brief Checks related to indefinite-length strings.
+ *
+ * @param pMe         QCBOR encoding context.
+ * @param uMajorType  Major type of item being added.
+ * @param uArgument   CBOR argument of item being added.
+ *
+ * @return QCBOR error
+ *
+ * If the nesting is currently in an indefinite length string, then
+ * checks are performed to be sure the item being added
+ * is allowed in the particular indefinite-length string.
+ */
 static QCBORError
 QCBOREncode_Private_CheckIndefStringNest(QCBOREncodeContext               *pMe,
                                          const enum QCBORPrivateMajorType  uMajorType,
@@ -586,7 +586,7 @@ QCBOREncode_Private_CheckIndefStringNest(QCBOREncodeContext               *pMe,
       return QCBOR_SUCCESS;
    }
 
-   /* Something not allowed in an indefinite-length string */
+   /* Something that is not allowed in an indefinite-length string */
    return QCBOR_ERR_NESTED_TYPE_MISMATCH;
 }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -752,7 +752,6 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext               *pMe,
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
 
-
 #ifndef USEFULBUF_DISABLE_STREAMING
 void
 QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext               *pMe,
@@ -767,8 +766,6 @@ QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext               *pMe,
    }
 }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
-
-
 
 
 
@@ -977,7 +974,6 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext               *pMe,
 }
 
 
-
 /**
  * @brief Private method to close a map without sorting.
  *
@@ -991,6 +987,8 @@ QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseMapOrArray(pMe, QCBOR_MT_MAP);
 }
+
+
 
 
 /**
@@ -1460,7 +1458,6 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 
    QCBOREncode_Private_CloseNestingInsert(pMe, QCBOR_MT_OPEN_BYTES, uAmount);
 }
-
 
 
 /*
