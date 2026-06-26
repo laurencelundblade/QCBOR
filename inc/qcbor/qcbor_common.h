@@ -57,26 +57,35 @@ extern "C" {
  */
 
 
-/**
- * Semantic versioning for QCBOR x.y.z from 1.3.0 on
- */
+/** Semantic versioning for QCBOR x.y.z from 1.3.0 on */
 #define QCBOR_VERSION_MAJOR 2
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
-/* This is an alpha (not ready for commercial use) release of 2.0.0 */
+/*Pre-release tag: "-alpha.1", "-beta.2", "-rc.1" during pre-release;
+ * "" for a final release */
+#define QCBOR_VERSION_PRERELEASE "-beta.1"
 
-/**
- * Constuct version string
- *
- * Use C pre-processor magic to turn the above integers into
- * a version string like "libqcbor 1.6.0"
- */
-#define QCBOR_STR1(x) #x
-#define QCBOR_STR(x) QCBOR_STR1(x)
-#define QCBOR_VERSION_STRING "libqcbor " QCBOR_STR(QCBOR_VERSION_MAJOR) "." \
-                                         QCBOR_STR(QCBOR_VERSION_MINOR) "." \
-                                         QCBOR_STR(QCBOR_VERSION_PATCH) " alpha"
+/* Pre-processor magic turns above integers into a standard version string. */
+#define STR1(x) #x
+#define STR(x) STR1(x)
+
+/** Standard-format version string */
+#define QCBOR_VERSION_STRING  STR(QCBOR_VERSION_MAJOR) "." \
+                              STR(QCBOR_VERSION_MINOR) "." \
+                              STR(QCBOR_VERSION_PATCH) \
+                              QCBOR_VERSION_PRERELEASE
+
+/* Banner embedded in object code for display by 'strings' shell command */
+#define QCBOR_VERSION_BANNER "libqcbor " QCBOR_VERSION_STRING
+
+/** One number for simple scalar version comparison */
+#define QCBOR_VERSION_NUMBER  QCBOR_VERSION_MAJOR * 10000 + \
+                              QCBOR_VERSION_MINOR * 100 + \
+                              QCBOR_VERSION_PATCH)
+
+
+/* This is a beta (not ready for commercial use) release of 2.0.0 */
 
 
 /**
