@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -37,7 +37,7 @@
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
 #include <math.h> /* Only for NAN definition */
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 /**
@@ -48,7 +48,7 @@
 
 
 /*
- * Public function for adding signed integers. See qcbor/qcbor_encode.h
+ * Public function for adding signed integers. See qcbor/qcbor_number_encode.h
  */
 void
 QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
@@ -57,7 +57,7 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
    uint64_t                   uValue;
 
    if(nNum < 0) {
-      /* In CBOR -1 encodes as 0x00 with major type negative int.
+      /* In CBOR, -1 encodes as 0x00 with major type negative int.
        * First add one as a signed integer because that will not
        * overflow. Then change the sign as needed for encoding (the
        * opposite order, changing the sign and subtracting, can cause
@@ -148,7 +148,7 @@ QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
    struct IEEE754_ToInt IntResult;
    uint64_t             uNegValue;
 
-    const uint32_t uSingle = UsefulBufUtil_CopyFloatToUint32(fNum);
+   const uint32_t uSingle = UsefulBufUtil_CopyFloatToUint32(fNum);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(IEEE754_SingleIsNonTrivialNaN(uSingle) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
@@ -223,30 +223,16 @@ QCBOREncode_Private_BigNumberToUInt(const UsefulBufC BigNumber)
  *
  * @param[in]  BigNumber  Big number to check for carry.
  *
- * @return If there is a carry, \c true.
- *
- * If this returns @c true, then @c BigNumber - 1 is one byte shorter
- * than @c BigNumber.
+ * @return true if all zeros, false if anything but zero.
  **/
 static bool
 QCBOREncode_Private_BigNumberCarry(const UsefulBufC BigNumber)
 {
-   bool       bCarry;
-   UsefulBufC SubBigNum;
-
-   // Improvement: rework without recursion?
-
    if(BigNumber.len == 0) {
       return true; /* Subtracting one from zero-length string gives a carry */
    } else {
-      SubBigNum = UsefulBuf_Tail(BigNumber, 1);
-      bCarry = QCBOREncode_Private_BigNumberCarry(SubBigNum);
-      if(UsefulBufC_NTH_BYTE(BigNumber, 0) == 0x00 && bCarry) {
-         /* Subtracting one from 0 gives a carry */
-         return true;
-      } else {
-         return false;
-      }
+      /* true if all zeros, false if not */
+      return UsefulBuf_IsValue(BigNumber, 0x00) == SIZE_MAX;
    }
 }
 
@@ -254,26 +240,28 @@ QCBOREncode_Private_BigNumberCarry(const UsefulBufC BigNumber)
 /**
  * @brief Output negative bignum bytes with subtraction of 1.
  *
- * @param[in] pMe              The decode context.
+ * @param[in] pMe              The encode context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] BigNumber        The negative big number.
+ *
+ * Leading zeros must be stripped before calling this.
+ *
+ * This works on any length without the need of a buffer.
  */
 static void
 QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
                                           const uint8_t       uTagRequirement,
                                           const UsefulBufC    BigNumber)
 {
-   size_t     uLen;
-   bool       bCarry;
-   bool       bCopiedSomething;
-   uint8_t    uByte;
-   UsefulBufC SubString;
-   UsefulBufC NextSubString;
+   size_t      uLen;
+   bool        bCarry;
+   bool        bCopiedSomething;
+   uint8_t     uByte;
+   UsefulBufC  SubString;
+   UsefulBufC  NextSubString;
 
    QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, true);
-
-   /* This works on any length without the need of an additional buffer */
 
    /* This subtracts one, possibly making the string shorter by one
     * 0x01 -> 0x00
@@ -283,19 +271,19 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
     * 0xff -> 0xfe
     * 0xff 0x00 -> 0xfe 0xff
     * 0x01 0x00 0x00 -> 0xff 0xff
-    *
-    * This outputs the big number a byte at a time to be able to operate on
-    * a big number of any length without memory allocation.
     */
 
-   /* Compute the length up front because it goes in the encoded head */
+   /* Output the encoded head first, the length of which might be one less */
    bCarry = QCBOREncode_Private_BigNumberCarry(UsefulBuf_Tail(BigNumber, 1));
    uLen = BigNumber.len;
-   if(bCarry && BigNumber.len > 1 && UsefulBufC_NTH_BYTE(BigNumber, 0) >= 1) {
+   if(bCarry && BigNumber.len > 1 && UsefulBufC_NTH_BYTE(BigNumber, 0) == 1) {
+      /* Length decrements only for 0x01 0x00, 0x01 0x00 0x00, ... */
       uLen--;
    }
-   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_BYTE_STRING, uLen,0);
+   QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_BYTE_STRING, uLen, 0);
 
+   /* Go MSB to LSB, the opposite of usually subtraction so as to work
+    * on any length without a buffer. */
    SubString = BigNumber;
    bCopiedSomething = false;
    while(SubString.len) {
@@ -305,8 +293,7 @@ QCBOREncode_Private_AddTNegativeBigNumber(QCBOREncodeContext *pMe,
       if(bCarry) {
          uByte--;
       }
-      /* This avoids all but the last leading zero. See
-       * QCBOREncode_Private_SkipLeadingZeros() */
+      /* Don't output new leading zero resulting from subtraction */
       if(bCopiedSomething || NextSubString.len == 0 || uByte != 0) {
          UsefulOutBuf_AppendByte(&(pMe->OutBuf), uByte);
          bCopiedSomething = true;
@@ -351,20 +338,20 @@ QCBOREncode_Private_SkipLeadingZeros(const UsefulBufC BigNumber)
 /**
  * @brief Output a big number, preferred or not, with negative offset
  *
- * @param[in] pMe              The decode context.
+ * @param[in] pMe              The encode context.
  * @param[in] uTagRequirement  Either @ref QCBOR_ENCODE_AS_TAG or
  *                             @ref QCBOR_ENCODE_AS_BORROWED.
  * @param[in] bPreferred       Uses preferred serialization if true
- * @param[in] bNegative        Indicates big number is negative or postive.
+ * @param[in] bNegative        Indicates big number is negative or positive.
  * @param[in] BigNumber        The big number.
  *
  * Regardless of whether preferred serialization is used, if the big
- * number is negative, one is subtracted before is output per CBOR
- * convetion for big numbers. This requires a little big number
+ * number is negative, one is subtracted before it is output per CBOR
+ * convention for big numbers. This requires a little big number
  * arithmetic and adds some object code.
  *
  * If preferred serialization is used, then if the number is smaller
- * than UINT64_MAX and postive it is output as type 0 and if it is
+ * than UINT64_MAX and positive it is output as type 0 and if it is
  * equal to or smaller than UINT64_MAX it is output as a type 1
  * integer minus one.
  *
@@ -392,7 +379,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
    BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
    static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-   bIs2exp64 = ! UsefulBuf_Compare(BigNumber, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
+   bIs2exp64 = ! UsefulBuf_Compare(BigNumberNLZ, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
 
    if(bPreferred && (BigNumberNLZ.len <= 8 || (bNegative && bIs2exp64))) {
       if(bIs2exp64) {
@@ -529,4 +516,3 @@ QCBOREncode_Private_AddTExpBigMantissaRaw(QCBOREncodeContext *pMe,
 }
 
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
-
