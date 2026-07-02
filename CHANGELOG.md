@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
+- Removed recursion from negative big number encoding
+- Expand test coverage of big number encoding
+- Source code nits in qcbor_number_encode
+
+### Fixed
+- Fix encoding of negative big nums that are one non-zero byte followed by zeros.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01

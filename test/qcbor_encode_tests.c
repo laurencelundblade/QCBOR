@@ -1013,6 +1013,22 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x20", 1},
    },
    {
+      "4703919738795935662080 and -4703919738795935662080",
+      {"\xff\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      {"\xc2\x49\xff\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xc2\x49\xff\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xc3\x49\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff", 11},
+      {"\xc3\x49\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff", 11},
+   },
+   {
+      "32 and -32",
+      {"\x02\x00", 2},
+      {"\xC2\x42\x02\x00", 4},
+      {"\x19\x02\x00", 3},
+      {"\xC3\x42\x01\xff", 4},
+      {"\x39\x01\xff", 3},
+   },
+   {
       "0 and error for no negative 0",
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
@@ -1044,7 +1060,7 @@ int32_t BigNumEncodeTests(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       const struct BigNumEncodeTest *pTest = &BigNumEncodeTestCases[uTestIndex];
 
-      if(uTestIndex == 6) {
+      if(uTestIndex == 5) {
          EncodedBigNumber.len = 0; /* Line of code so a break point can be set. */
       }
 
