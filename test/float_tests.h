@@ -15,14 +15,6 @@
 
 #include <stdint.h>
 
-#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-
-/* This tests a large number half-precision values
- * in the conversion to/from half/double against
- * the sample code in the CBOR RFC. */
-int32_t HalfPrecisionAgainstRFCCodeTest(void);
-
-#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
 /*

@@ -1,7 +1,7 @@
 /*==============================================================================
  run_tests.h -- test aggregator and results reporting
 
- Copyright (c) 2018-2020, Laurence Lundblade. All rights reserved.
+ Copyright (c) 2018-2020, 2026 Laurence Lundblade. All rights reserved.
 
  SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,9 @@
 /**
  @file run_tests.h
 */
+
+#include <stdint.h>
+#include <stdbool.h>
 
 /**
  @brief Type for function to output a text string
@@ -67,3 +70,14 @@ int RunTestsQCBOR(const char *szTestNames[],
  */
 void PrintSizesQCBOR(OutputStringCB pfOutput, void *pOutCtx);
 
+
+typedef int32_t (test_fun_t)(void);
+
+#define TEST_ENTRY(test_name)  {#test_name, test_name, true}
+#define TEST_ENTRY_DISABLED(test_name)  {#test_name, test_name, false}
+
+typedef struct {
+    const char  *szTestName;
+    test_fun_t  *test_fun;
+    bool         bEnabled;
+} test_entry;
