@@ -134,7 +134,7 @@
 				E776E092214AE07C00E67947 /* inc */,
 				E776E08B214AE06600E67947 /* src */,
 				E776E095214AE0B600E67947 /* test */,
-				E78C22A82FF7930900EFFDA7 /* more-test */,
+				E78C22A82FF7930900EFFDA7 /* more_tests */,
 				E7B6990F2D17321B00D8F78F /* doc */,
 				E743D0E024AC51470017899F /* example */,
 				E776E07D214ADF7F00E67947 /* Products */,
@@ -206,7 +206,7 @@
 			name = test;
 			sourceTree = "<group>";
 		};
-		E78C22A82FF7930900EFFDA7 /* more-test */ = {
+		E78C22A82FF7930900EFFDA7 /* more_tests */ = {
 			isa = PBXGroup;
 			children = (
 				E78C22A92FF7941200EFFDA7 /* half_to_double_from_rfc7049.h */,
@@ -215,8 +215,8 @@
 				E78C22AC2FF7941200EFFDA7 /* more_float_tests.c */,
 				E78C22AD2FF7941200EFFDA7 /* more_tests.c */,
 			);
-			name = "more-test";
-			path = "qdv/more-test";
+			name = more_tests;
+			path = qdv/more_tests;
 			sourceTree = SOURCE_ROOT;
 		};
 		E7B6990F2D17321B00D8F78F /* doc */ = {

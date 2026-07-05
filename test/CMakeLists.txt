@@ -52,16 +52,16 @@ endif()
 
 
 # =========================================================================
-#    Pick up more test from qdv if present
+#    Pick up more tests from qdv if present
 # =========================================================================
-set(MORE_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../qdv/more-test)
+set(MORE_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../qdv/more_tests)
 
-if(EXISTS "${MORE_TEST_DIR}")
-    file(GLOB MORE_TEST_SOURCES CONFIGURE_DEPENDS "${MORE_TEST_DIR}/*.c")
+if(EXISTS "${MORE_TESTS_DIR}")
+    file(GLOB MORE_TEST_SOURCES CONFIGURE_DEPENDS "${MORE_TESTS_DIR}/*.c")
     if(MORE_TEST_SOURCES)
         target_sources(qcbor_test_lib PRIVATE ${MORE_TEST_SOURCES})
-        target_include_directories(qcbor_test_lib PRIVATE ${MORE_TEST_DIR})
-        target_compile_definitions(qcbor_test_lib PRIVATE QCBOR_MORE_TEST)
+        target_include_directories(qcbor_test_lib PRIVATE ${MORE_TESTS_DIR})
+        target_compile_definitions(qcbor_test_lib PRIVATE QCBOR_MORE_TESTS)
     endif()
 endif()
 

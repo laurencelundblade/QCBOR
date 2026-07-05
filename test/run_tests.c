@@ -160,9 +160,9 @@ static test_entry s_tests[] = {
 };
 
 
-#ifdef QCBOR_MORE_TEST
+#ifdef QCBOR_MORE_TESTS
 extern test_entry more_tests[] ;
-#endif /* QCBOR_MORE_TEST */
+#endif /* QCBOR_MORE_TESTS */
 
 /* Test style that returns string on error. Use for UsefulBuf */
 typedef const char * (test_fun2_t)(void);
@@ -249,14 +249,13 @@ RunTestSet(const test_entry *pTestList,
    const char              **szRequestedNames;
    int32_t                   nTestResult;
 
-
    nTestsRun = 0;
    nTestsFailed = 0;
 
    for(pTest = pTestList; pTest->szTestName!= NULL; pTest++) {
       if(szTestNames[0]) {
          /* Some tests have been named */
-         for(szRequestedNames = szTestNames; *szRequestedNames;  szRequestedNames++) {
+         for(szRequestedNames = szTestNames; *szRequestedNames; szRequestedNames++) {
             if(!strcmp(pTest->szTestName, *szRequestedNames)) {
                break; /* Test name matched */
             }
@@ -361,12 +360,11 @@ RunTestsQCBOR(const char     *szTestNames[],
    nTotalTestsRun += nTestsRun;
    nTotalTestsFailed += nTestsFailed;
 
-#ifdef QCBOR_MORE_TEST
+#ifdef QCBOR_MORE_TESTS
    RunTestSet(more_tests, pfOutput, poutCtx, szTestNames, &nTestsFailed, &nTestsRun);
    nTotalTestsRun += nTestsRun;
    nTotalTestsFailed += nTestsFailed;
-#endif /* QCBOR_MORE_TEST */
-
+#endif /* QCBOR_MORE_TESTS */
 
    if(pNumTestsRun) {
       *pNumTestsRun = nTotalTestsRun;
