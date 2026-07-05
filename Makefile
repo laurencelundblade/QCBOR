@@ -39,7 +39,6 @@ TEST_OBJ=test/UsefulBuf_Tests.o \
          test/qcbor_decode_tests.o \
          test/run_tests.o \
          test/float_tests.o \
-         test/half_to_double_from_rfc7049.o \
          example.o \
          tag-examples.o \
          ub-example.o
@@ -151,8 +150,7 @@ test/run_tests.o: test/UsefulBuf_Tests.h test/float_tests.h test/run_tests.h tes
 test/UsefulBuf_Tests.o: test/UsefulBuf_Tests.h inc/qcbor/UsefulBuf.h
 test/qcbor_encode_tests.o: test/qcbor_encode_tests.h $(PUBLIC_INTERFACE)
 test/qcbor_decode_tests.o: test/qcbor_decode_tests.h $(PUBLIC_INTERFACE)
-test/float_tests.o: test/float_tests.h test/half_to_double_from_rfc7049.h $(PUBLIC_INTERFACE)
-test/half_to_double_from_rfc7049.o: test/half_to_double_from_rfc7049.h
+test/float_tests.o: test/float_tests.h $(PUBLIC_INTERFACE)
 
 cmd_line_main.o: test/run_tests.h $(PUBLIC_INTERFACE)
 
