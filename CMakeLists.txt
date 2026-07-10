@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.15)
 project(qcbor
     DESCRIPTION "A CBOR encoder/decoder library"
     LANGUAGES C
-    VERSION 1.6.1
+    VERSION 1.6.2
 )
 
 # =========================================================================

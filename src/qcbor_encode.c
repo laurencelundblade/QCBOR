@@ -43,7 +43,7 @@
  */
 
 /* Embed a version string in the library */
-const char libqcborVersionEncode[] = QCBOR_VERSION_STRING;
+const char libqcborVersionEncode[] = QCBOR_VERSION_BANNER;
 
 /*
  * == Nesting Tracking ==

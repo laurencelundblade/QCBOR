@@ -59,21 +59,24 @@ extern "C" {
  */
 #define QCBOR_VERSION_MAJOR 1
 #define QCBOR_VERSION_MINOR 6
-#define QCBOR_VERSION_PATCH 1
+#define QCBOR_VERSION_PATCH 2
 
-
-/**
- * Constuct version string
- *
- * Use C pre-processor magic to turn the above integers into
- * a version string like "libqcbor 1.6.0"
- */
+/* Pre-processor magic turns above integers into a standard version string. */
 #define STR1(x) #x
 #define STR(x) STR1(x)
-#define QCBOR_VERSION_STRING "libqcbor " STR(QCBOR_VERSION_MAJOR) "." \
-                                         STR(QCBOR_VERSION_MINOR) "." \
-                                         STR(QCBOR_VERSION_PATCH)
 
+/** Standard-format version string */
+#define QCBOR_VERSION_STRING  STR(QCBOR_VERSION_MAJOR) "." \
+                              STR(QCBOR_VERSION_MINOR) "." \
+                              STR(QCBOR_VERSION_PATCH)
+
+/* Banner embedded in object code for display by strings shell command */
+#define QCBOR_VERSION_BANNER "libqcbor " QCBOR_VERSION_STRING
+
+/** One number for simple scalar version comparison */
+#define QCBOR_VERSION_NUMBER  QCBOR_VERSION_MAJOR * 10000 +\
+                              QCBOR_VERSION_MINOR * 100 + \
+                              QCBOR_VERSION_PATCH)
 
 /**
  * This define indicates a version of QCBOR that supports spiffy
