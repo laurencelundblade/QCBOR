@@ -1418,7 +1418,6 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 /*
  * Public function for opening a byte string. See qcbor/qcbor_encode.h
  */
-// TODO: could allow in streaming mode if length was given.
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
@@ -1458,6 +1457,32 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 
    QCBOREncode_Private_CloseNestingInsert(pMe, QCBOR_MT_OPEN_BYTES, uAmount);
 }
+
+
+/*
+ * Public function for opening a byte string. See qcbor/qcbor_encode.h
+ */
+// TODO: inline this by figuring out access to nesting type checking
+void
+QCBOREncode_OpenSizedBytes(QCBOREncodeContext *pMe, size_t uSize, UsefulOutBuf **ppUOutBuf)
+{
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   enum QCBORPrivateMajorType uMajorType = Nesting_GetMajorType(&(pMe->nesting));
+   if((uMajorType & QCBOR_MT_MASK) == QCBOR_MT_BYTE_STRING) {
+      /* It's OK to nest a byte string in any type but
+       * another open byte string. */
+      /* This is true for indefinite-length byte strings too */
+      pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_OPEN_SIZED_BYTES, uSize);
+
+   *ppUOutBuf = &(pMe->OutBuf);
+}
+
+
 
 
 /*

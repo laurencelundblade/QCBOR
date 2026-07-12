@@ -3566,6 +3566,23 @@ OpenCloseBytesTest(void)
       return 11;
    }
 
+// ---- OpenSized -----
+   /* Normal use case -- add a byte string that fits */
+   QCBOREncode_Init(&EC, TestBuf);
+   UsefulOutBuf *pUOB;
+   UsefulBufC Xx = UsefulBuf_FROM_SZ_LITERAL("xxxx");
+   QCBOREncode_OpenSizedBytes(&EC, Xx.len, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, Xx);
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr) {
+      return 33;
+   }
+   if(UsefulBuf_Compare(Encoded, UsefulBuf_FROM_SZ_LITERAL("\x44xxxx"))) {
+      return 2;
+   }
+
+
    return 0;
 }
 
