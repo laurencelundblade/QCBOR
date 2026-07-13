@@ -1445,6 +1445,14 @@ QCBOREncode_Private_CheckByteStringNesting(QCBOREncodeContext *pMe)
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
+   *pPlace = NULLUsefulBuf; /* Set up to return null until assured of success */
+
+   if(pMe->uError) {
+      /* Things below might not work in error state + don't overwrite error */
+      return;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 #ifndef USEFULBUF_DISABLE_STREAMING
    if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED_IN_STREAMING;
@@ -1452,16 +1460,13 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
    }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
-   *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   enum QCBORPrivateMajorType uMajorType = Nesting_GetMajorType(&(pMe->nesting));
-   if(uMajorType == QCBOR_MT_OPEN_BYTES) {
-      /* It's OK to nest a byte string in any type but
-       * another open byte string. */
-      pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
+   pMe->uError = (uint8_t)QCBOREncode_Private_CheckByteStringNesting(pMe);
+   if(pMe->uError) {
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 
    QCBOREncode_Private_OpenNestingInsert(pMe, QCBOR_MT_OPEN_BYTES);
 }
@@ -1489,7 +1494,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 void
 QCBOREncode_OpenSizedBytes(QCBOREncodeContext *pMe, size_t uSize, UsefulOutBuf **ppUOutBuf)
 {
-   *ppUOutBuf = NULL; /* NULL indicates error until success is achieved */
+   *ppUOutBuf = NULL; /* Set up to return null until assured of success */
 
    if(pMe->uError) {
       /* Things below might not work in error state + don't overwrite error */

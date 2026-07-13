@@ -3450,7 +3450,7 @@ OpenCloseBytesTest(void)
    UsefulBuf                  Place;
    UsefulBufC                 Encoded;
    QCBORError                 uErr;
-   UsefulOutBuf               *pUOB;
+   UsefulOutBuf              *pUOB;
 
    /* Normal use case -- add a byte string that fits */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3496,12 +3496,25 @@ OpenCloseBytesTest(void)
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_AddSZString(&EC, "012345678901234567");
    QCBOREncode_OpenBytes(&EC, &Place);
-   /* Don't bother to write any bytes*/
+   /* Don't bother to write any bytes */
    QCBOREncode_CloseBytes(&EC, Place.len+1);
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
       return 6;
    }
+
+   /* Open byte string in error condition */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_CloseMap(&EC); /* Get into error state */
+   QCBOREncode_OpenBytes(&EC, &Place);
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 7;
+   }
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 8;
+   }
+
 
    /* Close a byte string without opening one. */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3510,11 +3523,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 7;
+      return 9;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 107;
+      return 10;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3525,11 +3538,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_Finish(&EC, &Encoded);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
-      return 8;
+      return 11;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 108;
+      return 12;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3541,11 +3554,34 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
-      return 9;
+      return 13;
+   }
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 14;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 109;
+      return 15;
+   }
+#endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
+   /* Try to open a byte string in a byte string */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenSizedBytes(&EC, 2, &pUOB);
+   QCBOREncode_OpenBytes(&EC, &Place);
+   uErr = QCBOREncode_GetErrorState(&EC);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
+      return 20;
+   }
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 25;
+   }
+#else
+   if(uErr != QCBOR_SUCCESS) {
+      return 26;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3568,11 +3604,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 10;
+      return 27;
    }
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
-      return 11;
+      return 28;
    }
 
 
@@ -3583,11 +3619,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseSizedBytes(&EC);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 201;
+      return 29;
    }
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenSizedBytes))) {
-      return 202;
+      return 30;
    }
 
    /* ---- Same, but the payload is written in two segments ---- */
@@ -3598,11 +3634,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseSizedBytes(&EC);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 203;
+      return 31;
    }
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenSizedBytes))) {
-      return 204;
+      return 32;
    }
 
    /* ---- Run the same test but with a NULL buffer (size-computation mode) ---- */
@@ -3613,7 +3649,7 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS ||
       Encoded.len != sizeof(spExpectedForOpenSizedBytes)) {
-      return 205;
+      return 33;
    }
 
    /* ---- Open a byte string with no room left at all ----
@@ -3628,7 +3664,7 @@ OpenCloseBytesTest(void)
    QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
-      return 206;
+      return 34;
    }
 
    QCBOREncode_Init(&EC, TestBuf);
@@ -3636,11 +3672,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_AddSZString(&EC, "012345678901234567890");
    QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
    if(pUOB != NULL) {
-      return 241;
+      return 35;
    }
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
-      return 266;
+      return 36;
    }
 
 
@@ -3650,11 +3686,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseArray(&EC); /* Cause error */
    QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
    if(pUOB != NULL) {
-      return 242;
+      return 50;
    }
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 206;
+      return 51;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARD */
 
@@ -3669,7 +3705,7 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseSizedBytes(&EC);
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
-      return 207;
+      return 52;
    }
 
    /* ---- Close a byte string without opening one ---- */
@@ -3679,11 +3715,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 208;
+      return 53;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 218;
+      return 54;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3695,11 +3731,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_Finish(&EC, &Encoded);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
-      return 209;
+      return 55;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 219;
+      return 56;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3711,11 +3747,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
-      return 210;
+      return 57;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 230;
+      return 58;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3728,11 +3764,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
-      return 210;
+      return 59;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 230;
+      return 60;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3753,13 +3789,13 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 211;
+      return 61;
    }
    /* This produces the exact same bytes as the QCBOREncode_OpenBytes()
     * equivalent test, since both write the same definite-length CBOR. */
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
-      return 212;
+      return 62;
    }
 
    /* ---- Bstr wrap it ---- */
@@ -3771,11 +3807,11 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseBstrWrap2(&EC, false, NULL);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 201;
+      return 80;
    }
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForWrappedOpenSizedBytes))) {
-      return 202;
+      return 81;
    }
 
    return 0;
