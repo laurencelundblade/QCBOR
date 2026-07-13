@@ -3505,13 +3505,16 @@ OpenCloseBytesTest(void)
 
    /* Open byte string in error condition */
    QCBOREncode_Init(&EC, TestBuf);
-   QCBOREncode_CloseMap(&EC); /* Get into error state */
+   /* Get into error state with too many opens*/
+   for(int i = QCBOR_MAX_ARRAY_NESTING + 2; i > 0; i--) {
+      QCBOREncode_OpenMap(&EC);
+   }
    QCBOREncode_OpenBytes(&EC, &Place);
    if(!UsefulBuf_IsNULL(Place)) {
       return 7;
    }
    uErr = QCBOREncode_GetErrorState(&EC);
-   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+   if(uErr != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
       return 8;
    }
 
