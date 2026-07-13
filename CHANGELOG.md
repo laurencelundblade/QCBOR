@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Text in GitHub release notes will be copied from here 
   - Some of the version history from GitHub releases has been copied in here
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
+- QCBOREncode_OpenSizedBytes() to encoded definite-length strings in streaming mode
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)

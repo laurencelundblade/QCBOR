@@ -750,7 +750,7 @@ QCBOREncode_CloseIndefiniteLengthBytes(QCBOREncodeContext *pMe);
  *
  * See also QCBOREncode_OpenSizedBytes().
  *
- * TODO: Use @See for see also references in all headers
+ * TODO: Use @sa for see also references in all headers
  */
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
@@ -787,38 +787,50 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
 
 /**
- * @brief Write a known-length byte string value directly to encoded output.
+ * @brief Set up to write a known-length byte string directly to encoded output.
  *
- * @param[in] pCtx     The encoding context to add the bytes to.
- * @param[in] uSize     The size of the byte string.
- * @param[out] ppUOutBuf   Returned UsefulOutBuf destination for byte string.
+ * @param[in] pCtx        The encoding context to add the bytes to.
+ * @param[in] uSize       The size of the byte string.
+ * @param[out] ppUOutBuf  Returned @ref UsefulOutBuf destination for byte
+ *                        string or @c NULL.
  *
- * QCBOREncode_AddBytes() is the normal way to encode a byte string.
- * This is for special cases where a byte string of known length is
- * written in segments and/or directly to the output buffer. This
- * always outputs definite-length byte strings.
+ * This sets up so a byte string of known length can be encoded as a
+ * definite-length string in a series of chunks. It also allows a byte
+ * string to be witten directly to the output buffer which can avoid
+ * the need for a temporary intermediate buffer.  See
+ * QCBOREncode_AddBytes() for the simple, basic method of encoding
+ * byte strings.
  *
- * Unlike QCBOREncode_OpenBytes(), this works when
- * the encoder is in streaming mode. It allows a
- * definite-length string larger than any in-memory buffer
- * to be encoded.
+ * Unlike QCBOREncode_OpenBytes(), this works when the encoder is in
+ * streaming mode. It allows a definite-length byte string larger than
+ * any in-memory buffer to be encoded.
  *
- * This returns a UsefulOutBuf which is used to write
- * the segments. Each segment should be written
+ * This returns a @ref UsefulOutBuf that is used to write the
+ * segments. @c NULL will be returned in *ppUOutBuf if the encoder is
+ * in the error state, if there is no room left in the output buffer,
+ * or for similar reasons.  The @ref UsefulOutBuf must not be used
+ * after QCBOREncode_CloseSizedBytes() is called.
+ *
+ * Each segment should be written using
  * UsefulOutBuf_AppendUsefulBuf(). Any of the other
- * UsefulOutBuf_AppendXXX() functions can also be used,
- * but not the UsefulOutBuf_InsertXXX() functions.
+ * UsefulOutBuf_AppendXXX() functions may also be used, but not the
+ * UsefulOutBuf_InsertXXX() functions.
  *
- * If the encoder is in streaming mode UsefulOutBuf_AppendDirect() can
- * be used to gain efficiency by avoiding internal
- * copying.
+ * The caller MUST write exactly @c uSize bytes total to @c *ppUOutBuf
+ * before calling QCBOREncode_CloseSizedBytes(). Writing more or
+ * fewer bytes than @c uSize will produce malformed CBOR.
  *
- * UsefulOutBuf_GetOutPlace() may be called on *ppUOutBuf
- * to get a pointer and length destiation to copy to similar
- * to QCBOREncode_OpenBytes(). When this is done,
- * some of the pointer safety is bypassed.
+ * If the encoder is in streaming mode, UsefulOutBuf_AppendDirect()
+ * can be used for greater efficiency, since it avoids a memory copy.
  *
- * Call QCBOREncode_CloseSizedBytes() to complete.
+ * UsefulOutBuf_GetOutPlace() may be called on @c *ppUOutBuf to get a
+ * pointer and length for the destination to copy to, similar to
+ * QCBOREncode_OpenBytes(). Warning: doing so bypasses some of the
+ * pointer safety.
+ *
+ * Call QCBOREncode_CloseSizedBytes() to complete the operation.
+ *
+ * See Also: QCBOREncode_OpenBytes().
  */
 void
 QCBOREncode_OpenSizedBytes(QCBOREncodeContext *pCtx,
@@ -843,12 +855,9 @@ QCBOREncode_OpenSizedBytesInMapN(QCBOREncodeContext *pCtx,
 /**
  *  @brief Close out a known-length byte string written directly to encoded output.
  *
- *  @param[in] pCtx      The encoding context to add the bytes to.
+ *  @param[in] pCtx  The encoding context to add the bytes to.
  *
  * This closes out a call to QCBOREncode_OpenSizedBytes().
- *
- * If there was no call to QCBOREncode_OpenSizedBytes() then
- * @ref QCBOR_ERR_TOO_MANY_CLOSES is set.
  */
 static void
 QCBOREncode_CloseSizedBytes(QCBOREncodeContext *pCtx);
@@ -2185,12 +2194,6 @@ QCBOREncode_OpenIndefiniteLengthBytes(QCBOREncodeContext *pMe)
 }
 
 static inline void
-QCBOREncode_OpenFlowedBytes(QCBOREncodeContext *pMe, size_t uSize)
-{
-   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_BYTE_STRING, uSize);
-}
-
-static inline void
 QCBOREncode_OpenIndefiniteLengthBytesInMapSZ(QCBOREncodeContext *pMe, const char *szLabel)
 {
    QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
@@ -2213,18 +2216,6 @@ QCBOREncode_AddIndefiniteLengthBytesChunk(QCBOREncodeContext *pMe, const UsefulB
    QCBOREncode_AddBytes(pMe, Bytes);
 #endif
 }
-
-static inline void
-QCBOREncode_AddFlowedBytesChunk(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
-{
-
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Bytes, QCBOR_MT_BYTE_STRING);
-#else
-   QCBOREncode_AddBytes(pMe, Bytes);
-#endif
-}
-
 
 static inline void
 QCBOREncode_CloseIndefiniteLengthBytes(QCBOREncodeContext *pMe)
@@ -2500,7 +2491,7 @@ QCBOREncode_CloseFlowedMap(QCBOREncodeContext *pMe)
 static inline void
 QCBOREncode_BstrWrap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_OpenNestingInsert(pMe, QCBOR_MT_BYTE_STRING);
+   QCBOREncode_Private_OpenNestingInsert(pMe, QCBOR_MT_BSTR_WRAP);
 }
 
 static inline void
