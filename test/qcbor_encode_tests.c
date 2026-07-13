@@ -3640,21 +3640,23 @@ OpenCloseBytesTest(void)
    }
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
-      return 206;
+      return 266;
    }
 
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    /* ---- Open a byte string with encoder in error state ---- */
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_CloseArray(&EC); /* Cause error */
    QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
    if(pUOB != NULL) {
-      return 241;
+      return 242;
    }
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
       return 206;
    }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARD */
 
    /* ---- Try to write more bytes than fit in the output buffer ---- */
    QCBOREncode_Init(&EC, TestBuf);
