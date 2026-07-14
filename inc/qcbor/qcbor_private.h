@@ -38,6 +38,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "UsefulBuf.h"
 #include "qcbor/qcbor_common.h"
 
@@ -446,15 +447,17 @@ enum QCBORPrivateMajorType {
 
    QCBOR_MT_MASK = 0x07,
 
-   QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
-   QCBOR_MT_WRAP             = 0x20,
-   QCBOR_MT_OPENED           = 0x40,
+   QCBOR_MT_CHECK_ONLY_MAJOR = 0x08,
+   QCBOR_MT_WRAP             = 0x10,
+   QCBOR_MT_OPENED           = 0x20,
+   QCBOR_MT_OPENED_SIZED     = 0x40,
    QCBOR_MT_INDEF_LEN        = 0x80,
 
    QCBOR_MT_INDEF_ARRAY  = CBOR_MAJOR_TYPE_ARRAY + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_INDEF_MAP    = CBOR_MAJOR_TYPE_MAP   + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_BSTR_WRAP    = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_WRAP,
    QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
+   QCBOR_MT_OPEN_SIZED_BYTES = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED_SIZED,
    QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN,
@@ -462,6 +465,19 @@ enum QCBORPrivateMajorType {
    QCBOR_MT_ARRAY_CHECK_ONLY = QCBOR_MT_ARRAY | QCBOR_MT_CHECK_ONLY_MAJOR,
    QCBOR_MT_MAP_CHECK_ONLY   = QCBOR_MT_MAP   | QCBOR_MT_CHECK_ONLY_MAJOR
 };
+
+
+static inline enum QCBORPrivateMajorType
+QCBOR_Private_WithIndefLen(enum QCBORPrivateMajorType uMT)
+{
+   return (enum QCBORPrivateMajorType)(uMT | QCBOR_MT_INDEF_LEN);
+}
+
+static inline bool
+QCBOR_Private_IsIndefLen(enum QCBORPrivateMajorType uMT)
+{
+   return (uMT & QCBOR_MT_INDEF_LEN) != 0;
+}
 
 
 /* The number of elements in a C array of a particular type */

@@ -97,6 +97,10 @@ Replaced by RFC 8949.
 
 Full API documentation is at https://www.securitytheory.com/qcbor-docs/
 
+## Building, Releases and Packages
+
+See doc/Building.md
+
 ## Comparison to TinyCBOR
 
 TinyCBOR is a popular widely used implementation. Like QCBOR,

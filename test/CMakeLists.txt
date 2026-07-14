@@ -15,6 +15,7 @@ if (NOT (BUILD_QCBOR_TEST STREQUAL "LIB" OR BUILD_QCBOR_TEST STREQUAL "APP"))
 endif()
 
 
+
 # =========================================================================
 #    Build the test cases as a library
 # =========================================================================
@@ -24,7 +25,6 @@ add_library(qcbor_test_lib STATIC)
 target_sources(qcbor_test_lib
     PRIVATE
         float_tests.c
-        half_to_double_from_rfc7049.c
         qcbor_decode_tests.c
         qcbor_encode_tests.c
         run_tests.c
@@ -47,6 +47,21 @@ if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
     check_symbol_exists(ldexp "math.h" QCBOR_TEST_HAVE_MATH)
     if(NOT QCBOR_TEST_HAVE_MATH)
         target_link_libraries(qcbor_test_lib PUBLIC m)
+    endif()
+endif()
+
+
+# =========================================================================
+#    Pick up more tests from qdv if present
+# =========================================================================
+set(MORE_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../qdv/more_tests)
+
+if(EXISTS "${MORE_TESTS_DIR}")
+    file(GLOB MORE_TEST_SOURCES CONFIGURE_DEPENDS "${MORE_TESTS_DIR}/*.c")
+    if(MORE_TEST_SOURCES)
+        target_sources(qcbor_test_lib PRIVATE ${MORE_TEST_SOURCES})
+        target_include_directories(qcbor_test_lib PRIVATE ${MORE_TESTS_DIR})
+        target_compile_definitions(qcbor_test_lib PRIVATE QCBOR_MORE_TESTS)
     endif()
 endif()
 

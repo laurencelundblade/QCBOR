@@ -42,7 +42,7 @@
 
 
 /* Embed a version string in the library */
-const char QCBOREncode_VersionString[] = QCBOR_VERSION_BANNER;
+const char QCBOREncode_VersionString[] = QCBOR_VERSION_STRING;
 
 
 /*
@@ -527,29 +527,93 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
 }
 
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 /**
- * @brief Check for errors when decreasing nesting.
+ * @brief Return true if nested in an indefinite-length string
  *
  * @param pMe          QCBOR encoding context.
- * @param uMajorType  The major type of the nesting.
+ */
+bool QCBOREncode_Private_InIndefString(QCBOREncodeContext *pMe)
+{
+   enum QCBORPrivateMajorType uOpenMajorType;
+
+   if(!Nesting_IsInNest(&(pMe->nesting))) {
+      /* No nesting, so we can't be in an indef-length string */
+      return false;
+   }
+
+   uOpenMajorType = Nesting_GetMajorType(&(pMe->nesting));
+   if(uOpenMajorType != QCBOR_MT_INDEF_BYTES && uOpenMajorType != QCBOR_MT_INDEF_TEXT) {
+      /* Nested, but the type open is not an indef-length string */
+      return false;
+   }
+
+   /* An indef-length string is open */
+   return true;
+}
+
+/**
+ * @brief Checks related to indefinite-length strings.
+ *
+ * @param pMe         QCBOR encoding context.
+ * @param uMajorType  Major type of item being added.
+ * @param uArgument   CBOR argument of item being added.
+ *
+ * @return QCBOR error
+ *
+ * If the nesting is currently in an indefinite length string, then
+ * checks are performed to be sure the item being added
+ * is allowed in the particular indefinite-length string.
+ */
+static QCBORError
+QCBOREncode_Private_CheckIndefStringNest(QCBOREncodeContext               *pMe,
+                                         const enum QCBORPrivateMajorType  uMajorType,
+                                         const uint64_t                    uArgument)
+{
+   if(!QCBOREncode_Private_InIndefString(pMe)) {
+      /* Not nested in an indefinite-length string -- nothing to test */
+      return QCBOR_SUCCESS;
+   }
+
+   if(uMajorType == QCBOR_MT_SIMPLE_BREAK && uArgument == CBOR_SIMPLE_BREAK) {
+      /* Break is allowed here */
+      return QCBOR_SUCCESS;
+   }
+
+   enum QCBORPrivateMajorType uOpenType = Nesting_GetMajorType(&(pMe->nesting));
+   if(uOpenType == QCBOR_Private_WithIndefLen(uMajorType)) {
+      /* Strings that match the open type are allowed here */
+      return QCBOR_SUCCESS;
+   }
+
+   /* Something that is not allowed in an indefinite-length string */
+   return QCBOR_ERR_NESTED_TYPE_MISMATCH;
+}
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
+/**
+ * @brief Check for errors when closing nesting.
+ *
+ * @param pMe          QCBOR encoding context.
+ * @param uMajorType  The major type of the operation.
  *
  * Check that there is no previous error, that there is actually some
- * nesting and that the major type of the opening of the nesting
+ * nesting. and that the major type of the opening of the nesting
  * matches the major type of the nesting being closed.
  *
  * This is called when closing maps, arrays, byte string wrapping and
  * open/close of byte strings.
  */
-// TODO: inline this -- it reduces to nothing with QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 static bool
-QCBOREncode_Private_CheckNestingType(QCBOREncodeContext               *pMe,
-                                     const enum QCBORPrivateMajorType  uMajorType)
+QCBOREncode_Private_CloseTypeCheck(QCBOREncodeContext               *pMe,
+                                   const enum QCBORPrivateMajorType  uMajorType)
 {
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(pMe->uError != QCBOR_SUCCESS) {
       return true;
    }
 
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(!Nesting_IsInNest(&(pMe->nesting))) {
       pMe->uError = QCBOR_ERR_TOO_MANY_CLOSES;
       return true;
@@ -584,18 +648,29 @@ QCBOREncode_Private_CheckNestingType(QCBOREncodeContext               *pMe,
 
 
 /**
- * @brief Append the CBOR head, the major type and argument
+ * @brief Append a CBOR item head (the major type and argument).
  *
  * @param pMe         Encoder context.
- * @param uMajorType  Major type to insert.
- * @param uArgument   The argument (an integer value or a length).
+ * @param uMajorType  Major type to append.
+ * @param uArgument   The CBOR argument.
  * @param uMinLen     Minimum number of bytes for encoding the CBOR argument.
  *
- * This formats the CBOR "head" and appends it to the output.
+ * This function formats the CBOR "head" and appends it to the output. The
+ * heads of all items are emitted through this function.
  *
- * This also increments the array/map item counter in most cases.
+ * It increments the array/map item counter, except for tags and
+ * indefinite-length items, which do not count toward the array/map counters.
  *
- * uArgument is ignored if uMajorType has QCBOR_INDEFINITE_LEN_TYPE_MODIFIER or'd in.
+ * Because every item's head passes through here, this is also where checks
+ * for incorrect use of indefinite lengths are performed.
+ *
+ * uArgument may hold an integer value to be CBOR-encoded, the length of an
+ * array, map or string, a tag number, or the bit pattern of a floating-point
+ * value.
+ *
+ * If uMajorType has QCBOR_MT_INDEF_LEN set, then uArgument is unused: an
+ * indefinite-length map, array or string is being opened or closed, and no
+ * length applies.
  */
 void
 QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
@@ -604,39 +679,36 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
                                    const uint8_t                     uMinLen)
 {
    /* A stack buffer large enough for a CBOR head */
-   UsefulBuf_MAKE_STACK_UB  (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
+   UsefulBuf_MAKE_STACK_UB    (pBufferForEncodedHead, QCBOR_HEAD_BUFFER_SIZE);
+
+   const bool bIsIndefinite = QCBOR_Private_IsIndefLen(uMajorType);
+   const bool bIsTag        = (uMajorType == QCBOR_MT_TAG);
+   const bool bIsSizedBytes = (uMajorType == QCBOR_MT_OPEN_SIZED_BYTES);
+
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return;
+   }
 
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS &&
-      uMajorType & QCBOR_MT_INDEF_LEN) {
+   if((pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS) &&
+      bIsIndefinite) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
 
-   /* Make sure right type of string is added when encoding
-    * indefinite-length strings. Have to do this here to catch all the
-    * things that are not indef strings
-   */
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
-   enum QCBORPrivateMajorType uMajorOpen = Nesting_GetMajorType(&(pMe->nesting));
-   if(uMajorOpen == QCBOR_MT_INDEF_BYTES ||
-      uMajorOpen == QCBOR_MT_INDEF_TEXT) {
-      /* We are nested in an indefinite-length string. Unlike all
-       * other nesting only break and strings are allowed here. */
-      if(uArgument != CBOR_SIMPLE_BREAK) {
-         if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType | QCBOR_MT_INDEF_LEN)) {
-            return;
-         }
-      }
+   pMe->uError = (uint8_t)QCBOREncode_Private_CheckIndefStringNest(pMe, uMajorType, uArgument);
+   if(pMe->uError != QCBOR_SUCCESS) {
+      return;
    }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
    UsefulBufC EncodedHead = QCBOREncode_EncodeHead(pBufferForEncodedHead,
-                                                    (uint8_t)uMajorType,
-                                                    uMinLen,
-                                                    uArgument);
+                                                   (uint8_t)uMajorType,
+                                                   uMinLen,
+                                                   uArgument);
 
    /* No check for EncodedHead == NULLUsefulBufC is performed here to
     * save object code. It is very clear that pBufferForEncodedHead is
@@ -647,11 +719,11 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
 
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), EncodedHead);
 
-   if(!(uMajorType & QCBOR_MT_INDEF_LEN || uMajorType == QCBOR_MT_TAG)) {
+   if(!bIsTag && !bIsIndefinite && !bIsSizedBytes) {
       /* Don't increment the map count for tag or break because that
        * is not needed. Don't do it for indefinite-length arrays and
        * maps because it is done elsewhere. This is never called when
-       * opening definite-length arrays and maps.
+       * opening definite-length arrays and maps except SizedBytes.
        */
       QCBOREncode_Private_IncrementMapOrArrayCount(pMe);
    }
@@ -661,7 +733,7 @@ QCBOREncode_Private_AppendCBORHead(QCBOREncodeContext               *pMe,
 /**
  * @brief Semi-private method to add a buffer full of bytes to encoded output.
  *
- * @param[in] pMe       The encoding context to add the string to.
+ * @param[in] pMe        The encoding context to add the string to.
  * @param[in] uMajorType The CBOR major type of the bytes.
  * @param[in] Bytes      The bytes to add.
  *
@@ -680,7 +752,6 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext               *pMe,
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, Bytes.len, 0);
    UsefulOutBuf_AppendUsefulBuf(&(pMe->OutBuf), Bytes);
 }
-
 
 #ifndef USEFULBUF_DISABLE_STREAMING
 void
@@ -756,7 +827,7 @@ QCBOREncode_Private_OpenNestingCommon(QCBOREncodeContext *pMe, const enum QCBORP
 
 
 /**
- * @brief Semi-private method to open a map, array or bstr-wrapped CBOR
+ * @brief Semi-private method to open a map, array or bstr-wrapped CBOR.
  *
  * @param[in] pMe        The context to add to.
  * @param[in] uMajorType  The major CBOR type to close
@@ -780,14 +851,14 @@ QCBOREncode_Private_OpenNestingInsert(QCBOREncodeContext *pMe, const enum QCBORP
 
 
 /**
- * @brief Semi-private method to open an array or map where length doesn't have to be inserted.
+ * @brief Semi-private method to open a string, array or map where length doesn't have to be inserted later.
  *
  * @param[in] pMe        The context to add to.
  * @param[in] uMajorType  The major CBOR type to close
  * @param[in] uLength  The length or @c SIZE_MAX if indefinite length
  *
  * The outputs the CBOR head for arrays and maps that are either indefinite or
- * definite with a known length.sy
+ * definite with a known length.
  */
 void
 QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext         *pMe,
@@ -795,11 +866,10 @@ QCBOREncode_Private_OpenNestingAppend(QCBOREncodeContext         *pMe,
                                       const size_t                uLength)
 {
    if(uLength == SIZE_MAX) {
-      uMajorType |= QCBOR_MT_INDEF_LEN;
+      uMajorType = QCBOR_Private_WithIndefLen(uMajorType);
    }
 
-   /* This ignores uLength when QCBOR_INDEFINITE_LEN_TYPE_MODIFIER is
-    * set in uMajorType. */
+   /* This call ignores uLength when QCBOR_MT_INDEF_LEN is set in uMajorType */
    QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uLength, 0);
    if(pMe->uError) {
       return;
@@ -827,7 +897,7 @@ QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext              *pMe,
                                        const enum QCBORPrivateMajorType uMajorType,
                                        const size_t                     uLen)
 {
-   if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
+   if(QCBOREncode_Private_CloseTypeCheck(pMe, uMajorType)) {
       return;
    }
 
@@ -854,30 +924,32 @@ QCBOREncode_Private_CloseNestingInsert(QCBOREncodeContext              *pMe,
 
 
 /**
- * @brief Semi-private method to close an array or map where length doesn't need to be inserted.
+ * @brief Semi-private method to close nesting without update/insert of length.
  *
  * @param[in] pMe           The context to add to.
  * @param[in] uMajorType     The major CBOR type to close.
  *
- * Call QCBOREncode_CloseArrayIndefiniteLength() or
- * QCBOREncode_CloseMapIndefiniteLength() instead of this.
+ * For indefinite-length maps, arrays and strings, this inserts the break. For
+ * definite-length arrays and maps this is only called when the length was
+ * known when the array/map was known when it was opened.
+ *
+ * This also performs error checks and book keeping for the nesting.
  */
 void
 QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext               *pMe,
                                        const enum QCBORPrivateMajorType  uMajorType)
 {
-   if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType)) {
+   if(QCBOREncode_Private_CloseTypeCheck(pMe, uMajorType)) {
       return;
    }
 
-   enum QCBORPrivateMajorType uOpened = Nesting_GetMajorType(&(pMe->nesting));
-
-   if(uOpened & QCBOR_MT_INDEF_LEN) {
+   /* Check above made sure there is nesting so Nesting_GetMajorType() is OK */
+   if(QCBOR_Private_IsIndefLen(Nesting_GetMajorType(&(pMe->nesting)))) {
 #if ! (defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
       /* Append the break marker */
       QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
 #else
-      /* Not correct for strings; don't waste object code for right error */
+      /* Not correct error code for indef len strings; don't waste object code for right error */
       pMe->uError = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
       return;
 #endif
@@ -903,7 +975,6 @@ QCBOREncode_Private_CloseMapOrArray(QCBOREncodeContext               *pMe,
 }
 
 
-
 /**
  * @brief Private method to close a map without sorting.
  *
@@ -917,6 +988,8 @@ QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe)
 {
    QCBOREncode_Private_CloseMapOrArray(pMe, QCBOR_MT_MAP);
 }
+
+
 
 
 /**
@@ -1289,7 +1362,7 @@ QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
    const size_t uBstrLen = uEndPosition - uInsertPosition;
 
    /* Actually insert */
-   QCBOREncode_Private_CloseNestingInsert(pMe, CBOR_MAJOR_TYPE_BYTE_STRING, uBstrLen);
+   QCBOREncode_Private_CloseNestingInsert(pMe, QCBOR_MT_BSTR_WRAP, uBstrLen);
 
    if(pWrappedCBOR) {
       /* Return pointer and length to the enclosed encoded CBOR. The
@@ -1318,7 +1391,7 @@ void
 QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(QCBOREncode_Private_CheckNestingType(pMe, CBOR_MAJOR_TYPE_BYTE_STRING)) {
+   if(QCBOREncode_Private_CloseTypeCheck(pMe, QCBOR_MT_BSTR_WRAP)) {
       return;
    }
 
@@ -1331,7 +1404,7 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
     * QCBOREncode_BstrWrapInMapSZ() or QCBOREncode_BstrWrapInMapN(). It
     * can't undo the labels they add. It also doesn't catch the error
     * of using it this way.  QCBOREncode_CancelBstrWrap() is used
-    * infrequently and the the result is incorrect CBOR, not a
+    * infrequently and the result is incorrect CBOR, not a
     * security hole, so no extra code or state is added to handle this
     * condition.
     */
@@ -1341,65 +1414,45 @@ QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
    Nesting_Decrement(&(pMe->nesting));
 }
 
-
-/**
- * @brief Semi-private method to start encoding an indefinite-length string.
- *
- * @param[in] pMe           The context to add to.
- * @param[in] uMajorType     Major  type  of the chunk.
- *
- * Major type is text or byte string without the indefinite-length modifier.  Used by
- * QCBOREncode_OpenIndefiniteLengthText()
- * and QCBOREncode_OpenIndefiniteLengthBytes().
- */
-void
-QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext         *pMe,
-                                               enum QCBORPrivateMajorType  uMajorType)
-{
-   uMajorType |= QCBOR_MT_INDEF_LEN;
-
-   QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, 0, 0);
-   if(pMe->uError) {
-      return;
-   }
-
-   QCBOREncode_Private_OpenNestingCommon(pMe, uMajorType);
-}
-
-
-/**
- * @brief Semi-private method to add a chunk to an indefinite-length string.
- *
- * @param[in] pMe           The context to add to.
- * @param[in] Chunk      The string chunk to add.
- * @param[in] uMajorType     Major  type  of the chunk.
- *
- * Major type is text or byte string without the indefinite-length modifier and
- * must match the type that is open. See QCBOREncode_OpenIndefiniteLengthText()
- * and QCBOREncode_OpenIndefiniteLengthBytes().
- */
-void
-QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext               *pMe,
-                                             const UsefulBufC                  Chunk,
-                                             const enum QCBORPrivateMajorType  uMajorType)
-{
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType | QCBOR_MT_INDEF_LEN)) {
-      return;
-   }
-#endif
+static QCBORError
+QCBOREncode_Private_CheckByteStringNesting(QCBOREncodeContext *pMe)
+{
+   enum QCBORPrivateMajorType uMajorType = Nesting_GetMajorType(&(pMe->nesting));
 
-   QCBOREncode_Private_AddBuffer(pMe, uMajorType, Chunk);
+   if(uMajorType == QCBOR_MT_BSTR_WRAP) {
+      /* It's OK to have open a byte string in a wrapping byte string */
+      return QCBOR_SUCCESS;
+   }
+
+   uMajorType &= QCBOR_MT_MASK;
+
+   if((uMajorType == QCBOR_MT_BYTE_STRING || uMajorType == QCBOR_MT_TEXT_STRING)) {
+      /* Not OK to open in any text string or other byte string */
+      return QCBOR_ERR_OPEN_BYTE_STRING;
+   }
+
+   /* OK to open in arrays and maps */
+   return QCBOR_SUCCESS;
 }
+
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
 
 /*
  * Public function for opening a byte string. See qcbor/qcbor_encode.h
  */
-// TODO: could allow in streaming mode if length was given.
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
 {
+   *pPlace = NULLUsefulBuf; /* Set up to return null until assured of success */
+
+   if(pMe->uError) {
+      /* Things below might not work in error state + don't overwrite error */
+      return;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 #ifndef USEFULBUF_DISABLE_STREAMING
    if( UsefulOutBuf_IsStreaming(&(pMe->OutBuf))) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED_IN_STREAMING;
@@ -1407,16 +1460,13 @@ QCBOREncode_OpenBytes(QCBOREncodeContext *pMe, UsefulBuf *pPlace)
    }
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
-   *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   enum QCBORPrivateMajorType uMajorType = Nesting_GetMajorType(&(pMe->nesting));
-   if(uMajorType == QCBOR_MT_OPEN_BYTES) {
-      /* It's OK to nest a byte string in any type but
-       * another open byte string. */
-      pMe->uError = QCBOR_ERR_OPEN_BYTE_STRING;
+   pMe->uError = (uint8_t)QCBOREncode_Private_CheckByteStringNesting(pMe);
+   if(pMe->uError) {
       return;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   *pPlace = UsefulOutBuf_GetOutPlace(&(pMe->OutBuf));
 
    QCBOREncode_Private_OpenNestingInsert(pMe, QCBOR_MT_OPEN_BYTES);
 }
@@ -1436,6 +1486,39 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pMe, const size_t uAmount)
 
    QCBOREncode_Private_CloseNestingInsert(pMe, QCBOR_MT_OPEN_BYTES, uAmount);
 }
+
+
+/*
+ * Public function for opening a byte string. See qcbor/qcbor_encode.h
+ */
+void
+QCBOREncode_OpenSizedBytes(QCBOREncodeContext *pMe, size_t uSize, UsefulOutBuf **ppUOutBuf)
+{
+   *ppUOutBuf = NULL; /* Set up to return null until assured of success */
+
+   if(pMe->uError) {
+      /* Things below might not work in error state + don't overwrite error */
+      return;
+   }
+
+   const enum UsefulBufErr UBErr = UsefulOutBuf_GetError(&(pMe->OutBuf));
+   if(UBErr) {
+      pMe->uError = (uint8_t)UBErr;
+      return;
+   }
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   pMe->uError = (uint8_t)QCBOREncode_Private_CheckByteStringNesting(pMe);
+   if(pMe->uError) {
+      return;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_OPEN_SIZED_BYTES, uSize);
+
+   *ppUOutBuf = &(pMe->OutBuf);
+}
+
 
 
 
