@@ -1317,11 +1317,11 @@ QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
 void
 QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(QCBOREncode_Private_CheckNestingType(pMe, CBOR_MAJOR_TYPE_BYTE_STRING)) {
       return;
    }
 
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
    if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
       pMe->uError = QCBOR_ERR_CANNOT_CANCEL;
@@ -1383,9 +1383,12 @@ QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext               *p
                                              const UsefulBufC                  Chunk,
                                              const enum QCBORPrivateMajorType  uMajorType)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(QCBOREncode_Private_CheckNestingType(pMe, uMajorType | QCBOR_MT_INDEF_LEN)) {
       return;
    }
+#endif
+
    QCBOREncode_Private_AddBuffer(pMe, uMajorType, Chunk);
 }
 

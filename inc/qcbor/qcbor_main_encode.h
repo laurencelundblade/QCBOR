@@ -375,7 +375,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
 
 /**
- * Initialize the encoder.
+ * @brief Initialize the encoder.
  *
  * @param[in,out]  pCtx     The encoder context to initialize.
  * @param[in]      Storage  The buffer into which the encoded result
@@ -601,6 +601,7 @@ QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel
 static void
 QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
 
+/** See QCBOREncode_AddText(). */
 static void
 QCBOREncode_OpenIndefiniteLengthText(QCBOREncodeContext *pMe);
 
@@ -624,7 +625,7 @@ QCBOREncode_CloseIndefiniteLengthText(QCBOREncodeContext *pMe);
 
 
 /**
- * @brief  Add a UTF-8 text string to the encoded output.
+ * @brief  Add a NULL-terminated string to the encoded output.
  *
  * @param[in] pCtx      The encoding context to add the text to.
  * @param[in] szString  Null-terminated text to add.
@@ -689,7 +690,7 @@ QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, Use
 
 
 /**
- * @brief Set up to write a byte string value directly to encoded output.
+ * @brief Set up to write a byte string directly to encoded output.
  *
  * @param[in] pCtx     The encoding context to add the bytes to.
  * @param[out] pPlace  Pointer and length of place to write byte string value.
@@ -757,7 +758,7 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
 
 /**
- * @brief  Add a standard Boolean.
+ * @brief  Add a Boolean to the encoded output.
  *
  * @param[in] pCtx  The encoding context to add the Boolean to.
  * @param[in] b     true or false from @c <stdbool.h>.
@@ -829,7 +830,7 @@ QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
 /**
- * @brief Add a simple value.
+ * @brief Add a simple value to the encoded output.
  *
  * @param[in] pCtx    The encode context.
  * @param[in] uNum   The simple value.
@@ -863,7 +864,7 @@ QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- * @brief  Indicates that the next items added are in an array.
+ * @brief  Open an array.
  *
  * @param[in] pCtx The encoding context to open the array in.
  *
@@ -908,7 +909,7 @@ QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel);
 
 
 /**
- * @brief Close an open array.
+ * @brief Close an array.
  *
  * @param[in] pCtx The encoding context to close the array in.
  *
@@ -935,7 +936,7 @@ QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 
 
 /**
- * @brief  Indicates that the next items added are in a map.
+ * @brief  Open a map.
  *
  * @param[in] pCtx The encoding context to open the map in.
  *
@@ -978,7 +979,7 @@ QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
 /**
- * @brief Close an open map.
+ * @brief Close a map.
  *
  * @param[in] pCtx The encoding context to close the map in.
  *
@@ -1010,8 +1011,8 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  * same as QCBORENcode_OpenArray() except the length is given
  * at the time it is opened.
  *
- * WARNING: the correct number of array elements must be output.
- * If not, incorrect CBOR will be produced.
+ * WARNING: the correct number of array elements must be output
+ * if the length was given. If not, incorrect CBOR will be produced.
  *
  * If @c uLength is @c SIZE_MAX, an indefinite-length array is
  * opened.
@@ -1057,8 +1058,8 @@ QCBOREncode_CloseFlowedArray(QCBOREncodeContext *pCtx);
  * same as QCBORENcode_OpenMap() except the length is given
  * at the time it is opened.
  *
- * WARNING: the correct number of map elements must be output.
- * If not, incorrect CBOR will be produced.
+ * WARNING: the correct number of map elements must be output if
+ * a length was given. If not, incorrect CBOR will be produced.
  *
  * If @c uLength is @c SIZE_MAX, an indefinite-length map is
  * opened.
@@ -1086,7 +1087,7 @@ QCBOREncode_OpenFlowedMapMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- * @brief Close an open flowed map.
+ * @brief Close an indefinite or know-length map.
  *
  * @param[in] pCtx The encoding context to close the map in.
  *
@@ -1131,7 +1132,7 @@ QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pCtx);
 
 
 /**
- * @brief Indicate start of encoded CBOR to be wrapped in a bstr.
+ * @brief Open to have following items byte-string wrapped.
  *
  * @param[in] pCtx The encoding context to open the bstr-wrapped CBOR in.
  *
@@ -1181,7 +1182,7 @@ QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
 /**
- * @brief Close a wrapping bstr.
+ * @brief Close byte string wrapping.
  *
  * @param[in] pCtx              The encoding context to close of bstr wrapping in.
  * @param[in] bIncludeCBORHead  Include the encoded CBOR head of the bstr
@@ -1387,7 +1388,7 @@ QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 
 /**
- * @brief Get the encoded CBOR and error status.
+ * @brief Get the size of what has been encoded.
  *
  * @param[in] pCtx          The context to finish encoding with.
  * @param[out] uEncodedLen  The length of the encoded or potentially
@@ -1753,6 +1754,7 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext         *pCtx,
                               UsefulBufC                  Bytes);
 
 #ifndef USEFULBUF_DISABLE_STREAMING
+/** @private See qcbor_main_encode.c */
 void
 QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext               *pMe,
                                       const enum QCBORPrivateMajorType  uMajorType,
@@ -1784,7 +1786,7 @@ QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext         *pCtx,
 void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
 
-/** @private See qcbor_main_encode.c */
+/** @private (not really private; avoiding dependency on qcbor_number_encode.h TODO: hande this better? */
 void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
@@ -1798,7 +1800,7 @@ QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext         *pMe,
                                              const UsefulBufC            Chunk,
                                              enum QCBORPrivateMajorType  uMajorType);
 
-
+/** @private See qcbor_main_encode.c */
 static inline void
 QCBOREncode_Private_CloseIndefiniteLengthString(QCBOREncodeContext        *pMe,
                                                 enum QCBORPrivateMajorType uMajorType)
@@ -1962,7 +1964,11 @@ QCBOREncode_OpenIndefiniteLengthTextInMapN(QCBOREncodeContext *pMe, int64_t nLab
 static inline void
 QCBOREncode_AddIndefiniteLengthTextChunk(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Text, QCBOR_MT_TEXT_STRING);
+#else
+   QCBOREncode_AddText(pMe, Text);
+#endif
 }
 
 static inline void
@@ -2101,7 +2107,11 @@ QCBOREncode_OpenIndefiniteLengthBytesInMapN(QCBOREncodeContext *pMe, int64_t nLa
 static inline void
 QCBOREncode_AddIndefiniteLengthBytesChunk(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Bytes, QCBOR_MT_BYTE_STRING);
+#else
+   QCBOREncode_AddBytes(pMe, Bytes);
+#endif
 }
 
 static inline void
@@ -2329,13 +2339,6 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pMe)
 {
    (pMe->pfnCloseMap)(pMe);
 }
-
-static inline void
-QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
-{
-   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_ARRAY, SIZE_MAX);
-}
-
 
 static inline void
 QCBOREncode_OpenFlowedArray(QCBOREncodeContext *pMe, size_t uLength)
@@ -2594,6 +2597,14 @@ QCBOREncode_Tell(QCBOREncodeContext *pMe)
 /* ======================================================================== *
  *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
  * ======================================================================== */
+
+
+
+static inline void
+QCBOREncode_OpenArrayIndefiniteLength(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_Private_OpenNestingAppend(pMe, QCBOR_MT_ARRAY, SIZE_MAX);
+}
 
 
 #ifdef __cplusplus

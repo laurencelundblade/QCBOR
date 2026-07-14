@@ -1091,7 +1091,7 @@ EXCLUDE_PATTERNS       =
 # wildcard * is used, a substring. Examples: ANamespace, AClass,
 # ANamespace::AClass, ANamespace::*Test
 
-EXCLUDE_SYMBOLS        =
+EXCLUDE_SYMBOLS        = QCBOR_PRIVATE_* QCBOR_VERSION_BANNER QCBOR_VERSION_PRERELEASE CBOR_MAJOR_TYPE_*
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories
 # that contain example code fragments that are included (see the \include

@@ -57,23 +57,25 @@ extern "C" {
  */
 
 
+/** @{ */
 /** Semantic versioning for QCBOR x.y.z from 1.3.0 on */
 #define QCBOR_VERSION_MAJOR 2
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
+/** @} */
 
 /*Pre-release tag: "-alpha.1", "-beta.2", "-rc.1" during pre-release;
  * "" for a final release */
 #define QCBOR_VERSION_PRERELEASE "-beta.1"
 
 /* Pre-processor magic turns above integers into a standard version string. */
-#define STR1(x) #x
-#define STR(x) STR1(x)
+#define QCBOR_PRIVATE_STR1(x) #x
+#define QCBOR_PRIVATE_STR(x) QCBOR_PRIVATE_STR1(x)
 
 /** Standard-format version string */
-#define QCBOR_VERSION_STRING  STR(QCBOR_VERSION_MAJOR) "." \
-                              STR(QCBOR_VERSION_MINOR) "." \
-                              STR(QCBOR_VERSION_PATCH) \
+#define QCBOR_VERSION_STRING  QCBOR_PRIVATE_STR(QCBOR_VERSION_MAJOR) "." \
+                              QCBOR_PRIVATE_STR(QCBOR_VERSION_MINOR) "." \
+                              QCBOR_PRIVATE_STR(QCBOR_VERSION_PATCH) \
                               QCBOR_VERSION_PRERELEASE
 
 /* Banner embedded in object code for display by 'strings' shell command */
