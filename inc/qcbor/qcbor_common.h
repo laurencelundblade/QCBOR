@@ -48,7 +48,6 @@ extern "C" {
 #endif
 #endif
 
-
 /**
  * @file qcbor_common.h
  *
@@ -57,49 +56,51 @@ extern "C" {
  */
 
 
-/** @{ */
-/** Semantic versioning for QCBOR x.y.z from 1.3.0 on */
-#define QCBOR_VERSION_MAJOR 2
-#define QCBOR_VERSION_MINOR 0
-#define QCBOR_VERSION_PATCH 0
-/** @} */
+/* This is a beta (not ready for commercial use) release of 2.0.0 */
 
-/*Pre-release tag: "-alpha.1", "-beta.2", "-rc.1" during pre-release;
- * "" for a final release */
-#define QCBOR_VERSION_PRERELEASE "-beta.1"
-
-/* Pre-processor magic turns above integers into a standard version string. */
+/* Pre-processor magic turns version integers into a standard version string. */
 #define QCBOR_PRIVATE_STR1(x) #x
 #define QCBOR_PRIVATE_STR(x) QCBOR_PRIVATE_STR1(x)
 
-/** Standard-format version string */
+/**
+ * @addtogroup QCBORVersions QCBOR Version Number
+ * @brief Standard macros for semantic versioning
+ *
+ * QCBOR follows semantic versioning starting at 1.3.0. MAJOR increments
+ * on breaking API changes, MINOR on backwards-compatible additions,
+ * PATCH on backwards-compatible bug fixes.
+ * @{
+ */
+#define QCBOR_VERSION_MAJOR 2 /**< Major version number. */
+#define QCBOR_VERSION_MINOR 0 /**< Minor version number. */
+#define QCBOR_VERSION_PATCH 0 /**< Patch version number. */
+
+/** Pre-release tag: "-alpha.1", "-beta.2", "-rc.1" during pre-release;
+ * "" for a final release */
+#define QCBOR_VERSION_PRERELEASE "-beta.1"
+
+/** Standard-format version string. This strings appears in library binaries. */
 #define QCBOR_VERSION_STRING  QCBOR_PRIVATE_STR(QCBOR_VERSION_MAJOR) "." \
                               QCBOR_PRIVATE_STR(QCBOR_VERSION_MINOR) "." \
                               QCBOR_PRIVATE_STR(QCBOR_VERSION_PATCH) \
                               QCBOR_VERSION_PRERELEASE
 
-/* Banner embedded in object code for display by 'strings' shell command */
-#define QCBOR_VERSION_BANNER "libqcbor " QCBOR_VERSION_STRING
-
-/** One number for simple scalar version comparison */
+/** A combined version number for simple scalar version comparison */
 #define QCBOR_VERSION_NUMBER  QCBOR_VERSION_MAJOR * 10000 + \
                               QCBOR_VERSION_MINOR * 100 + \
                               QCBOR_VERSION_PATCH)
 
-
-/* This is a beta (not ready for commercial use) release of 2.0.0 */
-
-
 /**
- * This define indicates a version of QCBOR that supports spiffy
- * decode, the decode functions found in qcbor_spiffy_decode.h.
- *
- * Versions of QCBOR that support spiffy decode are backwards
- * compatible with previous versions, but there are a few minor
- * exceptions such as some aspects of tag handling that are
- * different. This define can be used to handle these variances.
+ * This indicates a version of QCBOR that supports spiffy
+ * decode. All versions since 2020 support spiffy decode.
  */
 #define QCBOR_SPIFFY_DECODE
+
+/** @} */
+
+/* Banner embedded in object code for display by 'strings' shell command */
+#define QCBOR_VERSION_BANNER "libqcbor " QCBOR_VERSION_STRING
+
 
 
 
@@ -633,13 +634,13 @@ typedef enum {
    QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89,
 
    /** In QCBOR v2, tag numbers must be processed by QCBORDecode_GetNextTagNumber().
-    * See @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
+    * See @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS. */
    QCBOR_ERR_UNPROCESSED_TAG_NUMBER = 90,
 
    /** A tag number is expected, but missing. */
    QCBOR_ERR_MISSING_TAG_NUMBER = 91,
 
-   /** NaN payloads are an error unless explicitly allowed by @ref QCBOR_DECODE_ALLOW_NAN_PAYLOADS */
+   /** NaN payloads are an error unless explicitly allowed by @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS */
    QCBOR_ERR_NAN_PAYLOAD = 92,
 
    /** A range of error codes that can be made use of by the
@@ -670,7 +671,14 @@ const char *
 qcbor_err_to_str(QCBORError uErr);
 
 
-/* The maximum size in bytes for input to decode or encoder output. */
+/**
+ * @addtogroup QCBORLimitations  Limitations and maximum sizes
+ * @brief This describes maximums and limitations
+ *
+ *
+ * @{
+ */
+/** The maximum size in bytes for input to decode or encoder output. */
 /* It is slightly less than UINT32_MAX to accommodate
  * QCBOR_NON_BOUNDED_OFFSET and so the limit can be tested on 32-bit
  * machines. This will cause trouble where size_t is less than 32
@@ -701,6 +709,9 @@ qcbor_err_to_str(QCBORError uErr);
  * decoding. See also @ref QCBOR_MAX_ITEMS_IN_ARRAY.
  */
 #define QCBOR_MAX_ITEMS_IN_MAP  (QCBOR_MAX_ITEMS_IN_ARRAY/2)
+
+/** @} */
+
 
 
 #ifdef __cplusplus

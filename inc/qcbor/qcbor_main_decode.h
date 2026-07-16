@@ -119,7 +119,7 @@ extern "C" {
  * correct behavior.
  *
  * This behavior is not backwards compatible with v1. The v1 behavior
- * can be restored with @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
+ * can be restored with @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
  * However, the v2 behavior is more correct, so this configuration
  * should not be used.
  *
@@ -563,7 +563,7 @@ typedef enum {
  * mantissa with the offset of 1 for CBOR negative values
  * applied. When it is a negative big number
  * (@ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM or
- * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM), the offset of 1 has NOT been
+ * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA), the offset of 1 has NOT been
  * applied (doing so requires somewhat complex big number arithmetic
  * and may increase the length of the big number). To get the correct
  * value @c bigNum must be incremented by one before use.
@@ -956,7 +956,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * - The label for an item in a map, which may be a text or byte string
  *   or an integer.
  *
- * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
+ * - When @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
  *   unprocessed tag numbers.
  *
  * See @ref QCBORItem for all the details about what is returned.
@@ -1466,7 +1466,7 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  *
  * This performs two actions to make QCBOR v2 decoding compatible with v1.
  *
- * First, it sets @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS
+ * First, it sets @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS
  * which causes no error to be returned when un processed tag numbers
  * are encountered.
  *
@@ -1480,7 +1480,7 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  * This links in a fair bit of object code for all the tag content
  * handlers that were always present in v1. To get the v1 tag number behavior
  * without the object code for the tag content handlers, pass
- * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
+ * @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
  * QCBORDecode_Init().
  */
 void

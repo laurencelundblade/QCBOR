@@ -787,9 +787,6 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
 
 /**
-<<<<<<< HEAD
- * @brief  Add a Boolean to the encoded output.
-=======
  * @brief Set up to write a known-length byte string directly to encoded output.
  *
  * @param[in] pCtx        The encoding context to add the bytes to.
@@ -867,8 +864,7 @@ QCBOREncode_CloseSizedBytes(QCBOREncodeContext *pCtx);
 
 
 /**
- * @brief  Add a standard Boolean.
->>>>>>> dev
+ * @brief  Add a Boolean to the encoded output.
  *
  * @param[in] pCtx  The encoding context to add the Boolean to.
  * @param[in] b     true or false from @c <stdbool.h>.
@@ -2051,7 +2047,7 @@ QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Usefu
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddStreamedText(pMe, Text);
 }
-#else
+#else /* ! USEFULBUF_DISABLE_STREAMING */
 static inline void
 QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
@@ -2098,7 +2094,7 @@ QCBOREncode_AddIndefiniteLengthTextChunk(QCBOREncodeContext *pMe, const UsefulBu
    QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Text, QCBOR_MT_TEXT_STRING);
 #else
    QCBOREncode_AddText(pMe, Text);
-#endif
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 static inline void
@@ -2181,7 +2177,7 @@ QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, Usef
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddStreamedBytes(pMe, Bytes);
 }
-#else
+#else /* ! USEFULBUF_DISABLE_STREAMING */
 static inline void
 QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
 {
@@ -2229,7 +2225,7 @@ QCBOREncode_AddIndefiniteLengthBytesChunk(QCBOREncodeContext *pMe, const UsefulB
    QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Bytes, QCBOR_MT_BYTE_STRING);
 #else
    QCBOREncode_AddBytes(pMe, Bytes);
-#endif
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 static inline void

@@ -377,7 +377,7 @@ enum UsefulBufErr {
    /** UsefulOutBuf_AppendDirect() used when not in streaming mode */
    UsefulBufErr_IsStreaming  = 5,
 
-   /** @ref An call to @ref UsefulOutBuf_FlushCallBack failed */
+   /** A call to @ref UsefulOutBuf_FlushCallBack failed */
    UsefulBufErr_FlushWrite   = 6,
 
    /* Stored in a uint8_t; don't exceed. */
@@ -1277,6 +1277,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
  * @brief In streaming mode, output bytes without buffering.
  *
  * @param[in] pUOutBuf  Pointer to the @ref UsefulOutBuf.
+ * @param[in] Bytes   The @ref UsefulBuf with the bytes to append.
  *
  * This is the same as UsefulOutBuf_AppendUsefulBuf() but more
  * efficient in some situations.  When this is called, first all data
@@ -1292,7 +1293,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pUOutBuf,
  * the error state.
  */
 void
-UsefulOutBuf_AppendDirect(UsefulOutBuf *pMe, UsefulBufC Bytes);
+UsefulOutBuf_AppendDirect(UsefulOutBuf *pUOutBuf, UsefulBufC Bytes);
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
@@ -1714,7 +1715,8 @@ void UsefulOutBuf_Swap(UsefulOutBuf *pUOutBuf,
                        size_t        uEndOffset);
 
 
-
+/** @deprecated Use UsefulOutBuf_OutSubString() instead */
+static  UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe, const size_t uStart, const size_t uLen);
 
 /**
  * @ref UsefulInputBuf is the counterpart to @ref UsefulOutBuf. It is
@@ -2988,7 +2990,6 @@ static inline UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *p
 }
 
 
-/* For backwards compatibility */
 static inline UsefulBufC UsefulOutBuf_SubString(UsefulOutBuf *pMe, const size_t uStart, const size_t uLen)
 {
    return UsefulOutBuf_OutSubString(pMe, uStart, uLen);

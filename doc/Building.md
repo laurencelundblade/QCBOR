@@ -236,7 +236,7 @@ particularly QCBORDecode_VGetNext() — by approximately 500 bytes.
 
 “Borrowed” tag content formats (for example, an epoch-based date
 encoded without the corresponding tag number) can still be
-decoded. See @ref Disabling-Tag-Decoding for additional details.
+decoded.
 
 `QCBOR_DISABLE_NON_INTEGER_LABELS` causes any label that doesn't fit
 in an int64_t to result in a @ref QCBOR_ERR_MAP_LABEL_TYPE error.

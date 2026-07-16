@@ -1165,6 +1165,7 @@ QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
 {
@@ -1176,6 +1177,7 @@ QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
 {
@@ -1187,6 +1189,7 @@ QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 {
@@ -1201,6 +1204,7 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 /** @private Fix misnaming in previous versions.  */
 #define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
 {
@@ -1212,6 +1216,7 @@ QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
 {
@@ -1223,6 +1228,7 @@ QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 {

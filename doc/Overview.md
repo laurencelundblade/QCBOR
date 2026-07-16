@@ -111,7 +111,11 @@ labels, but it is not explicitly supported.
 
 @anchor Limitations
 
+
 ## Limitations
+
+@addtogroup QCBORLimitations  Limitations and maximum sizes
+@{
 
 Summary limitations:
 - The entire encoded CBOR must fit into contiguous memory.
@@ -142,3 +146,4 @@ This implementation requires two's compliment integers. While
 C doesn't require two's compliment, <stdint.h> does. Other
 parts of this implementation may also require two's compliment.
  
+@}
