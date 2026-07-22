@@ -629,7 +629,7 @@ typedef enum {
    /** Can't output a negative zero big num */
    QCBOR_ERR_NO_NEGATIVE_ZERO = 87,
 
-   /** A tag number was not expected such as one is encountered with 
+   /** A tag number was not expected such as one is encountered with
     * @ref QCBOR_TAG_REQUIREMENT_NOT_A_TAG. */
    QCBOR_ERR_UNEXPECTED_TAG_NUMBER = 89,
 

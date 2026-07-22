@@ -542,22 +542,10 @@ typedef enum {
  * @anchor expAndMantissa
  *
  * This holds the value for big floats and decimal fractions, as an
- * exponent and mantissa.  For big floats the base for exponentiation
- * is 2. For decimal fractions it is 10. Whether an instance is a big
+ * exponent and mantissa. Whether an instance is a big
  * float or decimal fraction is known by context, usually by @c uDataType
  * in @ref QCBORItem which might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
  * @ref QCBOR_TYPE_BIGFLOAT, ...
- *
- * The mantissa may be an @c int64_t or a big number. This is again
- * determined by context, usually @c uDataType in @ref QCBORItem which
- * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
- * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
- * big number also comes from the context
- * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
- * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
- *
- * @c bigNum is big endian or network byte order. The most significant
- * byte is first.
  *
  * When @c Mantissa is @c int64_t, it represents the true value of the
  * mantissa with the offset of 1 for CBOR negative values
@@ -573,10 +561,22 @@ typedef enum {
  * and QCBOREncode_AddTBigFloatBigNum().
  */
 typedef struct  {
+   /** For big floats the exponent base is 2. For decimal fractions it is 10. */
    int64_t nExponent;
+
+   /** The mantissa may be an @c int64_t or a big number. This is
+    * determined by context, usually @c uDataType in @ref QCBORItem which
+    * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+    * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
+    * big number also comes from the context
+    * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+    * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
+    */
    union {
       int64_t    nInt;
       uint64_t   uInt;
+       /** @c bigNum is big endian or network byte order. The most significant
+        * byte is first. */
       UsefulBufC bigNum;
    } Mantissa;
 } QCBORExpAndMantissa;
@@ -1430,7 +1430,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This saves the decode state such that any decoding done after
  * this call can be abandoned with a call to QCBORDecode_RestoreCursor().
  */
-void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pSavedState);
+void QCBORDecode_SaveCursor(QCBORDecodeContext     *pCtx,
+                            QCBORSavedDecodeCursor *pSavedState);
 
 
 /**
@@ -1441,7 +1442,8 @@ void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pS
  *
  * See QCBORDecode_SaveCursor().
  */
-void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeCursor *pSavedState);
+void QCBORDecode_RestoreCursor(QCBORDecodeContext           *pCtx,
+                               const QCBORSavedDecodeCursor *pSavedState);
 
 
 
@@ -1606,7 +1608,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 
 /** @private */
 static inline void
-QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
+QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe,
+                                   const QCBORItem    *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
    memcpy(pMe->auLastTagNumbers,
@@ -1620,7 +1623,9 @@ QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pIt
 
 /** @private */
 static inline void
-QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
+QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe,
+                               QCBORItem          *Item,
+                               size_t             *uOffset)
 {
 #ifndef QCBOR_DISABLE_TAGS
    if(pMe->uLastError != QCBOR_SUCCESS) {

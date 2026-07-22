@@ -348,8 +348,9 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
  *
  * NaN and +/- Infinity are supported.
  *
- * By default anything but a quiet NaN will result in @ref QCBOR_ERR_NAN_PAYLOAD. If
- * @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS is configured, all NaNs (signaling, non-trivial or with payload)
+ * By default anything but a quiet NaN will result in @ref
+ * QCBOR_ERR_NAN_PAYLOAD. If @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS
+ * is configured, all NaNs (signaling, non-trivial or with payload)
  * are decoded and returned. See @ref NaNs.
  *
  * If floating-point HW use is disabled this will set
@@ -1413,7 +1414,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                         *
  * ========================================================================= */
 
 

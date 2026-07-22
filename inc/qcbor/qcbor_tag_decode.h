@@ -819,7 +819,7 @@ QCBORDecode_GetTBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * returned in normal decoding with QCBORDecode_VGetNext() and
  * related.
  *
- * The other facility is QCBORDecode_GetNextTagNumber(). 
+ * The other facility is QCBORDecode_GetNextTagNumber().
  *
  * Note that
  * tag processing is substantially changed in QCBOR v2.
@@ -1168,11 +1168,6 @@ QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
 
 
-/** @addtogroup DeprecatedTagDecode Deprecated (renamed) functions for decoding tags.
- *  @{
- */
-
-
 /** @deprecated Use QCBORDecode_GetTDateString() instead. */
 static void
 QCBORDecode_GetDateString(QCBORDecodeContext    *pCtx,
@@ -1375,8 +1370,6 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
                                  const char            *szLabel,
                                  enum QCBORDecodeTagReq uTagRequirement,
                                  UsefulBufC            *pUUID);
-
-/** @}*/
 
 
 #endif /* ! QCBOR_DISABLE_TAGS */

@@ -380,7 +380,6 @@ struct _QCBORDecodeContext {
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
    uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
 
-   /* See QCBORDecode_Private_MapTagNumber() for description of how tags are mapped. */
    /* See QCBORDecode_Private_MapTagNumber() for how tags are mapped. */
    // TODO: can this be removed if tags are disabled?
    uint64_t auMappedTagNumbers[QCBOR_NUM_MAPPED_TAGS];
