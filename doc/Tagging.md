@@ -39,8 +39,7 @@ IANA CBOR Tag Registry, while a substantial range is available for
 proprietary use.
 
 
-@anchor AreTagsOptional
-## Are Tags "Optional"?
+## Are Tags "Optional"? {#AreTagsOptional}
 
 The description of tags in
 [RFC 7049](https://tools.ietf.org/html/rfc7049) and in some other

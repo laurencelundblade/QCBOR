@@ -83,9 +83,7 @@ in version 1.6.2 and 2.0.0-beta.1.
 See also @ref QCBORVersions
 
 
-@anchor ReleasesAndPackages
-
-# Releases, Install  and Packages
+# Releases, Install  and Packages {#ReleasesAndPackages}
 
 QCBOR is released only as source via GitHub. Packaging and package 
 releases are left to the various distros and packaging providers.
