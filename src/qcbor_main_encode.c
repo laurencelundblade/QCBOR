@@ -1390,11 +1390,11 @@ QCBOREncode_CloseBstrWrap2(QCBOREncodeContext *pMe,
 void
 QCBOREncode_CancelBstrWrap(QCBOREncodeContext *pMe)
 {
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(QCBOREncode_Private_CloseTypeCheck(pMe, QCBOR_MT_BSTR_WRAP)) {
       return;
    }
 
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    const size_t uCurrent = UsefulOutBuf_GetEndPosition(&(pMe->OutBuf));
    if(pMe->nesting.pCurrentNesting->uStart != uCurrent) {
       pMe->uError = QCBOR_ERR_CANNOT_CANCEL;

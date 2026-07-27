@@ -348,8 +348,9 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
  *
  * NaN and +/- Infinity are supported.
  *
- * By default anything but a quiet NaN will result in @ref QCBOR_ERR_NAN_PAYLOAD. If
- * @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS is configured, all NaNs (signaling, non-trivial or with payload)
+ * By default anything but a quiet NaN will result in @ref
+ * QCBOR_ERR_NAN_PAYLOAD. If @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS
+ * is configured, all NaNs (signaling, non-trivial or with payload)
  * are decoded and returned. See @ref NaNs.
  *
  * If floating-point HW use is disabled this will set
@@ -1165,6 +1166,7 @@ QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
 {
@@ -1176,6 +1178,7 @@ QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
 {
@@ -1187,6 +1190,7 @@ QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 {
@@ -1201,6 +1205,7 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 /** @private Fix misnaming in previous versions.  */
 #define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
 {
@@ -1212,6 +1217,7 @@ QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
 {
@@ -1223,6 +1229,7 @@ QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 {
@@ -1407,7 +1414,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                         *
  * ========================================================================= */
 
 

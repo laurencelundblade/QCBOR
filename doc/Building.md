@@ -1,6 +1,5 @@
 
-@anchor Building
-## Building
+@page Building Building QCBOR, Releases, Versions, Code Size
 
 The QCBOR library source is solely in the `src` and `inc` directories. The
 `inc` directory contains the public API. The other files and
@@ -26,7 +25,7 @@ add the test source files directly. Invoking RunTests() will execute
 the full test suite.
 
 
-### Building with CMake
+# Building with CMake
 
 A modern CMake configuration is provided in CMakeLists.txt that can
 build, test, and install QCBOR. The installation includes CMake package
@@ -69,9 +68,7 @@ cmake --build <build_folder>
 <build_folder>/test/qcbortest
 ```
 
-@anchor VersionsAndChanges
-
-## Version and changes
+# Version and changes {#VersionsAndChanges}
 
 QCBOR uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 The master version number appears in inc/qcbor/qcbor_common.h.  It
@@ -83,10 +80,10 @@ notes in GitHub releases are copied from CHANGELOG.md. The keeping
 of CHANGELOG.md and this GitHub release convention was adopted 
 in version 1.6.2 and 2.0.0-beta.1.
 
+See also @ref QCBORVersions
 
-@anchor ReleasesAndPackages
 
-## Releases, Install  and Packages
+# Releases, Install  and Packages {#ReleasesAndPackages}
 
 QCBOR is released only as source via GitHub. Packaging and package 
 releases are left to the various distros and packaging providers.
@@ -94,8 +91,7 @@ CMake is well supported, including the ability to perform a simple
 install and support for packagers.
 
 
-@anchor CodeSize
-## Code Size
+# Code Size {#CodeSize}
 
 TODO: The sizes in this section need to be updated for QCBOR v2.
 
@@ -150,7 +146,7 @@ and standard tag types.
  If QCBOR is installed as a shared library, then of course only one
  copy of the code is in memory no matter how many applications use it.
 
-### Disabling Features
+## Disabling Features
 
 The primary control over the amount of QCBOR code that is linked into
 an application is in which functions are actually used. When linking
@@ -236,7 +232,7 @@ particularly QCBORDecode_VGetNext() — by approximately 500 bytes.
 
 “Borrowed” tag content formats (for example, an epoch-based date
 encoded without the corresponding tag number) can still be
-decoded. See @ref Disabling-Tag-Decoding for additional details.
+decoded.
 
 `QCBOR_DISABLE_NON_INTEGER_LABELS` causes any label that doesn't fit
 in an int64_t to result in a @ref QCBOR_ERR_MAP_LABEL_TYPE error.
@@ -251,7 +247,7 @@ deterministic of dCBOR.
 `USEFULBUF_DISABLE_STREAMING` removes the encode streaming features.
 
 
-### Size of spiffy decode
+###Size of spiffy decode
 
 When implementing a protocol decoder, you can choose between using the
 spiffy decode features or using the lower-level API,
