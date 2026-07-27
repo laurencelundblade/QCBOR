@@ -1,7 +1,4 @@
-
-@anchor Serialization
-
-# Serialization and Determinism
+@page Serialization Serialization and Determinism
 
 To be filled in...
 

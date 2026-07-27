@@ -87,7 +87,7 @@ extern "C" {
  * v2. Decoding will become appropriately more thorough.
  *
  * If an application relied on the v1 behavior, it can be restored
- * with the configuration @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
+ * with the configuration @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
 
  * Before QCBOR v1.5, the QCBORDecode_GetByteString() and
  * QCBORDecode_GetTextString() would error
@@ -242,7 +242,7 @@ QCBORDecode_GetNextTagNumberInMapSZ(QCBORDecodeContext *pCtx, const char *szLabe
  * QCBORDecode_GetNextTagNumber().
  *
  * When QCBOR is initialized with
- * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS, tag numbers preceding
+ * @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS, tag numbers preceding
  * an item are accumulated and associated with the QCBORItem (as was
  * always done in QCBOR v1). This function retrieves them from the
  * item. They cannot be accessed directly from @c pItem because they
@@ -279,7 +279,7 @@ QCBORDecode_NthTagNumber(const QCBORDecodeContext *pCtx, const QCBORItem *pItem,
  *
  * Like QCBORDecode_GetNthTagNumber(), this function is used when
  * QCBOR is initialized with
- * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS. It returns the tag
+ * @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS, It returns the tag
  * numbers of the most recently decoded item. See
  * QCBORDecode_GetNthTagNumber().
  *
@@ -819,7 +819,7 @@ QCBORDecode_GetTBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * returned in normal decoding with QCBORDecode_VGetNext() and
  * related.
  *
- * The other facility is QCBORDecode_GetNextTagNumber(). 
+ * The other facility is QCBORDecode_GetNextTagNumber().
  *
  * Note that
  * tag processing is substantially changed in QCBOR v2.
@@ -1168,11 +1168,6 @@ QCBORDecode_GetNthTagOfLast(const QCBORDecodeContext *pCtx, uint32_t uIndex);
 
 
 
-/** @addtogroup DeprecatedTagDecode Deprecated (renamed) functions for decoding tags.
- *  @{
- */
-
-
 /** @deprecated Use QCBORDecode_GetTDateString() instead. */
 static void
 QCBORDecode_GetDateString(QCBORDecodeContext    *pCtx,
@@ -1375,8 +1370,6 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
                                  const char            *szLabel,
                                  enum QCBORDecodeTagReq uTagRequirement,
                                  UsefulBufC            *pUUID);
-
-/** @}*/
 
 
 #endif /* ! QCBOR_DISABLE_TAGS */

@@ -1,6 +1,6 @@
-@anchor Overview
+@page QCBOROverview QCBOR Overview
 
-# QCBOR Overview
+# QCBOR Overview {#Overview}
 
 This implements CBOR -- Concise Binary Object Representation as
 defined in [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html).
@@ -109,9 +109,10 @@ CBOR allows a label to be any type of data including an array or a
 map. It is possible to use this API to construct and parse such
 labels, but it is not explicitly supported.
 
-@anchor Limitations
 
-## Limitations
+
+@addtogroup QCBORLimitations  QCBOR Limitations and Maximum Sizes
+@{
 
 Summary limitations:
 - The entire encoded CBOR must fit into contiguous memory.
@@ -142,3 +143,4 @@ This implementation requires two's compliment integers. While
 C doesn't require two's compliment, <stdint.h> does. Other
 parts of this implementation may also require two's compliment.
  
+@}

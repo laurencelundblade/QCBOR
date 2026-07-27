@@ -119,7 +119,7 @@ extern "C" {
  * correct behavior.
  *
  * This behavior is not backwards compatible with v1. The v1 behavior
- * can be restored with @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
+ * can be restored with @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
  * However, the v2 behavior is more correct, so this configuration
  * should not be used.
  *
@@ -542,28 +542,16 @@ typedef enum {
  * @anchor expAndMantissa
  *
  * This holds the value for big floats and decimal fractions, as an
- * exponent and mantissa.  For big floats the base for exponentiation
- * is 2. For decimal fractions it is 10. Whether an instance is a big
+ * exponent and mantissa. Whether an instance is a big
  * float or decimal fraction is known by context, usually by @c uDataType
  * in @ref QCBORItem which might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
  * @ref QCBOR_TYPE_BIGFLOAT, ...
- *
- * The mantissa may be an @c int64_t or a big number. This is again
- * determined by context, usually @c uDataType in @ref QCBORItem which
- * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
- * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
- * big number also comes from the context
- * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
- * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
- *
- * @c bigNum is big endian or network byte order. The most significant
- * byte is first.
  *
  * When @c Mantissa is @c int64_t, it represents the true value of the
  * mantissa with the offset of 1 for CBOR negative values
  * applied. When it is a negative big number
  * (@ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM or
- * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM), the offset of 1 has NOT been
+ * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA), the offset of 1 has NOT been
  * applied (doing so requires somewhat complex big number arithmetic
  * and may increase the length of the big number). To get the correct
  * value @c bigNum must be incremented by one before use.
@@ -573,10 +561,22 @@ typedef enum {
  * and QCBOREncode_AddTBigFloatBigNum().
  */
 typedef struct  {
+   /** For big floats the exponent base is 2. For decimal fractions it is 10. */
    int64_t nExponent;
+
+   /** The mantissa may be an @c int64_t or a big number. This is
+    * determined by context, usually @c uDataType in @ref QCBORItem which
+    * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+    * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
+    * big number also comes from the context
+    * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+    * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
+    */
    union {
       int64_t    nInt;
       uint64_t   uInt;
+       /** @c bigNum is big endian or network byte order. The most significant
+        * byte is first. */
       UsefulBufC bigNum;
    } Mantissa;
 } QCBORExpAndMantissa;
@@ -956,7 +956,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * - The label for an item in a map, which may be a text or byte string
  *   or an integer.
  *
- * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
+ * - When @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
  *   unprocessed tag numbers.
  *
  * See @ref QCBORItem for all the details about what is returned.
@@ -1430,7 +1430,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This saves the decode state such that any decoding done after
  * this call can be abandoned with a call to QCBORDecode_RestoreCursor().
  */
-void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pSavedState);
+void QCBORDecode_SaveCursor(QCBORDecodeContext     *pCtx,
+                            QCBORSavedDecodeCursor *pSavedState);
 
 
 /**
@@ -1441,7 +1442,8 @@ void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pS
  *
  * See QCBORDecode_SaveCursor().
  */
-void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeCursor *pSavedState);
+void QCBORDecode_RestoreCursor(QCBORDecodeContext           *pCtx,
+                               const QCBORSavedDecodeCursor *pSavedState);
 
 
 
@@ -1466,7 +1468,7 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  *
  * This performs two actions to make QCBOR v2 decoding compatible with v1.
  *
- * First, it sets @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS
+ * First, it sets @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS
  * which causes no error to be returned when un processed tag numbers
  * are encountered.
  *
@@ -1480,7 +1482,7 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  * This links in a fair bit of object code for all the tag content
  * handlers that were always present in v1. To get the v1 tag number behavior
  * without the object code for the tag content handlers, pass
- * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
+ * @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
  * QCBORDecode_Init().
  */
 void
@@ -1606,7 +1608,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 
 /** @private */
 static inline void
-QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
+QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe,
+                                   const QCBORItem    *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
    memcpy(pMe->auLastTagNumbers,
@@ -1620,7 +1623,9 @@ QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pIt
 
 /** @private */
 static inline void
-QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
+QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe,
+                               QCBORItem          *Item,
+                               size_t             *uOffset)
 {
 #ifndef QCBOR_DISABLE_TAGS
    if(pMe->uLastError != QCBOR_SUCCESS) {

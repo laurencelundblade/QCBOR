@@ -375,7 +375,7 @@ typedef struct _QCBOREncodeContext QCBOREncodeContext;
 
 
 /**
- * Initialize the encoder.
+ * @brief Initialize the encoder.
  *
  * @param[in,out]  pCtx     The encoder context to initialize.
  * @param[in]      Storage  The buffer into which the encoded result
@@ -591,15 +591,20 @@ QCBOREncode_AddTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC T
 
 /** See QCBOREncode_AddText(). */
 static void
-QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text);
+QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe,
+                            const               UsefulBufC Text);
 
 /** See QCBOREncode_AddText(). */
 static void
-QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Text);
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pCtx,
+                                   const char         *szLabel,
+                                   UsefulBufC          Text);
 
 /** See QCBOREncode_AddText(). */
 static void
-QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Text);
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pCtx,
+                                  int64_t             nLabel,
+                                  UsefulBufC          Text);
 
 /** See QCBOREncode_AddText(). */
 static void
@@ -625,7 +630,7 @@ QCBOREncode_CloseIndefiniteLengthText(QCBOREncodeContext *pMe);
 
 
 /**
- * @brief  Add a UTF-8 text string to the encoded output.
+ * @brief  Add a NULL-terminated string to the encoded output.
  *
  * @param[in] pCtx      The encoding context to add the text to.
  * @param[in] szString  Null-terminated text to add.
@@ -685,11 +690,15 @@ QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, const UsefulBufC Bytes);
 
 /** See QCBOREncode_AddBytes(). */
 static void
-QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Bytes);
+QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pCtx,
+                                    const char         *szLabel,
+                                    UsefulBufC          Bytes);
 
 /** See QCBOREncode_AddBytes(). */
 static void
-QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Bytes);
+QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pCtx,
+                                   int64_t             nLabel,
+                                   UsefulBufC          Bytes);
 
 /** See QCBOREncode_AddBytes(). */
 static void
@@ -713,8 +722,9 @@ QCBOREncode_CloseIndefiniteLengthBytes(QCBOREncodeContext *pMe);
 
 
 
+
 /**
- * @brief Set up to write a byte string value directly to encoded output.
+ * @brief Set up to write a byte string directly to encoded output.
  *
  * @param[in] pCtx     The encoding context to add the bytes to.
  * @param[out] pPlace  Pointer and length of place to write byte string value.
@@ -746,6 +756,10 @@ QCBOREncode_CloseIndefiniteLengthBytes(QCBOREncodeContext *pMe);
  *
  * Warning: this bypasses some of the usual checks provided by QCBOR
  * against writing off the end of the encoded output buffer.
+ *
+ * See also QCBOREncode_OpenSizedBytes().
+ *
+ * TODO: Use @sa for see also references in all headers
  */
 void
 QCBOREncode_OpenBytes(QCBOREncodeContext *pCtx, UsefulBuf *pPlace);
@@ -782,7 +796,84 @@ QCBOREncode_CloseBytes(QCBOREncodeContext *pCtx, size_t uAmount);
 
 
 /**
- * @brief  Add a standard Boolean.
+ * @brief Set up to write a known-length byte string directly to encoded output.
+ *
+ * @param[in] pCtx        The encoding context to add the bytes to.
+ * @param[in] uSize       The size of the byte string.
+ * @param[out] ppUOutBuf  Returned @ref UsefulOutBuf destination for byte
+ *                        string or @c NULL.
+ *
+ * This sets up so a byte string of known length can be encoded as a
+ * definite-length string in a series of chunks. It also allows a byte
+ * string to be witten directly to the output buffer which can avoid
+ * the need for a temporary intermediate buffer.  See
+ * QCBOREncode_AddBytes() for the simple, basic method of encoding
+ * byte strings.
+ *
+ * Unlike QCBOREncode_OpenBytes(), this works when the encoder is in
+ * streaming mode. It allows a definite-length byte string larger than
+ * any in-memory buffer to be encoded.
+ *
+ * This returns a @ref UsefulOutBuf that is used to write the
+ * segments. @c NULL will be returned in *ppUOutBuf if the encoder is
+ * in the error state, if there is no room left in the output buffer,
+ * or for similar reasons.  The @ref UsefulOutBuf must not be used
+ * after QCBOREncode_CloseSizedBytes() is called.
+ *
+ * Each segment should be written using
+ * UsefulOutBuf_AppendUsefulBuf(). Any of the other
+ * UsefulOutBuf_AppendXXX() functions may also be used, but not the
+ * UsefulOutBuf_InsertXXX() functions.
+ *
+ * The caller MUST write exactly @c uSize bytes total to @c *ppUOutBuf
+ * before calling QCBOREncode_CloseSizedBytes(). Writing more or
+ * fewer bytes than @c uSize will produce malformed CBOR.
+ *
+ * If the encoder is in streaming mode, UsefulOutBuf_AppendDirect()
+ * can be used for greater efficiency, since it avoids a memory copy.
+ *
+ * UsefulOutBuf_GetOutPlace() may be called on @c *ppUOutBuf to get a
+ * pointer and length for the destination to copy to, similar to
+ * QCBOREncode_OpenBytes(). Warning: doing so bypasses some of the
+ * pointer safety.
+ *
+ * Call QCBOREncode_CloseSizedBytes() to complete the operation.
+ *
+ * See Also: QCBOREncode_OpenBytes().
+ */
+void
+QCBOREncode_OpenSizedBytes(QCBOREncodeContext *pCtx,
+                           size_t              uSize,
+                           UsefulOutBuf      **ppUOutBuf);
+
+/** See QCBOREncode_OpenSizedBytes(). */
+static void
+QCBOREncode_OpenSizedBytesInMapSZ(QCBOREncodeContext *pCtx,
+                                  const char         *szLabel,
+                                  size_t              uSize,
+                                  UsefulOutBuf      **ppUOutBuf);
+
+/** See QCBOREncode_OpenSizedBytes(). */
+static void
+QCBOREncode_OpenSizedBytesInMapN(QCBOREncodeContext *pCtx,
+                                 int64_t             nLabel,
+                                 size_t              uSize,
+                                 UsefulOutBuf       **ppUOutBuf);
+
+
+/**
+ *  @brief Close out a known-length byte string written directly to encoded output.
+ *
+ *  @param[in] pCtx  The encoding context to add the bytes to.
+ *
+ * This closes out a call to QCBOREncode_OpenSizedBytes().
+ */
+static void
+QCBOREncode_CloseSizedBytes(QCBOREncodeContext *pCtx);
+
+
+/**
+ * @brief  Add a Boolean to the encoded output.
  *
  * @param[in] pCtx  The encoding context to add the Boolean to.
  * @param[in] b     true or false from @c <stdbool.h>.
@@ -854,7 +945,7 @@ QCBOREncode_AddUndefToMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
 /**
- * @brief Add a simple value.
+ * @brief Add a simple value to the encoded output.
  *
  * @param[in] pCtx    The encode context.
  * @param[in] uNum   The simple value.
@@ -888,7 +979,7 @@ QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- * @brief  Indicates that the next items added are in an array.
+ * @brief  Open an array.
  *
  * @param[in] pCtx The encoding context to open the array in.
  *
@@ -933,7 +1024,7 @@ QCBOREncode_OpenArrayInMapN(QCBOREncodeContext *pCtx,  int64_t nLabel);
 
 
 /**
- * @brief Close an open array.
+ * @brief Close an array.
  *
  * @param[in] pCtx The encoding context to close the array in.
  *
@@ -960,7 +1051,7 @@ QCBOREncode_CloseArray(QCBOREncodeContext *pCtx);
 
 
 /**
- * @brief  Indicates that the next items added are in a map.
+ * @brief  Open a map.
  *
  * @param[in] pCtx The encoding context to open the map in.
  *
@@ -1003,7 +1094,7 @@ QCBOREncode_OpenMapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
 /**
- * @brief Close an open map.
+ * @brief Close a map.
  *
  * @param[in] pCtx The encoding context to close the map in.
  *
@@ -1035,8 +1126,8 @@ QCBOREncode_CloseMap(QCBOREncodeContext *pCtx);
  * same as QCBORENcode_OpenArray() except the length is given
  * at the time it is opened.
  *
- * WARNING: the correct number of array elements must be output.
- * If not, incorrect CBOR will be produced.
+ * WARNING: the correct number of array elements must be output
+ * if the length was given. If not, incorrect CBOR will be produced.
  *
  * If @c uLength is @c SIZE_MAX, an indefinite-length array is
  * opened.
@@ -1082,8 +1173,8 @@ QCBOREncode_CloseFlowedArray(QCBOREncodeContext *pCtx);
  * same as QCBORENcode_OpenMap() except the length is given
  * at the time it is opened.
  *
- * WARNING: the correct number of map elements must be output.
- * If not, incorrect CBOR will be produced.
+ * WARNING: the correct number of map elements must be output if
+ * a length was given. If not, incorrect CBOR will be produced.
  *
  * If @c uLength is @c SIZE_MAX, an indefinite-length map is
  * opened.
@@ -1111,7 +1202,7 @@ QCBOREncode_OpenFlowedMapMapN(QCBOREncodeContext *pCtx,
 
 
 /**
- * @brief Close an open flowed map.
+ * @brief Close an indefinite or know-length map.
  *
  * @param[in] pCtx The encoding context to close the map in.
  *
@@ -1156,7 +1247,7 @@ QCBOREncode_CloseAndSortFlowedMap(QCBOREncodeContext *pCtx);
 
 
 /**
- * @brief Indicate start of encoded CBOR to be wrapped in a bstr.
+ * @brief Open to have following items byte-string wrapped.
  *
  * @param[in] pCtx The encoding context to open the bstr-wrapped CBOR in.
  *
@@ -1206,7 +1297,7 @@ QCBOREncode_BstrWrapInMapN(QCBOREncodeContext *pCtx, int64_t nLabel);
 
 
 /**
- * @brief Close a wrapping bstr.
+ * @brief Close byte string wrapping.
  *
  * @param[in] pCtx              The encoding context to close of bstr wrapping in.
  * @param[in] bIncludeCBORHead  Include the encoded CBOR head of the bstr
@@ -1305,15 +1396,20 @@ QCBOREncode_AddEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBuf
 #ifndef USEFULBUF_DISABLE_STREAMING
 /** See QCBOREncode_AddEncoded(). */
 void
-QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded);
+QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe,
+                               const UsefulBufC    Encoded);
 
 /** See QCBOREncode_AddEncoded(). */
 static void
-QCBOREncode_AddStreamEncodedToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, UsefulBufC Encoded);
+QCBOREncode_AddStreamEncodedToMapSZ(QCBOREncodeContext *pCtx,
+                                    const char         *szLabel,
+                                    UsefulBufC          Encoded);
 
 /** See QCBOREncode_AddEncoded(). */
 static void
-QCBOREncode_AddStreamEncodedToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, UsefulBufC Encoded);
+QCBOREncode_AddStreamEncodedToMapN(QCBOREncodeContext *pCtx,
+                                   int64_t             nLabel,
+                                   UsefulBufC          Encoded);
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
@@ -1412,7 +1508,7 @@ QCBOREncode_Finish(QCBOREncodeContext *pCtx, UsefulBufC *pEncodedCBOR);
 
 
 /**
- * @brief Get the encoded CBOR and error status.
+ * @brief Get the size of what has been encoded.
  *
  * @param[in] pCtx          The context to finish encoding with.
  * @param[out] uEncodedLen  The length of the encoded or potentially
@@ -1778,6 +1874,7 @@ QCBOREncode_Private_AddBuffer(QCBOREncodeContext         *pCtx,
                               UsefulBufC                  Bytes);
 
 #ifndef USEFULBUF_DISABLE_STREAMING
+/** @private See qcbor_main_encode.c */
 void
 QCBOREncode_Private_AddStreamedBuffer(QCBOREncodeContext               *pMe,
                                       const enum QCBORPrivateMajorType  uMajorType,
@@ -1809,9 +1906,19 @@ QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext         *pCtx,
 void
 QCBOREncode_Private_CloseMapUnsorted(QCBOREncodeContext *pMe);
 
-/** @private See qcbor_main_encode.c */
+/** @private (not really private; avoiding dependency on qcbor_number_encode.h TODO: hande this better? */
 void
 QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
+
+/** @private See qcbor_main_encode.c */
+void
+QCBOREncode_Private_OpenIndefiniteLengthString(QCBOREncodeContext        *pMe,
+                                               enum QCBORPrivateMajorType uMajorType);
+/** @private See qcbor_main_encode.c */
+static void
+QCBOREncode_Private_AddIndefiniteLengthChunk(QCBOREncodeContext         *pMe,
+                                             const UsefulBufC            Chunk,
+                                             enum QCBORPrivateMajorType  uMajorType);
 
 /** @private See qcbor_main_encode.c */
 bool QCBOREncode_Private_InIndefString(QCBOREncodeContext *pMe);
@@ -1942,19 +2049,23 @@ QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 }
 
 static inline void
-QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   UsefulBufC          Text)
 {
    QCBOREncode_AddText(pMe, UsefulBuf_FromSZ(szLabel));
    QCBOREncode_AddStreamedText(pMe, Text);
 }
 
 static inline void
-QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe,
+                                  int64_t             nLabel,
+                                  UsefulBufC          Text)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddStreamedText(pMe, Text);
 }
-#else
+#else /* ! USEFULBUF_DISABLE_STREAMING */
 static inline void
 QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 {
@@ -1962,13 +2073,17 @@ QCBOREncode_AddStreamedText(QCBOREncodeContext *pMe, const UsefulBufC Text)
 }
 
 static inline void
-QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Text)
+QCBOREncode_AddStreamedTextToMapSZ(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   UsefulBufC          Text)
 {
    QCBOREncode_AddTextToMapSZ(pMe, szLabel, Text);
 }
 
 static inline void
-QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Text)
+QCBOREncode_AddStreamedTextToMapN(QCBOREncodeContext *pMe,
+                                  int64_t             nLabel,
+                                  UsefulBufC          Text)
 {
    QCBOREncode_AddTextToMapN(pMe, nLabel, Text);
 }
@@ -2001,7 +2116,7 @@ QCBOREncode_AddIndefiniteLengthTextChunk(QCBOREncodeContext *pMe, const UsefulBu
    QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Text, QCBOR_MT_TEXT_STRING);
 #else
    QCBOREncode_AddText(pMe, Text);
-#endif
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 static inline void
@@ -2072,19 +2187,23 @@ QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
 }
 
 static inline void
-QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Bytes)
+QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pMe,
+                                    const char         *szLabel,
+                                    UsefulBufC          Bytes)
 {
    QCBOREncode_AddBytes(pMe, UsefulBuf_FromSZ(szLabel));
    QCBOREncode_AddStreamedBytes(pMe, Bytes);
 }
 
 static inline void
-QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Bytes)
+QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe,
+                                   int64_t             nLabel,
+                                   UsefulBufC          Bytes)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddStreamedBytes(pMe, Bytes);
 }
-#else
+#else /* ! USEFULBUF_DISABLE_STREAMING */
 static inline void
 QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
 {
@@ -2092,13 +2211,17 @@ QCBOREncode_AddStreamedBytes(QCBOREncodeContext *pMe, const UsefulBufC Bytes)
 }
 
 static inline void
-QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Bytes)
+QCBOREncode_AddStreamedBytesToMapSZ(QCBOREncodeContext *pMe,
+                                    const char         *szLabel,
+                                    UsefulBufC          Bytes)
 {
    QCBOREncode_AddBytesToMapSZ(pMe, szLabel, Bytes);
 }
 
 static inline void
-QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe, int64_t nLabel, UsefulBufC Bytes)
+QCBOREncode_AddStreamedBytesToMapN(QCBOREncodeContext *pMe,
+                                   int64_t             nLabel,
+                                   UsefulBufC          Bytes)
 {
    QCBOREncode_AddBytesToMapN(pMe, nLabel, Bytes);
 }
@@ -2132,7 +2255,7 @@ QCBOREncode_AddIndefiniteLengthBytesChunk(QCBOREncodeContext *pMe, const UsefulB
    QCBOREncode_Private_AddIndefiniteLengthChunk(pMe, Bytes, QCBOR_MT_BYTE_STRING);
 #else
    QCBOREncode_AddBytes(pMe, Bytes);
-#endif
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 }
 
 static inline void
@@ -2162,6 +2285,28 @@ QCBOREncode_OpenBytesInMapN(QCBOREncodeContext *pMe,
 }
 
 
+
+static inline void
+QCBOREncode_OpenSizedBytesInMapSZ(QCBOREncodeContext *pMe,
+                                  const char         *szLabel,
+                                  size_t              uSize,
+                                  UsefulOutBuf       **pUOutBuf)
+{
+   QCBOREncode_AddSZString(pMe, szLabel);
+   QCBOREncode_OpenSizedBytes(pMe, uSize, pUOutBuf);
+}
+
+static inline void
+QCBOREncode_OpenSizedBytesInMapN(QCBOREncodeContext *pMe,
+                                 const int64_t       nLabel,
+                                 size_t              uSize,
+                                 UsefulOutBuf      **pUOutBuf)
+{
+   QCBOREncode_AddInt64(pMe, nLabel);
+   QCBOREncode_OpenSizedBytes(pMe, uSize, pUOutBuf);
+}
+
+
 static inline void
 QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
 {
@@ -2172,7 +2317,7 @@ QCBOREncode_AddSimple(QCBOREncodeContext *pMe, const uint8_t uNum)
          return;
       }
    }
-   /* This check often is optimized out because uNum is known at compile time. */
+   /* Check often is optimized out because uNum is known at compile time. */
    if(uNum >= CBOR_SIMPLEV_RESERVED_START && uNum <= CBOR_SIMPLEV_RESERVED_END) {
       pMe->uError = QCBOR_ERR_ENCODE_UNSUPPORTED;
       return;
@@ -2331,14 +2476,18 @@ QCBOREncode_OpenFlowedArray(QCBOREncodeContext *pMe, size_t uLength)
 }
 
 static inline void
-QCBOREncode_OpenFlowedArrayInMapSZ(QCBOREncodeContext *pMe, const char *szLabel, size_t uLength)
+QCBOREncode_OpenFlowedArrayInMapSZ(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   size_t              uLength)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_OpenFlowedArray(pMe, uLength);
 }
 
 static inline void
-QCBOREncode_OpenFlowedArrayInMapN(QCBOREncodeContext *pMe, int64_t nLabel, size_t uLength)
+QCBOREncode_OpenFlowedArrayInMapN(QCBOREncodeContext *pMe,
+                                  int64_t             nLabel,
+                                  size_t              uLength)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_OpenFlowedArray(pMe, uLength);
@@ -2387,7 +2536,7 @@ QCBOREncode_CloseFlowedMap(QCBOREncodeContext *pMe)
 static inline void
 QCBOREncode_BstrWrap(QCBOREncodeContext *pMe)
 {
-   QCBOREncode_Private_OpenNestingInsert(pMe, QCBOR_MT_BYTE_STRING);
+   QCBOREncode_Private_OpenNestingInsert(pMe, QCBOR_MT_BSTR_WRAP);
 }
 
 static inline void
@@ -2420,8 +2569,8 @@ QCBOREncode_CloseBstrWrap(QCBOREncodeContext *pMe, UsefulBufC *pWrappedCBOR)
 
 static inline void
 QCBOREncode_AddEncodedToMapSZ(QCBOREncodeContext *pMe,
-                            const char         *szLabel,
-                            const UsefulBufC    Encoded)
+                              const char         *szLabel,
+                              const UsefulBufC    Encoded)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddEncoded(pMe, Encoded);
@@ -2458,6 +2607,11 @@ QCBOREncode_AddStreamEncodedToMapN(QCBOREncodeContext *pMe,
 #endif /* ! USEFULBUF_DISABLE_STREAMING */
 
 
+static inline void
+QCBOREncode_CloseSizedBytes(QCBOREncodeContext *pMe)
+{
+   QCBOREncode_Private_CloseNestingAppend(pMe, QCBOR_MT_OPEN_SIZED_BYTES);
+}
 
 static inline void
 QCBOREncode_Flush(QCBOREncodeContext *pMe)
@@ -2568,7 +2722,9 @@ QCBOREncode_OpenMapInMap(QCBOREncodeContext *pMe, const char *szLabel)
 }
 
 static inline void
-QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pMe, const char *szLabel, UsefulBufC Encoded)
+QCBOREncode_AddEncodedToMap(QCBOREncodeContext *pMe,
+                            const char         *szLabel,
+                            UsefulBufC          Encoded)
 {
    QCBOREncode_AddEncodedToMapSZ(pMe, szLabel, Encoded);
 }

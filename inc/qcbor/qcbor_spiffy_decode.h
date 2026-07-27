@@ -531,14 +531,14 @@ QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
  * @brief Position traversal cursor by map label.
  *
  * @param[in] pCtx  The decode context.
- * @param[in] nLabel  The map label to seek too.
+ * @param[in] szLabel  The map label to seek too.
  *
  * On failure, such as map label not found, this sets the last error
  * and doesn't change the traversal cursor.  On success the traversal
  * cursor is moved to the map label item.
  */
 void
-QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel);
+QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pCtx, const char *szLabel);
 
 
 /**
@@ -638,7 +638,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  *   not match the expected @c uDataType.
  *
  * - @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP --- and other QCBOR implementation
- *   @ref Limitations errors.
+ *   @ref QCBORLimitations errors.
  *
  * Because the entire map is traversed, these errors can occur on
  * unrelated items—not just those being searched for.

@@ -1,8 +1,6 @@
+@page Numbers Numbers
 
-
-# Floating-Point
-
-@anchor Floating-Point
+# Floating-Point {#Floating-Point}
 
 ## Floating-Point Quick start
 
@@ -122,9 +120,7 @@ big numbers and integers.
 TODO: dates?
 
 
-@anchor Floating-Point-Decode
-
-### Float Decoding
+### Float Decoding {#Floating-Point-Decode}
 
 Most commonly, floats are decoded with QCBORDecode_VGetNext().  This
 decodes double, single and half-precision and returns the value as a
@@ -173,9 +169,7 @@ in a error integer values encoded as floats are encountered.  This is
 part of the dCBOR requirements.
 
 
-@anchor NaNs
-
-## NaNs
+## NaNs {#NaNs}
 
 NaNs have been a subtle, complicated, and controversial issue in the
 design of CBOR. For detailed background, see the appendix in
@@ -332,9 +326,7 @@ disables use of hardware instructions for the float and double types
 in C for some architectures.
  
 
-@anchor BigNumbers
-
-# Big Numbers
+# Big Numbers {#BigNumbers}
 
 ## Basics
 
