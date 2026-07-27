@@ -638,7 +638,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  *   not match the expected @c uDataType.
  *
  * - @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP --- and other QCBOR implementation
- *   @ref Limitations errors.
+ *   @ref QCBORLimitations errors.
  *
  * Because the entire map is traversed, these errors can occur on
  * unrelated items—not just those being searched for.

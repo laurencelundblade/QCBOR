@@ -672,8 +672,8 @@ qcbor_err_to_str(QCBORError uErr);
 
 
 /**
- * @addtogroup QCBORLimitations  Limitations and maximum sizes
- * @brief This describes maximums and limitations
+ * @addtogroup QCBORLimitations  QCBOR Limitations and Maximum Sizes
+ * @brief This describes QCBOR's maximums and limitations
  *
  *
  * @{

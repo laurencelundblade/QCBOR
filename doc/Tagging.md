@@ -1,5 +1,4 @@
-
-@anchor CBORTags
+@page CBORTags Tags
 
 #  QCBOR-oriented Introduction to Tags
 
