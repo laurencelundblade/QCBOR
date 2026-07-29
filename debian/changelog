@@ -1,0 +1,5 @@
+qcbor (1.6.1-1) UNRELEASED; urgency=medium
+
+  * Initial deb packaging.
+
+ -- Brian Sipos <brian.sipos@gmail.com>  Sat, 20 Jun 2026 00:05:07 -0400
