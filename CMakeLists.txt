@@ -40,6 +40,7 @@ option(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS "Disable encoding and decoding of
 option(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  "Disable encoding and decoding of indefinite-length arrays and maps" OFF)
 option(QCBOR_DISABLE_DECODE_CONFORMANCE        "Exclude all decode conformance checking features" OFF)
 option(USEFULBUF_DISABLE_STREAMING             "Exclude features for streaming encoding" OFF)
+set(QCBOR_MAX_ARRAY_NESTING 15 CACHE STRING    "Set maximum array/map nesting allowed")
 
 # This is backwards compatibility for float-related cmake options -- decided
 # to just make the cmake option the same as the #define
@@ -103,6 +104,7 @@ target_compile_definitions(qcbor
         $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
         $<$<BOOL:${QCBOR_DISABLE_DECODE_CONFORMANCE}>:QCBOR_DISABLE_DECODE_CONFORMANCE>
         $<$<BOOL:${USEFULBUF_DISABLE_STREAMING}>:USEFULBUF_DISABLE_STREAMING>
+        QCBOR_MAX_ARRAY_NESTING=${QCBOR_MAX_ARRAY_NESTING}
 )
 
 if (BUILD_SHARED_LIBS AND NOT MSVC)

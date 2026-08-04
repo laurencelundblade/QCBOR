@@ -114,33 +114,45 @@ labels, but it is not explicitly supported.
 @addtogroup QCBORLimitations  QCBOR Limitations and Maximum Sizes
 @{
 
-Summary limitations:
-- The entire encoded CBOR must fit into contiguous memory.
-- Max size of encoded CBOR data is a few bytes less than
-  @c UINT32_MAX (4GB).
-- Max array / map nesting level when encoding or decoding is
-  @ref QCBOR_MAX_ARRAY_NESTING (this is typically 15).
-- Max items in an array or map when encoding or decoding is
-  @ref QCBOR_MAX_ITEMS_IN_ARRAY (typically 65,536).
-- Does not directly support labels in maps other than text strings & integers.
-- Traversal, duplicate and sort order checking errors out for labels that are arrays or maps.
-- Does not directly support integer labels beyond whats fits in @c int64_t
-  or @c uint64_t.
-- Epoch dates limited to @c INT64_MAX (+/- 292 billion years).
-- Exponents for bigfloats and decimal integers are limited to whats fits in
+QCBOR is designed to work within a truly fixed amount of memory.
+It does no memory allocation nor recursion. Its data structures can
+fit on the stack. To accomplish this hard limits are set:
+
+- @ref QCBOR_MAX_SIZE (a little less than 4GB): Maximum encoded CBOR (except for streamed encoding); must be in contiguous memory. (The public interface uses @c size_t for lengths, but internally
+QCBOR holds them in 32 bits.)
+- @ref QCBOR_MAX_ITEMS_IN_ARRAY (65,534): The maximum number of items in an array.
+- @ref QCBOR_MAX_ITEMS_IN_MAP (32,767): The maximum number of entires (label-value pairs) in a map.
+- @ref QCBOR_MAX_ARRAY_NESTING (typically 15): Limit on array and map nesting depth.
+- @ref QCBOR_MAX_TAGS_PER_ITEM (typically 4): When decoding, the maximum number of tag numbers on a CBOR item.
+- @ref QCBOR_NUM_MAPPED_TAGS (typically 4): When decoding, the maximum distinct tag numbers whose value is larger than @ref QCBOR_LAST_UNMAPPED_TAG (typically 65530)
+
+QCBOR will error when these limits are reached. They allow it 
+to run in hard-limited memory environments and prevents resource
+exhaustion attacks. 
+
+These limits are all compiled into the library. Some of them can be 
+changed and the library recompiled, but note that the compiled library
+and headers *must* match so as to not have catastrophic failure, security
+issues and such.
+
+CBOR allows for negative integers that can't fit in standard 64-bit registers
+or C data types. QCBOR can decode these as data items, but doesn't support
+them in a few contexts because the added complexity doesn't warrant the 
+benefit:
+
+- Exponents for bigfloats and decimal fractions are limited to what fits in
   @c int64_t.
-- Tags on labels are ignored during decoding.
-- The maximum tag nesting is @c QCBOR_MAX_TAGS_PER_ITEM (typically 4).
-- Works only on 32- and 64-bit CPUs.
-- QCBORDecode_EnterBstrWrapped() doesn't work on indefinite-length strings.
+- Epoch dates limited to the range of int64_t (roughly +/- 292 billion years).
+- Integer label functions support what fits in @c int64_t or @c uint64_t.
 
-The public interface uses @c size_t for all lengths. Internally the
-implementation uses 32-bit lengths by design to use less memory and
-fit structures on the stack. This limits the encoded CBOR it can
-work with to size @c UINT32_MAX (4GB).
+CBOR allows map labels to be arbitrarily complex, but QCBOR primarily supports
+integer and text string labels. QCBOR does support some modes to 
+process labels of any sort, but it is very manual and loses much
+of QCBOR's convenience.
 
-This implementation requires two's compliment integers. While
-C doesn't require two's compliment, <stdint.h> does. Other
-parts of this implementation may also require two's compliment.
+
+This implementation requires two's complement integers. While
+C doesn't require two's complement, <stdint.h> does. Other
+parts of this implementation may also require two's complement.
  
 @}

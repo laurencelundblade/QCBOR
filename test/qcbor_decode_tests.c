@@ -82,6 +82,13 @@ MakeTestResultCode(uint32_t   uTestCase,
 }
 
 
+/* One big buffer that is used by many tests.
+ * Putting it in uninitialized data is better than using a lot
+ * of stack. The tests should run on small devices too.
+ */
+static uint8_t spBigBuf[2200];
+
+
 /*
    [
       -18446744073709551616,
@@ -1007,27 +1014,27 @@ int32_t ParseDeepArrayTest(void)
    return(nReturn);
 }
 
-/* Big enough to test nesting to the depth of 24
- [[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]
- */
-static const uint8_t spTooDeepArrays[] = {
-   0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
-   0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
-   0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81,
-   0x80};
 
 int32_t ParseTooDeepArrayTest(void)
 {
    QCBORDecodeContext DCtx;
-   int nReturn = 0;
-   int i;
-   QCBORItem Item;
+   int                nReturn;
+   size_t             i;
+   QCBORItem          Item;
+   UsefulBufC         TooDeepArrays;
 
+   /* Make some encoded CBOR nested 259 levels deep */
+   for(i = 0; i < QCBOR_MAX_MAX_ARRAY_NESTING + 4; i++) {
+      spBigBuf[i] = 0x81; /* encoded CBOR for an array of one */
+   }
+   spBigBuf[i] = 0x80; /* encoded CBOR for array of zero */
 
-   QCBORDecode_Init(&DCtx,
-                    UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTooDeepArrays),
-                    QCBOR_DECODE_MODE_NORMAL);
+   TooDeepArrays.ptr = spBigBuf;
+   TooDeepArrays.len = i;
 
+   QCBORDecode_Init(&DCtx, TooDeepArrays, QCBOR_DECODE_MODE_NORMAL);
+
+   nReturn = 0;
    for(i = 0; i < QCBOR_MAX_ARRAY_NESTING; i++) {
 
       if(QCBORDecode_GetNext(&DCtx, &Item) != 0 ||
@@ -1041,10 +1048,8 @@ int32_t ParseTooDeepArrayTest(void)
    if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP)
       nReturn = -1;
 
-   return(nReturn);
+   return nReturn;
 }
-
-
 
 
 int32_t ShortBufferParseTest(void)
@@ -4245,6 +4250,53 @@ static const uint8_t spTaggedInt[] = {
 
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
+
+
+static int32_t TooManyTagsTest(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uError;
+   UsefulBuf          UBBigBuf;
+   UsefulOutBuf       UOB;
+   uint8_t            pEncodedTagNum[3];
+   UsefulBufC         UBEncodedTagNum;
+   size_t             uTN;
+
+   /* sizeof(spBigBuf) limits this test to about 700 tag numbers */
+   UBBigBuf = UsefulBuf_FROM_BYTE_ARRAY(spBigBuf);
+   UBEncodedTagNum.ptr = pEncodedTagNum;
+   UBEncodedTagNum.len = 3;
+
+   /* Make encoded CBOR with as many tags as necessary */
+   UsefulOutBuf_Init(&UOB, UBBigBuf);
+   for(uTN = 0;  uTN < QCBOR_MAX_TAGS_PER_ITEM; uTN++) {
+      pEncodedTagNum[0] = 0xd9;
+      pEncodedTagNum[1] = (uTN & 0xff00) >> 8;
+      pEncodedTagNum[2] = uTN & 0xff;
+
+      UsefulOutBuf_AppendUsefulBuf(&UOB, UBEncodedTagNum);
+   }
+   UsefulOutBuf_AppendByte(&UOB, 0x00);
+   QCBORDecode_Init(&DCtx, UsefulOutBuf_OutUBuf(&UOB), QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS);
+
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_SUCCESS) {
+      return -900;
+   }
+   
+   UsefulOutBuf_InsertUsefulBuf(&UOB,
+                                UBEncodedTagNum,
+                                UsefulOutBuf_GetEndPosition(&UOB)-1);
+   QCBORDecode_Init(&DCtx, UsefulOutBuf_OutUBuf(&UOB), QCBOR_DECODE_MODE_NORMAL);
+   uError = QCBORDecode_GetNext(&DCtx, &Item);
+   if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
+      return -901;
+   }
+   return 0;
+}
+
+
 int32_t TagNumberDecodeTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -4252,7 +4304,7 @@ int32_t TagNumberDecodeTest(void)
    QCBORError         uError;
    UsefulBufC         UBC;
    int64_t            nInt;
-
+   int32_t            nReturn;
 
    QCBORDecode_Init(&DCtx,
                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
@@ -4303,6 +4355,8 @@ int32_t TagNumberDecodeTest(void)
    }
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
+#if QCBOR_MAX_TAGS_PER_ITEM == 4
+   /* these test only work if QCBOR_MAX_TAGS_PER_ITEM is 4 */
    /*
     More than 4 tags on an item 225(226(227(228(229([])))))
     */
@@ -4361,7 +4415,14 @@ int32_t TagNumberDecodeTest(void)
    if(uError == QCBOR_SUCCESS) {
       return -10;
    }
+#endif
 
+   /* --- Test too many tags no matter what QCBOR_MAX_TAGS_PER_ITEM is --- */
+   /* Make the encoded integer 0 with up to UINT16_MAX tag numbers */
+   nReturn = TooManyTagsTest();
+   if(nReturn) {
+      return nReturn;
+   }
 
    /* V2 tag mode testing */
    uint64_t uTagNumber;
@@ -4386,12 +4447,14 @@ int32_t TagNumberDecodeTest(void)
       return -500;
    }
 
+#if QCBOR_MAX_TAGS_PER_ITEM == 4
    /* More than 4 tag numbers */
    QCBORDecode_Init(&DCtx, spTagInput2[1].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNextTagNumber(&DCtx, &uTagNumber);
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -2;
    }
+#endif
 
    /* An array with for big tag numbers on it */
    QCBORDecode_Init(&DCtx, spTagInput2[2].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
@@ -5378,11 +5441,18 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
 
 int32_t IndefiniteLengthNestTest(void)
 {
-   UsefulBuf_MAKE_STACK_UB(Storage, 50);
-   int i;
-   for(i=1; i < QCBOR_MAX_ARRAY_NESTING+4; i++) {
-      const UsefulBufC Nested = make_nested_indefinite_arrays(i, Storage);
-      int nReturn = parse_indeflen_nested(Nested, i);
+   #define EXTRA_DEPTH 4
+   UsefulBuf_MAKE_STACK_UB(Storage, (QCBOR_MAX_MAX_ARRAY_NESTING + EXTRA_DEPTH) * 2);
+   int                     i;
+   UsefulBufC              Nested;
+   int                     nReturn;
+
+   for(i=1; i < QCBOR_MAX_ARRAY_NESTING+EXTRA_DEPTH; i++) {
+      Nested = make_nested_indefinite_arrays(i, Storage);
+      if(UsefulBuf_IsNULLC(Nested)) {
+         return 999;
+      }
+      nReturn = parse_indeflen_nested(Nested, i);
       if(nReturn) {
          return nReturn;
       }
@@ -7329,15 +7399,6 @@ static const uint8_t spUnRecoverableMapError3[] = {
    0xbf, 0x02, 0x69, 0x64, 0x64, 0xff
 };
 
-/* Hit end because string is too long */
-static const uint8_t spUnRecoverableMapError4[] = {
-   0xbf,
-      0x02, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f,
-            0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0x9f,
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-   0xff
-};
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 const unsigned char not_well_formed_submod_section[] = {
@@ -7910,9 +7971,27 @@ int32_t EnterMapTest(void)
       return 2032;
    }
 
-   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spUnRecoverableMapError4), 0);
+   /* Make some encoded CBOR nested 259 levels deep */
+   size_t i;
+   UsefulBufC         TooDeepArrays;
+
+
+   spBigBuf[0] = 0xbf;
+   spBigBuf[1] = 0x02;
+   for(i = 2; i < QCBOR_MAX_MAX_ARRAY_NESTING + 4; i++) {
+      spBigBuf[i] = 0x81; /* encoded CBOR for an array of one */
+   }
+   spBigBuf[i++] = 0x80; /* encoded CBOR for array of zero */
+   spBigBuf[i] = 0xff; /* encoded CBOR for array of zero */
+
+   TooDeepArrays.ptr = spBigBuf;
+   TooDeepArrays.len = i;
+
+   QCBORDecode_Init(&DCtx, TooDeepArrays, 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
    QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
+
+//   QCBORDecode_EnterArray(&DCtx, NULL);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
       return 2033;
