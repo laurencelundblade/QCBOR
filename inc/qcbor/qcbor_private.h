@@ -2,7 +2,7 @@
  * qcbor_private -- Non-public data structures for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -161,14 +161,6 @@ extern "C" {
 #define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
-
-/* The number of tags that are 16-bit or larger that can be handled
- * in a decode.
- */
-#define QCBOR_NUM_MAPPED_TAGS 4
-
-/* The number of tags (of any size) recorded for an individual item. */
-#define QCBOR_MAX_TAGS_PER_ITEM1 4
 
 
 
@@ -337,7 +329,7 @@ typedef struct  {
 
 /* Private data structure for mapped tag numbers. The 0th entry
  * is the one first in the traversal and furthest from the tag content.*/
-typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM1];
+typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM];
 
 
 
