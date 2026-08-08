@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
 
+### Fixed
+- When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
+  and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above 
+  QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
+
 
 ## [1.6.1] - 2025-03-03
 
