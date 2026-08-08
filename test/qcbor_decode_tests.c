@@ -79,6 +79,14 @@ MakeTestResultCode(uint32_t   uTestCase,
    return (int32_t)uCode;
 }
 
+
+/* One big buffer that is used by all the tests to encode into
+ * Putting it in uninitialized data is better than using a lot
+ * of stack. The tests should run on small devices too.
+ */
+static uint8_t spBigBuf[2200];
+
+
 /*
    [
       -9223372036854775808,
@@ -4116,6 +4124,65 @@ static const uint8_t spTaggedInt[] = {
 
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
+static UsefulBufC EncodeTagNums(size_t uNumTagNums, bool bOneMore)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+   uint64_t           uTagNum;
+
+   QCBOREncode_Init(&EC,  UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   uTagNum = QCBOR_LAST_UNMAPPED_TAG + 1;
+   while(uNumTagNums) {
+      QCBOREncode_AddTag(&EC, uTagNum);
+      uTagNum++;
+      uNumTagNums--;
+   }
+
+   if(bOneMore) {
+      /* NOT a mapped tag to tickle bug */
+      QCBOREncode_AddTag(&EC, QCBOR_LAST_UNMAPPED_TAG - 1);
+   }
+
+   QCBOREncode_AddInt64(&EC, 42);
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   return Encoded;
+}
+
+
+int32_t TestMappedTagLimits(void)
+{
+   UsefulBufC          Encoded;
+   QCBORDecodeContext  DC;
+   QCBORItem           Item;
+   QCBORError          uErr;
+
+   Encoded = EncodeTagNums(QCBOR_NUM_MAPPED_TAGS, false);
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1100;
+   }
+
+   Encoded = EncodeTagNums(QCBOR_NUM_MAPPED_TAGS+1, false);
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
+      return 1101;
+   }
+
+   /* Tests condition when QCBOR_NUM_MAPPED_TAGS is less than QCBOR_MAX_TAGS_PER_ITEM */
+   Encoded = EncodeTagNums(QCBOR_NUM_MAPPED_TAGS+1, true);
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
+      return 1102;
+   }
+
+   return 0;
+}
+
 
 int32_t OptTagParseTest(void)
 {
@@ -4124,6 +4191,12 @@ int32_t OptTagParseTest(void)
    QCBORError         uError;
    UsefulBufC         UBC;
    int64_t            nInt;
+   int32_t            nReturn;
+
+   nReturn = TestMappedTagLimits();
+   if(nReturn) {
+      return nReturn;
+   }
 
 
    QCBORDecode_Init(&DCtx,
@@ -4204,6 +4277,8 @@ int32_t OptTagParseTest(void)
       return -7;
    }
 
+#if QCBOR_NUM_MAPPED_TAGS != 4 && QCBOR_MAX_TAGS_PER_ITEM != 4
+   /* This test only works for standard values */
    /* tag 21590(
              10489608748473423768(
                 2442302357(
@@ -4233,6 +4308,7 @@ int32_t OptTagParseTest(void)
    if(uError == QCBOR_SUCCESS) {
       return -10;
    }
+#endif
 
    // ----------------------------------
    // This test sets up a caller-config list that includes the very large
@@ -4714,7 +4790,9 @@ int32_t OptTagParseTest(void)
       return 414;
    }
 
-   return 0;
+   nReturn = TestMappedTagLimits();
+
+   return nReturn;
 }
 
 /*
