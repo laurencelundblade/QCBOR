@@ -2231,6 +2231,7 @@ int32_t BstrWrapErrorTest(void)
 }
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
 /*
  This is bstr wrapped CBOR in 6 levels.
 
@@ -2469,14 +2470,36 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
    return DecodeNextNested2(Bstr);
 }
 
+/* Works when NESTING >= 10 with decode and variable nesting; Comparison to fixed works with NESTING >= 13 and set to 6 */
+
+/* Just run the fixed test at 6?  The comparison to fixed is important. */
+
+/* How to run both? Refactor the test code to take a parameter? */
+
+/* Can run the test with depth proportionate to MAX DEPTH. Fan out of
+ MAX DEPTH will fan out the test. */
 
 int32_t BstrWrapNestTest(void)
 {
    QCBOREncodeContext EC;
-   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   /* This test requires QCBOR_MAX_ARRAY_NESTING to be 13 because
+    * it 6 times nests an array/map + a bstr wrap plus one more.
+
+    * This test can work with the test depth other than 6 (it was verified), but
+    * then comparison to spExpectedDeepBstr can't work because
+    * it is the hand-coded and verified encoding for 6 levels.
+
+    * The decision taken is to keep the nesting at 6 and only run
+    * the test if QCBOR_MAX_ARRAY_NESTING > 13. This will be
+    * a regular occurance with the default QCBOR_MAX_ARRAY_NESTING
+    * of 15 (and maybe more).
+    */
 
    // ---- Make a complicated nested CBOR structure ---
-   #define BSTR_TEST_DEPTH 6
+#define BSTR_TEST_DEPTH 6
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
 
    QCBOREncode_OpenArray(&EC);
 
@@ -2511,10 +2534,14 @@ int32_t BstrWrapNestTest(void)
       return -1;
    }
 
+#if 1
    // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
       return -2;
    }
+#else
+   (void)spExpectedDeepBstr;
+#endif
 
    // ---- Decode it and see if it is OK ------
    QCBORDecodeContext DC;
@@ -2561,6 +2588,7 @@ int32_t BstrWrapNestTest(void)
 
    return 0;
 }
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 
 static const uint8_t spCoseSign1Signature[] = {

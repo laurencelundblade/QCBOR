@@ -34,6 +34,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __QCBOR__qcbor_encode_tests__
 
 #include <stdint.h>
+#include "qcbor/qcbor_common.h"
 
 /*
  Notes:
@@ -149,10 +150,13 @@ int32_t BstrWrapTest(void);
 int32_t BstrWrapErrorTest(void);
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
+
 /*
  Test complicated nested bstr wrapping
  */
 int32_t BstrWrapNestTest(void);
+#endif
 
 
 /*

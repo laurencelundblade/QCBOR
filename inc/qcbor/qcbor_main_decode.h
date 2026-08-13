@@ -525,8 +525,16 @@ typedef enum {
 
 
 /**
- * The largest value in @c utags that is unmapped and can be used without
- * mapping it through QCBORDecode_GetNthTagNumber().
+ * Tag numbers above this value are remapped when stored
+ * internally. Only @ref QCBOR_NUM_MAPPED_TAGS (typically 4) tag
+ * numbers above this value can be stored per decoder instance. This
+ * value is described publically only for the caller to understand
+ * @ref QCBOR_NUM_MAPPED_TAGS.
+ *
+ * Tag numbers in QCBORItem and QCBORDecodeContext should
+ * be accessed through QCBORDecode_GetNthTagNumber(), not
+ * directly. @c auTagNumbers in @ref QCBORItem is a private
+ * data structure and subject to change.
  */
 #define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS - 1)
 
@@ -699,7 +707,7 @@ typedef struct _QCBORItem {
    /**
     * PRIVATE MEMBER
     * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
-    * Also see @ref CBORTags
+    * Also see @ref CBORTags.
     *
     * In QCBOR v1 this was named uTags and was in the reverse order.
     * It wasn't explicitly described as private, but was implicitly private.

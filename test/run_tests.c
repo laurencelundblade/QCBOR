@@ -116,7 +116,9 @@ static test_entry s_tests[] = {
 
    TEST_ENTRY(BstrWrapTest),
    TEST_ENTRY(BstrWrapErrorTest),
+#if QCBOR_MAX_ARRAY_NESTING > 13
    TEST_ENTRY(BstrWrapNestTest),
+#endif
    TEST_ENTRY(CoseSign1TBSTest),
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    TEST_ENTRY(StringDecoderModeFailTest),
