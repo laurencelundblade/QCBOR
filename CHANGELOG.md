@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Forward declarations of indefinite length encode stuff
 
 ### Fixed
+- Critical bad stack reference bug fix for big number decoding
 - Fix encoding of negative big nums that are one non-zero byte followed by zeros
 - Doxygen -- fix undocumented items and bad references
 
