@@ -118,22 +118,27 @@ QCBOR is designed to work within a truly fixed amount of memory.
 It does no memory allocation nor recursion. Its data structures can
 fit on the stack. To accomplish this hard limits are set:
 
-- @ref QCBOR_MAX_SIZE (a little less than 4GB): Maximum encoded CBOR (except for streamed encoding; see QCBOREncode_SetStream()); must be in contiguous memory.
-- @ref QCBOR_MAX_ARRAY_NESTING (typically 15): Limit on array and map nesting depth.
-- @ref QCBOR_MAX_ITEMS_IN_ARRAY (65,534): The maximum number of items in an array.
-- @ref QCBOR_MAX_ITEMS_IN_MAP (32,767): The maximum number of entries (label-value pairs) in a map.
-- @ref QCBOR_NUM_MAPPED_TAGS (typically 4): When decoding, the maximum distinct tag numbers whose value is larger than @ref QCBOR_LAST_UNMAPPED_TAG (typically 65,530).
-- @ref QCBOR_MAX_TAGS_PER_ITEM (typically 4): When decoding, the maximum number of tag numbers on a CBOR item.
+- @ref QCBOR_MAX_SIZE (a little less than 4GB): Maximum encoded CBOR (except
+  for streamed encoding; see QCBOREncode_SetStream()); must be in contiguous
+  memory.
+- @ref QCBOR_MAX_ARRAY_NESTING (typically 35): Limit on nesting depth for
+  arrays, maps and other nesting.
+- @ref QCBOR_MAX_ITEMS_IN_ARRAY (65,534): The maximum number of items in
+  an array.
+- @ref QCBOR_MAX_ITEMS_IN_MAP (32,767): The maximum number of entries
+  (label-value pairs) in a map.
+- @ref QCBOR_NUM_MAPPED_TAGS (typically 4): When decoding, the maximum
+  distinct tag numbers whose value is larger than @ref QCBOR_LAST_UNMAPPED_TAG
+  (typically 65,530).
+- @ref QCBOR_MAX_TAGS_PER_ITEM (typically 4): When decoding, the maximum
+  number of tag numbers on a CBOR item.
 
+QCBOR will error when these limits are reached. They allow it to run
+in hard-limited memory environments and prevent resource exhaustion
+attacks.
 
-QCBOR will error when these limits are reached. They allow it 
-to run in hard-limited memory environments and prevent resource
-exhaustion attacks. 
+Some of these can be changed. See @ref ChangingMaxLimits.
 
-These limits are compiled into the library and part of the ABI. Some of them can be
-changed and the library recompiled, but note that the compiled library
-and headers *must* match so as to not have catastrophic failure, security
-issues and such.
 
 CBOR allows for negative integers that can't fit in standard 64-bit registers
 or C data types. QCBOR can decode these as data items, but doesn't support
@@ -146,7 +151,7 @@ benefit:
 - Integer label functions support what fits in @c int64_t or @c uint64_t.
 
 CBOR allows map labels to be arbitrarily complex, but QCBOR primarily supports
-integer and text string labels. QCBOR does @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY to
+integer and text string labels. QCBOR has @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY to
 process labels of any sort, but it is very manual and loses much
 of QCBOR's convenience.
 

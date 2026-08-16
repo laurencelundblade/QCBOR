@@ -321,11 +321,10 @@ typedef enum {
     *  @c UINT32_MAX. */
    QCBOR_ERR_BUFFER_TOO_LARGE = 10,
 
-   /** During encoding, the array or map nesting was deeper than this
-    *  implementation can handle. Note that in the interest of code
-    *  size and memory use, QCBOR has a hard limit on array
-    *  nesting. The limit is defined as the constant
-    *  @ref QCBOR_MAX_ARRAY_NESTING. */
+   /** During encoding, nesting deeper than @ref
+    *  QCBOR_MAX_ARRAY_NESTING occurred.  Arrays, maps, byte-string
+    *  wrapping, and some string encoding contribute to the nesting
+    *  depth. */
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 11,
 
    /** During encoding, the type of close doesn't match what is open. Also
@@ -414,12 +413,10 @@ typedef enum {
     *  This error makes no further decoding possible. */
    QCBOR_ERR_INPUT_TOO_LARGE = 40,
 
-   /** During decoding, the array or map nesting was deeper than this
-    *  implementation can handle. Note that in the interest of code
-    *  size and memory use, QCBOR has a hard limit on array
-    *  nesting. The limit is defined as the constant
-    *  @ref QCBOR_MAX_ARRAY_NESTING. This error makes no further
-    *  decoding possible. */
+   /** Decoding exceeded @ref QCBOR_MAX_ARRAY_NESTING.
+    *  Arrays, maps, and byte-string wrapping contribute to the nesting depth.
+    *  No further decoding is possible.
+    */
    QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 41,
 
    /** During decoding, the array or map had too many items in it.
@@ -516,9 +513,12 @@ typedef enum {
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59
 
-   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tags encountered for a
-    *  CBOR Item.  @ref QCBOR_MAX_TAGS_PER_ITEM is a limit of this
-    *  implementation. x  */
+   /** More than @ref QCBOR_MAX_TAGS_PER_ITEM tag numbers on a single
+    *  @ref QCBORItem, or more than @ref QCBOR_NUM_MAPPED_TAGS distinct
+    *  tag numbers greater than @ref QCBOR_LAST_UNMAPPED_TAG within a
+    *  single @ref QCBORDecodeContext. @ref QCBOR_MAX_TAGS_PER_ITEM
+    *  and @ref QCBOR_NUM_MAPPED_TAGS are configurable limits of
+    *  QCBOR. */
    QCBOR_ERR_TOO_MANY_TAGS = 60,
 
    /** When decoding for a specific type, the type was not expected.  */
@@ -691,20 +691,35 @@ qcbor_err_to_str(QCBORError uErr);
 
 
 /**
- * The maximum nesting depth of definite and indefinite-length arrays
- * and maps for encoding and decoding.
+ * This is the maximum nesting depth of definite and indefinite-length
+ * arrays and maps for encoding and decoding. Byte-string wrapping and
+ * unwrapping also count towards nesting depth, as does encoding of
+ * segmented strings.
  *
- * When building QCBOR, this value can be changed. Each nesting level
- * takes up 8 bytes in the encoding context and 12 bytes in the
- * decoding context (there may be some variation in these sizes for
- * different CPU types and compiler). The increase in the encode and
- * decode context is the only cost of increasing this.  This cannot be
- * increased to over 255. Values below 7 are untested.
+ * This value can be changed when building QCBOR; see
+ * @ref ChangingMaxLimits. The default of 35 is intended for
+ * less-constrained systems, which are the more common case. For very
+ * constrained systems, it may be reduced to 7. Before QCBOR v1.7.0
+ * the default was 15.
+ *
+ * Expected size in bytes on a 64-bit CPU:
+ *
+ * | Structure                   |  7  | 15 (previous default) | 35 (default) |
+ * |-----------------------------| --- | --------------------- | ------------ |
+ * | @ref QCBOREncodeContext     | 136 | 200                   | 360          |
+ * | @ref QCBORDecodeContext     | 256 | 352                   | 592          |
+ * | @ref QCBORSavedDecodeCursor | 168 | 264                   | 504          |
+ *
+ * Each nesting level costs 8 bytes in @ref QCBOREncodeContext and 12
+ * bytes in each of @ref QCBORDecodeContext and
+ * @ref QCBORSavedDecodeCursor (these sizes may vary by CPU type and
+ * compiler). The size of these structures is the only cost of
+ * changing this limit. It cannot be set above 255 because levels are
+ * indexed by a @c uint8_t. Values below 7 are untested.
  */
 #ifndef QCBOR_MAX_ARRAY_NESTING
-#define QCBOR_MAX_ARRAY_NESTING  40
+#define QCBOR_MAX_ARRAY_NESTING  35
 #endif
-
 
 
 
@@ -745,8 +760,9 @@ qcbor_err_to_str(QCBORError uErr);
  * on occurrences: the same large tag number appearing many times
  * consumes one entry.
  *
- * You may raise this value and recompile the library. Each additional
- * mapped tag number adds 8 bytes to the @ref QCBORDecodeContext and
+ * This value can be changed when building QCBOR; see
+ * @ref ChangingMaxLimits. Each additional
+ * mapped tag number adds 8 bytes to both @ref QCBORDecodeContext and
  * @ref QCBORSavedDecodeCursor.  Raising this by one also lowers
  * @ref QCBOR_LAST_UNMAPPED_TAG by one.
  */
@@ -759,15 +775,14 @@ qcbor_err_to_str(QCBORError uErr);
  * @def QCBOR_MAX_TAGS_PER_ITEM
  *
  * The maximum number of tag numbers that may be nested on a single
- * CBOR item. Decoding an item with more than this many tag numbers
- * returns @ref QCBOR_ERR_TOO_MANY_TAGS.
+ * CBOR item.
  *
  * This limit exists so that @ref QCBORItem stays small: it is passed
  * by value and is typically stack-allocated, so its size matters on
  * constrained targets.
  *
- * You may raise this value and recompile the library if your protocol
- * nests tag numbers more deeply. Each additional tag adds 2 bytes to
+ * This value can be changed when building QCBOR; see
+ * @ref ChangingMaxLimits. Each additional tag adds 2 bytes to
  * @ref QCBORItem, 2 bytes to @ref QCBORDecodeContext and
  * increases stack use while decoding by 2 bytes.
  *
@@ -783,7 +798,8 @@ qcbor_err_to_str(QCBORError uErr);
 
 /** @cond DOXYGEN_IGNORE */
 
-/* Largest value QCBOR_MAX_ARRAY_NESTING can be set to */
+/* Largest value QCBOR_MAX_ARRAY_NESTING can be set to. Limited
+ * by indexing with 8-bit integer */
 #define QCBOR_MAX_MAX_ARRAY_NESTING 255
 
 #if QCBOR_MAX_ARRAY_NESTING > QCBOR_MAX_MAX_ARRAY_NESTING
@@ -792,7 +808,7 @@ qcbor_err_to_str(QCBORError uErr);
 
 
 /* Largest value QCBOR_MAX_TAGS_PER_ITEM can be set to. This limit is
- * actually in the implementation of TooManyTagsTest(), but 50 tags is
+ * actually in the implementation of TooManyTagsTest(), but 512 tags is
  * a ridiculous amount so no need to improve the test. */
 #define QCBOR_MAX_MAX_TAGS_PER_ITEM 512
 
