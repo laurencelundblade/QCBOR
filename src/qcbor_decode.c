@@ -1525,7 +1525,7 @@ Done:
  *
  * @param[in] pMe                The decode context.
  * @param[in] uUnMappedTag       The tag number to map
- * @param[out] puMappedTagNumer  The stored tag number.
+ * @param[out] puMappedTagNumber  The stored tag number.
  *
  * @return error code.
  *
@@ -1536,13 +1536,18 @@ Done:
  * This maps tag numbers greater than QCBOR_LAST_UNMAPPED_TAG.
  * QCBOR_LAST_UNMAPPED_TAG is a little smaller than MAX_UINT16.
  *
+ * *puMappedTagNumber is set to CBOR_TAG_INVALID16 on error and never
+ * on success; callers rely on this behavior.
+ *
  * See also UnMapTagNumber() and @ref QCBORItem.
  */
 static QCBORError
 QCBORDecode_Private_MapTagNumber(QCBORDecodeContext *pMe,
                                  const uint64_t      uUnMappedTag,
-                                 uint16_t           *puMappedTagNumer)
+                                 uint16_t           *puMappedTagNumber)
 {
+   *puMappedTagNumber = CBOR_TAG_INVALID16;
+
    if(uUnMappedTag > QCBOR_LAST_UNMAPPED_TAG) {
       unsigned uTagMapIndex;
       /* Is there room in the tag map, or is it in it already? */
@@ -1558,12 +1563,12 @@ QCBORDecode_Private_MapTagNumber(QCBORDecodeContext *pMe,
          return QCBOR_ERR_TOO_MANY_TAGS;
       }
 
-      /* Covers the cases where tag is new and were it is already in the map */
+      /* Covers the cases where tag is new and where it is already in the map */
       pMe->auMappedTags[uTagMapIndex] = uUnMappedTag;
-      *puMappedTagNumer = (uint16_t)(uTagMapIndex + QCBOR_LAST_UNMAPPED_TAG + 1);
+      *puMappedTagNumber = (uint16_t)(uTagMapIndex + QCBOR_LAST_UNMAPPED_TAG + 1);
 
    } else {
-      *puMappedTagNumer = (uint16_t)uUnMappedTag;
+      *puMappedTagNumber = (uint16_t)uUnMappedTag;
    }
 
    return QCBOR_SUCCESS;
@@ -1601,7 +1606,7 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
 
 
 /**
- * @brief Aggregate all tags wrapping a data item (decode layer 4).
+ * @brief Aggregate all tag numbers on a data item (decode layer 4).
  *
  * @param[in] pMe            Decoder context
  * @param[out] pDecodedItem  The decoded item that work is done on.
@@ -1629,35 +1634,37 @@ QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
  *                                               strings are disabled.
  * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item.
  *
- * This loops getting atomic data items until one is not a tag
- * number.  Usually this is largely pass-through because most
- * item are not tag numbers.
+ * This loops getting atomic data items until one is not a tag number.
+ * Usually this is pass-through because tag numbers are not often
+ * used.
+ *
+ * On error, pDecodedItem->uTags has no valid data and should not be
+ * referenced.
  */
 static QCBORError
 QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
                                      QCBORItem          *pDecodedItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   /* Accummulate the tags from multiple items here and then copy them
-    * into the last item, the non-tag item.
-    */
-   uint16_t auItemsTags[QCBOR_MAX_TAGS_PER_ITEM];
+   uint16_t    auItemsTags[QCBOR_MAX_TAGS_PER_ITEM];
+   QCBORError  uReturn;
+   QCBORError  uErr;
+   size_t      uIndex;
 
-   /* Initialize to CBOR_TAG_INVALID16 */
-   #if CBOR_TAG_INVALID16 != 0xffff
-   /* Be sure the memset does the right thing. */
-   #err CBOR_TAG_INVALID16 tag not defined as expected
-   #endif
-   memset(auItemsTags, 0xff, sizeof(auItemsTags));
+   /* Initialize tag number accumulator to CBOR_TAG_INVALID16 */
+   for(uIndex = 0; uIndex < QCBOR_MAX_TAGS_PER_ITEM; uIndex++) {
+      auItemsTags[uIndex] = CBOR_TAG_INVALID16;
+   }
 
-   QCBORError uReturn = QCBOR_SUCCESS;
-
-   /* Loop fetching data items until the item fetched is not a tag */
+   /* Loop fetching data items until the item fetched is not a tag.
+    * Decoded tags from multiple tag number items accumulate in
+    * auItemsTags and then are copied in to *pDecodedItem. */
+   uReturn = QCBOR_SUCCESS;
    for(;;) {
-      QCBORError uErr = QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
+      uErr = QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
       if(uErr != QCBOR_SUCCESS) {
          uReturn = uErr;
-         goto Done;
+         break;
       }
 
       if(pDecodedItem->uDataType != QCBOR_TYPE_TAG) {
@@ -1666,35 +1673,30 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
          break;
       }
 
+      if(uReturn != QCBOR_SUCCESS) {
+         /* The uReturn errors are because an implementation limit on
+          * the number of tag numbers was hit, not because of any
+          * problem with the input CBOR. This continues to decode
+          * after these errors. They are not in the range started by
+          * QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS. Also, once in
+          * error state, stay there and don't try to record or map any
+          * more tag numbers. */
+         continue;
+      }
+
       if(auItemsTags[QCBOR_MAX_TAGS_PER_ITEM - 1] != CBOR_TAG_INVALID16) {
-         /* No room in the tag list */
+         /* No room in the item's tag list */
          uReturn = QCBOR_ERR_TOO_MANY_TAGS;
-         /* Continue on to get all tags wrapping this item even though
-          * it is erroring out in the end. This allows decoding to
-          * continue. This is a resource limit error, not a problem
-          * with being well-formed CBOR.
-          */
          continue;
       }
       /* Slide tags over one in the array to make room at index 0.
-       * Must use memmove because the move source and destination
-       * overlap.
-       */
-      memmove(&auItemsTags[1],
-              auItemsTags,
-              sizeof(auItemsTags) - sizeof(auItemsTags[0]));
+       * memmove() because the move source and destination overlap. */
+      memmove(&auItemsTags[1], auItemsTags, sizeof(auItemsTags) - sizeof(auItemsTags[0]));
 
-      /* Map the tag */
-      uint16_t uMappedTagNumber = 0;
-      uReturn = QCBORDecode_Private_MapTagNumber(pMe, pDecodedItem->val.uTagV, &uMappedTagNumber);
-      /* Continue even on error so as to consume all tags wrapping
-       * this data item so decoding can go on. If MapTagNumber()
-       * errors once it will continue to error.
-       */
-      auItemsTags[0] = uMappedTagNumber;
+      /* Map the tag; possible error for too many mapped tags */
+      uReturn = QCBORDecode_Private_MapTagNumber(pMe, pDecodedItem->val.uTagV, &auItemsTags[0]);
    }
 
-Done:
    return uReturn;
 
 #else /* QCBOR_DISABLE_TAGS */
