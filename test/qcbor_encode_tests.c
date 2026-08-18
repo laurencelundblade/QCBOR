@@ -2470,14 +2470,6 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
    return DecodeNextNested2(Bstr);
 }
 
-/* Works when NESTING >= 10 with decode and variable nesting; Comparison to fixed works with NESTING >= 13 and set to 6 */
-
-/* Just run the fixed test at 6?  The comparison to fixed is important. */
-
-/* How to run both? Refactor the test code to take a parameter? */
-
-/* Can run the test with depth proportionate to MAX DEPTH. Fan out of
- MAX DEPTH will fan out the test. */
 
 int32_t BstrWrapNestTest(void)
 {
@@ -2493,13 +2485,12 @@ int32_t BstrWrapNestTest(void)
     * The decision taken is to keep the nesting at 6 and only run
     * the test if QCBOR_MAX_ARRAY_NESTING > 13. This will be
     * a regular occurance with the default QCBOR_MAX_ARRAY_NESTING
-    * of 15 (and maybe more).
+    * of 35 (and maybe more).
     */
 
    // ---- Make a complicated nested CBOR structure ---
 #define BSTR_TEST_DEPTH 6
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-
 
    QCBOREncode_OpenArray(&EC);
 
@@ -2534,14 +2525,10 @@ int32_t BstrWrapNestTest(void)
       return -1;
    }
 
-#if 1
    // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
       return -2;
    }
-#else
-   (void)spExpectedDeepBstr;
-#endif
 
    // ---- Decode it and see if it is OK ------
    QCBORDecodeContext DC;

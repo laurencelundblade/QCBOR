@@ -3564,7 +3564,7 @@ int32_t DateParseTest(void)
    if(uError != FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_DATE_OVERFLOW)) {
       return -17;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM > 2 */
 
    return 0;
 }
@@ -3914,7 +3914,7 @@ int32_t SpiffyDateDecodeTest(void)
    if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 1000 + (int32_t)uError;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM > 2 */
 #else /* QCBOR_DISABLE_TAGS */
    QCBORDecode_GetDateStringInMapN(&DC, 0, QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
                                    &StringDate1);
@@ -3951,7 +3951,7 @@ int32_t SpiffyDateDecodeTest(void)
    if(nEpochDate6 != -1000) {
       return 203;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM > 2 */
 
    if(UsefulBuf_Compare(StringDate1, UsefulBuf_FromSZ("1985-04-12"))) {
       return 205;
@@ -4227,7 +4227,7 @@ static const uint8_t spCSRWithTags[] = {
    0xd7, 0xa1,
       0xcb, 0xc8, 0xc7, 0x24,
       0xc8, 0x22};
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM > 3*/
 
 static const uint8_t spSpiffyTagInput[] = {
    0x85, // Open array
@@ -4473,8 +4473,6 @@ int32_t TagNumberDecodeTest(void)
       return -106;
    }
 
-
-#if QCBOR_NUM_MAPPED_TAGS == 4
    /* tag 10489608748473423768(
              2442302356(
                 21590(
@@ -4491,6 +4489,7 @@ int32_t TagNumberDecodeTest(void)
       return -7;
    }
 
+#if QCBOR_NUM_MAPPED_TAGS == 4
    /* tag 21590(
              10489608748473423768(
                 2442302357(
@@ -4520,8 +4519,8 @@ int32_t TagNumberDecodeTest(void)
    if(uError == QCBOR_SUCCESS) {
       return -10;
    }
-#endif
-#endif
+#endif /* QCBOR_NUM_MAPPED_TAGS == 4 */
+#endif /* QCBOR_MAX_TAGS_PER_ITEM == 4 */
 
    /* --- Test too many tags no matter what QCBOR_MAX_TAGS_PER_ITEM is --- */
    /* Make the encoded integer 0 with up to UINT16_MAX tag numbers */
@@ -4560,7 +4559,7 @@ int32_t TagNumberDecodeTest(void)
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -2;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM == 4 */
 
 #if QCBOR_MAX_TAGS_PER_ITEM >= 4 && QCBOR_NUM_MAPPED_TAGS >= 4
 
@@ -4626,7 +4625,7 @@ int32_t TagNumberDecodeTest(void)
    if(uError != QCBOR_SUCCESS || uTagNumber != CBOR_TAG_INVALID64) {
       return -7;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM >= 4 && QCBOR_NUM_MAPPED_TAGS >= 4 */
 
 #if QCBOR_MAX_TAGS_PER_ITEM == 4
    /* More than 4 tags. Even with v2 processing, there is a max of 4 tags. */
@@ -4636,7 +4635,7 @@ int32_t TagNumberDecodeTest(void)
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {
       return -9;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM == 4 */
 
    /* The input is a bad decimal frac with extra tag number */
    QCBORDecode_Init(&DCtx, spTagInput2[5].EncodedCBOR, QCBOR_DECODE_MODE_NORMAL);
@@ -4730,7 +4729,7 @@ int32_t TagNumberDecodeTest(void)
 
    QCBORDecode_ExitMap(&DCtx);
 
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM >= 3 && QCBOR_NUM_MAPPED_TAGS >= 2 */
 
 
    /* -9-9-9-9-9-9-9- */
@@ -4862,7 +4861,7 @@ int32_t TagNumberDecodeTest(void)
       return 243;
    }
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM >= 3 */
 
 
    QCBORDecode_Init(&DCtx,
@@ -8204,11 +8203,11 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_TAGS) {
       return 4801;
    }
-#else
+#else /* QCBOR_MAX_TAGS_PER_ITEM <= 4 */
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
       return 4802;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM <= 4 */
 
    /* Again with a NULL pItem for extra check */
    QCBORDecode_Init(&DCtx, (UsefulBufC){"\xD8\xE0\xD8\xE1\xD8\xE2\xD8\xE3\xD8\xE4\x80", 11}, 0);
@@ -8217,11 +8216,11 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_TAGS) {
       return 4803;
    }
-#else
+#else /* QCBOR_MAX_TAGS_PER_ITEM <= 4 */
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
       return 4804;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM <= 4 */
 
 #endif /* ! QCBOR_DISABLE_TAGS */
 
@@ -8232,11 +8231,11 @@ int32_t EnterMapTest(void)
    if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
       return 2900;
    }
-#else
+#else /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED) {
       return 2901;
    }
-#endif
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput5), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
@@ -9411,7 +9410,7 @@ static const uint8_t spPrecedingTag[] = {
 };
 
 
-#endif
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
 
