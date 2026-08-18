@@ -1044,7 +1044,7 @@ int32_t ParseTooDeepArrayTest(void)
       }
    }
 
-   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP)
+   if(QCBORDecode_GetNext(&DCtx, &Item) != QCBOR_ERR_DECODE_NESTING_TOO_DEEP)
       nReturn = -1;
 
    return nReturn;
@@ -5300,7 +5300,7 @@ int32_t BignumDecodeTest(void)
       if(uErr != QCBOR_SUCCESS) {
          return MakeTestResultCode(uTestIndex, 6, uErr);
       }
-      
+
       if(UsefulBuf_Compare(ResultBigNum, pTest->ExpectedBigNum)) {
          return MakeTestResultCode(uTestIndex, 7, 0);
       }
@@ -5532,7 +5532,7 @@ static int32_t parse_indeflen_nested(UsefulBufC Nested, int nNestLevel)
       QCBORError nReturn = QCBORDecode_GetNext(&DC, &Item);
       if(j >= QCBOR_MAX_ARRAY_NESTING) {
          // Should be in error
-         if(nReturn != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
+         if(nReturn != QCBOR_ERR_DECODE_NESTING_TOO_DEEP) {
             return -4;
          } else {
             return 0; // Decoding doesn't recover after an error
@@ -8115,7 +8115,7 @@ int32_t EnterMapTest(void)
 
 //   QCBORDecode_EnterArray(&DCtx, NULL);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
-   if(uErr != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
+   if(uErr != QCBOR_ERR_DECODE_NESTING_TOO_DEEP) {
       return 2033;
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */

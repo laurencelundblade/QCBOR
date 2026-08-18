@@ -637,7 +637,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * - @ref QCBOR_ERR_UNEXPECTED_TYPE --- The type of a found item does
  *   not match the expected @c uDataType.
  *
- * - @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP --- and other QCBOR implementation
+ * - @ref QCBOR_ERR_DECODE_NESTING_TOO_DEEP --- and other QCBOR implementation
  *   @ref QCBORLimitations errors.
  *
  * Because the entire map is traversed, these errors can occur on

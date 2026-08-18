@@ -1071,7 +1071,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_INT_OVERFLOW                  | Input integer smaller than INT64_MIN |
  * | @ref QCBOR_ERR_ARRAY_DECODE_TOO_LONG         | Array or map has more elements than can be handled |
  * | @ref QCBOR_ERR_DATE_OVERFLOW                 | Date larger than can be handled |
- * | @ref QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
+ * | @ref QCBOR_ERR_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
  * | @ref QCBOR_ERR_STRING_TOO_LONG               | Encountered a string longer than size_t can hold less 4 bytes |
  * | @ref QCBOR_ERR_TOO_MANY_TAGS                 | Tag nesting deeper than limit, typically 4 |
  * | __Configuration errors__  ||

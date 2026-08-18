@@ -997,7 +997,7 @@ QCBOREncode_AddSimpleToMapN(QCBOREncodeContext *pCtx,
  * limit is @ref QCBOR_MAX_ARRAY_NESTING. This is the max number of
  * times this can be called without calling
  * QCBOREncode_CloseArray(). QCBOREncode_Finish() will return
- * @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP when it is called as this
+ * @ref QCBOR_ERR_ENCODE_NESTING_TOO_DEEP when it is called as this
  * function just sets an error state and returns no value when this
  * occurs.
  *
@@ -1452,7 +1452,7 @@ QCBOREncode_Flush(QCBOREncodeContext *pCtx);
  *
  * @retval QCBOR_ERR_BUFFER_TOO_SMALL        Encoded output buffer size
  *
- * @retval QCBOR_ERR_ARRAY_NESTING_TOO_DEEP  Implementation limit
+ * @retval QCBOR_ERR_ENCODE_NESTING_TOO_DEEP  Implementation limit
  *
  * @retval QCBOR_ERR_ARRAY_TOO_LONG          Implementation limit
  *
@@ -1481,7 +1481,7 @@ QCBOREncode_Flush(QCBOREncodeContext *pCtx);
  * small or too large. The remedy is to give a correctly sized buffer.
  *
  * The third type are due to limits in this implementation.
- * @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP can be worked around by
+ * @ref QCBOR_ERR_ENCODE_NESTING_TOO_DEEP can be worked around by
  * encoding the CBOR in two (or more) phases and adding the CBOR from
  * the first phase to the second with @c QCBOREncode_AddEncoded().
  *

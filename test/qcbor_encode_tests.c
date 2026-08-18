@@ -1593,7 +1593,7 @@ int32_t ArrayNestingTest2(void)
    }
 
    UsefulBufC Encoded;
-   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       nReturn = -1;
    }
 
@@ -2223,7 +2223,7 @@ int32_t BstrWrapErrorTest(void)
    }
 
    uError = QCBOREncode_Finish(&EC, &Encoded2);
-   if(uError != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(uError != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return (int32_t)(300 + uError);
    }
 
@@ -2842,7 +2842,7 @@ int32_t EncodeErrorTests(void)
    }
 
 
-   // ----- QCBOR_ERR_ARRAY_NESTING_TOO_DEEP -------
+   // ----- QCBOR_ERR_ENCODE_NESTING_TOO_DEEP -------
    QCBOREncode_Init(&EC, Large);
    for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
       QCBOREncode_OpenArray(&EC);
@@ -2863,7 +2863,7 @@ int32_t EncodeErrorTests(void)
    for(int i = QCBOR_MAX_ARRAY_NESTING+1; i > 0; i--) {
       QCBOREncode_CloseArray(&EC);
    }
-   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return -6;
    }
 
@@ -3542,7 +3542,7 @@ OpenCloseBytesTest(void)
       return 7;
    }
    uErr = QCBOREncode_GetErrorState(&EC);
-   if(uErr != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(uErr != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return 8;
    }
 

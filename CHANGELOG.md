@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBOREncode_CancelBstrWrap() is smaller with less checks for QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 - Various documentation clarifications 
 - Forward declarations of indefinite length encode stuff
+- Rename QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP to QCBOR_ERR_DECODE_NESTING_TOO_DEEP
+- Rename QCBOR_ERR_ARRAY_NESTING_TOO_DEEP to QCBOR_ERR_ENCODE_NESTING_TOO_DEEP
 
 ### Fixed
 - Fix encoding of negative big nums that are one non-zero byte followed by zeros

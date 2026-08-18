@@ -321,11 +321,13 @@ typedef enum {
     *  @c UINT32_MAX. */
    QCBOR_ERR_BUFFER_TOO_LARGE = 10,
 
-   /** During encoding, nesting deeper than @ref
-    *  QCBOR_MAX_ARRAY_NESTING occurred.  Arrays, maps, byte-string
-    *  wrapping, and some string encoding contribute to the nesting
-    *  depth. */
-   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = 11,
+   /** During encoding, nesting deeper than @ref QCBOR_MAX_ARRAY_NESTING
+    *  occurred. Arrays, maps, byte-string wrapping, and some string
+    *  encoding contribute to the nesting depth. */
+   QCBOR_ERR_ENCODE_NESTING_TOO_DEEP = 11,
+   /** Alias for ::QCBOR_ERR_ENCODE_NESTING_TOO_DEEP for backward compatibility. */
+   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = QCBOR_ERR_ENCODE_NESTING_TOO_DEEP,
+
 
    /** During encoding, the type of close doesn't match what is open. Also
     * an indefinite-length string chunk is of the wrong type or
@@ -417,7 +419,9 @@ typedef enum {
     *  Arrays, maps, and byte-string wrapping contribute to the nesting depth.
     *  No further decoding is possible.
     */
-   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = 41,
+   QCBOR_ERR_DECODE_NESTING_TOO_DEEP = 41,
+   /** Alias for ::QCBOR_ERR_DECODE_NESTING_TOO_DEEP for backward compatibility. */
+   QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP = QCBOR_ERR_DECODE_NESTING_TOO_DEEP,
 
    /** During decoding, the array or map had too many items in it.
     *  This limit is @ref QCBOR_MAX_ITEMS_IN_ARRAY (65,534) for

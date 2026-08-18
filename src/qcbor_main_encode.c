@@ -91,7 +91,7 @@ Nesting_Increase(QCBORTrackNesting                *pNesting,
                  const uint32_t                    uPos)
 {
    if(pNesting->pCurrentNesting == &pNesting->pArrays[QCBOR_MAX_ARRAY_NESTING]) {
-      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+      return QCBOR_ERR_ENCODE_NESTING_TOO_DEEP;
    } else {
       pNesting->pCurrentNesting++;
       pNesting->pCurrentNesting->uCount     = 0;
@@ -233,7 +233,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * Sizes
  *   QCBOR_ERR_BUFFER_TOO_LARGE        -- Encoded output exceeded UINT32_MAX
  *   QCBOR_ERR_BUFFER_TOO_SMALL        -- Output buffer too small
- *   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP  -- Nesting > QCBOR_MAX_ARRAY_NESTING1
+ *   QCBOR_ERR_ENCODE_NESTING_TOO_DEEP -- Nesting > QCBOR_MAX_ARRAY_NESTING1
  *   QCBOR_ERR_ARRAY_TOO_LONG          -- Too many items added to an array/map [1]
  *
  * Nesting constructed incorrectly

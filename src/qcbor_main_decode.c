@@ -1811,7 +1811,7 @@ Done:
  * @retval QCBOR_ERR_NO_MORE_ITEMS           Need more items for map or array.
  * @retval QCBOR_ERR_BAD_BREAK               Indefinite-length break in wrong
  *                                           place.
- * @retval QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP  Nesting deeper than QCBOR
+ * @retval QCBOR_ERR_DECODE_NESTING_TOO_DEEP  Nesting deeper than QCBOR
  *                                                  can handle.
  *
  * This handles the traversal descending into and asecnding out of
