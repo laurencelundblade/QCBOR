@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documentation
   - Makefile and Cmake support
   - Test coverage for nesting and tag number limits other than defaults
+- Add subject documentation on strings
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
@@ -35,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default nesting maximum is increase from 15 to 35
 
 ### Fixed
+- Critical bad stack reference bug fix for big number decoding
 - Fix encoding of negative big nums that are one non-zero byte followed by zeros
 - Documentation / Doxygen -- fix undocumented items and bad references
 

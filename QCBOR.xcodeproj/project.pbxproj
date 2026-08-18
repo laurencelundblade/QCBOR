@@ -74,6 +74,7 @@
 		E776E094214AE09700E67947 /* UsefulBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = UsefulBuf.h; path = inc/UsefulBuf.h; sourceTree = "<group>"; tabWidth = 3; };
 		E776E096214AE0C700E67947 /* cmd_line_main.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; path = cmd_line_main.c; sourceTree = "<group>"; tabWidth = 3; };
 		E776E161214EE19C00E67947 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		E7782B3C301B30D3004270A3 /* Strings.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = Strings.md; path = doc/Strings.md; sourceTree = "<group>"; };
 		E7864765252CE63100A0C11B /* qcbor_err_to_str.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_err_to_str.c; path = src/qcbor_err_to_str.c; sourceTree = "<group>"; tabWidth = 3; };
 		E78C229B2FE84EDC00EFFDA7 /* CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		E78C22A92FF7941200EFFDA7 /* half_to_double_from_rfc7049.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = half_to_double_from_rfc7049.h; sourceTree = "<group>"; };
@@ -222,6 +223,7 @@
 		E7B6990F2D17321B00D8F78F /* doc */ = {
 			isa = PBXGroup;
 			children = (
+				E7782B3C301B30D3004270A3 /* Strings.md */,
 				E78C229B2FE84EDC00EFFDA7 /* CHANGELOG.md */,
 				E7B699132D17421D00D8F78F /* Overview.md */,
 				E7B699122D1732BD00D8F78F /* Building.md */,

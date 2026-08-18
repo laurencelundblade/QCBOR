@@ -1999,7 +1999,7 @@ QCBORDecode_ProcessBigNumber(const QCBORItem Item,
       }
 
       /* --- Remove leading zeros and process empty string --- */
-      const uint8_t Zero[] = {0x00};
+      static const uint8_t Zero[] = {0x00};
       BigNumber = UsefulBuf_SkipLeading(Item.val.bigNum, 0);
       if(BigNumber.len == 0) {
          BigNumber = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(Zero);
