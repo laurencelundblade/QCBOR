@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Some of the version history from GitHub releases has been copied in here
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
 - QCBOREncode_OpenSizedBytes() to encoded definite-length strings in streaming mode
+- Support for changing compiled-in limits on nesting and tag numbers
+  - Documentation
+  - Makefile and Cmake support
+  - Test coverage for nesting and tag number limits other than defaults
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
@@ -27,11 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Forward declarations of indefinite length encode stuff
 - Rename QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP to QCBOR_ERR_DECODE_NESTING_TOO_DEEP
 - Rename QCBOR_ERR_ARRAY_NESTING_TOO_DEEP to QCBOR_ERR_ENCODE_NESTING_TOO_DEEP
+- Improve documentation on nesting and tag number limits
+- Default nesting maximum is increase from 15 to 35
 
 ### Fixed
 - Fix encoding of negative big nums that are one non-zero byte followed by zeros
-- Doxygen -- fix undocumented items and bad references
-
+- Documentation / Doxygen -- fix undocumented items and bad references
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
