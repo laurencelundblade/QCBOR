@@ -94,8 +94,8 @@ install and support for packagers.
 # Changing Maximum Limits {#ChangingMaxLimits}
 
 QCBOR has some hard size limitations (See @ref QCBORLimitations)
-because it does not allocate memory. Some of these can be changed at
-compile time.
+because it does not allocate memory. The following can be changed at
+compile time:
 
 | Limit                         | Default |
 |-------------------------------|---------|

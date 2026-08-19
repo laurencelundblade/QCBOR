@@ -4148,26 +4148,6 @@ static const uint8_t spTagInput[] = {
          0x00, // the integer 0; should be a byte string
 };
 
-/*
- DB 9192939495969798 # tag(10489608748473423768)
-   80                # array(0)
- */
-// TODO: get rid of this?
-//static const uint8_t spEncodedLargeTag[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95,
-//                                      0x96, 0x97, 0x98, 0x80};
-
-/*
-DB 9192939495969798 # tag(10489608748473423768)
-   D8 88            # tag(136)
-      C6            # tag(6)
-         C7         # tag(7)
-            80      # array(0)
-*/
-// TODO: get rid of this?
-
-//static const uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
-//                                 0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
-
 
 #if QCBOR_MAX_TAGS_PER_ITEM >= 3
 /*
@@ -4266,7 +4246,8 @@ static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 /* This tests the limit for QCBOR_MAX_TAGS_PER_ITEM. It works
  * for whatever QCBOR_MAX_TAGS_PER_ITEM is configured, unlike
  * the other tests which require it to be the default of 4 */
-static int32_t TooManyItemTagsTest(void)
+static int32_t
+TooManyItemTagsTest(void)
 {
    QCBORDecodeContext DCtx;
    QCBORItem          Item;
@@ -4359,7 +4340,8 @@ EncodeManyTags(size_t uNumMappedTags)
    return  UsefulOutBuf_OutUBuf(&UOB);
 }
 
-static int32_t TooManyMappedTagsTest(void)
+static int32_t
+TooManyMappedTagsTest(void)
 {
    QCBORDecodeContext  DCtx;
    QCBORItem           Item;
@@ -4395,6 +4377,7 @@ static int32_t TooManyMappedTagsTest(void)
 }
 
 
+/* Public test entry point */
 int32_t TagNumberDecodeTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -4403,7 +4386,6 @@ int32_t TagNumberDecodeTest(void)
    UsefulBufC         UBC;
    int64_t            nInt;
    int32_t            nReturn;
-
 
    nReturn = TooManyMappedTagsTest();
    if(nReturn) {
@@ -4416,8 +4398,8 @@ int32_t TagNumberDecodeTest(void)
    QCBORDecode_CompatibilityV1(&DCtx);
 
    /*
-    This test matches the magic number tag and the fraction tag
-    55799([...])
+    * This test matches the magic number tag and the fraction tag
+    * 55799([...])
     */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_SUCCESS) {
@@ -4428,13 +4410,14 @@ int32_t TagNumberDecodeTest(void)
    }
 
    /*
-    4([1,3])
+    * 4([1,3])
     */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
 #ifdef QCBOR_DISABLE_EXP_AND_MANTISSA
    if(uError != QCBOR_SUCCESS ||
       Item.uDataType != QCBOR_TYPE_ARRAY ||
- //     !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) || // TODO: worried this test is incorrect
+    //  !QCBORDecode_IsTagged(&DCtx, &Item, CBOR_TAG_DECIMAL_FRACTION) || // TODO: worried this test is incorrect
+      // Why was it removed? ! ? QCBORDecode_IsTagged()
       QCBORDecode_GetNthTag(&DCtx, &Item, 0) != CBOR_TAG_DECIMAL_FRACTION ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 1) != CBOR_TAG_INVALID64 ||
       QCBORDecode_GetNthTag(&DCtx, &Item, 2) != CBOR_TAG_INVALID64 ||
@@ -4443,7 +4426,7 @@ int32_t TagNumberDecodeTest(void)
       Item.val.uCount != 2) {
       return -4;
    }
-   // consume the items in the array
+   /*  consume the items in the array */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    uError = QCBORDecode_GetNext(&DCtx, &Item);
 
@@ -4462,7 +4445,7 @@ int32_t TagNumberDecodeTest(void)
 #if QCBOR_MAX_TAGS_PER_ITEM == 4
    /* these test only work if QCBOR_MAX_TAGS_PER_ITEM is 4 */
    /*
-    More than 4 tags on an item 225(226(227(228(229([])))))
+    * More than 4 tags on an item 225(226(227(228(229([])))))
     */
    uError = QCBORDecode_GetNext(&DCtx, &Item);
    if(uError != QCBOR_ERR_TOO_MANY_TAGS) {

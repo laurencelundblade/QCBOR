@@ -121,16 +121,16 @@ fit on the stack. To accomplish this hard limits are set:
 - @ref QCBOR_MAX_SIZE (a little less than 4GB): Maximum encoded CBOR (except
   for streamed encoding; see QCBOREncode_SetStream()); must be in contiguous
   memory.
-- @ref QCBOR_MAX_ARRAY_NESTING (typically 35): Limit on nesting depth for
-  arrays, maps and other nesting.
 - @ref QCBOR_MAX_ITEMS_IN_ARRAY (65,534): The maximum number of items in
   an array.
 - @ref QCBOR_MAX_ITEMS_IN_MAP (32,767): The maximum number of entries
   (label-value pairs) in a map.
-- @ref QCBOR_NUM_MAPPED_TAGS (typically 4): When decoding, the maximum
+- @ref QCBOR_MAX_ARRAY_NESTING (default 35): Limit on nesting depth for
+  arrays, maps and other nesting.
+- @ref QCBOR_NUM_MAPPED_TAGS (default 4): When decoding, the maximum
   distinct tag numbers whose value is larger than @ref QCBOR_LAST_UNMAPPED_TAG
   (typically 65,530).
-- @ref QCBOR_MAX_TAGS_PER_ITEM (typically 4): When decoding, the maximum
+- @ref QCBOR_MAX_TAGS_PER_ITEM (default 4): When decoding, the maximum
   number of tag numbers on a CBOR item.
 
 QCBOR will error when these limits are reached. They allow it to run
