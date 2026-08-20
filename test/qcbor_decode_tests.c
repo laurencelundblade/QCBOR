@@ -7794,6 +7794,36 @@ static int32_t Uint64BitMapLabelsTest(void)
 }
 
 
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
+/* Makes a map with one entry that contains an array which contains
+ * one entry which is an array, ... to an empty array.
+ * 0xbf 0x02 0x81, 0x81... x80, 0xff.
+ * Used by EnterMapTest().
+ */
+static UsefulBufC
+MakeDeeplyNested(size_t uSize)
+{
+   size_t      i;
+   UsefulBufC  TooDeepArrays;
+
+   spBigBuf[0] = 0xbf;
+   spBigBuf[1] = 0x02;
+   for(i = 2; i < uSize; i++) {
+      spBigBuf[i] = 0x81; /* encoded CBOR for an array of one */
+   }
+   spBigBuf[i++] = 0x80; /* encoded CBOR for array of zero */
+   spBigBuf[i] = 0xff;   /* encoded CBOR for array of zero */
+
+   TooDeepArrays.ptr = spBigBuf;
+   TooDeepArrays.len = i;
+
+   return TooDeepArrays;
+}
+#endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
+
+/* Public test entry point */
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
@@ -8075,27 +8105,15 @@ int32_t EnterMapTest(void)
       return 2032;
    }
 
-   /* Make some encoded CBOR nested 259 levels deep */
-   size_t i;
+   /* Encode CBOR nested 259 levels deep to test decoding too-deep nesting,
+    * no matter what nesting depth is configured. */
    UsefulBufC         TooDeepArrays;
-
-
-   spBigBuf[0] = 0xbf;
-   spBigBuf[1] = 0x02;
-   for(i = 2; i < QCBOR_MAX_MAX_ARRAY_NESTING + 4; i++) {
-      spBigBuf[i] = 0x81; /* encoded CBOR for an array of one */
-   }
-   spBigBuf[i++] = 0x80; /* encoded CBOR for array of zero */
-   spBigBuf[i] = 0xff; /* encoded CBOR for array of zero */
-
-   TooDeepArrays.ptr = spBigBuf;
-   TooDeepArrays.len = i;
+   TooDeepArrays = MakeDeeplyNested(QCBOR_MAX_MAX_ARRAY_NESTING + 4);
 
    QCBORDecode_Init(&DCtx, TooDeepArrays, 0);
    QCBORDecode_EnterMap(&DCtx, NULL);
-   QCBORDecode_GetInt64InMapN(&DCtx, 0x01, &nInt);
-
-//   QCBORDecode_EnterArray(&DCtx, NULL);
+   /* Search map for item that doesn't exist to trigger overflow error */
+   QCBORDecode_EnterArrayFromMapN(&DCtx, 01);
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_DECODE_NESTING_TOO_DEEP) {
       return 2033;
