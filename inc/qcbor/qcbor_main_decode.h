@@ -313,13 +313,6 @@ typedef enum {
 
 
 
-/**
- * The maximum number of tags that may occur on an individual nested
- * item. Typically 4. This is a QCBOR implementation limit.
- */
-#define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
-
-
 
 /* Do not renumber these. Code depends on some of these values. */
 /** The data type is unknown, unset or invalid. */
@@ -532,8 +525,16 @@ typedef enum {
 
 
 /**
- * The largest value in @c utags that is unmapped and can be used without
- * mapping it through QCBORDecode_GetNthTagNumber().
+ * Tag numbers above this value are remapped when stored
+ * internally. Only @ref QCBOR_NUM_MAPPED_TAGS (typically 4) tag
+ * numbers above this value can be stored per decoder instance. This
+ * value is described publically only for the caller to understand
+ * @ref QCBOR_NUM_MAPPED_TAGS.
+ *
+ * Tag numbers in QCBORItem and QCBORDecodeContext should
+ * be accessed through QCBORDecode_GetNthTagNumber(), not
+ * directly. @c auTagNumbers in @ref QCBORItem is a private
+ * data structure and subject to change.
  */
 #define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS - 1)
 
@@ -706,7 +707,7 @@ typedef struct _QCBORItem {
    /**
     * PRIVATE MEMBER
     * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
-    * Also see @ref CBORTags
+    * Also see @ref CBORTags.
     *
     * In QCBOR v1 this was named uTags and was in the reverse order.
     * It wasn't explicitly described as private, but was implicitly private.
@@ -1070,7 +1071,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_INT_OVERFLOW                  | Input integer smaller than INT64_MIN |
  * | @ref QCBOR_ERR_ARRAY_DECODE_TOO_LONG         | Array or map has more elements than can be handled |
  * | @ref QCBOR_ERR_DATE_OVERFLOW                 | Date larger than can be handled |
- * | @ref QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
+ * | @ref QCBOR_ERR_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
  * | @ref QCBOR_ERR_STRING_TOO_LONG               | Encountered a string longer than size_t can hold less 4 bytes |
  * | @ref QCBOR_ERR_TOO_MANY_TAGS                 | Tag nesting deeper than limit, typically 4 |
  * | __Configuration errors__  ||

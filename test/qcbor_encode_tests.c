@@ -1593,7 +1593,7 @@ int32_t ArrayNestingTest2(void)
    }
 
    UsefulBufC Encoded;
-   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       nReturn = -1;
    }
 
@@ -2213,17 +2213,17 @@ int32_t BstrWrapErrorTest(void)
 
    // --------------- test nesting too deep ----------------------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   for(int i = 1; i < 18; i++) {
-      QCBOREncode_BstrWrap(&EC);
+   for(int i = 1; i < QCBOR_MAX_ARRAY_NESTING + 4; i++) {
+      QCBOREncode_BstrWrap(&EC); /* Error occurs here */
    }
    QCBOREncode_AddBool(&EC, true);
 
-   for(int i = 1; i < 18; i++) {
+   for(int i = 1; i < QCBOR_MAX_ARRAY_NESTING + 4; i++) {
       QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    }
 
    uError = QCBOREncode_Finish(&EC, &Encoded2);
-   if(uError != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(uError != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return (int32_t)(300 + uError);
    }
 
@@ -2231,8 +2231,9 @@ int32_t BstrWrapErrorTest(void)
 }
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
 /*
- This is bstr wrapped CBOR in 6 levels.
+ This is bstr-wrapped CBOR in 6 levels.
 
  [
    h'82004E82014B8202488203458204428105',
@@ -2261,9 +2262,7 @@ int32_t BstrWrapErrorTest(void)
     65: "hello",
     34: h'A3121218426568656C6C6F18234BA2131318436568656C6C6F'
  }
-
  ...
-
  */
 static const uint8_t spExpectedDeepBstr[] =
 {
@@ -2281,12 +2280,12 @@ static const uint8_t spExpectedDeepBstr[] =
 
 
 /*
- Get an int64 out of the decoder or fail.
+ * Get an int64 out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2301,12 +2300,12 @@ static int32_t GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 }
 
 /*
- Get an array out of the decoder or fail.
+ * Get an array out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2321,12 +2320,12 @@ static int32_t GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 }
 
 /*
- Get a map out of the decoder or fail.
+ * Get a map out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2341,12 +2340,12 @@ static int32_t GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
 }
 
 /*
- Get a byte string out of the decoder or fail.
+ * Get a byte string out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2361,12 +2360,12 @@ static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
 }
 
 /*
- Get a byte string out of the decoder or fail.
+ * Get a byte string out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 {
-   QCBORItem Item;
-   int nReturn;
+   QCBORItem  Item;
+   int        nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2382,11 +2381,12 @@ static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 
 
 /*
- Recursively decode array containing a little CBOR and a bstr wrapped array
- with a little CBOR and a bstr wrapped array...
-
- Part of bstr_wrap_nest_test.
- */static int32_t DecodeNextNested(UsefulBufC Wrapped)
+ * Recursively decode *array* containing a little CBOR and a bstr
+ * wrapped array with a little CBOR and a bstr wrapped array...
+ *
+ * Part of Used by BstrWrapNestTest().
+ */
+static int32_t DecodeNextNested(UsefulBufC Wrapped)
 {
    int64_t            nInt;
    UsefulBufC         Bstr;
@@ -2409,7 +2409,6 @@ static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
       if(nArrayCount != 1) {
          return -12;
       } else {
-         // successful exit
          return 0;
       }
    }
@@ -2417,16 +2416,15 @@ static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
       return -13;
    }
 
-   // tail recursion; good compilers will reuse the stack frame
    return DecodeNextNested(Bstr);
 }
 
 
 /*
- Recursively decode map containing a little CBOR and a bstr wrapped map
- with a little CBOR and a bstr wrapped map...
-
- Part of bstr_wrap_nest_test.
+ * Recursively decode *map* containing a little CBOR and a bstr
+ * wrapped map with a little CBOR and a bstr wrapped map...
+ *
+ * Part of BstrWrapNestTest().
  */
 static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 {
@@ -2446,7 +2444,7 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
       return -21;
    }
 
-   // The "hello"
+   /* The "hello" */
    if(GetTextString(&DC, &Bstr)) {
       return -22;
    }
@@ -2454,7 +2452,6 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
    nResult = GetByteString(&DC, &Bstr);
    if(nResult == QCBOR_ERR_HIT_END || nResult == QCBOR_ERR_NO_MORE_ITEMS) {
       if(nMapCount == 2) {
-         // successful exit
          return 0;
       } else {
          return -23;
@@ -2465,40 +2462,58 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
       return -24;
    }
 
-   // tail recursion; good compilers will reuse the stack frame
    return DecodeNextNested2(Bstr);
 }
 
 
+/* Public test entry point */
 int32_t BstrWrapNestTest(void)
 {
-   QCBOREncodeContext EC;
-   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncodeContext  EC;
+   UsefulBufC          Bstr;
+   uint16_t            nArrayCount;
+   UsefulBufC          Encoded;
+   int                 nReturn;
+   int                 i;
 
-   // ---- Make a complicated nested CBOR structure ---
-   #define BSTR_TEST_DEPTH 6
+   /* This test requires QCBOR_MAX_ARRAY_NESTING to be 13 because it 6
+    * times nests an array/map + a bstr wrap plus one more.
+
+    * This test can work with the test depth other than 6 (it was
+    * verified), but then comparison to spExpectedDeepBstr can't work
+    * because it is the hand-coded and verified encoding for 6 levels.
+
+    * The decision taken is to keep the nesting at 6 and only run the
+    * test if QCBOR_MAX_ARRAY_NESTING > 13. This will be a regular
+    * occurance with the default QCBOR_MAX_ARRAY_NESTING of 35 (and
+    * maybe more).
+    */
+
+   /* ---- Make a complicated nested CBOR structure --- */
+#define BSTR_TEST_DEPTH 6
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    QCBOREncode_OpenArray(&EC);
 
-   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
+   for(i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_BstrWrap(&EC);
       QCBOREncode_OpenArray(&EC);
       QCBOREncode_AddInt64(&EC, i);
    }
-   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
+   for(i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_CloseArray(&EC);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
 
    QCBOREncode_OpenMap(&EC);
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+   for(i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
       QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_AddInt64ToMapN(&EC, i+0x10, i+0x10);
       QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
    }
 
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+   for(i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
       QCBOREncode_CloseMap(&EC);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
@@ -2506,50 +2521,46 @@ int32_t BstrWrapNestTest(void)
 
    QCBOREncode_CloseArray(&EC);
 
-   UsefulBufC Encoded;
    if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
 
-   // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
+   /* ---Compare it to expected. Expected was hand checked with use of CBOR playground ---- */
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
       return -2;
    }
 
-   // ---- Decode it and see if it is OK ------
+   /* ---- Decode it and see if it is OK ------ */
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
 
-   UsefulBufC Bstr;
-   uint16_t nArrayCount;
-
-   // Array surrounding the the whole thing
+   /* Array surrounding the the whole thing */
    if(GetArray(&DC, &nArrayCount) || nArrayCount != 2) {
       return -3;
    }
 
-   // Get the byte string wrapping some array stuff
+   /* Get the byte string wrapping some array stuff */
    if(GetByteString(&DC, &Bstr)) {
       return -4;
    }
 
-   // Decode the wrapped nested structure
-   int nReturn = DecodeNextNested(Bstr);
+   /* Decode the wrapped nested structure */
+   nReturn = DecodeNextNested(Bstr);
    if(nReturn) {
       return nReturn;
    }
 
-   // A map enclosing some map-oriented bstr wraps
+   /* A map enclosing some map-oriented bstr wraps */
    if(GetMap(&DC, &nArrayCount)) {
       return -5;
    }
 
-   // Get the byte string wrapping some array stuff
+   /* Get the byte string wrapping some array stuff */
    if(GetByteString(&DC, &Bstr)) {
       return -6;
    }
 
-   // Decode the wrapped nested structure
+   /* Decode the wrapped nested structure */
    nReturn = DecodeNextNested2(Bstr);
    if(nReturn) {
       return nReturn;
@@ -2561,6 +2572,7 @@ int32_t BstrWrapNestTest(void)
 
    return 0;
 }
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 
 static const uint8_t spCoseSign1Signature[] = {
@@ -2814,7 +2826,7 @@ int32_t EncodeErrorTests(void)
    }
 
 
-   // ----- QCBOR_ERR_ARRAY_NESTING_TOO_DEEP -------
+   // ----- QCBOR_ERR_ENCODE_NESTING_TOO_DEEP -------
    QCBOREncode_Init(&EC, Large);
    for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
       QCBOREncode_OpenArray(&EC);
@@ -2835,7 +2847,7 @@ int32_t EncodeErrorTests(void)
    for(int i = QCBOR_MAX_ARRAY_NESTING+1; i > 0; i--) {
       QCBOREncode_CloseArray(&EC);
    }
-   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return -6;
    }
 
@@ -3514,7 +3526,7 @@ OpenCloseBytesTest(void)
       return 7;
    }
    uErr = QCBOREncode_GetErrorState(&EC);
-   if(uErr != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(uErr != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return 8;
    }
 

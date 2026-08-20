@@ -1646,9 +1646,9 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
                                const bool                          bBignumConformance,
                                double                             *pdValue)
 {
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    QCBORError uErr;
 
-#ifndef QCBOR_DISABLE_FLOAT_HW_USE
    /*
     * What Every Computer Scientist Should Know About Floating-Point Arithmetic
     * https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
@@ -1754,6 +1754,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
    (void)pItem;
    (void)uConvertTypes;
    (void)pdValue;
+   (void)bBignumConformance;
    return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
 #endif /* ! QCBOR_DISABLE_FLOAT_HW_USE */
 

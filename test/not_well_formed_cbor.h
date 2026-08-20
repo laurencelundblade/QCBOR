@@ -99,7 +99,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     // Definite length array containing an unclosed indefinite array
     {(uint8_t[]){0x81, 0x9f}, 2},
     // Deeply nested definite length arrays with deepest one unclosed
-    {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9},
+    {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 7},
     // Deeply nested indefinite length arrays with deepest one unclosed
     {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9},
     // Mixed nesting with indefinite unclosed

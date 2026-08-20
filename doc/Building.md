@@ -91,6 +91,29 @@ CMake is well supported, including the ability to perform a simple
 install and support for packagers.
 
 
+# Changing Maximum Limits {#ChangingMaxLimits}
+
+QCBOR has some hard size limitations (See @ref QCBORLimitations)
+because it does not allocate memory. The following can be changed at
+compile time:
+
+| Limit                         | Default |
+|-------------------------------|---------|
+| @ref QCBOR_MAX_ARRAY_NESTING  |   35    |
+| @ref QCBOR_MAX_TAGS_PER_ITEM  |   4     |
+| @ref QCBOR_NUM_MAPPED_TAGS    |   4     |
+
+These are all cached variables in CMake. Outside of CMake, definitions
+of these can be made on the compiler command line and they will
+override the defaults.
+
+@warning These limits are part of the ABI: they determine the size of
+data structures declared in the headers and are compiled into the
+library. The values used to build the library and the values in the
+headers used by calling code must match. A mismatch is not detected at
+build or run time and results in memory corruption.
+
+
 # Code Size {#CodeSize}
 
 TODO: The sizes in this section need to be updated for QCBOR v2.
