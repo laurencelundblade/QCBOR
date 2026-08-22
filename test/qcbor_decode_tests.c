@@ -4242,6 +4242,66 @@ static const uint8_t spTaggedInt[] = {
 static int32_t CheckCSRMaps(QCBORDecodeContext *pDC);
 
 
+static UsefulBufC EncodeTagNums(size_t uNumTagNums, bool bOneMore)
+{
+   QCBOREncodeContext EC;
+   UsefulBufC         Encoded;
+   uint64_t           uTagNum;
+
+   QCBOREncode_Init(&EC,  UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+
+   uTagNum = QCBOR_LAST_UNMAPPED_TAG + 1;
+   while(uNumTagNums) {
+      QCBOREncode_AddTag(&EC, uTagNum);
+      uTagNum++;
+      uNumTagNums--;
+   }
+
+   if(bOneMore) {
+      /* NOT a mapped tag to tickle bug */
+      QCBOREncode_AddTag(&EC, QCBOR_LAST_UNMAPPED_TAG - 1);
+   }
+
+   QCBOREncode_AddInt64(&EC, 42);
+   QCBOREncode_Finish(&EC, &Encoded);
+
+   return Encoded;
+}
+
+
+static int32_t TestMappedTagLimits(void)
+{
+   UsefulBufC          Encoded;
+   QCBORDecodeContext  DC;
+   QCBORItem           Item;
+   QCBORError          uErr;
+
+   Encoded = EncodeTagNums(QCBOR_NUM_MAPPED_TAGS, false);
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_SUCCESS) {
+      return 1100;
+   }
+
+   Encoded = EncodeTagNums(QCBOR_NUM_MAPPED_TAGS+1, false);
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
+      return 1101;
+   }
+
+   /* Tests condition when QCBOR_NUM_MAPPED_TAGS is less than QCBOR_MAX_TAGS_PER_ITEM */
+   Encoded = EncodeTagNums(QCBOR_NUM_MAPPED_TAGS+1, true);
+   QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+   uErr = QCBORDecode_GetNext(&DC, &Item);
+   if(uErr != QCBOR_ERR_TOO_MANY_TAGS) {
+      return 1102;
+   }
+
+   return 0;
+}
+
+
 
 /* This tests the limit for QCBOR_MAX_TAGS_PER_ITEM. It works
  * for whatever QCBOR_MAX_TAGS_PER_ITEM is configured, unlike
@@ -4391,6 +4451,12 @@ int32_t TagNumberDecodeTest(void)
    if(nReturn) {
       return nReturn;
    }
+
+   nReturn = TestMappedTagLimits();
+   if(nReturn) {
+      return nReturn;
+   }
+
 
    QCBORDecode_Init(&DCtx,
                      UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spTagInput),
