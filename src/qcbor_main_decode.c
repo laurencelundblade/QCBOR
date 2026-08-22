@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -1309,6 +1309,9 @@ Done:
  * This maps tag numbers greater than QCBOR_LAST_UNMAPPED_TAG.
  * QCBOR_LAST_UNMAPPED_TAG is a little smaller than MAX_UINT16.
  *
+ * *puMappedTagNumber is set to CBOR_TAG_INVALID16 on error and never
+ * on success; callers rely on this behavior.
+ *
  * See also UnMapTagNumber() and @ref QCBORItem.
  */
 static QCBORError
@@ -1317,6 +1320,8 @@ QCBORDecode_Private_MapTagNumber(QCBORDecodeContext *pMe,
                                  uint16_t           *puMappedTagNumber)
 {
    size_t uTagMapIndex;
+
+   *puMappedTagNumber = CBOR_TAG_INVALID16;
 
    if(uUnMappedTag > QCBOR_LAST_UNMAPPED_TAG) {
       /* Is there room in the tag map, or is it in it already? */
@@ -1398,7 +1403,7 @@ QCBORDecode_Private_GetTagContentDecoder(const struct QCBORTagDecoderEntry *pTag
 #endif /* ! QCBOR_DISABLE_TAGS */
 
 
-/**
+/*
  * @brief Aggregate all tags wrapping a data item (decode layer 4).
  *
  * @param[in] pMe            Decoder context
@@ -1425,35 +1430,34 @@ QCBORDecode_Private_GetTagContentDecoder(const struct QCBORTagDecoderEntry *pTag
  * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indefinite-length string in
  *                                               input, but indefinite-length
  *                                               strings are disabled.
- * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item.
+ * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item or
+ *                                           too many mapped tags.
  *
- * This loops getting atomic data items until one is not a tag
- * number.  Usually this is largely pass-through because most
- * item are not tag numbers.
+ * This loops getting atomic data items until one is not a tag number.
+ * Usually this is pass-through because tag numbers are not often
+ * used.
+ *
+ * On error, pDecodedItem->auTagNumbers has no valid data and should not be
+ * referenced.
  */
 static QCBORError
 QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
                                      QCBORItem          *pDecodedItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   size_t      uIndex;
-   QCBORError  uErr;
-   uint16_t    uMappedTagNumber;
-   QCBORError  uReturn;
+   QCBORMappedTagNumbers  auTagNumbers;
+   QCBORError             uReturn;
+   QCBORError             uErr;
+   size_t                 uIndex;
 
-   /* Accummulate the tag numbers from multiple items here and then
-    * copy them into the last item, the non-tag-number item.
-    */
-   QCBORMappedTagNumbers  auTagNumbers;;
+   /* Initialize tag number accumulator to CBOR_TAG_INVALID16 */
+   for(uIndex = 0; uIndex < QCBOR_MAX_TAGS_PER_ITEM; uIndex++) {
+      auTagNumbers[uIndex] = CBOR_TAG_INVALID16;
+   }
 
-   /* Initialize to CBOR_TAG_INVALID16 */
-   #if CBOR_TAG_INVALID16 != 0xffff
-   /* Be sure the memset is initializing to CBOR_TAG_INVALID16 */
-   #err CBOR_TAG_INVALID16 tag not defined as expected
-   #endif
-   memset(auTagNumbers, 0xff, sizeof(auTagNumbers));
-
-   /* Loop fetching data items until the item fetched is not a tag number */
+   /* Loop fetching data items until the item fetched is not a tag.
+    * Decoded tags from multiple tag number items accumulate in
+    * auTagNumbers and then are copied in to *pDecodedItem. */
    uReturn = QCBOR_SUCCESS;
    for(uIndex = 0; ; uIndex++) {
       uErr = QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
@@ -1464,42 +1468,40 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
 
       if(pDecodedItem->uDataType != QCBOR_TYPE_TAG_NUMBER) {
          /* Successful exit from loop; maybe got some tags, maybe not */
-         memcpy(pDecodedItem->auTagNumbers, auTagNumbers, sizeof(auTagNumbers));
+         memcpy(pDecodedItem->auTagNumbers, auTagNumbers, sizeof(QCBORMappedTagNumbers));
          break;
       }
 
-      if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
-         /* No room in the item's tag number array */
-         uReturn = QCBOR_ERR_TOO_MANY_TAGS;
-         /* Continue on to get all tag numbers wrapping this item even
-          * though it is erroring out in the end. This allows decoding
-          * to continue. This is a QCBOR resource limit error, not a
-          * problem with being well-formed CBOR.
-          */
+      if(uReturn != QCBOR_SUCCESS) {
+         /* The uReturn errors are because an implementation limit on
+          * the number of tag numbers was hit, not because of any
+          * problem with the input CBOR. This continues to decode
+          * after these errors. They are not in the range started by
+          * QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS. Also, once in
+          * error state, stay there and don't try to record or map any
+          * more tag numbers. */
          continue;
       }
 
-      /* Map the tag number */
-      uMappedTagNumber = 0;
+      if(uIndex >= QCBOR_MAX_TAGS_PER_ITEM) {
+         /* No room in the item's tag list */
+         uReturn = QCBOR_ERR_TOO_MANY_TAGS;
+         continue;
+      }
+
+      /* Map the tag; possible error for too many mapped tags */
       uReturn = QCBORDecode_Private_MapTagNumber(pMe,
                                                  pDecodedItem->val.uTagNumber,
-                                                 &uMappedTagNumber);
-      /* Continue even on error so as to consume all tag numbers
-       * wrapping this data item so decoding can go on. If
-       * QCBORDecode_Private_MapTagNumber() errors once it will
-       * continue to error.
-       */
-
-      auTagNumbers[uIndex] = uMappedTagNumber;
+                                                 &auTagNumbers[uIndex]);
    }
 
    return uReturn;
 
-#else /* ! QCBOR_DISABLE_TAGS */
+#else /* QCBOR_DISABLE_TAGS */
 
    return QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
 
-#endif /* ! QCBOR_DISABLE_TAGS */
+#endif /* QCBOR_DISABLE_TAGS */
 }
 
 
