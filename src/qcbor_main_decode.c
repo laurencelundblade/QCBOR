@@ -1403,7 +1403,7 @@ QCBORDecode_Private_GetTagContentDecoder(const struct QCBORTagDecoderEntry *pTag
 #endif /* ! QCBOR_DISABLE_TAGS */
 
 
-/**
+/*
  * @brief Aggregate all tags wrapping a data item (decode layer 4).
  *
  * @param[in] pMe            Decoder context
@@ -1430,7 +1430,8 @@ QCBORDecode_Private_GetTagContentDecoder(const struct QCBORTagDecoderEntry *pTag
  * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indefinite-length string in
  *                                               input, but indefinite-length
  *                                               strings are disabled.
- * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item.
+ * @retval QCBOR_ERR_TOO_MANY_TAGS           Too many tag numbers on item or
+ *                                           too many mapped tags.
  *
  * This loops getting atomic data items until one is not a tag number.
  * Usually this is pass-through because tag numbers are not often
@@ -1444,7 +1445,7 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
                                      QCBORItem          *pDecodedItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
-   QCBORMappedTagNumbers  auTagNumbers;;
+   QCBORMappedTagNumbers  auTagNumbers;
    QCBORError             uReturn;
    QCBORError             uErr;
    size_t                 uIndex;

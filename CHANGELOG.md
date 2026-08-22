@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Critical bad stack reference bug fix for big number decoding
 - Fix encoding of negative big nums that are one non-zero byte followed by zeros
 - Documentation / Doxygen -- fix undocumented items and bad references
+- When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
+  and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above
+  QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
