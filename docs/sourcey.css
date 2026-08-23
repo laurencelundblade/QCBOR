@@ -1,0 +1,17 @@
+/* Doxygen pages include their title in the generated body. Sourcey already
+ * renders the same title in the page header, so keep one visible heading. */
+body:has([data-sourcey-sidebar-tab="api"])
+  #content-area
+  > header
+  + .prose
+  > h1:first-of-type {
+  display: none;
+}
+
+body:has([data-sourcey-sidebar-tab="api"])
+  #content-area
+  > header:has(.page-description span)
+  + .prose
+  > p:nth-of-type(2) {
+  display: none;
+}
