@@ -178,6 +178,13 @@ extern "C" {
 #endif
 
 /**
+ * @defgroup UsefulBuf Buffer Utilities
+ * @ingroup QCBORAPI
+ * @brief Bounds-checked input and output buffer types used by QCBOR.
+ * @{
+ */
+
+/**
  * @file UsefulBuf.h
  *
  * The goal of this code is to make buffer and pointer manipulation
@@ -2550,11 +2557,12 @@ static inline UsefulBufC UsefulInputBuf_RetrieveUndecodedInput(UsefulInputBuf *p
    return pMe->UB;
 }
 
+/** @} */
+
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif  /* _UsefulBuf_h */
-
 
