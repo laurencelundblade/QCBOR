@@ -1,0 +1,35 @@
+Source: qcbor
+Section: libs
+Priority: optional
+Maintainer: Brian Sipos <brian.sipos@gmail.com>
+Rules-Requires-Root: no
+Build-Depends: cmake, debhelper-compat (= 13)
+Build-Depends-Indep: doxygen
+Standards-Version: 4.6.2
+Homepage: https://github.com/laurencelundblade/QCBOR
+Vcs-Browser: https://github.com/laurencelundblade/QCBOR
+Vcs-Git: https://salsa.debian.org/debian/qcbor.git
+
+Package: libqcbor1
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: CBOR encoder/decoder library
+ This is a comprehensive, powerful, commercial-quality CBOR encoder and decoder
+ that is still suited for small devices.
+
+Package: libqcbor-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: libqcbor1 (= ${binary:Version}), ${misc:Depends}
+Description: Development files for the QCBOR library
+ These are development files needed to build and link to the QCBOR library.
+
+Package: libqcbor-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Description: documentation for qcbor
+ This is API documentation in the form of HTML generated
+ from the API with Doxygen.
