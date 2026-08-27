@@ -84,7 +84,8 @@ MakeTestResultCode(uint32_t   uTestCase,
  * Putting it in uninitialized data is better than using a lot
  * of stack. The tests should run on small devices too.
  */
-static uint8_t spBigBuf[2200];
+#define XXX (sizeof(QCBORItem) * 65) /* for test xxx */
+static uint8_t spBigBuf[XXX];
 
 
 /*
@@ -7131,6 +7132,54 @@ QCBORError CBTest2(void *pCallbackCtx, const QCBORItem *pItem)
    return QCBOR_SUCCESS;
 }
 
+QCBORItem *MakeQuery(size_t uNum, UsefulBuf Buffer)
+{
+   QCBORItem *pGet65;
+   size_t     i;
+
+   memset(Buffer.ptr, 0, Buffer.len);
+   pGet65 = (QCBORItem *)Buffer.ptr;
+   for(i = 0u; i < uNum; i++) {
+      if((size_t)((uint8_t*)&pGet65[i] - (uint8_t*)Buffer.ptr) > Buffer.len) {
+         return NULL;
+      }
+      pGet65[i].uLabelType = QCBOR_TYPE_INT64;
+      pGet65[i].label.int64 = (int64_t)i;
+      pGet65[i].uDataType = QCBOR_TYPE_ANY;
+   }
+   pGet65[65].uLabelType = QCBOR_TYPE_NONE;
+
+   return Buffer.ptr;
+}
+
+
+int32_t Get65ItemsTest(void)
+{
+   QCBORItem          *pGet65;
+   QCBORDecodeContext  DCtx;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_SZ_LITERAL("\xa1\x01\x01"), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* First success */
+   pGet65 = MakeQuery(QCBOR_DECODE_MAX_GET_ITEMS, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBORDecode_GetItemsInMap(&DCtx, pGet65);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4700;
+   }
+
+   /* Second failure */
+   pGet65 = MakeQuery(QCBOR_DECODE_MAX_GET_ITEMS + 1, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBORDecode_GetItemsInMap(&DCtx, pGet65);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_GET_ITEMS) {
+      return 4701;
+   }
+
+   return 0;
+}
+
+
+
 
 int32_t EnterMapTest(void)
 {
@@ -7138,6 +7187,12 @@ int32_t EnterMapTest(void)
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
    QCBORError         uErr;
+
+   nReturn = Get65ItemsTest();
+   if(nReturn) {
+      return nReturn;
+   }
+
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapOfEmpty), 0);
