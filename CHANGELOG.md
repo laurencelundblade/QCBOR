@@ -14,7 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
 
 ### Changed
-- QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
+- QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)- 
+- Revised & moved qcbor.spec to be much more useful for downstream packagers
+- CI now checks qcbor.spec
+- Establish SOVERSION and ABI version management policy
 
 ### Fixed
 - When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM

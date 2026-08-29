@@ -10,10 +10,25 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(qcbor
-    DESCRIPTION "A CBOR encoder/decoder library"
+    DESCRIPTION "QCBOR"
     LANGUAGES C
-    VERSION 1.6.2
+    VERSION 1.7.0
 )
+
+
+# This gets incremented most releases. QCBOR uses a lot of inlined
+# functions that depend on semi-private functions in the shared
+# library. For example, QCBOREncode_AddText() depends on
+# QCBOREncode_Private_AddBuffer(). SOVERSION must change when
+# functions like QCBOREncode_Private_AddBuffer() change their API or
+# minutely change their semantics. Generally, only leave this
+# unchanged for small releases where it is obvious there is no ABI
+# change.
+#
+# The range of SOVERSION for QCBOR 1.x is 1..19. The range for QCBOR
+# 2.x.x is 20...
+set(QCBOR_SOVERSION 2)
+
 
 # =========================================================================
 #    Configuration
@@ -72,7 +87,7 @@ add_library(qcbor::qcbor ALIAS qcbor)
 set_target_properties(
     qcbor PROPERTIES
         VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR}
+        SOVERSION ${QCBOR_SOVERSION}
         POSITION_INDEPENDENT_CODE ON
 )
 
@@ -185,7 +200,6 @@ install(
 # =========================================================================
 configure_file(cmake/qcbor.pc.in cmake/qcbor.pc @ONLY)
 install(
-    FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-)
+
