@@ -202,4 +202,5 @@ configure_file(cmake/qcbor.pc.in cmake/qcbor.pc @ONLY)
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
 
