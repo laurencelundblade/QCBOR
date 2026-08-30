@@ -622,8 +622,9 @@ typedef enum {
      */
    QCBOR_ERR_NOT_PREFERRED = 79,
 
-   /** Trying to do something that is not allowed. */
-   QCBOR_ERR_NOT_ALLOWED = 80,
+   /** QCBORDecode_GetItemsInMap() with more than
+       * @ref QCBOR_DECODE_MAX_GET_ITEMS */
+     QCBOR_ERR_TOO_MANY_GET_ITEMS = 80,
 
    /** QCBORDecode_EnterBstrWrapped() cannot be used on
     * indefinite-length strings because they exist in the memory pool for
@@ -646,6 +647,10 @@ typedef enum {
 
    /** NaN payloads are an error unless explicitly allowed by @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS */
    QCBOR_ERR_NAN_PAYLOAD = 92,
+
+   /** Trying to do something that is not allowed. */
+   QCBOR_ERR_NOT_ALLOWED = 93,
+
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

@@ -541,6 +541,10 @@ void
 QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pCtx, const char *szLabel);
 
 
+/** Maximum number of items that can be fetched with QCBORDecode_GetItemsInMap(). */
+#define QCBOR_DECODE_MAX_GET_ITEMS 64
+
+
 /**
  * @brief Get an item in map by label and type.
  *

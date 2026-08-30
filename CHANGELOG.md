@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
   and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
+- Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
+  than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
