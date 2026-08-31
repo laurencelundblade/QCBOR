@@ -4,6 +4,8 @@
 
 # Guidelines from https://docs.fedoraproject.org/en-US/packaging-guidelines/CMake/
 
+# Special credit to Brian Sipos even though his PR wasn't merged
+
 Name: qcbor
 Version: 1.7.0
 Release: 1%{?dist}
@@ -19,7 +21,7 @@ BuildRequires: coreutils
 
 %description
 Comprehensive, powerful, commercial-quality CBOR encoder and decoder
-that is still suited for small devices. 
+that is still suited for small devices.
 
 
 %package devel
@@ -41,7 +43,7 @@ from the API with Doxygen.
 
 
 %build
-%cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_QCBOR_TEST=APP
+%cmake -DBUILD_QCBOR_TEST=APP
 %cmake_build
 
 pushd doxygen

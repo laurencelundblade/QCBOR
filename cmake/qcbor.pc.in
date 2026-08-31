@@ -7,4 +7,4 @@ Description: @PROJECT_DESCRIPTION@
 Version: @PROJECT_VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lqcbor
-Libs.private: -lm
+Libs.private: @QCBOR_PC_LIBS_PRIVATE@

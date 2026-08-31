@@ -10,13 +10,13 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(qcbor
-    DESCRIPTION "QCBOR"
+    DESCRIPTION "A CBOR encoder/decoder library"
     LANGUAGES C
     VERSION 1.7.0
 )
 
 
-# This gets incremented most releases. QCBOR uses a lot of inlined
+# SOVERSION gets incremented most releases. QCBOR uses a lot of inlined
 # functions that depend on semi-private functions in the shared
 # library. For example, QCBOREncode_AddText() depends on
 # QCBOREncode_Private_AddBuffer(). SOVERSION must change when
@@ -113,16 +113,11 @@ target_compile_definitions(qcbor
         $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
 )
 
-if (BUILD_SHARED_LIBS AND NOT MSVC)
-    target_compile_options(qcbor PRIVATE -Os)
-endif()
-
-# Portable handling of the math library, the only special library dependency QCBOR has
-if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
-    include(CheckSymbolExists)
-    check_symbol_exists(pow "math.h" QCBOR_HAVE_MATH)
-    if(NOT QCBOR_HAVE_MATH)
+# In some rare environments, this may unnecessarily link libm.
+if(NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE))
+    if(NOT MSVC)
         target_link_libraries(qcbor PUBLIC m)
+        set(QCBOR_PC_LIBS_PRIVATE "-lm")
     endif()
 endif()
 
@@ -203,4 +198,3 @@ install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
-

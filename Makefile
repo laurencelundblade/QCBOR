@@ -24,7 +24,6 @@ LIBS=-lm
 CFLAGS=$(CMD_LINE) -I inc -I test -Os -fPIC
 
 
-
 QCBOR_OBJ=src/UsefulBuf.o src/qcbor_encode.o src/qcbor_decode.o src/ieee754.o src/qcbor_err_to_str.o
 
 TEST_OBJ=test/UsefulBuf_Tests.o test/qcbor_encode_tests.o \
