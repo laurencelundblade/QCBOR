@@ -9,6 +9,8 @@
 
 cmake_minimum_required(VERSION 3.15)
 
+# Also update the QCBOR version in qcbor_common.h, qcbor.spec and CHANGELOG.md
+
 project(qcbor
     DESCRIPTION "A CBOR encoder/decoder library"
     LANGUAGES C

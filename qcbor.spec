@@ -6,6 +6,8 @@
 
 # Special credit to Brian Sipos even though his PR wasn't merged
 
+# Also update the QCBOR version in CMakeLists.txt, qcbor_common.h and CHANGELOG.md
+
 Name: qcbor
 Version: 1.7.0
 Release: 1%{?dist}
