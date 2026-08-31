@@ -119,6 +119,8 @@ jobs:
           & $exe 
 
   rpm-package:
+    # Claude.ai has a number of comments about this job and it could
+    # probably be improved, but it is doing worthwhile stuff as is (Aug 2026)
     name: Build RPM packages on RHEL-9
     runs-on: ubuntu-latest
     container: quay.io/centos/centos:stream9

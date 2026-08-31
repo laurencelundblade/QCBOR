@@ -85,7 +85,7 @@ install -m644 doxygen/docbook/*.xml -D -t %{buildroot}%{_datadir}/help/en/qcbor/
 
 
 %changelog
-* Wed Aug 25 2026 Laurence Lundblade <lgl@island-resort.com> - 1.7.0-1
+* Tue Aug 25 2026 Laurence Lundblade <lgl@island-resort.com> - 1.7.0-1
 - Update to 1.7.0; see CHANGELOG.md for release notes
 - SOVERSION bumped to 2; dependent packages must be rebuilt
 
