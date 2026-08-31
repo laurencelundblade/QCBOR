@@ -15,6 +15,8 @@ project(qcbor
     VERSION 1.7.0
 )
 
+include(GNUInstallDirs)
+
 
 # SOVERSION gets incremented most releases. QCBOR uses a lot of inlined
 # functions that depend on semi-private functions in the shared
@@ -113,7 +115,9 @@ target_compile_definitions(qcbor
         $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
 )
 
-# In some rare environments, this may unnecessarily link libm.
+# In some rare environments, this may unnecessarily link libm, but this
+# config is far simpler than trying detect which lib supports the needed
+# math functions and most targets do fine with -lm.
 if(NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE))
     if(NOT MSVC)
         target_link_libraries(qcbor PUBLIC m)
@@ -124,7 +128,7 @@ endif()
 target_include_directories(qcbor
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 
@@ -142,7 +146,6 @@ endif()
 #    install qcbor library 
 # =========================================================================
 
-include(GNUInstallDirs)
 
 install(
     TARGETS qcbor
