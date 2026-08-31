@@ -1,3 +1,13 @@
-@PACKAGE_INIT@
+prefix=@CMAKE_INSTALL_PREFIX@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
 
-include("${CMAKE_CURRENT_LIST_DIR}/qcborTargets.cmake")
+Name: @PROJECT_NAME@
+Description: @PROJECT_DESCRIPTION@
+URL: https://github.com/laurencelundblade/QCBOR
+Version: @PROJECT_VERSION@
+
+# Note that this doesn't pick up the QCBOR_DISABLE_XXX defines from cmake config
+Cflags: -I${includedir}
+Libs: -L${libdir} -lqcbor
+Libs.private: @QCBOR_PC_LIBS_PRIVATE@
