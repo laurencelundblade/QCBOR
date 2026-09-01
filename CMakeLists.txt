@@ -9,11 +9,30 @@
 
 cmake_minimum_required(VERSION 3.15)
 
+# Also update the QCBOR version in qcbor_common.h, qcbor.spec and CHANGELOG.md
+
 project(qcbor
     DESCRIPTION "A CBOR encoder/decoder library"
     LANGUAGES C
-    VERSION 1.6.2
+    VERSION 1.7.0
 )
+
+include(GNUInstallDirs)
+
+
+# SOVERSION gets incremented most releases. QCBOR uses a lot of inlined
+# functions that depend on semi-private functions in the shared
+# library. For example, QCBOREncode_AddText() depends on
+# QCBOREncode_Private_AddBuffer(). SOVERSION must change when
+# functions like QCBOREncode_Private_AddBuffer() change their API or
+# minutely change their semantics. Generally, only leave this
+# unchanged for small releases where it is obvious there is no ABI
+# change.
+#
+# The range of SOVERSION for QCBOR 1.x is 1..19. The range for QCBOR
+# 2.x.x is 20...
+set(QCBOR_SOVERSION 2)
+
 
 # =========================================================================
 #    Configuration
@@ -72,7 +91,7 @@ add_library(qcbor::qcbor ALIAS qcbor)
 set_target_properties(
     qcbor PROPERTIES
         VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR}
+        SOVERSION ${QCBOR_SOVERSION}
         POSITION_INDEPENDENT_CODE ON
 )
 
@@ -98,23 +117,20 @@ target_compile_definitions(qcbor
         $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
 )
 
-if (BUILD_SHARED_LIBS AND NOT MSVC)
-    target_compile_options(qcbor PRIVATE -Os)
-endif()
-
-# Portable handling of the math library, the only special library dependency QCBOR has
-if (NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE) )
-    include(CheckSymbolExists)
-    check_symbol_exists(pow "math.h" QCBOR_HAVE_MATH)
-    if(NOT QCBOR_HAVE_MATH)
+# In some rare environments, this may unnecessarily link libm, but this
+# config is far simpler than trying detect which lib supports the needed
+# math functions and most targets do fine with -lm.
+if(NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE))
+    if(NOT MSVC)
         target_link_libraries(qcbor PUBLIC m)
+        set(QCBOR_PC_LIBS_PRIVATE "-lm")
     endif()
 endif()
 
 target_include_directories(qcbor
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 
@@ -132,7 +148,6 @@ endif()
 #    install qcbor library 
 # =========================================================================
 
-include(GNUInstallDirs)
 
 install(
     TARGETS qcbor
@@ -185,7 +200,6 @@ install(
 # =========================================================================
 configure_file(cmake/qcbor.pc.in cmake/qcbor.pc @ONLY)
 install(
-    FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/qcbor.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

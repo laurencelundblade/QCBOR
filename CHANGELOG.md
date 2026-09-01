@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
+- Revised & moved qcbor.spec to be much more useful for downstream packagers
+- CI now checks qcbor.spec
+- Establish SOVERSION and ABI version management policy
+- Remove Make-based shared lib install because it doesn't handle SOVERSION
+- CMake improvements for compiler optimization flags and libm config
 
 ### Fixed
 - When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
