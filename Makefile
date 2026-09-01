@@ -143,7 +143,7 @@ src/qcbor_number_decode.o: inc/qcbor/UsefulBuf.h \
                            inc/qcbor/qcbor_number_decode.h \
                            src/ieee754.h
 
-src/iee754.o:	src/ieee754.h \
+src/ieee754.o:	src/ieee754.h \
                 inc/qcbor/qcbor_common.h
 
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
