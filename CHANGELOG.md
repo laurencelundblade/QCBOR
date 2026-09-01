@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename QCBOR_ERR_ARRAY_NESTING_TOO_DEEP to QCBOR_ERR_ENCODE_NESTING_TOO_DEEP
 - Improve documentation on nesting and tag number limits
 - Default nesting maximum is increase from 15 to 35
+- Revised & moved qcbor.spec to be much more useful for downstream packagers
+- CI now checks qcbor.spec
+- Establish SOVERSION and ABI version management policy
+- Remove Make-based shared lib install because it doesn't handle SOVERSION
+- CMake improvements for compiler optimization flags and libm config
+
 
 ### Fixed
 - Critical bad stack reference bug fix for big number decoding
