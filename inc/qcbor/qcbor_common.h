@@ -40,6 +40,13 @@ extern "C" {
 #endif
 #endif
 
+/**
+ * @defgroup QCBORCommon Common
+ * @ingroup QCBORAPI
+ * @brief Shared types, error codes, tags and limits used by QCBOR.
+ * @{
+ */
+
 
 /**
  * @file qcbor_common.h
@@ -597,6 +604,7 @@ qcbor_err_to_str(QCBORError uErr);
  */
 #define QCBOR_MAX_ITEMS_IN_MAP  (QCBOR_MAX_ITEMS_IN_ARRAY/2)
 
+/** @} */
 
 #ifdef __cplusplus
 }

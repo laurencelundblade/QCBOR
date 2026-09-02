@@ -24,6 +24,13 @@ extern "C" {
 #endif
 #endif
 
+/**
+ * @defgroup QCBORSpiffyDecode Spiffy Decode
+ * @ingroup QCBORAPI
+ * @brief Higher-level typed and map-oriented decoding helpers.
+ * @{
+ */
+
 
 /**
  * @file qcbor_spiffy_decode.h
@@ -3064,6 +3071,8 @@ QCBORDecode_GetBinaryUUIDInMapSZ(QCBORDecodeContext *pMe,
 /* ======================================================================== *
  *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
  * ======================================================================== */
+
+/** @} */
 
 #ifdef __cplusplus
 }

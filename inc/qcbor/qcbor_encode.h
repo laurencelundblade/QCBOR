@@ -48,6 +48,13 @@ extern "C" {
 #endif
 #endif
 
+/**
+ * @defgroup QCBOREncode Encoding
+ * @ingroup QCBORAPI
+ * @brief APIs for encoding CBOR values, arrays, maps, tags and strings.
+ * @{
+ */
+
 
 /**
  * @file qcbor_encode.h
@@ -4385,6 +4392,8 @@ QCBOREncode_Tell(QCBOREncodeContext *pMe)
 /* ======================================================================== *
  *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
  * ======================================================================== */
+
+/** @} */
 
 #ifdef __cplusplus
 }
