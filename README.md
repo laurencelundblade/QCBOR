@@ -200,6 +200,7 @@ EAT and CWT.
 * Maksim Hayder for QCBORDecode_GetItemsInMap() security report
 
 
+* Brian Sipos for lots of packaging, CI and release stuff 
 
 ### Copyright for this README
 
