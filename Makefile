@@ -1,6 +1,6 @@
 # Makefile -- UNIX-style make for qcbor as a lib and command line test
 #
-# Copyright (c) 2018-2021, Laurence Lundblade. All rights reserved.
+# Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
@@ -47,10 +47,15 @@ libqcbor.a: $(QCBOR_OBJ)
 warn:
 	make CMD_LINE="$(CMD_LINE) -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wcast-qual"
 
-
 # The shared library is not made by default because of platform
-# variability For example MacOS and Linux behave differently and some
+# variability. For example MacOS and Linux behave differently and some
 # IoT OS's don't support them at all.
+#
+# This builds a shared library for local use and testing only. It has no
+# SONAME (or install_name on MacOS), so there is deliberately no install
+# target for it -- installing an unversioned shared library into a shared
+# prefix lets binaries silently bind to an incompatible ABI. Use the CMake
+# build for an installable, ABI-versioned shared library.
 libqcbor.so: $(QCBOR_OBJ)
 	$(CC) -shared $^ $(CFLAGS) -o $@
 
@@ -59,7 +64,7 @@ PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor
 src/UsefulBuf.o: inc/qcbor/UsefulBuf.h
 src/qcbor_decode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_decode.h inc/qcbor/qcbor_spiffy_decode.h src/ieee754.h
 src/qcbor_encode.o: inc/qcbor/UsefulBuf.h inc/qcbor/qcbor_private.h inc/qcbor/qcbor_common.h inc/qcbor/qcbor_encode.h src/ieee754.h
-src/iee754.o: src/ieee754.h
+src/ieee754.o: src/ieee754.h
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
 example.o:	$(PUBLIC_INTERFACE)
@@ -91,16 +96,10 @@ install: libqcbor.a $(PUBLIC_INTERFACE)
 	install -m 644 inc/qcbor/qcbor_encode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/UsefulBuf.h $(DESTDIR)$(PREFIX)/include/qcbor
 
-install_so: libqcbor.so
-	install -m 755 libqcbor.so $(DESTDIR)$(PREFIX)/lib/libqcbor.so.1.0.0
-	ln -sf libqcbor.so.1 $(DESTDIR)$(PREFIX)/lib/libqcbor.so
-	ln -sf libqcbor.so.1.0.0 $(DESTDIR)$(PREFIX)/lib/libqcbor.so.1
-
 uninstall: libqcbor.a $(PUBLIC_INTERFACE)
 	$(RM) -d $(DESTDIR)$(PREFIX)/include/qcbor/*
 	$(RM) -d $(DESTDIR)$(PREFIX)/include/qcbor/
-	$(RM) $(addprefix $(DESTDIR)$(PREFIX)/lib/, \
-		libqcbor.a libqcbor.so libqcbor.so.1 libqcbor.so.1.0.0)
+	$(RM) $(DESTDIR)$(PREFIX)/lib/libqcbor.a
 
 clean:
 	rm -f $(QCBOR_OBJ) $(TEST_OBJ) libqcbor.a cmd_line_main.o libqcbor.a libqcbor.so qcbormin qcbortest

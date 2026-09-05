@@ -56,10 +56,12 @@ extern "C" {
  *   - QCBOR 1.2 is indicated by the #define QCBOR_1_2
  *   - QCBOR 1.1 is indicated by the #define QCBOR_1_1
  *   - QCBOR 1.0 is indicated by the absence of all the above
+ *
+ * Also update version in CMakeLists.txt, qcbor.spec and CHANGELOG.md.
  */
 #define QCBOR_VERSION_MAJOR 1
-#define QCBOR_VERSION_MINOR 6
-#define QCBOR_VERSION_PATCH 2
+#define QCBOR_VERSION_MINOR 7
+#define QCBOR_VERSION_PATCH 0
 
 /* Pre-processor magic turns above integers into a standard version string. */
 #define STR1(x) #x

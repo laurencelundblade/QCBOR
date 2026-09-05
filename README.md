@@ -545,6 +545,7 @@ EAT and CWT.
 * Máté Tóth-Pál for float-point disabling and other
 * Dave Thaler for portability to Windows
 * Maksim Hayder for QCBORDecode_GetItemsInMap() security report
+* Brian Sipos for lots of packaging, CI and release stuff
 
 
 ### Copyright for this README
