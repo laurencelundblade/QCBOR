@@ -83,8 +83,11 @@ MakeTestResultCode(uint32_t   uTestCase,
 /* One big buffer that is used by all the tests to encode into
  * Putting it in uninitialized data is better than using a lot
  * of stack. The tests should run on small devices too.
+ * Get65ItemsTest() is the test that needs the most and determines
+ * BIG_BUF_SIZE.
  */
-static uint8_t spBigBuf[2200];
+#define BIG_BUF_SIZE (sizeof(QCBORItem) * (QCBOR_DECODE_MAX_GET_ITEMS + 2))
+static uint8_t spBigBuf[BIG_BUF_SIZE];
 
 
 /*
@@ -7132,12 +7135,76 @@ QCBORError CBTest2(void *pCallbackCtx, const QCBORItem *pItem)
 }
 
 
+static QCBORItem *
+MakeGetItemQuery(size_t uNum, UsefulBuf Buffer)
+{
+   QCBORItem *pGetItems;
+   size_t     i;
+   size_t     uNeeded;
+
+   /* uNum items plus the QCBOR_TYPE_NONE terminator */
+   if(uNum > (SIZE_MAX / sizeof(QCBORItem)) - 1) {
+      return NULL;
+   }
+   uNeeded = (uNum + 1) * sizeof(QCBORItem);
+
+   if(Buffer.ptr == NULL || Buffer.len < uNeeded) {
+      return NULL;
+   }
+
+   pGetItems = (QCBORItem *)Buffer.ptr;
+   memset(pGetItems, 0, uNeeded);
+
+   for(i = 0; i < uNum; i++) {
+      pGetItems[i].uLabelType  = QCBOR_TYPE_INT64;
+      pGetItems[i].label.int64 = (int64_t)i;
+      pGetItems[i].uDataType   = QCBOR_TYPE_ANY;
+   }
+   pGetItems[uNum].uLabelType = QCBOR_TYPE_NONE;
+
+   return pGetItems;
+}
+
+
+static int32_t
+Get65ItemsTest(void)
+{
+   QCBORItem          *pGet65;
+   QCBORDecodeContext  DCtx;
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_SZ_LITERAL("\xa1\x01\x01"), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+
+   /* First, success */
+   pGet65 = MakeGetItemQuery(QCBOR_DECODE_MAX_GET_ITEMS, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBORDecode_GetItemsInMap(&DCtx, pGet65);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 4700;
+   }
+
+   /* Second, failure */
+   pGet65 = MakeGetItemQuery(QCBOR_DECODE_MAX_GET_ITEMS + 1, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBORDecode_GetItemsInMap(&DCtx, pGet65);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_GET_ITEMS) {
+      return 4701;
+   }
+
+   return 0;
+}
+
+
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
    QCBORError         uErr;
+
+   nReturn = Get65ItemsTest();
+   if(nReturn) {
+      return nReturn;
+   }
+
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spMapOfEmpty), 0);

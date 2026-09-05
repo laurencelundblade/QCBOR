@@ -543,6 +543,11 @@ typedef enum {
     * a @ref QCBORStringAllocate. */
    QCBOR_ERR_CANNOT_ENTER_ALLOCATED_STRING = 79,
 
+   /** QCBORDecode_GetItemsInMap() with more than
+     * @ref QCBOR_DECODE_MAX_GET_ITEMS */
+   QCBOR_ERR_TOO_MANY_GET_ITEMS = 80,
+
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */

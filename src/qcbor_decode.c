@@ -3418,6 +3418,10 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       /* See if item has one of the labels that are of interest */
       bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
+         if(nIndex >= QCBOR_DECODE_MAX_GET_ITEMS) {
+            uReturn = QCBOR_ERR_TOO_MANY_GET_ITEMS;
+            goto Done;
+         }
          if(QCBORItem_MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
             if(uFoundItemBitMap & (0x01ULL << nIndex)) {
@@ -3497,7 +3501,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
  Done2:
    /* For all items not found, set the data and label type to QCBOR_TYPE_NONE */
-   for(int i = 0; pItemArray[i].uLabelType != 0; i++) {
+   for(int i = 0; i < QCBOR_DECODE_MAX_GET_ITEMS && pItemArray[i].uLabelType != 0; i++) {
       if(!(uFoundItemBitMap & (0x01ULL << i))) {
          pItemArray[i].uDataType  = QCBOR_TYPE_NONE;
          pItemArray[i].uLabelType = QCBOR_TYPE_NONE;
