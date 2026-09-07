@@ -165,18 +165,10 @@ extern "C" {
  * a uin32_t.
  *
  * This will cause trouble on a machine where size_t is less than 32-bits.
+ *
+ * This is a private value, use QCBOR_MAX_SIZE instead.
  */
-#define QCBOR_MAX_ARRAY_OFFSET  (UINT32_MAX - 100)
-
-
-/* The number of tags that are 16-bit or larger that can be handled
- * in a decode.
- */
-#define QCBOR_NUM_MAPPED_TAGS 4
-
-/* The number of tags (of any size) recorded for an individual item. */
-#define QCBOR_MAX_TAGS_PER_ITEM1 4
-
+#define QCBOR_MAX_ARRAY_OFFSET  QCBOR_MAX_SIZE
 
 
 
@@ -370,7 +362,7 @@ struct _QCBORDecodeContext {
    /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
 
-   uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM1];
+   uint16_t uLastTags[QCBOR_MAX_TAGS_PER_ITEM];
 };
 
 

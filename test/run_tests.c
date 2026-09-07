@@ -135,7 +135,9 @@ static test_entry s_tests[] = {
     TEST_ENTRY(GeneralFloatEncodeTests),
     TEST_ENTRY(GeneralFloatDecodeTests),
 #endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+#if QCBOR_MAX_ARRAY_NESTING > 13
     TEST_ENTRY(BstrWrapTest),
+#endif
     TEST_ENTRY(BstrWrapErrorTest),
     TEST_ENTRY(BstrWrapNestTest),
     TEST_ENTRY(CoseSign1TBSTest),
