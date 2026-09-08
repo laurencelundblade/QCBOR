@@ -48,6 +48,13 @@ extern "C" {
 #endif
 #endif
 
+/**
+ * @defgroup QCBORDecode Decoding
+ * @ingroup QCBORAPI
+ * @brief Streaming and traversal APIs for decoding CBOR data.
+ * @{
+ */
+
 
 /**
  * @file qcbor_decode.h
@@ -1704,6 +1711,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 #if QCBOR_NON_BOUNDED_OFFSET < QCBOR_MAX_DECODE_INPUT_SIZE
 #error QCBOR_NON_BOUNDED_OFFSET is too large
 #endif
+
+/** @} */
 
 #ifdef __cplusplus
 }

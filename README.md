@@ -79,7 +79,11 @@ It includes:
 
 ## Documentation
 
-Full API documentation is at https://www.securitytheory.com/qcbor-docs/
+Documentation for the current stable branch, including the full API
+reference, is published at https://laurencelundblade.github.io/QCBOR/.
+
+Documentation for the QCBOR v2 alpha branch is at
+https://www.securitytheory.com/qcbor-docs/.
 
 
 ## Spiffy Decode
