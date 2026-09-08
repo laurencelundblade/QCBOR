@@ -1,11 +1,12 @@
 import { defineConfig, doxygen, markdown } from "sourcey";
+import { execFileSync } from "node:child_process";
 
-const repository = "https://github.com/laurencelundblade/QCBOR";
-const revision = process.env.GITHUB_SHA || "master";
+const repository = process.env.DOCS_REPOSITORY || "https://github.com/laurencelundblade/QCBOR";
+const revision = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 
 export default defineConfig({
-  name: "QCBOR Documentation",
-  siteUrl: "https://laurencelundblade.github.io",
+  name: process.env.DOCS_PREVIEW ? "QCBOR — Unofficial PR Preview" : "QCBOR Documentation",
+  siteUrl: process.env.DOCS_SITE_URL || "https://laurencelundblade.github.io",
   baseUrl: "/QCBOR",
   prettyUrls: false,
   repo: repository,
@@ -60,11 +61,7 @@ export default defineConfig({
           xml: "./doxygen/xml",
           groups: true,
           index: "none",
-          sourceUrl: ({ path, line }) => {
-            const repositoryPath = path.replace(/^(\.\.\/)+/, "");
-            const lineAnchor = line ? `#L${line}` : "";
-            return `${repository}/blob/${revision}/${repositoryPath}${lineAnchor}`;
-          }
+          sourceUrl: `${repository}/blob/${revision}/{path}#L{line}`
         })
       }
     ]

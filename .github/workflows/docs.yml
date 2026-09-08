@@ -2,7 +2,7 @@ name: Documentation
 
 on:
   push:
-    branches: [master]
+    branches: [master, docs/sourcey-pages]
   pull_request:
     paths:
       - ".github/workflows/docs.yml"
@@ -11,6 +11,7 @@ on:
       - "doxygen/**"
       - "inc/**"
       - "README.md"
+      - "index.md"
       - "package.json"
       - "pnpm-lock.yaml"
       - "sourcey.config.ts"
@@ -20,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: docs-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -47,6 +48,9 @@ jobs:
 
       - name: Build documentation
         run: pnpm run docs
+        env:
+          DOCS_REPOSITORY: https://github.com/${{ github.repository }}
+          DOCS_PREVIEW: ${{ github.event_name == 'pull_request' || github.repository != 'laurencelundblade/QCBOR' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -55,7 +59,7 @@ jobs:
 
   deploy:
     name: Deploy documentation
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && github.repository == 'laurencelundblade/QCBOR'
     needs: build
     runs-on: ubuntu-latest
     permissions:
