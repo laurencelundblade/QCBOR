@@ -2028,6 +2028,7 @@ int32_t BstrWrapErrorTest(void)
 }
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
 /*
  This is bstr wrapped CBOR in 6 levels.
 
@@ -2358,6 +2359,7 @@ int32_t BstrWrapNestTest(void)
 
    return 0;
 }
+#endif
 
 
 static const uint8_t spCoseSign1Signature[] = {
