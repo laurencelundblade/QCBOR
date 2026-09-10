@@ -143,7 +143,7 @@ int32_t AllAddMethodsTest(void);
  The binary string wrapping of maps and arrays used by COSE
  */
 int32_t BstrWrapTest(void);
-#endif // QCBOR_MAX_ARRAY_NESTING > 13
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 /*
  Test error cases for bstr wrapping encoding such as closing an open

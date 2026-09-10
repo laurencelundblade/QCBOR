@@ -2359,7 +2359,7 @@ int32_t BstrWrapNestTest(void)
 
    return 0;
 }
-#endif
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 
 static const uint8_t spCoseSign1Signature[] = {

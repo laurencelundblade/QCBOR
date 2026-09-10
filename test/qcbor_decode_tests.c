@@ -3427,7 +3427,7 @@ static int CHECK_EXPECTED_DOUBLE(double val, double expected) {
 
    return diff > 0.0000001;
 }
-#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! defined(QCBOR_DISABLE_FLOAT_HW_USE) && QCBOR_MAX_TAGS_PER_ITEM > 2 */
 
 /* Test date decoding using GetNext() */
 int32_t DateParseTest(void)
@@ -3961,9 +3961,6 @@ int32_t SpiffyDateDecodeTest(void)
 
 
 
-
-
-
 // Input for one of the tagging tests
 static const uint8_t spTagInput[] = {
    0xd9, 0xd9, 0xf7, // CBOR magic number
@@ -4043,7 +4040,7 @@ DB 9192939495969798 # tag(10489608748473423768)
 */
 static const uint8_t spLotsOfTags[] = {0xdb, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96,
                                  0x97, 0x98, 0xd8, 0x88, 0xc6, 0xc7, 0x80};
-#endif
+#endif /*  QCBOR_MAX_TAGS_PER_ITEM >= 4 */
 
 
 #if QCBOR_MAX_TAGS_PER_ITEM >= 3
@@ -4106,7 +4103,7 @@ static const uint8_t spCSRWithTags[] = {
       0xcb, 0xc8, 0xc7, 0x24,
       0xc8, 0x22};
 
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM >= 3 */
 
 static const uint8_t spSpiffyTagInput[] = {
    0x85, // Open array
@@ -4414,8 +4411,8 @@ int32_t OptTagParseTest(void)
    if(uError == QCBOR_SUCCESS) {
       return -10;
    }
-#endif
-#endif
+#endif /* QCBOR_NUM_MAPPED_TAGS == 4 */
+#endif /*  QCBOR_MAX_TAGS_PER_ITEM == 4 */
 
    // ----------------------------------
    // This test sets up a caller-config list that includes the very large
@@ -4453,7 +4450,6 @@ int32_t OptTagParseTest(void)
    }
 
 #if QCBOR_MAX_TAGS_PER_ITEM >= 4
-
    uint64_t puTags[4];
    QCBORTagListOut Out = {0, 4, puTags};
 
@@ -4673,7 +4669,7 @@ int32_t OptTagParseTest(void)
    if(QCBORDecode_Finish(&DCtx)) {
       return -124;
    }
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM >= 4 */
 
    UsefulBufC DateString;
    QCBORDecode_Init(&DCtx,
@@ -7552,12 +7548,12 @@ int32_t EnterMapTest(void)
       return 2121;
    }
    (void)QCBORDecode_GetAndResetError(&DCtx);
-#else
+#else /* QCBOR_MAX_TAGS_PER_ITEM <= 4 */
    if(uErr != QCBOR_SUCCESS) {
       return 2021;
    }
-#endif
-#endif
+#endif /* QCBOR_MAX_TAGS_PER_ITEM <= 4 */
+#endif /* ! QCBOR_DISABLE_TAGS */
 
 
    QCBORDecode_GetInt64InMapN(&DCtx, 0x03, &nInt);
@@ -10407,7 +10403,7 @@ int32_t BoolTest(void)
    if(QCBORDecode_GetNthTagOfLast(&DCtx, 0) != CBOR_TAG_INVALID64) {
       return 407;
    }
-#endif /* ! QCBOR_DISABLE_TAGS */
+#endif /* ! defined(QCBOR_DISABLE_TAGS) && QCBOR_MAX_TAGS_PER_ITEM > 2 */
 
    return 0;
 }

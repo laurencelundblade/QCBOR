@@ -575,6 +575,9 @@ typedef enum {
 const char *
 qcbor_err_to_str(QCBORError uErr);
 
+
+
+
 /**
  * The maximum size in bytes for input to decode or encoder
  * output. This cannot be changed.
