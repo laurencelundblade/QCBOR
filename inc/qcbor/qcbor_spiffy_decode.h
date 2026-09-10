@@ -960,6 +960,10 @@ void
 QCBORDecode_Rewind(QCBORDecodeContext *pCtx);
 
 
+/** Maximum number of items that can be fetched with QCBORDecode_GetItemsInMap(). */
+#define QCBOR_DECODE_MAX_GET_ITEMS 64
+
+
 /**
  * @brief Get an item in map by label and type.
  *
@@ -1014,8 +1018,8 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * @param[in,out] pItemList  On input, the items to search for. On output,
  *                           the returned items.
  *
- * @c pItemList is an array of items, terminated by an item with
- * @c uLabelType == @ref QCBOR_TYPE_NONE.
+ * @c pItemList is an array of up to @ref QCBOR_DECODE_MAX_GET_ITEMS items,
+ * terminated by an item with @c uLabelType == @ref QCBOR_TYPE_NONE.
  *
  * On input, each item in @c pItemList specifies:
  * - A label to search for (@c uLabelType and @c label fields).
