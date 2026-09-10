@@ -579,29 +579,156 @@ qcbor_err_to_str(QCBORError uErr);
 
 
 /**
- * The maximum nesting of arrays and maps when encoding or
- * decoding. The error @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP will be
- * returned on encoding or @ref QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP on
- * decoding if it is exceeded. Do not increase this over 255.
+ * The maximum size in bytes for input to decode or encoder
+ * output. This cannot be changed.
+ *
+ * The public interface uses @c size_t for lengths, but internally
+ * QCBOR holds them in 32 bits.  The limit is slightly less than @c
+ * UINT32_MAX (4GB) to accommodate testing and a sentinel value.
  */
-#define QCBOR_MAX_ARRAY_NESTING  15
+#define QCBOR_MAX_SIZE  (UINT32_MAX - 100)
 
 
 /**
- * The maximum number of items in a single array when encoding or
- * decoding. See also @ref QCBOR_MAX_ITEMS_IN_MAP.
+ * The maximum number of items in a single definite or
+ * indefinite-length array when encoding or decoding. See also
+ * @ref QCBOR_MAX_ITEMS_IN_MAP. This cannot be changed.
  */
-#define QCBOR_MAX_ITEMS_IN_ARRAY (UINT16_MAX-1) /* -1 is because the
-                                                 * value UINT16_MAX is
-                                                 * used to indicate
-                                                 * indefinite-length.
-                                                 */
+#define QCBOR_MAX_ITEMS_IN_ARRAY  (UINT16_MAX-1)
+/* -1 is because the value UINT16_MAX is used to indicate
+ * indefinite-length.
+ */
+
 /**
- * The maximum number of items in a single map when encoding or
- * decoding. See also @ref QCBOR_MAX_ITEMS_IN_ARRAY.
+ * The maximum number of entries (label-value pairs) in a single
+ * definite or indefinite-length map when encoding or decoding. See
+ * also @ref QCBOR_MAX_ITEMS_IN_ARRAY. This cannot be changed.
  */
 #define QCBOR_MAX_ITEMS_IN_MAP  (QCBOR_MAX_ITEMS_IN_ARRAY/2)
 
+
+/**
+ * This is the maximum nesting depth of definite and indefinite-length
+ * arrays and maps for encoding and decoding. Byte-string wrapping and
+ * unwrapping also count towards nesting depth, as does encoding of
+ * segmented strings.
+ *
+ * This value can be changed when building QCBOR; see
+ * @ref ChangingMaxLimits. The default of 35 is intended for
+ * less-constrained systems, which are the more common case. For very
+ * constrained systems, it may be reduced to 7. Before QCBOR v1.7.0
+ * the default was 15.
+ *
+ * Expected size in bytes on a 64-bit CPU:
+ *
+ * | Structure                   |  7  | 15 (previous default) | 35 (default) |
+ * |-----------------------------| --- | --------------------- | ------------ |
+ * | @ref QCBOREncodeContext     | 136 | 200                   | 360          |
+ * | @ref QCBORDecodeContext     | 256 | 352                   | 592          |
+ * | @ref QCBORSavedDecodeCursor | 168 | 264                   | 504          |
+ *
+ * Each nesting level costs 8 bytes in @ref QCBOREncodeContext and 12
+ * bytes in each of @ref QCBORDecodeContext and
+ * @ref QCBORSavedDecodeCursor (these sizes may vary by CPU type and
+ * compiler). The size of these structures is the only cost of
+ * changing this limit. It cannot be set above 255 because levels are
+ * indexed by a @c uint8_t. Values below 7 are untested.
+ */
+#ifndef QCBOR_MAX_ARRAY_NESTING
+#define QCBOR_MAX_ARRAY_NESTING  35
+#endif
+
+
+/**
+ * @def QCBOR_NUM_MAPPED_TAGS
+ *
+ * The number of distinct tag numbers greater than
+ * @ref QCBOR_LAST_UNMAPPED_TAG (typically 65,530) that a single
+ * @ref QCBORDecodeContext can handle. Tag numbers at or below that
+ * threshold are stored directly and are not subject to this limit.
+ *
+ * To keep data structures small and avoid dynamic memory allocation,
+ * QCBOR stores large tag numbers in a fixed-size mapping table and
+ * refers to them internally by table index. Once the table is full,
+ * decoding an item carrying a further distinct large tag number
+ * returns @ref QCBOR_ERR_TOO_MANY_TAGS.
+ *
+ * Note that the limit is on *distinct* tag numbers per context, not
+ * on occurrences: the same large tag number appearing many times
+ * consumes one entry.
+ *
+ * This value can be changed when building QCBOR; see
+ * @ref ChangingMaxLimits. Each additional
+ * mapped tag number adds 8 bytes to both @ref QCBORDecodeContext and
+ * @ref QCBORSavedDecodeCursor.  Raising this by one also lowers
+ * @ref QCBOR_LAST_UNMAPPED_TAG by one.
+ */
+#ifndef QCBOR_NUM_MAPPED_TAGS
+#define QCBOR_NUM_MAPPED_TAGS  4
+#endif
+
+
+/**
+ * @def QCBOR_MAX_TAGS_PER_ITEM
+ *
+ * The maximum number of tag numbers that may be nested on a single
+ * CBOR item.
+ *
+ * This limit exists so that @ref QCBORItem stays small: it is passed
+ * by value and is typically stack-allocated, so its size matters on
+ * constrained targets.
+ *
+ * This value can be changed when building QCBOR; see
+ * @ref ChangingMaxLimits. Each additional tag adds 2 bytes to
+ * @ref QCBORItem, 2 bytes to @ref QCBORDecodeContext and
+ * increases stack use while decoding by 2 bytes.
+ *
+ * See also @ref QCBOR_NUM_MAPPED_TAGS, which limits distinct large
+ * tag numbers per decode context rather than nesting depth per item.
+ */
+#ifndef QCBOR_MAX_TAGS_PER_ITEM
+#define QCBOR_MAX_TAGS_PER_ITEM  4
+#endif
+
+
+/** @cond DOXYGEN_IGNORE */
+
+/* Largest value QCBOR_MAX_ARRAY_NESTING can be set to. Limited by
+ * indexing with 8-bit integer */
+#define QCBOR_MAX_MAX_ARRAY_NESTING  255
+
+#if QCBOR_MAX_ARRAY_NESTING > QCBOR_MAX_MAX_ARRAY_NESTING
+#error QCBOR_MAX_ARRAY_NESTING must be less than 256
+#endif
+
+
+/* Largest value QCBOR_MAX_TAGS_PER_ITEM can be set to. This limit is
+ * actually in the implementation of TooManyTagsTest(), but 512 tags
+ * is a ridiculous amount so no need to improve the test. */
+#define QCBOR_MAX_MAX_TAGS_PER_ITEM  512
+
+/* It will probably work with 1, but lots of tests fail with 1. */
+#define QCBOR_MIN_MAX_TAGS_PER_ITEM 2
+
+#if QCBOR_MAX_TAGS_PER_ITEM > QCBOR_MAX_MAX_TAGS_PER_ITEM
+#error QCBOR_MAX_TAGS_PER_ITEM must be less than 512
+#endif
+
+#if QCBOR_MAX_TAGS_PER_ITEM < QCBOR_MIN_MAX_TAGS_PER_ITEM
+#error QCBOR_MAX_TAGS_PER_ITEM must be more than 2
+#endif
+
+
+/* Largest value QCBOR_MAX_NUM_MAPPED_TAGS can be set to. This limit
+ * is in the implementation of TooManyTagsTest(), but 50 tags is a
+ * ridiculous amount so no need to improve the test. */
+#define QCBOR_MAX_NUM_MAPPED_TAGS  50
+
+#if QCBOR_NUM_MAPPED_TAGS > QCBOR_MAX_NUM_MAPPED_TAGS
+#error QCBOR_NUM_MAPPED_TAGS must be less than 50
+#endif
+
+/** @endcond */
 
 #ifdef __cplusplus
 }

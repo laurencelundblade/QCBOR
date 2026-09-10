@@ -57,7 +57,9 @@ option(QCBOR_DISABLE_EXP_AND_MANTISSA          "Disable big float and decimal fr
 option(QCBOR_DISABLE_ENCODE_USAGE_GUARDS       "Disable (safely) encoding usage error checking" OFF)
 option(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS "Disable encoding and decoding of indefinite-length strings" OFF)
 option(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS  "Disable encoding and decoding of indefinite-length arrays and maps" OFF)
-
+set(QCBOR_MAX_ARRAY_NESTING 35 CACHE STRING    "Set maximum array/map nesting allowed")
+set(QCBOR_NUM_MAPPED_TAGS 4 CACHE STRING       "Set maximum distinct tag numbers greater than QCBOR_LAST_UNMAPPED_TAG (typically 65,530)")
+set(QCBOR_MAX_TAGS_PER_ITEM 4 CACHE STRING     "Set maximum number of tag numbers that may be nested on a single CBOR item")
 
 # This is backwards compatibility for float-related cmake options -- decided
 # to just make the cmake option the same as the #define
@@ -115,6 +117,9 @@ target_compile_definitions(qcbor
         $<$<BOOL:${QCBOR_DISABLE_ENCODE_USAGE_GUARDS}>:QCBOR_DISABLE_ENCODE_USAGE_GUARDS>
         $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS>
         $<$<BOOL:${QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS}>:QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS>
+        QCBOR_MAX_ARRAY_NESTING=${QCBOR_MAX_ARRAY_NESTING}
+        QCBOR_NUM_MAPPED_TAGS=${QCBOR_NUM_MAPPED_TAGS}
+        QCBOR_MAX_TAGS_PER_ITEM=${QCBOR_MAX_TAGS_PER_ITEM}
 )
 
 # In some rare environments, this may unnecessarily link libm, but this
