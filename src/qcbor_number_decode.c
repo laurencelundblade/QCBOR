@@ -142,11 +142,8 @@ QCBOR_Private_ConvertInt64(const QCBORItem                    *pItem,
 
       case QCBOR_TYPE_UINT64:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_XINT64) {
-            if(pItem->val.uint64 < INT64_MAX) {
-               *pnValue = pItem->val.int64;
-            } else {
-               return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
-            }
+            /* Anything decoded to uint64_t can't convert to int64_t */
+            return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
          } else {
             return  QCBOR_ERR_UNEXPECTED_TYPE;
          }
@@ -313,7 +310,7 @@ QCBOR_Private_ConvertUInt64(const QCBORItem                    *pItem,
             }
 
          } else {
-            return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
+            return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE);
          }
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
          return FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS);
@@ -459,11 +456,9 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
       case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
-            } else {
-               return QCBOR_ERR_UNEXPECTED_TYPE;
-            }
+            *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
+         } else {
+            return QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          return QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
@@ -472,11 +467,9 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
 
       case QCBOR_TYPE_DOUBLE:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = pItem->val.dfnum;
-            } else {
-               return QCBOR_ERR_UNEXPECTED_TYPE;
-            }
+            *pdValue = pItem->val.dfnum;
+         } else {
+            return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 

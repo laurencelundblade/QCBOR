@@ -192,7 +192,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
  * is below 1, unless the mantissa is zero, in which case the
  * coversion is successful and the value of 0 is returned.
  *
- * See also QCBORDecode_GetInt64ConvertAll() which does some of these
+ * See also QCBORDecode_GetInt64Convert() which does some of these
  * conversions, but links in much less object code. See also
  * QCBORDecode_GetUInt64ConvertAll().
  *
