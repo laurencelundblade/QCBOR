@@ -8538,14 +8538,16 @@ int32_t EnterMapTest(void)
    return nReturn;
 }
 
-
 struct NumberConversion {
    char       *szDescription;
    UsefulBufC  CBOR;
+   uint32_t    uToInt64Types;
    int64_t     nConvertedToInt64;
    QCBORError  uErrorInt64;
+   uint32_t    uToUInt64Types;
    uint64_t    uConvertToUInt64;
    QCBORError  uErrorUint64;
+   uint32_t    uToDoubleTypes;
    double      dConvertToDouble;
    QCBORError  uErrorDouble;
 };
@@ -8557,87 +8559,191 @@ struct NumberConversion {
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
+
 static const struct NumberConversion NumberConversions[] = {
 #ifndef QCBOR_DISABLE_TAGS
    {
-      "Big float: INT64_MIN * 2e-1 to test handling of INT64_MIN",
+      /* The input is 12 bytes, not 15. The length was wrong and read
+       * past the end of the compound literal. */
+      "Big float: INT64_MIN * 2^-1 to test handling of INT64_MIN",
       {(uint8_t[]){0xC5, 0x82, 0x20,
-                               0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x0ff, 0xff, 0xff,
-                               }, 15},
+         0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+      }, 12},
+      0xffffUL,
       -4611686018427387904LL, /* INT64_MIN / 2 */
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -4.6116860184273879E+18,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "too large to fit into int64_t",
+      /* -1 - 0x8000000000000000 == -(2^63 + 1), one too negative for
+       * int64_t. As a double it rounds to exactly (double)INT64_MIN. */
+      "negative bignum -9223372036854775809, one too negative for int64_t",
       {(uint8_t[]){0xc3, 0x48, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 10},
+      0xffffUL,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
-      ((double)INT64_MIN) + 1 ,
+      0xffffUL,
+      (double)INT64_MIN,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "largest negative int that fits in int64_t",
+      "most negative int that fits in int64_t (INT64_MIN)",
       {(uint8_t[]){0xc3, 0x48, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 10},
+      0xffffUL,
       INT64_MIN,
       QCBOR_SUCCESS,
+      0xffffUL,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
       (double)INT64_MIN,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "negative bignum -1",
       {(uint8_t[]){0xc3, 0x41, 0x00}, 3},
+      0xffffUL,
       -1,
       QCBOR_SUCCESS,
+      0xffffUL,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
       -1.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "Decimal Fraction with positive bignum 257 * 10e3",
-      {(uint8_t[]){0xC4, 0x82, 0x03, 0xC2, 0x42, 0x01, 0x01}, 8},
+      /* The offset of one carries into a new byte here: the encoded
+       * mantissa is 0xFFFF and the value is -65536 == -0x010000. */
+      "negative bignum -65536, offset of one carries into a new byte",
+      {(uint8_t[]){0xc3, 0x42, 0xff, 0xff}, 4},
+      0xffffUL,
+      -65536,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      0,
+      QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
+      -65536.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "positive bignum UINT64_MAX, the largest that fits in uint64_t",
+      {(uint8_t[]){0xc2, 0x48, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 10},
+      0xffffUL,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
+      UINT64_MAX,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      18446744073709551615.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "positive bignum 18446744073709551616 (2^64), one too big for uint64_t",
+      {(uint8_t[]){0xc2, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11},
+      0xffffUL,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
+      18446744073709551616.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      /* TODO: confirm. Leading zeros are legal in a tag 2 big number
+       * (they are just not preferred serialization), so this should
+       * decode as 7. */
+      "positive bignum 7 with leading zero bytes",
+      {(uint8_t[]){0xc2, 0x43, 0x00, 0x00, 0x07}, 5},
+      0xffffUL,
+      7,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      7,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      7.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      /* TODO: confirm. An empty big number string is the value 0. If
+       * this instead returns an error, that is worth documenting. */
+      "positive bignum 0, empty big number string",
+      {(uint8_t[]){0xc2, 0x40}, 2},
+      0xffffUL,
+      0,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      0,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      0.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      "Decimal Fraction with positive bignum 257 * 10^3",
+      {(uint8_t[]){0xC4, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+         0xC2, 0x42, 0x01, 0x01}, 15},
+      0xffffUL,
       257000,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       257000,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       257000.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "bigfloat with negative bignum -258 * 2e3",
-      {(uint8_t[]){0xC5, 0x82, 0x03, 0xC3, 0x42, 0x01, 0x01}, 8},
+      "bigfloat with negative bignum -258 * 2^3",
+      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+         0xC3, 0x42, 0x01, 0x01}, 15},
+      0xffffUL,
       -2064,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -2064.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "bigfloat with positive bignum 257 * 2e3",
-      {(uint8_t[]){0xC5, 0x82, 0x03, 0xC2, 0x42, 0x01, 0x01}, 8},
+      "bigfloat with positive bignum 257 * 2^3",
+      {(uint8_t[]){0xC5, 0x82, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+         0xC2, 0x42, 0x01, 0x01}, 15},
+      0xffffUL,
       2056,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       2056,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       2056.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "negative bignum 0xc349010000000000000000 -18446744073709551617",
       {(uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11},
+      0xffffUL,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
       -18446744073709551617.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
@@ -8645,10 +8751,13 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Positive bignum 0x01020304 indefinite length string",
       {(uint8_t[]){0xC2, 0x5f, 0x42, 0x01, 0x02, 0x41, 0x03, 0x41, 0x04, 0xff}, 10},
+      0xffffUL,
       0x01020304,
       QCBOR_SUCCESS,
+      0xffffUL,
       0x01020304,
       QCBOR_SUCCESS,
+      0xffffUL,
       16909060.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
@@ -8656,63 +8765,101 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                               0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
+         0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "big float [9223372036854775806,  9223372036854775806]",
+      "big float [9223372036854775806, 9223372036854775806]",
       {(uint8_t[]){0xC5, 0x82, 0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-                               0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
+         0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
-      "Big float 3 * 2^^2",
+      "Big float 3 * 2^2",
       {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
+      0xffffUL,
       12,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       12,
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
       12.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction 3/10",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0.30000000000000004,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction -3/10",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0x22}, 4},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -0.30000000000000004,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction -3/10, neg bignum mantissa",
       {(uint8_t[]){0xC4, 0x82, 0x20, 0xc3, 0x41, 0x02}, 6},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -0.30000000000000004,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+   },
+   {
+      /* A negative exponent that still lands on a whole number:
+       * 100 * 10^-1 == 10. This distinguishes "the value is not an
+       * integer" (the 3/10 rows above) from "the exponent is negative".
+       * TODO: confirm. If the integer conversions return
+       * QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW here, the implementation
+       * refuses every negative exponent rather than only inexact
+       * results, which should be documented in the API. */
+      "Decimal fraction 100 * 10^-1 == 10, exact despite negative exponent",
+      {(uint8_t[]){0xC4, 0x82, 0x20, 0x18, 0x64}, 5},
+      0xffffUL,
+      10,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
+      10,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      0xffffUL,
+      10.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
@@ -8770,10 +8917,13 @@ static const struct NumberConversion NumberConversions[] = {
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0},
          404},
+      0xffffUL,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
    },
@@ -8833,24 +8983,33 @@ static const struct NumberConversion NumberConversions[] = {
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0,
          0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0, 0xf0},
          404},
+      0xffffUL,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       0,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
       -INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 
    {
-      "big float underflow [9223372036854775806, -9223372036854775806]",
+      /* The array is [exponent, mantissa], so this is
+       * 9223372036854775806 * 2^-9223372036854775807, which underflows
+       * to zero. */
+      "big float underflow [-9223372036854775807, 9223372036854775806]",
       {(uint8_t[]){
          0xC5, 0x82,
-            0x3B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
-            0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
+         0x3B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE,
+         0x1B, 0x7f, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE}, 20},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
@@ -8859,114 +9018,368 @@ static const struct NumberConversion NumberConversions[] = {
       "bigfloat that evaluates to -INFINITY",
       {(uint8_t[]){
          0xC5, 0x82,
-            0x1B, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
-            0xC3, 0x42, 0x01, 0x01}, 15},
+         0x1B, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+         0xC3, 0x42, 0x01, 0x01}, 15},
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
       "Positive bignum 0xffff",
       {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
+      0xffffUL,
       65536-1,
       QCBOR_SUCCESS,
+      0xffffUL,
       0xffff,
       QCBOR_SUCCESS,
+      0xffffUL,
       65535.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      /* Type restriction: the input is a big number but only XINT64 is
+       * allowed, so all three conversions must refuse it. */
+      "Type error: big number input, big numbers not allowed",
+      {(uint8_t[]){0xC2, 0x42, 0xff, 0xff}, 4},
+      QCBOR_CONVERT_TYPE_XINT64,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_XINT64,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_XINT64,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+   },
+   {
+      /* Type restriction: a decimal fraction with everything but
+       * decimal fractions allowed. */
+      "Type error: decimal fraction input, decimal fractions not allowed",
+      {(uint8_t[]){0xC4, 0x82, 0x20, 0x03}, 4},
+      QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_FLOAT | QCBOR_CONVERT_TYPE_BIG_NUM,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_FLOAT | QCBOR_CONVERT_TYPE_BIG_NUM,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_FLOAT | QCBOR_CONVERT_TYPE_BIG_NUM,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+   },
+   {
+      /* The positive side of the type restriction: a narrow mask that
+       * does include the input's type still succeeds. Same input and
+       * expected values as "Big float 3 * 2^2" above. */
+      "Big float 3 * 2^2, only XINT64 and big floats allowed",
+      {(uint8_t[]){0xC5, 0x82, 0x02, 0x03}, 4},
+      QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIGFLOAT,
+      12,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIGFLOAT,
+      12,
+      EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
+      QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIGFLOAT,
+      12.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
 #endif /* QCBOR_DISABLE_TAGS */
    {
       "Positive integer 18446744073709551615",
       {(uint8_t[]){0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      0xffffUL,
       0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       18446744073709551615ULL,
       QCBOR_SUCCESS,
+      0xffffUL,
       18446744073709551615.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 
    {
-      "Postive integer 0",
+      "Positive integer 0",
       {(uint8_t[]){0x0}, 1},
+      0xffffUL,
       0LL,
       QCBOR_SUCCESS,
+      0xffffUL,
       0ULL,
       QCBOR_SUCCESS,
+      0xffffUL,
       0.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "Negative integer -9223372036854775808",
-      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
+      /* The description used to say -18446744073709551616, which is
+       * what 0x3b followed by eight 0xff would be. This input is
+       * -1 - 0x7fffffffffffffff == INT64_MIN. */
+      "Negative integer -9223372036854775808 (INT64_MIN)",
+      {(uint8_t[]){0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      0xffffUL,
       -9223372036854775807LL-1, // INT64_MIN
       QCBOR_SUCCESS,
+      0xffffUL,
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
       -9223372036854775808.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "Negative integer -18446744073709551616",
-      {(uint8_t[]){0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9},
-      0ULL,
+      /* The type 1 integer the old description above claimed:
+       * -1 - UINT64_MAX == -2^64, which is out of range for int64_t. */
+      "Negative integer -18446744073709551616 (-2^64)",
+      {(uint8_t[]){0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }, 9},
+      0xffffUL,
+      0,
       QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      0xffffUL,
       0ULL,
       QCBOR_ERR_NUMBER_SIGN_CONVERSION,
+      0xffffUL,
       -18446744073709551616.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+   {
+      /* 2^53 + 1 is exact in an int64_t but not in a double, where it
+       * rounds down to 2^53. This pins down that a lossy integer to
+       * double conversion is a success, not an error. */
+      "Positive integer 9007199254740993 (2^53 + 1), not exact as a double",
+      {(uint8_t[]){0x1b, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9},
+      0xffffUL,
+      9007199254740993LL,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      9007199254740993ULL,
+      QCBOR_SUCCESS,
+      0xffffUL,
+      9007199254740992.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
       "Double Floating point value 100.3",
       {(uint8_t[]){0xfb, 0x40, 0x59, 0x13, 0x33, 0x33, 0x33, 0x33, 0x33}, 9},
+      0xffffUL,
       100L,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      0xffffUL,
       100ULL,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      0xffffUL,
       100.3,
       FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
    },
    {
       "Floating point value NaN 0xfa7fc00000",
       {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
+      0xffffUL,
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0xffffUL,
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0xffffUL,
       NAN,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS),
    },
    {
       "half-precision Floating point value -4",
       {(uint8_t[]){0xf9, 0xc4, 0x00}, 3},
       // Normal case with all enabled.
+      0xffffUL,
       -4,
       FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS),
+      0xffffUL,
       0,
       FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
       -4.0,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
    {
-      "+inifinity single precision",
+      "+infinity single precision",
       {(uint8_t[]){0xfa, 0x7f, 0x80, 0x00, 0x00}, 5},
+      0xffffUL,
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0xffffUL,
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
+      0xffffUL,
       INFINITY,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
 
-   /* In QCBOR 1.6 some decoding of single to double is available conidtional on DISABLE_PREFERRED_FLOAT rather than NO_FLOAT_HW.
-    * This is a small change in behavior so the version number is 1.6 instead of 1.5.4. QCBOR 2.0 is in alpha state, so no need for similar version numbers . */
+   {
+      /* TODO: +infinity above gives
+       * QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW for uint64 while
+       * -infinity gives QCBOR_ERR_NUMBER_SIGN_CONVERSION. Both are
+       * defensible, but the pair should be documented or made
+       * consistent. */
+      "-infinity single precision",
+      {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
+      0xffffUL,
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0xffffUL,
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      0xffffUL,
+      -INFINITY,
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+
+   {
+      "Type error conversion for float",
+      {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
+      0xffffUL,
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
+      0xffffUL,
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      QCBOR_CONVERT_TYPE_XINT64,
+      0.0,
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
+   },
+
+   {
+      "Type error conversion for double",
+      {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
+      0xffffUL,
+      1,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      0xffffUL,
+      1,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      QCBOR_CONVERT_TYPE_XINT64,
+      0.0,
+      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
+   },
+
+   {
+      /* The same restriction as the two entries above, but applied to
+       * the int64_t and uint64_t conversions, which had no coverage
+       * until uToInt64Types and uToUInt64Types were added. The type
+       * check happens before any conversion, so the error is
+       * QCBOR_ERR_UNEXPECTED_TYPE whether or not floating point
+       * hardware is available. */
+      "Type error conversion to int64 and uint64: double input, floats not allowed",
+      {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
+      QCBOR_CONVERT_TYPE_XINT64,
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
+      QCBOR_CONVERT_TYPE_XINT64,
+      0,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
+      0xffffUL,
+      1.0,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+   },
+
+   {
+      /* The positive side of the restriction with no tags involved: a
+       * plain integer with only XINT64 allowed still converts. */
+      "Positive integer 100, only XINT64 allowed",
+      {(uint8_t[]){0x18, 0x64}, 2},
+      QCBOR_CONVERT_TYPE_XINT64,
+      100,
+      QCBOR_SUCCESS,
+      QCBOR_CONVERT_TYPE_XINT64,
+      100,
+      QCBOR_SUCCESS,
+      QCBOR_CONVERT_TYPE_XINT64,
+      100.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+
+   {
+      /* The item is a type 0 integer, which is exactly what all three
+       * conversions handle natively, but XINT64 is not in the mask, so
+       * every one of them must refuse it. This is the mirror of "Type
+       * error conversion to int64 and uint64: double input, floats not
+       * allowed" above. No float is decoded and no conversion is
+       * attempted, so the error does not depend on any of the floating
+       * point build options. */
+      "Type error: positive integer 100 input, only floats allowed",
+      {(uint8_t[]){0x18, 0x64}, 2},
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+   },
+   {
+      /* Same as above for a type 1 integer, so the negative path
+       * through the type check is covered too. */
+      "Type error: negative integer -100 input, only floats allowed",
+      {(uint8_t[]){0x38, 0x63}, 2},
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+   },
+
+   {
+      /* 2^63 == INT64_MAX + 1: in range for a uint64_t, out of range for
+       * an int64_t. Only floats are allowed, so the type check must
+       * refuse it before the range of the value is ever considered.
+       * Without this, an implementation that checked the range first
+       * would return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW here for
+       * int64 and QCBOR_SUCCESS for uint64, and pass every other test
+       * in this table. Entry 47 is the same input with XINT64 allowed,
+       * which is what those two answers should look like. */
+      "Type error: 9223372036854775808 (2^63) input, only floats allowed",
+      {(uint8_t[]){0x1b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0,
+      QCBOR_ERR_UNEXPECTED_TYPE,
+      QCBOR_CONVERT_TYPE_FLOAT,
+      0.0,
+      QCBOR_ERR_UNEXPECTED_TYPE
+   },
+
+   {
+      /* The same 2^63 input with XINT64 allowed, so the type check
+       * passes and the range check decides: GetInt64ConvertAll()
+       * overflows by exactly one, GetUInt64ConvertAll() succeeds, and
+       * the double conversion is exact because 2^63 is a power of two.
+       * This is the INT64_MAX + 1 boundary, which the UINT64_MAX entry
+       * further up does not pin down. */
+      "9223372036854775808 (2^63), XINT64 allowed: int64 overflows, uint64 succeeds",
+      {(uint8_t[]){0x1b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
+      QCBOR_CONVERT_TYPE_XINT64,
+      0,
+      QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW,
+      QCBOR_CONVERT_TYPE_XINT64,
+      9223372036854775808ULL,
+      QCBOR_SUCCESS,
+      QCBOR_CONVERT_TYPE_XINT64,
+      9223372036854775808.0,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
+   },
+
 };
-
-
 
 
 static int32_t SetUpDecoder(QCBORDecodeContext *pDCtx, UsefulBufC CBOR, UsefulBuf Pool)
@@ -9006,12 +9419,12 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      if(nIndex == 1) {
+      if(nIndex == 42) {
          uInt = 99; // For break point only
       }
 
       int64_t nInt;
-      QCBORDecode_GetInt64ConvertAll(&DCtx, 0xffff, &nInt);
+      QCBORDecode_GetInt64ConvertAll(&DCtx, pF->uToInt64Types, &nInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorInt64) {
          return (int32_t)(2000+nIndex);
       }
@@ -9024,7 +9437,7 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      QCBORDecode_GetUInt64ConvertAll(&DCtx, 0xffff, &uInt);
+      QCBORDecode_GetUInt64ConvertAll(&DCtx, pF->uToUInt64Types, &uInt);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorUint64) {
          return (int32_t)(4000+nIndex);
       }
@@ -9039,7 +9452,7 @@ int32_t IntegerConvertTest(void)
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
       double d;
-      QCBORDecode_GetDoubleConvertAll(&DCtx, 0xffff, &d);
+      QCBORDecode_GetDoubleConvertAll(&DCtx, pF->uToDoubleTypes, &d);
       if(QCBORDecode_GetError(&DCtx) != pF->uErrorDouble) {
          return (int32_t)(6000+nIndex);
       }
