@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
 - Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
   than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when conversion types is not QCBOR_CONVERT_TYPE_FLOAT.
+- QCBORDecode_GetInt64ConvertAll() and related functions suceeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when conversion types is not QCBOR_CONVERT_TYPE_FLOAT.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
