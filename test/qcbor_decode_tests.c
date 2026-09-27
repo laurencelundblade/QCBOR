@@ -9056,7 +9056,7 @@ static const struct NumberConversion NumberConversions[] = {
       QCBOR_ERR_UNEXPECTED_TYPE,
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
+      QCBOR_ERR_UNEXPECTED_TYPE,
    },
    {
       /* Type restriction: a decimal fraction with everything but
@@ -9178,7 +9178,7 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS),
    },
    {
-      "Floating point value NaN 0xfa7fc00000",
+      "Single-precision floating point value NaN 0xfa7fc00000",
       {(uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5},
       0xffffUL,
       0,
@@ -9188,7 +9188,7 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
       0xffffUL,
       NAN,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS),
    },
    {
       "half-precision Floating point value -4",
@@ -9202,7 +9202,7 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       0xffffUL,
       -4.0,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
    },
    {
       "+infinity single precision",
@@ -9215,7 +9215,7 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       0xffffUL,
       INFINITY,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
    },
 
    {
@@ -9234,35 +9234,35 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       0xffffUL,
       -INFINITY,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_SUCCESS)
+      FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
    },
 
    {
       "Type error conversion for float",
       {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
-      0xffffUL,
+      0xffffUL, // TODO:
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
-      0xffffUL,
+      0xffffUL, // TODO:
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
+      QCBOR_ERR_UNEXPECTED_TYPE
    },
 
    {
       "Type error conversion for double",
       {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
-      0xffffUL,
+      0xffffUL, // TODO:
       1,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
-      0xffffUL,
+      0xffffUL, // TODO:
       1,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
-      FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
+      QCBOR_ERR_UNEXPECTED_TYPE
    },
 
    {
@@ -9276,13 +9276,13 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
       QCBOR_CONVERT_TYPE_XINT64,
       0,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
+      QCBOR_ERR_UNEXPECTED_TYPE,
       QCBOR_CONVERT_TYPE_XINT64,
       0,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
+      QCBOR_ERR_UNEXPECTED_TYPE,
       0xffffUL,
       1.0,
-      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_SUCCESS)
+      QCBOR_SUCCESS
    },
 
    {
@@ -9419,7 +9419,7 @@ int32_t IntegerConvertTest(void)
          return (int32_t)(3333+nIndex);
       }
 
-      if(nIndex == 42) {
+      if(nIndex == 41) {
          uInt = 99; // For break point only
       }
 
