@@ -9276,10 +9276,10 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
       QCBOR_CONVERT_TYPE_XINT64,
       0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
       0xffffUL,
       1.0,
       QCBOR_SUCCESS
