@@ -101,29 +101,32 @@ static const struct NumberConvertCheckEntry QCBOR_Private_NumberConvertCheckTabl
    { QCBOR_TYPE_DECIMAL_FRACTION, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION},
    { QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION},
    { QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION},
+   { QCBOR_TYPE_DECIMAL_FRACTION_POS_U64, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION},
+   { QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64, QCBOR_CONVERT_TYPE_DECIMAL_FRACTION},
    { QCBOR_TYPE_BIGFLOAT, QCBOR_CONVERT_TYPE_BIGFLOAT},
    { QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA, QCBOR_CONVERT_TYPE_BIGFLOAT},
    { QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA, QCBOR_CONVERT_TYPE_BIGFLOAT},
+   { QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA, QCBOR_CONVERT_TYPE_BIGFLOAT},
+   { QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA, QCBOR_CONVERT_TYPE_BIGFLOAT},
    { QCBOR_TYPE_NONE, 0},
 };
 
+
+/**
+ * @return non zero if @p uDataType may be converted given @p uConvertTypes.
+ */
 static int
-QCBOR_Private_NumberConvertCheck(const uint8_t                         uDataType,
-                                 const enum QCBORDecodeNumberConvert   uConvertTypes)
+QCBOR_Private_NumberConvertAllowed(const uint8_t uDataType, const uint32_t uConvertTypes)
 {
    const struct NumberConvertCheckEntry *pEntry;
 
-   for(pEntry = QCBOR_Private_NumberConvertCheckTable; pEntry->uQCBORType != QCBOR_TYPE_NONE; pEntry++) {
+   for(pEntry = QCBOR_Private_NumberConvertCheckTable; pEntry->uQCBORType != QCBOR_TYPE_NONE;  pEntry++) {
       if(pEntry->uQCBORType == uDataType) {
-         if(! (uConvertTypes & pEntry->uConvertTypes) ) {
-            return 1; /* Type check fails */
-         } else {
-            return 0; /* Type check success */
-         }
+         return uConvertTypes & pEntry->uConvertTypes;
       }
    }
 
-   return 1; /* Type check fails */
+   return 0;
 }
 
 
@@ -147,7 +150,7 @@ QCBOR_Private_ConvertInt64(const QCBORItem                    *pItem,
                            const enum QCBORDecodeNumberConvert uConvertTypes,
                            int64_t                            *pnValue)
 {
-   if(QCBOR_Private_NumberConvertCheck(pItem->uDataType, uConvertTypes)) {
+   if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
@@ -299,7 +302,7 @@ QCBOR_Private_ConvertUInt64(const QCBORItem                    *pItem,
                             const enum QCBORDecodeNumberConvert uConvertTypes,
                             uint64_t                           *puValue)
 {
-   if(QCBOR_Private_NumberConvertCheck(pItem->uDataType, uConvertTypes)) {
+   if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
@@ -479,7 +482,7 @@ QCBOR_Private_ConvertDouble(const QCBORItem                    *pItem,
                             const enum QCBORDecodeNumberConvert uConvertTypes,
                             double                             *pdValue)
 {
-   if(QCBOR_Private_NumberConvertCheck(pItem->uDataType, uConvertTypes)) {
+   if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
@@ -1179,7 +1182,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem                    *pItem,
    QCBORError uErr;
    int64_t    nMantissa;
 
-   if(QCBOR_Private_NumberConvertCheck(pItem->uDataType, uConvertTypes)) {
+   if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
@@ -1393,7 +1396,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
    QCBORError uErr;
    uint64_t   uMantissa;
 
-   if(QCBOR_Private_NumberConvertCheck(pItem->uDataType, uConvertTypes)) {
+   if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 
@@ -1597,7 +1600,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
                                const bool                          bBignumConformance,
                                double                             *pdValue)
 {
-   if(QCBOR_Private_NumberConvertCheck(pItem->uDataType, uConvertTypes)) {
+   if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
    }
 

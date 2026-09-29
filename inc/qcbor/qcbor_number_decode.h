@@ -40,7 +40,8 @@ extern "C" {
 
 
 /** Bit flags to indicate what types of number conversions should be
-    performed. */
+ * performed. These are put in a uint8_t in NumberConvertCheckEntry,
+ * so don't exceed 0x80. */
 enum QCBORDecodeNumberConvert {
 
     /** Conversion will proceed if the CBOR item to be decoded is an
