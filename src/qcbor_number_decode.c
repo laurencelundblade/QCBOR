@@ -1206,7 +1206,7 @@ QCBOR_Private_Int64ConvertAll(const QCBORItem                    *pItem,
             }
          }
          uErr = QCBORDecode_Private_NegativeBigNumberToInt(pItem->val.bigNum, pnValue);
-      break;
+         break;
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
       case QCBOR_TYPE_DECIMAL_FRACTION:
