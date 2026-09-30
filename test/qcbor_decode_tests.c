@@ -9216,13 +9216,13 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
       QCBOR_CONVERT_TYPE_XINT64,
       0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       0,
-      QCBOR_ERR_UNEXPECTED_TYPE,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE)
    },
 
    {
@@ -9230,13 +9230,13 @@ static const struct NumberConversion NumberConversions[] = {
       {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
       QCBOR_CONVERT_TYPE_XINT64,
       1,
-      QCBOR_ERR_UNEXPECTED_TYPE,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       1,
-      QCBOR_ERR_UNEXPECTED_TYPE,
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
-      QCBOR_ERR_UNEXPECTED_TYPE
+      FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE)
    },
 
    {
@@ -9359,7 +9359,7 @@ int32_t IntegerConvertTest(void)
       if(!strcmp("-infinity single precision",pF->szDescription)) {
          uInt = 00;
       }
-      if(nIndex == 41) {
+      if(nIndex == 39) {
          uInt = 99; // For break point only
       }
 
