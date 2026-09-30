@@ -53,9 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
   wrong results when the encoded CBOR input is floating-point and conversion
   for float is not requested, for example when conversion types is not QCBOR_CONVERT_TYPE_FLOAT.
-- QCBORDecode_GetInt64ConvertAll() and related functions suceeded and returned
+- QCBORDecode_GetInt64ConvertAll() and related functions succeeded and returned
   wrong results when the encoded CBOR input is floating-point and conversion
-  for float is not requested, for example when conversion types is not QCBOR_CONVERT_TYPE_FLOAT.
+  for float is not requested, for example when then conversion type is not QCBOR_CONVERT_TYPE_FLOAT.
+- Error reporting for all decode number conversion is more accurate.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
