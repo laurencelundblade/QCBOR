@@ -1451,11 +1451,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
          break;
 
       case QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM:
-         if(uConvertTypes & QCBOR_CONVERT_TYPE_DECIMAL_FRACTION) {
-            return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
-         } else {
-            return QCBOR_ERR_UNEXPECTED_TYPE;
-         }
+         return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
          break;
 
       case QCBOR_TYPE_BIGFLOAT_POS_BIGMANTISSA:
