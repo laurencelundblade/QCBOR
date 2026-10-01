@@ -40,7 +40,8 @@ extern "C" {
 
 
 /** Bit flags to indicate what types of number conversions should be
-    performed. */
+ * performed. These are put in a uint8_t in NumberConvertCheckEntry,
+ * so don't exceed 0x80. */
 enum QCBORDecodeNumberConvert {
 
     /** Conversion will proceed if the CBOR item to be decoded is an
@@ -192,7 +193,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
  * is below 1, unless the mantissa is zero, in which case the
  * coversion is successful and the value of 0 is returned.
  *
- * See also QCBORDecode_GetInt64ConvertAll() which does some of these
+ * See also QCBORDecode_GetInt64Convert() which does some of these
  * conversions, but links in much less object code. See also
  * QCBORDecode_GetUInt64ConvertAll().
  *
