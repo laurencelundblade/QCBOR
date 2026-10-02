@@ -1096,8 +1096,8 @@ QCBORDecode_Private_NegativeBigNumberToInt(const UsefulBufC BigNumber,
  *
  * Zero is returned as h'00.  Endian conversion is performed.
  */
-static UsefulBufC
-QCBORDecode_Private_UIntToBigNumber(uint64_t uNum, const UsefulBuf BigNumberBuf)
+ UsefulBufC
+QCBORDecode_Private_UIntToBigNumberXx(uint64_t uNum, const UsefulBuf BigNumberBuf)
 {
    UsefulOutBuf UOB;
 
@@ -1114,6 +1114,52 @@ QCBORDecode_Private_UIntToBigNumber(uint64_t uNum, const UsefulBuf BigNumberBuf)
 
    return UsefulOutBuf_OutUBuf(&UOB);
 }
+
+
+/**
+ * @brief Convert an integer to a big number.
+ *
+ * @param[in] uInt    The integer to convert.
+ * @param[in] Buffer  The buffer to output the big number to; must be
+ *                    at least 8 bytes.
+ *
+ * @returns  The big number, or NULLUsefulBufC if the buffer is too small.
+ *
+ * The result is the shortest big-endian byte string that represents
+ * @c uInt, with no leading zero bytes. Zero is represented as a single
+ * 0x00 byte rather than an empty string.
+ */
+static UsefulBufC
+QCBORDecode_Private_UIntToBigNumber(uint64_t uInt, const UsefulBuf Buffer)
+{
+   UsefulOutBuf UOB;
+   int          nShift;
+
+   UsefulOutBuf_Init(&UOB, Buffer);
+
+   /* Find the most significant non-zero byte. nShift ends up < 0
+    * when uInt is zero. */
+   for(nShift = 56; nShift >= 0; nShift -= 8) {
+      if((uInt >> nShift) & 0xffULL) {
+         break;
+      }
+   }
+
+   if(nShift < 0) {
+      /* Zero is one 0x00 byte, not an empty string */
+      UsefulOutBuf_AppendByte(&UOB, 0x00);
+   } else {
+      /* All bytes from there down, trailing zero bytes included */
+      for(; nShift >= 0; nShift -= 8) {
+         UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt >> nShift) & 0xffULL));
+      }
+   }
+
+   return UsefulOutBuf_OutUBuf(&UOB);
+}
+
+
+
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
 /**
@@ -2489,14 +2535,29 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
                uMantissa = (uint64_t)INT64_MAX+1;
             }
             *pbIsNegative = true;
+            /* Reverse the offset by 1 for type 1 negative value to be consistent
+             * with big num case below which don't offset because it requires
+             * big number arithmetic. This is a bug fix for QCBOR v1.5.
+             */
+            uMantissa--;
          }
-         /* Reverse the offset by 1 for type 1 negative value to be consistent
-          * with big num case below which don't offset because it requires
-          * big number arithmetic. This is a bug fix for QCBOR v1.5.
-          */
-         uMantissa--;
+
          *pMantissa = QCBORDecode_Private_UIntToBigNumber(uMantissa, BufferForMantissa);
          *pnExponent = pItem->val.expAndMantissa.nExponent;
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_NEG_U64:
+      case QCBOR_TYPE_BIGFLOAT_NEG_U64MANTISSA:
+         *pMantissa = QCBORDecode_Private_UIntToBigNumber(pItem->val.expAndMantissa.Mantissa.uInt, BufferForMantissa);
+         *pnExponent = pItem->val.expAndMantissa.nExponent;
+         *pbIsNegative = true;
+         break;
+
+      case QCBOR_TYPE_DECIMAL_FRACTION_POS_U64:
+      case QCBOR_TYPE_BIGFLOAT_POS_U64MANTISSA:
+         *pMantissa = QCBORDecode_Private_UIntToBigNumber(pItem->val.expAndMantissa.Mantissa.uInt, BufferForMantissa);
+         *pnExponent = pItem->val.expAndMantissa.nExponent;
+         *pbIsNegative = false;
          break;
 
 #ifndef QCBOR_DISABLE_TAGS
