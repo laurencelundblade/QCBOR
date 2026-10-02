@@ -6682,7 +6682,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
 /**
  * @brief Convert an integer to a big number.
  *
- * @param[in] uInt    The integer to convert.
+ * @param[in] uInt    The unsigned integer to convert.
  * @param[in] Buffer  The buffer to output the big number to; must be
  *                    at least 8 bytes.
  *
@@ -6693,7 +6693,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
  * 0x00 byte rather than an empty string.
  */
 static UsefulBufC
-QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
+QCBOR_Private_ConvertUIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
 {
    UsefulOutBuf UOB;
    int          nShift;
@@ -6946,7 +6946,7 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
             uMantissa--;
          }
 
-         *pMantissa = QCBOR_Private_ConvertIntToBigNum(uMantissa, BufferForMantissa);
+         *pMantissa = QCBOR_Private_ConvertUIntToBigNum(uMantissa, BufferForMantissa);
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          break;
 
