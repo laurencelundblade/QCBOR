@@ -6692,8 +6692,11 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
 static UsefulBufC
 QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
 {
-   while((uInt & 0xff00000000000000ULL) == 0) {
-      uInt = uInt << 8;
+   /* Zero is represented by an empty magnitude. Avoid shifting it forever. */
+   if(uInt) {
+      while((uInt & 0xff00000000000000ULL) == 0) {
+         uInt = uInt << 8;
+      };
    };
 
    UsefulOutBuf UOB;
@@ -6931,7 +6934,9 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
           * with big num case below which don't offset because it requires
           * big number arithmetic. This is a bug fix for QCBOR v1.5.
           */
-         uMantissa--;
+         if(*pbIsNegative) {
+            uMantissa--;
+         }
          *pMantissa = QCBOR_Private_ConvertIntToBigNum(uMantissa, BufferForMantissa);
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          break;
