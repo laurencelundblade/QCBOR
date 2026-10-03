@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
 - Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
   than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- Fix multiple bugs in QCBORDecode_GetDecimalFractionBig() and
+  QCBORDecode_GetBigFloatBig() including infinite loops and incorrect
+  results. (Sorry these bugs were so bad; test coverage is much expanded).
 
 
 ## [1.6.1] - 2025-03-03
