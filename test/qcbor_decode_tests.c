@@ -6679,7 +6679,7 @@ static const struct EaMTest pEaMTests[] = {
       DONT_CARE_BOOL
    },
    {
-      "7. Tagged 5([-20, 4294967295]) big float, big num mantissa, tag 5 required",
+      "7. Tagged 5([-20, 4294967295]) big float, bignum mantissa, tag 5 required",
       {(const uint8_t []){0xC5, 0x82, 0x33,
                           0xC2, 0x44, 0xff, 0xff, 0xff, 0xff}, 9},
       QCBOR_TAG_REQUIREMENT_TAG,
@@ -6722,7 +6722,7 @@ static const struct EaMTest pEaMTests[] = {
    },
    {
       /* Special case for test 8. Don't renumber it. */
-      "8. Untagged pair with big num (big float or decimal fraction), tag optional",
+      "8. Untagged pair with bignum (big float or decimal fraction), tag optional",
       {(const uint8_t []){0x82, 0x33,
                           0xC2, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 14},
       QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -6764,7 +6764,7 @@ static const struct EaMTest pEaMTests[] = {
       false
    },
    {
-      "9. Decimal fraction with large exponent and negative big num mantissa",
+      "9. Decimal fraction with large exponent and negative bignum mantissa",
       {(const uint8_t []){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                           0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 23},
       QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -6806,7 +6806,7 @@ static const struct EaMTest pEaMTests[] = {
       DONT_CARE_BOOL
    },
    {
-      "10. Big float with large exponent and negative big num mantissa",
+      "10. Big float with large exponent and negative bignum mantissa",
       {(const uint8_t []){0xC5, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                           0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 23},
       QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -6976,7 +6976,7 @@ static const struct EaMTest pEaMTests[] = {
 
    /* ---------------------------------------------------------------
     * Tests 14 - 23 cover negative, zero and trailing-zero mantissas.
-    * They complete the matrix of (int64 | big num) x (positive |
+    * They complete the matrix of (int64 | bignum) x (positive |
     * negative) x (decimal fraction | big float), and pin down the
     * boundary cases of the int-to-big-number conversion.
     * --------------------------------------------------------------- */
@@ -7063,7 +7063,7 @@ static const struct EaMTest pEaMTests[] = {
       true
    },
    {
-      "16. Tagged 5([-20, -4294967296]) big float, negative big num mantissa, tag 5 required",
+      "16. Tagged 5([-20, -4294967296]) big float, negative bignum mantissa, tag 5 required",
       {(const uint8_t []){0xC5, 0x82, 0x33,
                           0xC3, 0x44, 0xff, 0xff, 0xff, 0xff}, 9},
       QCBOR_TAG_REQUIREMENT_TAG,
@@ -7147,7 +7147,7 @@ static const struct EaMTest pEaMTests[] = {
       DONT_CARE_BOOL
    },
    {
-      "18. Tagged 4([-1, 2(h'00')]) = 0, zero big num mantissa, tag 4 optional",
+      "18. Tagged 4([-1, 2(h'00')]) = 0, zero bignum mantissa, tag 4 optional",
       {(const uint8_t []){0xC4, 0x82, 0x20,
                           0xC2, 0x41, 0x00}, 6},
       QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -7230,7 +7230,7 @@ static const struct EaMTest pEaMTests[] = {
       DONT_CARE_BOOL
    },
    {
-      "20. Tagged 4([-1, 3(h'00')]) = -0.1, negative big num mantissa of -1, tag 4 optional",
+      "20. Tagged 4([-1, 3(h'00')]) = -0.1, negative bignum mantissa of -1, tag 4 optional",
       {(const uint8_t []){0xC4, 0x82, 0x20,
                           0xC3, 0x41, 0x00}, 6},
       QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,
@@ -7356,7 +7356,7 @@ static const struct EaMTest pEaMTests[] = {
       DONT_CARE_BOOL
    },
    {
-      "23. Tagged 4([-1, 2(h'01000000')]) = 1677721.6, big num mantissa with 3 trailing zero bytes, tag 4 optional",
+      "23. Tagged 4([-1, 2(h'01000000')]) = 1677721.6, bignum mantissa with 3 trailing zero bytes, tag 4 optional",
       {(const uint8_t []){0xC4, 0x82, 0x20,
                           0xC2, 0x44, 0x01, 0x00, 0x00, 0x00}, 9},
       QCBOR_TAG_REQUIREMENT_OPTIONAL_TAG,

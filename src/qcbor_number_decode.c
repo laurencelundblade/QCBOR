@@ -1084,37 +1084,6 @@ QCBORDecode_Private_NegativeBigNumberToInt(const UsefulBufC BigNumber,
    return QCBOR_SUCCESS;
 }
 
-/**
- * @brief Convert an integer to a big number.
- *
- * @param[in] uNum          The integer to convert.
- * @param[in] BigNumberBuf  The buffer to output the big number to.
- *
- * @returns The big number or NULLUsefulBufC if the buffer is to small.
- *
- * This always succeeds unless the buffer is too small.
- *
- * Zero is returned as h'00.  Endian conversion is performed.
- */
- UsefulBufC
-QCBORDecode_Private_UIntToBigNumberXx(uint64_t uNum, const UsefulBuf BigNumberBuf)
-{
-   UsefulOutBuf UOB;
-
-   /* With a UsefulOutBuf, there's no pointer math */
-   UsefulOutBuf_Init(&UOB, BigNumberBuf);
-
-   /* Must copy one byte even if zero.  The loop, mask and shift
-    * algorithm provides endian conversion.
-    */
-   do {
-      UsefulOutBuf_InsertByte(&UOB, uNum & 0xff, 0);
-      uNum >>= 8;
-   } while(uNum);
-
-   return UsefulOutBuf_OutUBuf(&UOB);
-}
-
 
 /**
  * @brief Convert an integer to a big number.
@@ -2535,9 +2504,14 @@ QCBORDecode_Private_ExpBigMantissaRawMain(QCBORDecodeContext  *pMe,
                uMantissa = (uint64_t)INT64_MAX+1;
             }
             *pbIsNegative = true;
-            /* Reverse the offset by 1 for type 1 negative value to be consistent
-             * with big num case below which don't offset because it requires
-             * big number arithmetic. This is a bug fix for QCBOR v1.5.
+            /* Reverse the offset by 1 for type 1 negative value to be
+             * consistent with big num case below which don't offset
+             * because it requires big number arithmetic. This is a
+             * bug fix for QCBOR v1.5.
+             *
+             * In v1.5 and v1.6 this decrement was outside this
+             * conditional and very incorrectly applied to positive
+             * values. Fixed in v1.7 and v2.0.
              */
             uMantissa--;
          }
