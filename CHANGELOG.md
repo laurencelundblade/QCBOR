@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
 - Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
   than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- QCBORDecode_ProcessBigNumber() correctly handles integers now and
+  omits leading zeros.
+- QCBORDecode_GetTDecimalFractionBigMantissaRaw() and
+  QCBORDecode_GetTBigFloatBigMantissaRaw() return correct values when
+  the encoded mantissa is an integer, including 65-bit negative
+  and full 64-bit unsigned values.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
