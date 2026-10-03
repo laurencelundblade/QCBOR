@@ -6939,9 +6939,14 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
                uMantissa = (uint64_t)INT64_MAX+1;
             }
             *pbIsNegative = true;
-            /* Reverse the offset by 1 for type 1 negative value to be consistent
-             * with big num case below which don't offset because it requires
-             * big number arithmetic. This is a bug fix for QCBOR v1.5.
+            /* Reverse the offset by 1 for type 1 negative value to be
+             * consistent with big num case below which don't offset
+             * because it requires big number arithmetic. This is a
+             * bug fix for QCBOR v1.5.
+             *
+             * In v1.5 and v1.6 this decrement was outside this
+             * conditional and very incorrectly applied to positive
+             * values. Fixed in v1.7.
              */
             uMantissa--;
          }
