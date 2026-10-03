@@ -7491,7 +7491,6 @@ int32_t ProcessEaMTests(void)
       }
 #endif
 
-
       /* --- Decode with GetTDecimalFractionBigMantissa --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
       QCBORDecode_CompatibilityV1(&DCtx);
@@ -7527,7 +7526,6 @@ int32_t ProcessEaMTests(void)
 #ifdef QCBOR_DISABLE_TAGS
       }
 #endif
-
 
       /* --- Decode with GetTDecimalFractionBigMantissaRaw --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
@@ -7595,7 +7593,6 @@ int32_t ProcessEaMTests(void)
 #ifdef QCBOR_DISABLE_TAGS
       }
 #endif
-
 
       /* --- Decode with GetTBigFloatBigMantissa --- */
       QCBORDecode_Init(&DCtx, pT->Input, 0);
@@ -7674,6 +7671,7 @@ int32_t ProcessEaMTests(void)
    return 0;
 }
 
+
 int32_t ExponentAndMantissaDecodeTestsSecondary(void)
 {
 #ifndef QCBOR_DISABLE_TAGS
@@ -7684,7 +7682,6 @@ int32_t ExponentAndMantissaDecodeTestsSecondary(void)
    static const uint8_t spBigNumMantissa[] = {0x01, 0x02, 0x03, 0x04, 0x05,
                                               0x06, 0x07, 0x08, 0x09, 0x010};
    UsefulBufC BN = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBigNumMantissa);
-
 
 
    /* Now encode some stuff and then decode it */

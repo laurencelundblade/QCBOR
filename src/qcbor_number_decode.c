@@ -1128,8 +1128,6 @@ QCBORDecode_Private_UIntToBigNumber(uint64_t uInt, const UsefulBuf Buffer)
 }
 
 
-
-
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
 /**
  * @brief Convert a big number to double-precision float.
