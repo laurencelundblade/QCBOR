@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Establish SOVERSION and ABI version management policy
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
+- User-defined error strings now include the correct final decimal digit.
+
 
 
 ### Fixed
