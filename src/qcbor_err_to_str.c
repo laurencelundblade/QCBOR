@@ -84,7 +84,7 @@ qcbor_err_to_str(const QCBORError uErr) {
          UsefulOutBuf_AppendString(&OB, "USER_DEFINED_");
          UsefulOutBuf_AppendByte(&OB, (uint8_t)(uErr/100 + '0'));
          UsefulOutBuf_AppendByte(&OB, (uint8_t)(((uErr/10) % 10) + '0'));
-         UsefulOutBuf_AppendByte(&OB, (uint8_t)(((uErr/10) % 10) + '0'));
+         UsefulOutBuf_AppendByte(&OB, (uint8_t)((uErr % 10) + '0'));
          UsefulOutBuf_AppendByte(&OB, 0x00);
 
          return buf;
