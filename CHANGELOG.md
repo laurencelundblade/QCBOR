@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Establish SOVERSION and ABI version management policy
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
+- User-defined error strings now include the correct final decimal digit.
+
 
 
 ### Fixed
@@ -57,6 +59,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wrong results when the encoded CBOR input is floating-point and conversion
   for float is not requested, for example when then conversion type is not QCBOR_CONVERT_TYPE_FLOAT.
 - Error reporting for all decode number conversion is more accurate.
+- QCBORDecode_ProcessBigNumber() correctly handles integers now and
+  omits leading zeros.
+- QCBORDecode_GetTDecimalFractionBigMantissaRaw() and
+  QCBORDecode_GetTBigFloatBigMantissaRaw() return correct values when
+  the encoded mantissa is an integer, including 65-bit negative
+  and full 64-bit unsigned values.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
