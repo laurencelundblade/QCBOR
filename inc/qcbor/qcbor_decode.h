@@ -409,6 +409,13 @@ typedef enum {
  * and may increase the length of the big number). To get the correct
  * value @c bigNum must be incremented by one before use.
  *
+ * Warning: this has a gap for mantissa integers larger than INT64_MAX and
+ * less than UINT64_MAX. This also doesn't cover the negative
+ * integers in the range of INT64_MIN to -UINT64_MAX which
+ * CBOR can encode, but common C types don't handle. These
+ * are addressed in QCBOR v2. Because of the bignum -- integer
+ * unification in RFC 8949, this is a real problem.
+ *
  * Also see QCBOREncode_AddTDecimalFraction(),
  * QCBOREncode_AddTBigFloat(), QCBOREncode_AddTDecimalFractionBigNum()
  * and QCBOREncode_AddTBigFloatBigNum().
