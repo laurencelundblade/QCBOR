@@ -1489,10 +1489,10 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
  *
  *     mantissa * ( 10 ** exponent )
  *
- * In the encoded CBOR, the mantissa and exponent may be of CBOR type
+ * In the encoded CBOR, the mantissa may be of CBOR type
  * 0 (positive integer), type 1 (negative integer), type 2 tag 2
  * (positive big number) or type 2 tag 3 (negative big number). This
- * implementation will attempt to convert all of these to an @c
+ * implementation will attempt to convert the mantissa for all of these to an @c
  * int64_t. If the value won't fit, @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
  * or @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA will be set.
  *

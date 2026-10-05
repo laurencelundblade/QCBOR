@@ -380,6 +380,9 @@ extern "C" {
  * - QCBORDecode_EnterBstrWrapped() doesn't work on indefinite-length strings.
  * - Numeric reduction of big numbers to integers for preferred
  *   serialization is not performed.
+ * - Bignum mantissa decoding doesn't handle 65-bit negative integers or
+ *   integers between INT64_MAX and UINT64_MAX. QCBOR v2 does.
+ *
  *
  * The public interface uses @c size_t for all lengths. Internally the
  * implementation uses 32-bit lengths by design to use less memory and
