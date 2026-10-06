@@ -11,9 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Going forward, CHANGELOG.md (this file) is the source of truth for change history
   - Text in GitHub release notes will be copied from here 
   - Some of the version history from GitHub releases has been copied in here
+- Support for changing compiled-in limits on nesting and tag numbers
+  - Documentation
+  - Makefile and Cmake support
+  - Test coverage for nesting and tag number limits other than defaults
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
 
 ### Changed
+- Default nesting maximum is increased from 15 to 35
+- Improve documentation on nesting and tag number limits
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
 - Revised & moved qcbor.spec to be much more useful for downstream packagers
 - CI now checks qcbor.spec

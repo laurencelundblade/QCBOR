@@ -34,6 +34,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __QCBOR__qcbor_encode_tests__
 
 #include <stdint.h>
+#include "qcbor/qcbor_common.h"
+
 
 /*
  Notes:
@@ -136,11 +138,12 @@ int32_t RTICResultsTest(void);
 int32_t AllAddMethodsTest(void);
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
 /*
  The binary string wrapping of maps and arrays used by COSE
  */
 int32_t BstrWrapTest(void);
-
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 /*
  Test error cases for bstr wrapping encoding such as closing an open
