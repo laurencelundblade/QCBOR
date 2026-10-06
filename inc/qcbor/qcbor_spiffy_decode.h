@@ -563,7 +563,6 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  *
  * This will decode CBOR integer and floating-point numbers, returning
  * them as a double floating-point number. This function supports
-
  * @ref QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
  * conversions. If the encoded CBOR is not one of the requested types
  * or a type not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE

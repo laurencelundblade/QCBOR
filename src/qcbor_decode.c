@@ -6285,12 +6285,12 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
    switch(pItem->uDataType) {
       case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         /* This case probably never occurs because QCBOR_TYPE_FLOAT only
+          * the type when all float conversion is off. */
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
-            } else {
-               return QCBOR_ERR_UNEXPECTED_TYPE;
-            }
+            *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
+         } else {
+            return QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          return QCBOR_ERR_HALF_PRECISION_DISABLED;
@@ -6299,11 +6299,9 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 
       case QCBOR_TYPE_DOUBLE:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = pItem->val.dfnum;
-            } else {
-               return QCBOR_ERR_UNEXPECTED_TYPE;
-            }
+            *pdValue = pItem->val.dfnum;
+         } else {
+            return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
