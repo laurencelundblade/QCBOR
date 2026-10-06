@@ -8078,12 +8078,15 @@ int32_t EnterMapTest(void)
 struct NumberConversion {
    char       *szDescription;
    UsefulBufC  CBOR;
+
    uint32_t    uToInt64Types;
    int64_t     nConvertedToInt64;
    QCBORError  uErrorInt64;
+
    uint32_t    uToUInt64Types;
    uint64_t    uConvertToUInt64;
    QCBORError  uErrorUint64;
+
    uint32_t    uToDoubleTypes;
    double      dConvertToDouble;
    QCBORError  uErrorDouble;
@@ -8101,7 +8104,7 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Big float: INT64_MIN * 2e-1 to test handling of INT64_MIN",
       {(uint8_t[]){0xC5, 0x82, 0x20,
-         0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0x0ff, 0xff, 0xff,
+         0x3B, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
       }, 15},
       0xffffUL,
       -4611686018427387904LL, /* INT64_MIN / 2 */
@@ -8110,7 +8113,7 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       0xffffUL,
-      -4.6116860184273879E+18,
+      -4.611686018427387904E+18,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
    {
@@ -8225,7 +8228,7 @@ static const struct NumberConversion NumberConversions[] = {
    {
       "Decimal Fraction with neg bignum [9223372036854775807, -4759477275222530853137]",
       {(uint8_t[]){0xC4, 0x82, 0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-         0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,}, 23},
+         0xC3, 0x4A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10}, 23},
       0xffffUL,
       0,
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
@@ -8494,7 +8497,6 @@ static const struct NumberConversion NumberConversions[] = {
       18446744073709551615.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
-
    {
       "Postive integer 0",
       {(uint8_t[]){0x0}, 1},
@@ -8574,7 +8576,6 @@ static const struct NumberConversion NumberConversions[] = {
       INFINITY,
       FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
    },
-
    {
       "-inifinity single precision",
       {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
@@ -8588,30 +8589,28 @@ static const struct NumberConversion NumberConversions[] = {
       -INFINITY,
       FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_SUCCESS)
    },
-
    {
       "Type error conversion for float",
       {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
-      0xffffUL,
+      QCBOR_CONVERT_TYPE_XINT64,
       0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_FLOAT_EXCEPTION),
-      0xffffUL,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE),
+      QCBOR_CONVERT_TYPE_XINT64,
       0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
       FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
    },
-
    {
       "Type error conversion for double",
       {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
-      0xffffUL,
+      QCBOR_CONVERT_TYPE_XINT64,
       1,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
-      0xffffUL,
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE),
+      QCBOR_CONVERT_TYPE_XINT64,
       1,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
