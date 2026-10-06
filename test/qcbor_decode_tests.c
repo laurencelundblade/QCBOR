@@ -9213,7 +9213,7 @@ struct NumberConversion {
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
-#define CONVERT_ALL 0xffffUL
+#define CONVERT_ALL 0xffffUL /* See QCBORDecodeNumberConvert */
 
 static const struct NumberConversion NumberConversions[] = {
 #ifndef QCBOR_DISABLE_TAGS
@@ -9569,7 +9569,6 @@ static const struct NumberConversion NumberConversions[] = {
       INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
    },
-
    {
       "extreme neg bignum",
       {(uint8_t[]){0xc3, 0x59, 0x01, 0x90,
@@ -9635,7 +9634,6 @@ static const struct NumberConversion NumberConversions[] = {
       -INFINITY,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
-
    {
       /* The array is [exponent, mantissa], so this is
        * 9223372036854775806 * 2^-9223372036854775807, which underflows
@@ -9655,7 +9653,6 @@ static const struct NumberConversion NumberConversions[] = {
       0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
    },
-
    {
       "bigfloat that evaluates to -INFINITY",
       {(uint8_t[]){
@@ -9850,7 +9847,6 @@ static const struct NumberConversion NumberConversions[] = {
       INFINITY,
       FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
    },
-
    {
       "-infinity single precision",
       {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
@@ -9864,7 +9860,6 @@ static const struct NumberConversion NumberConversions[] = {
       -INFINITY,
       FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS)
    },
-
    {
       "Type error conversion for float",
       {(uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5},
@@ -9878,7 +9873,6 @@ static const struct NumberConversion NumberConversions[] = {
       0.0,
       FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE)
    },
-
    {
       "Type error conversion for double",
       {(uint8_t[]){0xfb, 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
@@ -9892,7 +9886,6 @@ static const struct NumberConversion NumberConversions[] = {
       0.0,
       FLOAT_ERR_CODE_NO_FLOAT(QCBOR_ERR_UNEXPECTED_TYPE)
    },
-
    {
       "Positive integer 100, only XINT64 allowed",
       {(uint8_t[]){0x18, 0x64}, 2},
@@ -9906,7 +9899,6 @@ static const struct NumberConversion NumberConversions[] = {
       100.0,
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS)
    },
-
    {
       /* The item is a type 0 integer, which is exactly what all three
        * conversions handle natively, but XINT64 is not in the mask, so
@@ -9942,7 +9934,6 @@ static const struct NumberConversion NumberConversions[] = {
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
    },
-
    {
       "Type error: 9223372036854775808 (2^63) input, only floats allowed",
       {(uint8_t[]){0x1b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
@@ -9956,7 +9947,6 @@ static const struct NumberConversion NumberConversions[] = {
       0.0,
       QCBOR_ERR_UNEXPECTED_TYPE
    },
-
    {
       "9223372036854775808 (2^63), XINT64 allowed: int64 overflows, uint64 succeeds",
       {(uint8_t[]){0x1b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9},
