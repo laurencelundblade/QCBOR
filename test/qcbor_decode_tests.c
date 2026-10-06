@@ -8614,7 +8614,7 @@ static const struct NumberConversion NumberConversions[] = {
       FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS),
       QCBOR_CONVERT_TYPE_XINT64,
       0.0,
-      FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
+      FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_ERR_UNEXPECTED_TYPE)
    },
 };
 
@@ -8656,7 +8656,7 @@ int32_t IntegerConvertTest(void)
 
       int64_t nInt;
 
-      if(nIndex == 28) {
+      if(nIndex == 29) {
          nInt = 9;
       }
 
