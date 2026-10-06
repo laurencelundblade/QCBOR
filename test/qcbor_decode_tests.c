@@ -2551,7 +2551,6 @@ int32_t SimpleValueDecodeTests(void)
    return 0;
 }
 
-#include <stdio.h>
 
 int32_t NotWellFormedTests(void)
 {
