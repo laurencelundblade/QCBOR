@@ -406,25 +406,28 @@ Done:
  * @param[in] nAdditionalInfo  So it can be error-checked.
  * @param[out] pDecodedItem    The filled in decoded item.
  *
- * @retval QCBOR_ERR_INT_OVERFLOW  Too-large negative encountered.
- * @retval QCBOR_ERR_BAD_INT       nAdditionalInfo indicated indefinte.
+ * @retval QCBOR_SUCCESS       Successful decode.
+ * @retval QCBOR_ERR_BAD_INT  nAdditionalInfo indicated indefinite.
  *
  * Must only be called when major type is 0 or 1.
  *
- * CBOR doesn't explicitly specify two's compliment for integers but
+ * Must not be called when @c nAdditionalInfo is @ref ADDINFO_RESERVED1,
+ * @ref ADDINFO_RESERVED2 or @ref ADDINFO_RESERVED3.
+ *
+ * CBOR doesn't explicitly specify two's complement for integers but
  * all CPUs use it these days and the test vectors in the RFC are
  * so. All integers in encoded CBOR are unsigned and the CBOR major
  * type indicates positive or negative.  CBOR can express positive
- * integers up to 2^64 - 1 negative integers down to -2^64.  Note that
- * negative numbers can be one more
- * away from zero than positive because there is no negative zero.
+ * integers up to 2^64 - 1 and negative integers down to -2^64.  Note
+ * that negative numbers can be one more away from zero than positive
+ * because there is no negative zero.
  *
- * The "65-bit negs" are values CBOR can encode that can't fit
- * into an int64_t or uint64_t. They decoded as a special type
- * QCBOR_TYPE_65BIT_NEG_INT. Not that this type does NOT
- * take into account the offset of one for CBOR negative integers.
- * It must be applied to get the correct value. Applying this offset
- * would overflow a uint64_t.
+ * The "65-bit negs" are values CBOR can encode that can't fit into an
+ * int64_t or uint64_t. They are decoded as a special type
+ * @ref QCBOR_TYPE_65BIT_NEG_INT. Note that this type does NOT take
+ * into account the offset of one for CBOR negative integers. It must
+ * be applied to get the correct value. Applying this offset would
+ * overflow a uint64_t.
  */
 static QCBORError
 QCBOR_Private_DecodeInteger(const int      nMajorType,
@@ -449,7 +452,7 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
          pDecodedItem->uDataType  = QCBOR_TYPE_UINT64;
       }
 
-   } else {
+   } else { /* CBOR_MAJOR_TYPE_NEGATIVE_INT */
       if(uArgument <= INT64_MAX) {
          /* INT64_MIN is one further away from 0 than INT64_MAX
           * so the -1 here doesn't overflow. */
@@ -477,14 +480,19 @@ Done:
  * @param[in] nAdditionalInfo  Whether it is an indefinite-length string.
  * @param[out] pDecodedItem    The filled-in decoded item.
  *
- * @retval QCBOR_ERR_HIT_END          Unexpected end of input.
- * @retval QCBOR_ERR_STRING_ALLOCATE  Out of memory.
- * @retval QCBOR_ERR_STRING_TOO_LONG  String longer than SIZE_MAX - 4.
- * @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Allocation requested, but no allocator
+ * @retval QCBOR_SUCCESS                  Successful decode.
+ * @retval QCBOR_ERR_HIT_END              Unexpected end of input.
+ * @retval QCBOR_ERR_STRING_ALLOCATE      Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG      String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Allocation requested; no allocator.
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indef strings disabled.
  *
- * This reads @c uStrlen bytes from the input and fills in @c
+ * This reads @c uStrLen bytes from the input and fills in @c
  * pDecodedItem. If @c bAllocate is true, then memory for the string
  * is allocated.
+ *
+ * Must not be called when @c nAdditionalInfo is @ref ADDINFO_RESERVED1,
+ * @ref ADDINFO_RESERVED2 or @ref ADDINFO_RESERVED3.
  */
 static QCBORError
 QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
@@ -494,7 +502,11 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
                            const int            nAdditionalInfo,
                            QCBORItem           *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
+   QCBORError  uReturn;
+   UsefulBufC  Bytes;
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   UsefulBuf   NewMem;
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    /* ---- Figure out the major type ---- */
    #if CBOR_MAJOR_TYPE_BYTE_STRING + 4 != QCBOR_TYPE_BYTE_STRING
@@ -506,28 +518,28 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
    #endif
    pDecodedItem->uDataType = (uint8_t)(nMajorType + 4);
 
+   uReturn = QCBOR_SUCCESS;
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-      /* --- Just the head of an indefinite-length string --- */
+      /* --- The head (and not more) of an indefinite-length string --- */
       pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
 
    } else {
       /* --- A definite-length string --- */
-      /* --- (which might be a chunk of an indefinte-length string) --- */
+      /* --- (which might be a chunk of an indefinite-length string) --- */
 
       /* CBOR lengths can be 64 bits, but size_t is not 64 bits on all
-       * CPUs.  This check makes the casts to size_t below safe.
+       * CPUs. This check makes the casts to size_t below safe.
        *
-       * The max is 4 bytes less than the largest sizeof() so this can be
-       * tested by putting a SIZE_MAX length in the CBOR test input (no
-       * one will care the limit on strings is 4 bytes shorter).
-       */
+       * The max is 4 bytes less than the largest value of size_t
+       * so this can be tested by putting a SIZE_MAX length
+       * in the CBOR test input (no one will care the limit on strings
+       * is 4 bytes shorter). */
       if(uStrLen > SIZE_MAX-4) {
          uReturn = QCBOR_ERR_STRING_TOO_LONG;
          goto Done;
       }
 
-      const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(&(pMe->InBuf),
-                                                           (size_t)uStrLen);
+      Bytes = UsefulInputBuf_GetUsefulBuf(&(pMe->InBuf), (size_t)uStrLen);
       if(UsefulBuf_IsNULLC(Bytes)) {
          /* Failed to get the bytes for this string item */
          uReturn = QCBOR_ERR_HIT_END;
@@ -542,15 +554,13 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
           * indefinite-length strings is done. This is for when the
           * caller has requested all strings be allocated. Disabling
           * indefinite length strings also disables this allocate-all
-          * option.
-          */
+          * option. */
 
          if(pMe->StringAllocator.pfAllocator == NULL) {
             uReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
             goto Done;
          }
-         UsefulBuf NewMem = StringAllocator_Allocate(&(pMe->StringAllocator),
-                                                     (size_t)uStrLen);
+         NewMem = StringAllocator_Allocate(&(pMe->StringAllocator), (size_t)uStrLen);
          if(UsefulBuf_IsNULL(NewMem)) {
             uReturn = QCBOR_ERR_STRING_ALLOCATE;
             goto Done;
@@ -574,34 +584,39 @@ Done:
 /**
  * @brief Decode array or map.
  *
- * @param[in] uConfigFlags            Decoder mode.
- * @param[in] nMajorType       Whether it is a byte or text string.
- * @param[in] uItemCount       The length of the string.
+ * @param[in] uConfigFlags     Decoder mode.
+ * @param[in] nMajorType       Whether it is a map or array.
+ * @param[in] uItemCount       The length of the map or array.
  * @param[in] nAdditionalInfo  Whether it is an indefinite-length.
  * @param[out] pDecodedItem    The filled-in decoded item.
  *
+ * @retval QCBOR_SUCCESS                       Successful decode.
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED Indefinites disabled.
  * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG     Too many items in array/map.
  *
- * Not much to do for arrays and maps. Just the type item count (but a
- * little messy because of ifdefs for indefinite-lengths and
+ * Not much to do for arrays and maps. Just the type and item count
+ * (but a little messy because of ifdefs for indefinite-lengths and
  * map-as-array decoding).
  *
- * This also does the bulk of the work for @ref
- * QCBOR_DECODE_MODE_MAP_AS_ARRAY, a special mode to handle
- * arbitrarily complex map labels. This ifdefs out with
- * QCBOR_DISABLE_NON_INTEGER_LABELS.
+ * Must only be called when major type is 4 or 5.
+ *
+ * @c pDecodedItem is only valid on @ref QCBOR_SUCCESS.
+ *
+ * This also does the bulk of the work for @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY,
+ * a special mode to handle arbitrarily complex map labels. This
+ * ifdefs out with @ref QCBOR_DISABLE_NON_INTEGER_LABELS.
  */
 static QCBORError
 QCBOR_Private_DecodeArrayOrMap(const QCBORDecodeMode  uConfigFlags,
                                const int              nMajorType,
-                               uint64_t               uItemCount,
+                               const uint64_t         uItemCount,
                                const int              nAdditionalInfo,
                                QCBORItem             *pDecodedItem)
 {
-   QCBORError uReturn;
+   uint64_t  uItemCountLimit;
+   uint64_t  uItemMultiplier;
 
-   /* ------ Sort out the data type ------ */
+   /* -- Compile-time checks on constants that generate no code -- */
    #if QCBOR_TYPE_ARRAY != CBOR_MAJOR_TYPE_ARRAY
    #error QCBOR_TYPE_ARRAY value not lined up with major type
    #endif
@@ -609,58 +624,86 @@ QCBOR_Private_DecodeArrayOrMap(const QCBORDecodeMode  uConfigFlags,
    #if QCBOR_TYPE_MAP != CBOR_MAJOR_TYPE_MAP
    #error QCBOR_TYPE_MAP value not lined up with major type
    #endif
+
+   #if QCBOR_MAX_ITEMS_IN_ARRAY >= QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH
+   #error QCBOR_MAX_ITEMS_IN_ARRAY collides with indefinite-length sentinel
+   #endif
+
+   #if QCBOR_MAX_ITEMS_IN_ARRAY >= UINT16_MAX
+   #error QCBOR_MAX_ITEMS_IN_ARRAY is too large
+   #endif
+
+   #if QCBOR_MAX_ITEMS_IN_MAP * 2 > QCBOR_MAX_ITEMS_IN_ARRAY
+   #error QCBOR_MAX_ITEMS_IN_MAP is too large
+   #endif
+
+   /* ------ Sort out the data type ------ */
    pDecodedItem->uDataType = (uint8_t)nMajorType;
+   uItemMultiplier         = 1;
+
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) && nMajorType == QCBOR_TYPE_MAP) {
+   if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) &&
+      nMajorType == CBOR_MAJOR_TYPE_MAP) {
+      /* Labels and values are each counted as an item, so twice as
+       * many are reported to the caller as there are pairs. */
       pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
+      uItemMultiplier         = 2;
    }
-#else
+#else /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    (void)uConfigFlags;
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
-   uReturn = QCBOR_SUCCESS;
-
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-      /* ------ Indefinite-length array/map ----- */
+      /* ------ Indefinite length; there is no count ------ */
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
       pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
-#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-      uReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+#else /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+      return QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
    } else {
-      /* ----- Definite-length array/map ----- */
-      if(uItemCount > (nMajorType == QCBOR_TYPE_MAP ? QCBOR_MAX_ITEMS_IN_MAP : QCBOR_MAX_ITEMS_IN_ARRAY)) {
-         uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+      /* ------ Definite length; range check and set the count ------ */
+      /* For the returned types, the limits are:
+       * QCBOR_TYPE_ARRAY: QCBOR_MAX_ITEMS_IN_ARRAY because val.uCount
+       *     is a uint16.
+       * QCBOR_TYPE_MAP: QCBOR_MAX_ITEMS_IN_MAP because the decode limit
+       *     is kept symmetrical with the encode limit even though
+       *     val.uCount counts pairs
+       * QCBOR_TYPE_MAP_AS_ARRAY: QCBOR_MAX_ITEMS_IN_MAP because the
+       *     label and value are not counted as a pair and val.uCount
+       *     is uint16
+       */
+      uItemCountLimit = nMajorType == CBOR_MAJOR_TYPE_MAP ?
+                             QCBOR_MAX_ITEMS_IN_MAP : QCBOR_MAX_ITEMS_IN_ARRAY;
 
-      } else {
-#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-         if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) && nMajorType == QCBOR_TYPE_MAP) {
-            /* ------ Map as array ------ */
-            uItemCount *= 2;
-         }
-#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-
-         /* cast OK because of check above */
-         pDecodedItem->val.uCount = (uint16_t)uItemCount;
+      if(uItemCount > uItemCountLimit) {
+         return QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
       }
+
+      /* Cast is safe because of the compile time checks on constant and
+	    * check against uItemCountLimit */
+      pDecodedItem->val.uCount = (uint16_t)(uItemCount * uItemMultiplier);
    }
 
-   return uReturn;
+   return QCBOR_SUCCESS;
 }
 
 
 /**
  * @brief Decode a tag number.
  *
- * @param[in] uTagNumber       The length of the string.
+ * @param[in] uTagNumber       Tag number from the head..
  * @param[in] nAdditionalInfo  So this can be error-checked.
  * @param[out] pDecodedItem    The filled-in decoded item.
  *
+ * @retval QCBOR_SUCCESS            Successful decode.
  * @retval QCBOR_ERR_BAD_INT        nAdditionalInfo is LEN_IS_INDEFINITE.
  * @retval QCBOR_ERR_TAGS_DISABLED  QCBOR_DISABLE_TAGS is defined.
  *
  * Not much to do for tags, but fill in pDecodedItem and check for
  * error in nAdditionalInfo.
+ *
+ * Must only be called when major type is 6.
  */
 static QCBORError
 QCBOR_Private_DecodeTagNumber(const uint64_t uTagNumber,
@@ -670,11 +713,13 @@ QCBOR_Private_DecodeTagNumber(const uint64_t uTagNumber,
 #ifndef QCBOR_DISABLE_TAGS
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
       return QCBOR_ERR_BAD_INT;
-   } else {
-      pDecodedItem->val.uTagNumber = uTagNumber;
-      pDecodedItem->uDataType = QCBOR_TYPE_TAG_NUMBER;
-      return QCBOR_SUCCESS;
    }
+
+   pDecodedItem->val.uTagNumber = uTagNumber;
+   pDecodedItem->uDataType      = QCBOR_TYPE_TAG_NUMBER;
+
+   return QCBOR_SUCCESS;
+
 #else /* ! QCBOR_DISABLE_TAGS */
    (void)nAdditionalInfo;
    (void)uTagNumber;
