@@ -1,0 +1,14 @@
+{
+  "name": "qcbor-documentation",
+  "private": true,
+  "scripts": {
+    "docs:doxygen": "node docs/doxygen.mjs",
+    "docs:build": "sourcey build -o site && node docs/references.mjs",
+    "docs:check": "node docs/check.mjs",
+    "docs": "pnpm docs:doxygen && pnpm docs:build && pnpm docs:check"
+  },
+  "devDependencies": {
+    "sourcey": "3.6.5"
+  },
+  "packageManager": "pnpm@11.8.0"
+}

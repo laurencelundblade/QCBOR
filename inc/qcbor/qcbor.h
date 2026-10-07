@@ -37,5 +37,10 @@
  * into four include files).
  */
 
+/**
+ * @defgroup QCBORAPI QCBOR API Reference
+ * @brief Public interfaces for encoding, decoding and safely handling CBOR data.
+ */
+
 #include "qcbor_encode.h"
 #include "qcbor_decode.h"

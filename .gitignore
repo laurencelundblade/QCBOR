@@ -55,3 +55,8 @@ dkms.conf
 qcbortest
 qcbormin
 
+# Generated documentation
+node_modules/
+site/
+doxygen/html/
+doxygen/xml/
