@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makefile and Cmake support
   - Test coverage for nesting and tag number limits other than defaults
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
+- Add qcbor_config.h for custom configurations
 
 ### Changed
 - Default nesting maximum is increased from 15 to 35

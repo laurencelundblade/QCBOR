@@ -49,6 +49,9 @@ extern "C" {
  */
 
 
+#include "qcbor/qcbor_config.h"
+
+
 /**
  * Semantic versioning for QCBOR x.y.z from 1.3.0 on
  *
@@ -90,6 +93,7 @@ extern "C" {
  * different. This define can be used to handle these variances.
  */
 #define QCBOR_SPIFFY_DECODE
+
 
 
 
