@@ -40,7 +40,8 @@ extern "C" {
 
 
 /** Bit flags to indicate what types of number conversions should be
-    performed. */
+ * performed. These are put in a uint8_t in NumberConvertCheckEntry,
+ * so don't exceed 0x80. */
 enum QCBORDecodeNumberConvert {
 
     /** Conversion will proceed if the CBOR item to be decoded is an
@@ -192,7 +193,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
  * is below 1, unless the mantissa is zero, in which case the
  * coversion is successful and the value of 0 is returned.
  *
- * See also QCBORDecode_GetInt64ConvertAll() which does some of these
+ * See also QCBORDecode_GetInt64Convert() which does some of these
  * conversions, but links in much less object code. See also
  * QCBORDecode_GetUInt64ConvertAll().
  *
@@ -836,6 +837,9 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext    *pMe,
  * will convert all these to a big number. The limit to this
  * conversion is the size of @c MantissaBuffer.
  *
+ * See also QCBORDecode_GetTDecimalFractionBigMantissaRaw() which
+ * is less object code but returns negative numbers offset by one.
+ *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll() and
  * QCBORDecode_GetDoubleConvertAll() which can convert decimal
@@ -1016,9 +1020,12 @@ QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext    *pCtx,
  * is returned as a big number. The only limit to precision is the
  * size of @c MantissaBuffer.
  *
- * The encoded mantissa may be an integer or a big number.  The
+ * The encoded mantissa may be an integer or a big number. The
  * standard CBOR offset of 1 for negative is applied, so the mantissa
  * can be used as returned.
+ *
+ * See also QCBORDecode_GetTBigFloatBigMantissaRaw() which
+ * is less object code but returns negative numbers offset by one.
  *
  * See also @ref CBOR_TAG_BIGFLOAT,
  * QCBOREncode_AddTBigFloatBigNumber(), @ref QCBOR_TYPE_BIGFLOAT and

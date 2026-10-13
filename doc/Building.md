@@ -72,13 +72,22 @@ cmake --build <build_folder>
 
 QCBOR uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 The master version number appears in inc/qcbor/qcbor_common.h.  It
-also appears in CMakelists.txt, in qcbor.spec and in GitHub releases.
+also appears in CMakelists.txt, qcbor.spec, CHANGELOG.md and in
+ GitHub releases.
 
 The master change history appears in CHANGELOG.md. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 notes in GitHub releases are copied from CHANGELOG.md. The keeping 
 of CHANGELOG.md and this GitHub release convention was adopted 
 in version 1.6.2 and 2.0.0-beta.1.
+
+The shared library version, SOVERSION is set in CMakeLists.txt. It's
+range is 1..19 for QCBOR v1.x and 20... to QCBOR v2.x. It represents
+the ABI version for calls into the shared library, not the API
+compatibility of the public interface. This distinction is important
+because QCBOR makes heavy use of inlining in the public header files.
+This ABI version is updated relatively frequently, when ever there
+is a possibility of a change in the shared library ABI.
 
 See also @ref QCBORVersions
 

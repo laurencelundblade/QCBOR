@@ -34,6 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename QCBOR_ERR_ARRAY_NESTING_TOO_DEEP to QCBOR_ERR_ENCODE_NESTING_TOO_DEEP
 - Improve documentation on nesting and tag number limits
 - Default nesting maximum is increase from 15 to 35
+- Revised & moved qcbor.spec to be much more useful for downstream packagers
+- CI now checks qcbor.spec
+- Establish SOVERSION and ABI version management policy
+- Remove Make-based shared lib install because it doesn't handle SOVERSION
+- CMake improvements for compiler optimization flags and libm config
+- User-defined error strings now include the correct final decimal digit.
+
+
 
 ### Fixed
 - Critical bad stack reference bug fix for big number decoding
@@ -42,6 +50,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
   and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
+- Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
+  than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when conversion types is not QCBOR_CONVERT_TYPE_FLOAT.
+- QCBORDecode_GetInt64ConvertAll() and related functions succeeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when then conversion type is not QCBOR_CONVERT_TYPE_FLOAT.
+- Error reporting for all decode number conversion is more accurate.
+- QCBORDecode_ProcessBigNumber() correctly handles integers now and
+  omits leading zeros.
+- QCBORDecode_GetTDecimalFractionBigMantissaRaw() and
+  QCBORDecode_GetTBigFloatBigMantissaRaw() return correct values when
+  the encoded mantissa is an integer, including 65-bit negative
+  and full 64-bit unsigned values.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
