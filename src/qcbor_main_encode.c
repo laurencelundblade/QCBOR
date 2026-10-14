@@ -226,7 +226,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,534) it is very unlikely
  * to be reached. If it is reached, the count will wrap around to zero
  * and CBOR that is not well formed will be produced, but there will
- * be no buffers overrun and new security issues in the code.
+ * be no buffers overrun and no security issues in the code.
  *
  * The 8 errors returned here fall into three categories:
  *
