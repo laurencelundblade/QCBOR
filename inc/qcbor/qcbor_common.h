@@ -49,8 +49,11 @@ extern "C" {
  */
 
 
+#ifdef QCBOR_CONFIG_FILE
+#include QCBOR_CONFIG_FILE
+#else
 #include "qcbor/qcbor_config.h"
-
+#endif
 
 /**
  * Semantic versioning for QCBOR x.y.z from 1.3.0 on

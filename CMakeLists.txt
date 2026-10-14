@@ -87,14 +87,22 @@ endif()
 # =========================================================================
 
 # The configuration selected above is recorded in a generated
-# qcbor_config.h rather than passed as -D compile definitions. The
-# generated file is what gets installed, so code that uses the
-# installed library always sees the configuration the library was
-# built with.
+# qcbor_config.h rather than passed as one -D per option. The
+# generated file is installed as qcbor/qcbor_config.h, so code that
+# uses the installed library always sees the configuration the library
+# was built with and needs no compile definitions.
 #
-# The checked-in inc/qcbor/qcbor_config.h is for builds that don't use
-# CMake. CMake builds never read it or install it; the generated file
-# is placed ahead of it on the include path.
+# Within this build tree the generated file is selected by the single
+# compile definition QCBOR_CONFIG_FILE, set to the file's absolute path
+# (see target_compile_definitions() below). The QCBOR headers do
+# "#include QCBOR_CONFIG_FILE" when it is defined. An absolute path
+# involves no include-path search, so the result is the same with every
+# compiler. Relying on include-path order is not enough: MSVC searches
+# the directories of parent include files before the /I paths, which
+# can find the checked-in file first.
+#
+# The checked-in inc/qcbor/qcbor_config.h is the default for builds
+# that don't use CMake. CMake builds don't read it or install it.
 
 # To add an option, add the option() or set(... CACHE ...) above and
 # then add its name to the matching list here.
@@ -189,12 +197,18 @@ if(NOT (USEFULBUF_DISABLE_ALL_FLOAT OR QCBOR_DISABLE_FLOAT_HW_USE))
     endif()
 endif()
 
-# The directory with the generated qcbor_config.h must be listed ahead
-# of the source inc directory so "qcbor/qcbor_config.h" finds the
-# generated file and not the checked-in one.
+# Select the generated configuration for qcbor and for everything in
+# this build tree that links to it: the tests and projects that use
+# add_subdirectory() or FetchContent. It is BUILD_INTERFACE only; the
+# installed package needs no definition because the generated file is
+# installed as qcbor/qcbor_config.h.
+target_compile_definitions(qcbor
+    PUBLIC
+        "$<BUILD_INTERFACE:QCBOR_CONFIG_FILE=\"${QCBOR_CONFIG_H}\">"
+)
+
 target_include_directories(qcbor
     PUBLIC
-        $<BUILD_INTERFACE:${QCBOR_GENERATED_INC_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
