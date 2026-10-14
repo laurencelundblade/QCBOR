@@ -22,6 +22,22 @@
 
 
 /**
+ * If defined, this names the configuration header which will be
+ * included instead of `"qcbor/qcbor_config.h". It allows for special
+ * builds, building vendored copies of QCBOR and such. This macro is
+ * never used for installed builds (they install a customized
+ * copy of this file). When setting this, consider using
+ * a different name like "my_config.h" to avoid confusing #include
+ * path accidents.
+ *
+ * This macro is mentioned here only to document it along side the
+ * other configuration macros. Since it names this file, changing it
+ * here has no effect. Instead set it on the compiler command line.
+ */
+//#define QCBOR_CONFIG_FILE "qcbor/qcbor_config.h"
+
+
+/**
  * The options for disabling floating-point are detailed in the section
  * on @ref Floating-Point. In short, `QCBOR_DISABLE_PREFERRED_FLOAT`
  * eliminates a lot of floating-point-related code, particularly
