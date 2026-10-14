@@ -435,11 +435,8 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
                             const int      nAdditionalInfo,
                             QCBORItem     *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
-
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-      uReturn = QCBOR_ERR_BAD_INT;
-      goto Done;
+      return QCBOR_ERR_BAD_INT;
    }
 
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
@@ -465,8 +462,7 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
       }
    }
 
-Done:
-   return uReturn;
+   return QCBOR_SUCCESS;
 }
 
 
