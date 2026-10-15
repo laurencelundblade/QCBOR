@@ -18,12 +18,48 @@
  * @file qcbor_config.h
  *
  * Compile-time feature-disabling and size configuration.
+ *
+ * QCBOR compiles and works correctly with no configuration needed.
+ * The configuration here is only for optimization. All features
+ * are enabled by default. Disabling some can reduce code size.
+ *
+ * QCBOR has a few hard size limits to avoid dynamic memory
+ * allocation and fit structures on the stack. They can be
+ * adjusted here.
+ *
+ * In addition to minimizing the set of QCBOR functions used, the
+ * following preprocessor `#define` options can be set to further reduce
+ * code size. For example, defining `QCBOR_DISABLE_NON_INTEGER_LABELS`
+ * reduces the decoder size and can be set when building the library for
+ * protocols that use only integer map labels.
+ *
+ * The code-size reductions listed below are approximate. Actual savings
+ * depend on factors such as the target CPU, compiler, compiler options,
+ * build configuration, and the specific QCBOR functions used.
+
+ | `#define`                                 |  Saves |
+ | ------------------------------------------| -------|
+ | `QCBOR_DISABLE_ENCODE_USAGE_GUARDS`       |  TODO  |
+ | `QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` |  TODO  |
+ | `QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`  |  TODO  |
+ | `QCBOR_DISABLE_EXP_AND_MANTISSA`          |  TODO  |
+ | `QCBOR_DISABLE_PREFERRED_FLOAT`           |  TODO  |
+ | `QCBOR_DISABLE_FLOAT_HW_USE`              |  TODO  |
+ | `USEFULBUF_DISABLE_ALL_FLOAT`             |  TODO  |
+ | `QCBOR_DISABLE_TAGS`                      |  TODO  |
+ | `QCBOR_DISABLE_NON_INTEGER_LABELS`        |  TODO  |
+ | `QCBOR_DISABLE_DECODE_CONFORMANCE`        |  TODO  |
+ | `USEFULBUF_DISABLE_STREAMING`             |  TODO  |
+ *
+ * `QCBOR_DISABLE_UNCOMMON_TAGS` is removed from QCBOR v2. It didn't save
+ * very much, and you can get the same effect by not installing
+ * the tag content handlers.
  */
 
 
 /**
  * If defined, this names the configuration header which will be
- * included instead of `"qcbor/qcbor_config.h". It allows for special
+ * included instead of "qcbor/qcbor_config.h". It allows for special
  * builds, building vendored copies of QCBOR and such. This macro is
  * never used for installed builds (they install a customized
  * copy of this file). When setting this, consider using
@@ -42,15 +78,14 @@
  * on @ref Floating-Point. In short, `QCBOR_DISABLE_PREFERRED_FLOAT`
  * eliminates a lot of floating-point-related code, particularly
  * half-precision support.
-*/
-//#define QCBOR_DISABLE_FLOAT_HW_USE
-
-
-/**
- * `QCBOR_DISABLE_FLOAT_HW_USE` eliminates
- * dependency on the math library and `<math.h>.
  */
 //#define QCBOR_DISABLE_PREFERRED_FLOAT
+
+/**
+ * QCBOR_DISABLE_FLOAT_HW_USE eliminates
+ * dependency on the math library and <math.h>.
+ */
+//#define QCBOR_DISABLE_FLOAT_HW_USE
 
 
  /**
@@ -95,23 +130,14 @@
 //#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 
 
-/** `QCBOR_DISABLE_UNCOMMON_TAGS` disables the decoding of explicit tags for
- * base 64, regex, UUID and MIME data. This just disables the automatic
- * recognition of these from a major type 6 tag.
- */
-//#define QCBOR_DISABLE_UNCOMMON_TAGS
-
-
 /**
  *`QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
  * fractions and big floats.
  */
-//#define QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+//#define QCBOR_DISABLE_EXP_AND_MANTISSA
 
 
 /**
- * @anchor QCBOR_DISABLE_TAGS
- *
  * `QCBOR_DISABLE_TAGS` disables decoding of all CBOR tags. If the input
  * contains any tag, an unrecoverable error (@ref
  * QCBOR_ERR_TAGS_DISABLED) is raised.  When this option is enabled, the

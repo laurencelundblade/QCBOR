@@ -1286,7 +1286,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext    *pCtx,
                              UsefulBufC            *pValue,
                              bool                  *pbIsNegative);
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief [Deprecated] Decode a decimal fraction.
  * @deprecated. Use QCBORDecode_GetTDecimalFraction() instead. */
@@ -1752,7 +1752,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext          *pMe,
                                        pbIsNegative);
 }
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 static inline void /* Deprecated */
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext          *pMe,
                                const enum QCBORDecodeTagReq uTagRequirement,
