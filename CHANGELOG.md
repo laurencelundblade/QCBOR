@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makefile and Cmake support
   - Test coverage for nesting and tag number limits other than defaults
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
-- Add qcbor_config.h for custom configurations
+- New headers added: qcbor_config.h for custom configurations. CMake 
+  generates this for custom configuration installs.
 
 ### Changed
 - Default nesting maximum is increased from 15 to 35
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
 - Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
   than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- Fix some #include path names by adding "qcbor/" to the beginning of them.
 
 
 ## [1.6.1] - 2025-03-03
