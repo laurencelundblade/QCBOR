@@ -17,7 +17,7 @@
 /**
  * @file qcbor_config.h
  *
- * Feature-disabling and size configuration.
+ * Compile-time feature-disabling and size configuration.
  */
 
 
@@ -27,7 +27,7 @@
  * builds, building vendored copies of QCBOR and such. This macro is
  * never used for installed builds (they install a customized
  * copy of this file). When setting this, consider using
- * a different name like "my_config.h" to avoid confusing #include
+ * a different name like "my_config.h" to avoid confusing include
  * path accidents.
  *
  * This macro is mentioned here only to document it along side the
@@ -141,4 +141,20 @@
 //#define QCBOR_DISABLE_ALL
 
 
-#endif /*qcbor_config_h */
+
+
+/* Maximum nesting depth of arrays and maps. See QCBOR_MAX_ARRAY_NESTING
+ * in qcbor_common.h for the default, limits and memory cost. */
+//#define QCBOR_MAX_ARRAY_NESTING  35
+
+
+/* See QCBOR_NUM_MAPPED_TAGS in qcbor_common.h for the default, limits
+ * and memory cost. */
+//#define QCBOR_NUM_MAPPED_TAGS  4
+
+
+/* See QCBOR_MAX_TAGS_PER_ITEM in qcbor_common.h for the default, limits
+ * and memory cost. */
+//#define QCBOR_MAX_TAGS_PER_ITEM 4
+
+#endif /* qcbor_config_h */
