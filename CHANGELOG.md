@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makefile and Cmake support
   - Test coverage for nesting and tag number limits other than defaults
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
-- New headers added: qcbor_config.h for custom configurations. CMake 
+- New header added: qcbor_config.h for custom configurations. CMake
   generates this for custom configuration installs.
 
 ### Changed
