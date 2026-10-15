@@ -563,7 +563,6 @@ QCBORDecode_GetDoubleInMapSZ(QCBORDecodeContext *pCtx,
  *
  * This will decode CBOR integer and floating-point numbers, returning
  * them as a double floating-point number. This function supports
-
  * @ref QCBOR_CONVERT_TYPE_XINT64 and @ref QCBOR_CONVERT_TYPE_FLOAT
  * conversions. If the encoded CBOR is not one of the requested types
  * or a type not supported by this function, @ref QCBOR_ERR_UNEXPECTED_TYPE
@@ -1490,10 +1489,10 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext *pCtx,
  *
  *     mantissa * ( 10 ** exponent )
  *
- * In the encoded CBOR, the mantissa and exponent may be of CBOR type
+ * In the encoded CBOR, the mantissa may be of CBOR type
  * 0 (positive integer), type 1 (negative integer), type 2 tag 2
  * (positive big number) or type 2 tag 3 (negative big number). This
- * implementation will attempt to convert all of these to an @c
+ * implementation will attempt to convert the mantissa for all of these to an @c
  * int64_t. If the value won't fit, @ref QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW
  * or @ref QCBOR_ERR_BAD_EXP_AND_MANTISSA will be set.
  *
