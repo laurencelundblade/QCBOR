@@ -104,8 +104,10 @@
 		E7C960B82800A09E00FB537C /* ub-example.c */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.c.c; path = "ub-example.c"; sourceTree = "<group>"; tabWidth = 3; };
 		E7CA1F152C8ACCAE0008F454 /* qcbor_tag_decode.h */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.c.h; name = qcbor_tag_decode.h; path = inc/qcbor/qcbor_tag_decode.h; sourceTree = "<group>"; tabWidth = 3; };
 		E7CA1F1D2C8C337E0008F454 /* qcbor_tag_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 3; lastKnownFileType = sourcecode.c.c; name = qcbor_tag_decode.c; path = src/qcbor_tag_decode.c; sourceTree = "<group>"; tabWidth = 3; };
-		E7CDE67A2FA3F0670060A1DC /* qcbor_config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor_config.h; path = qdv/qcbor_config.h; sourceTree = "<group>"; };
 		E7E305E02CE14447000E9348 /* Numbers.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = Numbers.md; path = doc/Numbers.md; sourceTree = "<group>"; };
+		E7EDFABE30808A070063C0C6 /* qcbor_config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor_config.h; path = inc/qcbor/qcbor_config.h; sourceTree = "<group>"; };
+		E7EDFABF3081252D0063C0C6 /* qcbor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor.h; path = inc/qcbor/qcbor.h; sourceTree = "<group>"; };
+		E7EDFAC03081255B0063C0C6 /* qcbor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = qcbor.h; path = inc/qcbor.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,6 +177,9 @@
 		E776E092214AE07C00E67947 /* inc */ = {
 			isa = PBXGroup;
 			children = (
+				E7EDFABF3081252D0063C0C6 /* qcbor.h */,
+				E7EDFAC03081255B0063C0C6 /* qcbor.h */,
+				E7EDFABE30808A070063C0C6 /* qcbor_config.h */,
 				E74BF411245D6713002CE8E8 /* UsefulBuf.h */,
 				E78C91DF240C90C100F4CECE /* qcbor_common.h */,
 				E78C91E1240C90C100F4CECE /* qcbor_main_encode.h */,
@@ -197,7 +202,6 @@
 			children = (
 				E73B57642161F8F80080D658 /* run_tests.h */,
 				E73B57632161F8F70080D658 /* run_tests.c */,
-				E7CDE67A2FA3F0670060A1DC /* qcbor_config.h */,
 				0FA9BEBC216DE31700BA646B /* UsefulBuf_Tests.c */,
 				0FA9BEBB216DE31700BA646B /* UsefulBuf_Tests.h */,
 				0FA9BEB8216DC7AD00BA646B /* qcbor_encode_tests.c */,
@@ -464,10 +468,6 @@
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_PEDANTIC = YES;
 				"HEADER_SEARCH_PATHS[arch=*]" = inc;
-				"OTHER_CFLAGS[arch=*]" = (
-					"-include",
-					qdv/qcbor_config.h,
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;

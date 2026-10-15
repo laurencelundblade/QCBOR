@@ -92,6 +92,14 @@
 #define _UsefulBuf_h
 
 
+/* This largely a non-dependency because qcbor_config.h is usually empty */
+#ifdef QCBOR_CONFIG_FILE
+#include QCBOR_CONFIG_FILE
+#else
+#include "qcbor/qcbor_config.h"
+#endif
+
+
 /*
  * Endianness Configuration
  *

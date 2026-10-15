@@ -39,7 +39,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "UsefulBuf.h"
+#include "qcbor/UsefulBuf.h"
 #include "qcbor/qcbor_common.h"
 
 
@@ -122,6 +122,26 @@ extern "C" {
       #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  x
    #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT*/
+
+
+#ifdef QCBOR_DISABLE_ALL
+
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#define QCBOR_DISABLE_UNCOMMON_TAGS
+#define USEFULBUF_DISABLE_ALL_FLOAT
+#define QCBOR_DISABLE_TAGS
+#define QCBOR_DISABLE_NON_INTEGER_LABELS
+#define QCBOR_DISABLE_DECODE_CONFORMANCE
+#define USEFULBUF_DISABLE_STREAMING
+
+#endif
+
+
+
 
 
 /*
