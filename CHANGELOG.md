@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makefile and Cmake support
   - Test coverage for nesting and tag number limits other than defaults
 - Add subject documentation on strings
+- New header added: qcbor_config.h for custom configurations. CMake
+  generates this for custom configuration installs.
+
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
@@ -65,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   QCBORDecode_GetTBigFloatBigMantissaRaw() return correct values when
   the encoded mantissa is an integer, including 65-bit negative
   and full 64-bit unsigned values.
+- Fix some #include path names by adding "qcbor/" to the beginning of them.
+
 
 
 ## [2.0.0-alpha.6] - 2025-05-01

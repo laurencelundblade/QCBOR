@@ -991,7 +991,7 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          BigNumber);
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /** @deprecated Use QCBOREncode_AddTDecimalFraction() instead.*/
 static void
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
@@ -2103,7 +2103,7 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pMe,
 
 }
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 static inline void /* Deprecated */
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pMe,
                                const int64_t       nMantissa,
@@ -2360,7 +2360,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
                                                 nBase2Exponent);
 }
 
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 /* ========================================================================= *
  *    END OF INLINES FOR DEPRECATED FUNCTIONS                                *

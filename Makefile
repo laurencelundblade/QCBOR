@@ -85,6 +85,7 @@ libqcbor.so: $(QCBOR_OBJ)
 PUBLIC_INTERFACE=inc/qcbor/UsefulBuf.h \
                  inc/qcbor/qcbor_private.h \
                  inc/qcbor/qcbor_common.h \
+                 inc/qcbor/qcbor_config.h \
                  inc/qcbor/qcbor_main_encode.h \
                  inc/qcbor/qcbor_number_encode.h \
                  inc/qcbor/qcbor_tag_encode.h \
@@ -99,11 +100,13 @@ src/UsefulBuf.o: inc/qcbor/UsefulBuf.h
 src/qcbor_main_encode.o: inc/qcbor/UsefulBuf.h \
                          inc/qcbor/qcbor_private.h \
                          inc/qcbor/qcbor_common.h \
+                         inc/qcbor/qcbor_config.h \
                          inc/qcbor/qcbor_main_encode.h
 
 src/qcbor_tag_encode.o: inc/qcbor/UsefulBuf.h \
                         inc/qcbor/qcbor_private.h \
                         inc/qcbor/qcbor_common.h \
+                        inc/qcbor/qcbor_config.h \
                         inc/qcbor/qcbor_main_encode.h \
                         inc/qcbor/qcbor_number_encode.h \
                         inc/qcbor/qcbor_tag_encode.h \
@@ -112,6 +115,7 @@ src/qcbor_tag_encode.o: inc/qcbor/UsefulBuf.h \
 src/qcbor_main_decode.o: inc/qcbor/UsefulBuf.h \
                          inc/qcbor/qcbor_private.h \
                          inc/qcbor/qcbor_common.h \
+                         inc/qcbor/qcbor_config.h \
                          inc/qcbor/qcbor_main_decode.h \
                          inc/qcbor/qcbor_spiffy_decode.h \
                          inc/qcbor/qcbor_tag_decode.h \
@@ -121,6 +125,7 @@ src/qcbor_main_decode.o: inc/qcbor/UsefulBuf.h \
 src/qcbor_tag_decode.o: inc/qcbor/UsefulBuf.h \
                         inc/qcbor/qcbor_private.h \
                         inc/qcbor/qcbor_common.h \
+                        inc/qcbor/qcbor_config.h \
                         inc/qcbor/qcbor_main_decode.h \
                         inc/qcbor/qcbor_spiffy_decode.h \
                         src/decode_nesting.h \
@@ -129,6 +134,7 @@ src/qcbor_tag_decode.o: inc/qcbor/UsefulBuf.h \
 src/qcbor_spiffy_decode.o: inc/qcbor/UsefulBuf.h \
                         inc/qcbor/qcbor_private.h \
                         inc/qcbor/qcbor_common.h \
+                        inc/qcbor/qcbor_config.h \
                         inc/qcbor/qcbor_main_decode.h \
                         inc/qcbor/qcbor_spiffy_decode.h \
                         src/decode_nesting.h \
@@ -137,6 +143,7 @@ src/qcbor_spiffy_decode.o: inc/qcbor/UsefulBuf.h \
 src/qcbor_number_decode.o: inc/qcbor/UsefulBuf.h \
                            inc/qcbor/qcbor_private.h \
                            inc/qcbor/qcbor_common.h \
+                           inc/qcbor/qcbor_config.h \
                            inc/qcbor/qcbor_main_decode.h \
                            inc/qcbor/qcbor_tag_decode.h \
                            inc/qcbor/qcbor_spiffy_decode.h \
@@ -144,7 +151,8 @@ src/qcbor_number_decode.o: inc/qcbor/UsefulBuf.h \
                            src/ieee754.h
 
 src/ieee754.o:	src/ieee754.h \
-                inc/qcbor/qcbor_common.h
+                inc/qcbor/qcbor_common.h \
+                inc/qcbor/qcbor_config.h
 
 src/qcbor_err_to_str.o: inc/qcbor/qcbor_common.h
 
@@ -172,6 +180,7 @@ install: libqcbor.a $(PUBLIC_INTERFACE)
 	install -m 644 inc/qcbor/qcbor.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_private.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_common.h $(DESTDIR)$(PREFIX)/include/qcbor
+	install -m 644 inc/qcbor/qcbor_config.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_main_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_spiffy_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
 	install -m 644 inc/qcbor/qcbor_number_decode.h $(DESTDIR)$(PREFIX)/include/qcbor
