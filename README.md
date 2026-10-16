@@ -203,13 +203,14 @@ There is a simple makefile for the UNIX style command line binary that
 compiles everything to run the tests. CMake is also available, please read
 the "Building with CMake" section for more information.
 
-These eleven files, the contents of the src and inc directories, make
+These twelve files, the contents of the src and inc directories, make
 up the entire implementation.
 
 * inc
    * UsefulBuf.h
    * qcbor_private.h
    * qcbor_common.h
+   * qcbor_config.h
    * qcbor_encode.h
    * qcbor_decode.h
    * qcbor_spiffy_decode.h
@@ -237,9 +238,12 @@ C pre processor macros that can be #defined in order to:
  * to reduce code size
  * to improve performance (a little)
  * remove features to reduce code size
+ * increase hard limits on array/map/tag depth
+ 
+See "inc/qcbor/qcbor_config.h" and "inc/qcbor/Usefulbuf.h".
 
-See the comment sections on "Configuration" in inc/UsefulBuf.h and
-the pre processor defines that start with `QCBOR_DISABLE_XXX`.
+For packaged and installed custom configurations, use CMake which will
+generate an appropriately customized "qcbor_config.h".
 
 ### Building with CMake
 

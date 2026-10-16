@@ -2557,7 +2557,7 @@ QCBOR_Private_ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 #endif /* QCBOR_DISABLE_TAGS */
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief Figures out data type for exponent mantissa tags.
  *
@@ -2586,7 +2586,7 @@ QCBOR_Private_ExpMantissaDataType(const uint16_t   uTagToProcess,
    }
    return uBase;
 }
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**

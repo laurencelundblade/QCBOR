@@ -203,11 +203,6 @@ typedef enum {
  */
 #define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
-/**
- * The maximum number of tags that may occur on an individual nested
- * item. Typically 4.
- */
-#define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
 
 
