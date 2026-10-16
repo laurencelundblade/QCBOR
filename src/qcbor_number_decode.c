@@ -1619,7 +1619,9 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
 
 #ifndef QCBOR_DISABLE_FLOAT_HW_USE
    QCBORError  uErr;
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
    double      dMantissa ;
+#endif
 
    /*
     * What Every Computer Scientist Should Know About Floating-Point Arithmetic
