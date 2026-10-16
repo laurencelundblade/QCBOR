@@ -58,6 +58,14 @@ extern "C" {
 
 /* This is a beta (not ready for commercial use) release of 2.0.0 */
 
+
+#ifdef QCBOR_CONFIG_FILE
+#include QCBOR_CONFIG_FILE
+#else
+#include "qcbor/qcbor_config.h"
+#endif
+
+
 /* Pre-processor magic turns version integers into a standard version string. */
 #define QCBOR_PRIVATE_STR1(x) #x
 #define QCBOR_PRIVATE_STR(x) QCBOR_PRIVATE_STR1(x)
