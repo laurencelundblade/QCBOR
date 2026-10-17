@@ -53,6 +53,101 @@ extern "C" {
 
 
 
+#ifdef QCBOR_DISABLE_ALL
+
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#define USEFULBUF_DISABLE_ALL_FLOAT
+#define QCBOR_DISABLE_TAGS
+#define QCBOR_DISABLE_NON_INTEGER_LABELS
+#define QCBOR_DISABLE_DECODE_CONFORMANCE
+#define USEFULBUF_DISABLE_STREAMING
+
+#endif
+
+
+
+
+/* This was originally defined as QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA,
+ * but this is inconsistent with all the other QCBOR_DISABLE_
+ * #defines, so the name was changed and this was added for backwards
+ * compatibility
+ */
+#ifdef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#endif
+
+/* If USEFULBUF_DISABLE_ALL_FLOAT is defined then define
+ * QCBOR_DISABLE_FLOAT_HW_USE and QCBOR_DISABLE_PREFERRED_FLOAT
+ */
+#ifdef USEFULBUF_DISABLE_ALL_FLOAT
+#ifndef QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#endif /* QCBOR_DISABLE_PREFERRED_FLOAT */
+#endif /* USEFULBUF_DISABLE_ALL_FLOAT */
+
+
+/*
+ * Convenience macro for selecting the proper return value in case floating
+ * point feature(s) are disabled.
+ *
+ * The macros:
+ *
+ *  FLOAT_ERR_CODE_NO_FLOAT(x) Can be used when disabled floating point should
+ *                              result error, and all other cases should return
+ *                             'x'.
+ *
+ *  The below macros always return QCBOR_ERR_ALL_FLOAT_DISABLED when all
+ *  floating point is disabled.
+ *
+ *  FLOAT_ERR_CODE_NO_PREF_FLOAT(x) Can be used when disabled preferred float
+ *                                  results in error, and all other cases should
+ *                                  return 'x'.
+ *  FLOAT_ERR_CODE_NO_FLOAT_HW(x) Can be used when disabled hardware floating
+ *                                point results in error, and all other cases
+ *                                should return 'x'.
+ *  FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) Can be used when either disabled
+ *                                              preferred float or disabling
+ *                                              hardware floating point results
+ *                                              in error, and all other cases
+ *                                              should return 'x'.
+ */
+#ifdef USEFULBUF_DISABLE_ALL_FLOAT
+   #define FLOAT_ERR_CODE_NO_FLOAT(x)                  QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x)             QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)               QCBOR_ERR_ALL_FLOAT_DISABLED
+   #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_ALL_FLOAT_DISABLED
+#else /* USEFULBUF_DISABLE_ALL_FLOAT*/
+   #define FLOAT_ERR_CODE_NO_FLOAT(x)     x
+   #ifdef QCBOR_DISABLE_PREFERRED_FLOAT
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x) QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_PREFERRED_FLOAT_DISABLED
+   #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+      #define FLOAT_ERR_CODE_NO_PREF_FLOAT(x) x
+      #ifdef QCBOR_DISABLE_FLOAT_HW_USE
+         #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) QCBOR_ERR_HW_FLOAT_DISABLED
+      #else
+         #define FLOAT_ERR_CODE_NO_PREF_FLOAT_NO_FLOAT_HW(x) x
+      #endif
+   #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+   #ifdef QCBOR_DISABLE_FLOAT_HW_USE
+      #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  QCBOR_ERR_HW_FLOAT_DISABLED
+   #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
+      #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  x
+   #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
+#endif /* ! USEFULBUF_DISABLE_ALL_FLOAT*/
+
+
+
+
+
+
 /*
  * These are special values for the AdditionalInfo bits that are part of
  * the first byte.  Mostly they encode the length of the data item.

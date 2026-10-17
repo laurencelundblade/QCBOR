@@ -31,7 +31,6 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  =============================================================================*/
 
-#include "qcbor/qcbor_config.h"
 #include "qcbor_decode_tests.h"
 #include "qcbor/qcbor_encode.h"
 #include "qcbor/qcbor_main_decode.h"
