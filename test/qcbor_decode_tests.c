@@ -9228,7 +9228,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       CONVERT_ALL,
       -4.6116860184273879E+18,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       /* -1 - 0x8000000000000000 == -(2^63 + 1), one too negative for
@@ -9353,7 +9353,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       CONVERT_ALL,
       257000.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "bigfloat with negative bignum -258 * 2^3",
@@ -9367,7 +9367,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       CONVERT_ALL,
       -2064.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "bigfloat with positive bignum 257 * 2^3",
@@ -9381,7 +9381,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       CONVERT_ALL,
       2056.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "negative bignum 0xc349010000000000000000 -18446744073709551617",
@@ -9423,7 +9423,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       CONVERT_ALL,
       -INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "big float [9223372036854775806, 9223372036854775806]",
@@ -9437,7 +9437,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       CONVERT_ALL,
       INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "Big float 3 * 2^2",
@@ -9450,7 +9450,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       CONVERT_ALL,
       12.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction 3/10",
@@ -9463,7 +9463,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       CONVERT_ALL,
       0.30000000000000004,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction -3/10",
@@ -9476,7 +9476,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       CONVERT_ALL,
       -0.30000000000000004,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction -3/10, neg bignum mantissa",
@@ -9489,7 +9489,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       CONVERT_ALL,
       -0.30000000000000004,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "Decimal fraction 100 * 10^-1 == 10, exact despite negative exponent",
@@ -9502,7 +9502,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       CONVERT_ALL,
       10.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "extreme pos bignum",
@@ -9651,7 +9651,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW),
       CONVERT_ALL,
       0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "bigfloat that evaluates to -INFINITY",
@@ -9667,7 +9667,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_ERR_NUMBER_SIGN_CONVERSION),
       CONVERT_ALL,
       -INFINITY,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
    {
       "Positive bignum 0xffff",
@@ -9723,7 +9723,7 @@ static const struct NumberConversion NumberConversions[] = {
       EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS),
       QCBOR_CONVERT_TYPE_XINT64 | QCBOR_CONVERT_TYPE_BIGFLOAT,
       12.0,
-      FLOAT_ERR_CODE_NO_FLOAT_HW(EXP_AND_MANTISSA_ERROR(QCBOR_SUCCESS))
+      EXP_AND_MANTISSA_ERROR(FLOAT_ERR_CODE_NO_FLOAT_HW(QCBOR_SUCCESS))
    },
 #endif /* QCBOR_DISABLE_TAGS */
    {
@@ -10003,7 +10003,7 @@ int32_t IntegerConvertTest(void)
       if(!strcmp("-infinity single precision",pF->szDescription)) {
          uInt = 00;
       }
-      if(nIndex == 39) {
+      if(nIndex == 16) {
          uInt = 99; // For break point only
       }
 
