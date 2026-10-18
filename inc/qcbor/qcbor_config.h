@@ -56,6 +56,13 @@
  * the tag content handlers.
  */
 
+/* Note to self: #include "qcbor/qcbor_private.h", not this file, to
+ * bring in configuration defines because there are some additional
+ * macros in it. qcbor_common.h works too because it includes
+ * qcbor_private.h
+ */
+
+
 
 /**
  * If defined, this names the configuration header which will be

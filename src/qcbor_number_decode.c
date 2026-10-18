@@ -1411,7 +1411,7 @@ QCBOR_Private_UInt64ConvertAll(const QCBORItem                     *pItem,
    QCBORError uErr;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
    uint64_t   uMantissa;
-#endif
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
    if(!QCBOR_Private_NumberConvertAllowed(pItem->uDataType, uConvertTypes)) {
       return QCBOR_ERR_UNEXPECTED_TYPE;
@@ -1621,7 +1621,7 @@ QCBOR_Private_DoubleConvertAll(const QCBORItem                    *pItem,
    QCBORError  uErr;
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
    double      dMantissa ;
-#endif
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
    /*
     * What Every Computer Scientist Should Know About Floating-Point Arithmetic
