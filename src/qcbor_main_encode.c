@@ -527,7 +527,8 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
 }
 
 
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+#if ! (defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) || defined (QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
+
 /**
  * @brief Return true if nested in an indefinite-length string
  *
@@ -589,7 +590,7 @@ QCBOREncode_Private_CheckIndefStringNest(QCBOREncodeContext               *pMe,
    /* Something that is not allowed in an indefinite-length string */
    return QCBOR_ERR_NESTED_TYPE_MISMATCH;
 }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! (defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) && defined (QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS)) */
 
 
 /**
