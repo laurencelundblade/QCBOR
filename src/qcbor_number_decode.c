@@ -115,7 +115,7 @@ static const struct NumberConvertCheckEntry QCBOR_Private_NumberConvertCheckTabl
 /**
  * @return non zero if @p uDataType may be converted given @p uConvertTypes.
  */
-static int
+static unsigned
 QCBOR_Private_NumberConvertAllowed(const uint8_t uDataType, const uint32_t uConvertTypes)
 {
    const struct NumberConvertCheckEntry *pEntry;

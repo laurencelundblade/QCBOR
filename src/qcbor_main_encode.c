@@ -168,7 +168,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
 {
    return pNesting->pCurrentNesting == &pNesting->pArrays[0] ? false : true;
 }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif // !QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 
 
 
@@ -527,7 +527,7 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
 }
 
 
-#if ! (defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) && defined (QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
+#if ! (defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) || defined (QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
 
 /**
  * @brief Return true if nested in an indefinite-length string
