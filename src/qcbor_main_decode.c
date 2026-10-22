@@ -855,11 +855,9 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          uErr = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum,
                                                     uConfigFlags);
-         if(uErr != QCBOR_SUCCESS) {
-            break;
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          uErr = FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS);
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
@@ -894,36 +892,6 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-
-/* Make sure #define value line up as DecodeSimple counts on this. */
-#if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
-#error QCBOR_TYPE_FALSE macro value wrong
-#endif
-
-#if QCBOR_TYPE_TRUE != CBOR_SIMPLEV_TRUE
-#error QCBOR_TYPE_TRUE macro value wrong
-#endif
-
-#if QCBOR_TYPE_NULL != CBOR_SIMPLEV_NULL
-#error QCBOR_TYPE_NULL macro value wrong
-#endif
-
-#if QCBOR_TYPE_UNDEF != CBOR_SIMPLEV_UNDEF
-#error QCBOR_TYPE_UNDEF macro value wrong
-#endif
-
-#if QCBOR_TYPE_BREAK != CBOR_SIMPLE_BREAK
-#error QCBOR_TYPE_BREAK macro value wrong
-#endif
-
-#if QCBOR_TYPE_DOUBLE != DOUBLE_PREC_FLOAT
-#error QCBOR_TYPE_DOUBLE macro value wrong
-#endif
-
-#if QCBOR_TYPE_FLOAT != SINGLE_PREC_FLOAT
-#error QCBOR_TYPE_FLOAT macro value wrong
-#endif
-
 /**
  * @brief Decode major type 7 -- true, false, floating-point, break...
  *
@@ -944,33 +912,48 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
                           const uint64_t         uArgument,
                           QCBORItem             *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
 #if defined(USEFULBUF_DISABLE_ALL_FLOAT) || defined (QCBOR_DISABLE_DECODE_CONFORMANCE)
    (void)uConfigFlags;
 #endif
 
-   /* uAdditionalInfo is 5 bits from the initial byte. Compile time
-    * checks above make sure uAdditionalInfo values line up with
-    * uDataType values.  DecodeHead() never returns an AdditionalInfo
-    * > 0x1f so cast is safe.
-    */
-   pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
+   #if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
+   #error QCBOR_TYPE_FALSE macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_TRUE != CBOR_SIMPLEV_TRUE
+   #error QCBOR_TYPE_TRUE macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_NULL != CBOR_SIMPLEV_NULL
+   #error QCBOR_TYPE_NULL macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_UNDEF != CBOR_SIMPLEV_UNDEF
+   #error QCBOR_TYPE_UNDEF macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_BREAK != CBOR_SIMPLE_BREAK
+   #error QCBOR_TYPE_BREAK macro value wrong
+   #endif
+
+   /* nAdditionalInfo is 5 bits from the initial byte and < 32 so
+    * casts to uint8_t below are safe. Compile time checks above make
+    * sure nAdditionalInfo values line up with uDataType values. */
 
    switch(nAdditionalInfo) {
-      /* No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they
-       * are caught before this is called.
-       */
+      /* No check for ADDINFO_RESERVED1 (28) - ADDINFO_RESERVED3 (30) as they
+       * are caught before this is called. */
 
-      case HALF_PREC_FLOAT: /* 25 */
+      case HALF_PREC_FLOAT:   /* 25 */
       case SINGLE_PREC_FLOAT: /* 26 */
       case DOUBLE_PREC_FLOAT: /* 27 */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         uReturn = QCBOR_Private_DecodeFloat(uConfigFlags,
-                                             nAdditionalInfo,
-                                             uArgument,
-                                             pDecodedItem);
+         return QCBOR_Private_DecodeFloat(uConfigFlags,
+                                          nAdditionalInfo,
+                                          uArgument,
+                                          pDecodedItem);
 #else
-         uReturn = QCBOR_ERR_ALL_FLOAT_DISABLED;
+         return QCBOR_ERR_ALL_FLOAT_DISABLED;
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          break;
 
@@ -979,46 +962,43 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
       case CBOR_SIMPLEV_NULL:  /* 22 */
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
+         /* The officially assigned simple values & break */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
          if((uConfigFlags & QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES) &&
             nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
-            uReturn = QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
-            goto Done;
+            return QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
-         break; /* nothing to do */
+         pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
+         return QCBOR_SUCCESS;
+         break;
 
-      case CBOR_SIMPLEV_ONEBYTE: /* 24 */
+      case CBOR_SIMPLEV_ONEBYTE: /* 24 (simple value is in uArgument) */
          if(uArgument <= CBOR_SIMPLE_BREAK) {
             /* This takes out f8 00 ... f8 1f which should be encoded
-             * as e0 … f7 -- preferred serialization check for simple values.
-             */
-            uReturn = QCBOR_ERR_BAD_TYPE_7;
-            goto Done;
+             * as e0 … f7 -- preferred serialization check for simple
+             * values. */
+            return QCBOR_ERR_BAD_TYPE_7;
          }
          /* FALLTHROUGH */
 
-      default: /* 0-19 */
+      default: /* 0-19 + simple values in uArgument from fall through */
+         /* Unassigned simple values that are returned */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
          if((uConfigFlags & QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES) &&
             (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
-            uReturn = QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
-            goto Done;
+            return  QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
          pDecodedItem->uDataType = QCBOR_TYPE_UKNOWN_SIMPLE;
-         /* QCBOR_Private_DecodeHead() will make uArgument equal to
+         /* QCBOR_Private_DecodeHead() makes uArgument equal to
           * nAdditionalInfo when nAdditionalInfo is < 24. This cast is
-          * safe because the 2, 4 and 8 byte lengths of uNumber are in
-          * the double/float cases above
-          */
+          * safe because the 2, 4 and 8 byte lengths of uArgument are
+          * in the double/float cases above. */
          pDecodedItem->val.uSimple = (uint8_t)uArgument;
-         break;
+         return QCBOR_SUCCESS;
    }
-
-Done:
-   return uReturn;
 }
 
 
@@ -1497,11 +1477,11 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
 
    return uReturn;
 
-#else /* QCBOR_DISABLE_TAGS */
+#else /* ! QCBOR_DISABLE_TAGS */
 
    return QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
 
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
 }
 
 
