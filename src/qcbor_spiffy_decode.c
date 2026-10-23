@@ -253,17 +253,23 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       goto Done2;
    }
 
-   if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
-      pItemArray->uLabelType != QCBOR_TYPE_NONE) {
-      /* QCBOR_TYPE_NONE as first item indicates just looking for the
-       * end of an array, so don't give error. */
+   if(! (DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) ||
+         DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_ARRAY))) {
+         /* Searching a non-aggretate type is an error */
+      uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
+      goto Done2;
+   }
+
+   if(DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_ARRAY) &&
+      pItemArray->uLabelType != QCBOR_TYPE_ARRAY_END_SEARCH) {
+      /* Searching an array is an error except for looking its end */
       uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
       goto Done2;
    }
 
    if(DecodeNesting_IsBoundedEmpty(&(pMe->nesting))) {
       // It is an empty bounded array or map
-      if(pItemArray->uLabelType == QCBOR_TYPE_NONE) {
+      if(pItemArray->uLabelType == QCBOR_TYPE_ARRAY_END_SEARCH) {
          // Just trying to find the end of the map or array
          pMe->uMapEndOffsetCache = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
          uReturn = QCBOR_SUCCESS;
@@ -960,54 +966,53 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     */
    DecodeNesting_LevelUpBounded(&(pMe->nesting));
 
-   pMe->uMapEndOffsetCache = QCBOR_MAP_OFFSET_CACHE_INVALID;
-
 Done:
    return uErr;
 }
 
 
 /**
- * @brief Get started exiting a map or array (semi-private)
+ * @brief Exit bounded decoding of an array or map (semi-private)
  *
  * @param[in] pMe  The decode context
  * @param[in] uType  QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP
  *
- * This does some work for map and array exiting (but not
- * bstr exiting). Then QCBORDecode_Private_ExitBoundedLevel()
- * is called to do the rest.
+ * The type of exit (array or map) must match what was entered.The
+ * nesting level is decreased by one and the traversal cursor is set
+ * to the end of the array or map exited.  See
+ * QCBORDecode_ExitBstrWrapped() for exiting byte strings.
  */
 void
 QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pMe,
                                           const uint8_t       uType)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state; do nothing. */
-      return;
-   }
+   QCBORItem   Dummy[2];
+   QCBORError  uErr;
 
-   QCBORError uErr;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return; /* Already in error state; do nothing */
+   }
 
    if(!DecodeNesting_IsBoundedType(&(pMe->nesting), uType)) {
       uErr = QCBOR_ERR_EXIT_MISMATCH;
       goto Done;
    }
 
-   /*
-    Have to set the offset to the end of the map/array
-    that is being exited. If there is no cached value,
-    from previous map search, then do a dummy search.
-    */
+   /* Have to set the offset to the end of the map/array that is being
+    * exited. If there is no cached value from previous map search
+    * then do a dummy search. */
    if(pMe->uMapEndOffsetCache == QCBOR_MAP_OFFSET_CACHE_INVALID) {
-      QCBORItem Dummy;
-      Dummy.uLabelType = QCBOR_TYPE_NONE;
-      uErr = QCBORDecode_Private_MapSearch(pMe, &Dummy, NULL, NULL);
+      Dummy[0].uLabelType = QCBOR_TYPE_ARRAY_END_SEARCH;
+      Dummy[1].uLabelType = QCBOR_TYPE_NONE;
+      uErr = QCBORDecode_Private_MapSearch(pMe, Dummy, NULL, NULL);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
    }
 
    uErr = QCBORDecode_Private_ExitBoundedLevel(pMe, pMe->uMapEndOffsetCache);
+
+   pMe->uMapEndOffsetCache = QCBOR_MAP_OFFSET_CACHE_INVALID;
 
 Done:
    pMe->uLastError = (uint8_t)uErr;
