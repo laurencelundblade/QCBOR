@@ -7274,6 +7274,9 @@ static const uint8_t spArrayOfEmpty[] = {0x84, 0x40, 0xa0, 0x80, 0x00};
 /* {} */
 static const uint8_t spEmptyMap[] = {0xa0};
 
+/* [] */
+static const uint8_t spEmptyArray[] = {0x80};
+
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
 /* {} */
 static const uint8_t spEmptyInDefinteLengthMap[] = {0xbf, 0xff};
@@ -7382,6 +7385,10 @@ const unsigned char spBadConsumeInput4[] = {
 
 const unsigned char spBadConsumeInput5[] = {
    0xa1, 0x80, 0x00
+};
+
+const unsigned char spOneInteger[] = {
+   0x01
 };
 
 /*
@@ -7642,6 +7649,7 @@ int32_t EnterMapTest(void)
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
    QCBORError         uErr;
+   QCBORItem          SearchItems[4];
 
    nReturn = Get65ItemsTest();
    if(nReturn) {
@@ -8056,8 +8064,45 @@ int32_t EnterMapTest(void)
       return 3000;
    }
 
+   /* GetItemsInMap search for nothing on an item that isn't a map */
+   memset(SearchItems, 0, sizeof SearchItems);
+   SearchItems[0].uLabelType = QCBOR_TYPE_NONE;
 
-   QCBORItem SearchItems[4];
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spOneInteger), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_NOT_ENTERED) {
+      return 3800;
+   }
+   if(SearchItems[0].uLabelType != QCBOR_TYPE_NONE) {
+      return 3801;
+   }
+
+   /* GetItemsInMap search for nothing on an empty Map */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
+   QCBORDecode_EnterMap(&DCtx, NULL);
+   memset(SearchItems, 0, sizeof SearchItems);
+   SearchItems[0].uLabelType = QCBOR_TYPE_NONE;
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+      return 3810;
+   }
+   if(SearchItems[0].uLabelType != QCBOR_TYPE_NONE) {
+      return 3811;
+   }
+
+   /* GetItemsInMap search for nothing on an empty array */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyArray), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+
+   memset(SearchItems, 0, sizeof SearchItems);
+   SearchItems[0].uLabelType = QCBOR_TYPE_NONE;
+   QCBORDecode_GetItemsInMap(&DCtx, SearchItems);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_NOT_ENTERED) {
+      return 3820;
+   }
+   if(SearchItems[0].uLabelType != QCBOR_TYPE_NONE) {
+      return 3821;
+   }
 
    /* GetItems on an empty map */
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spEmptyMap), 0);
@@ -10522,6 +10567,7 @@ int32_t PeekAndRewindTest(void)
    // [100, {}]
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(pWithEmptyMap), 0);
    QCBORDecode_EnterArray(&DCtx, NULL);
+   i = 0;
    QCBORDecode_GetUInt64(&DCtx, &i);
    if(i != 100) {
       return 7010;
@@ -10538,6 +10584,7 @@ int32_t PeekAndRewindTest(void)
    }
    QCBORDecode_ExitMap(&DCtx);
    QCBORDecode_Rewind(&DCtx);
+   i = 0;
    QCBORDecode_GetUInt64(&DCtx, &i);
    if(i != 100) {
       return 7010;

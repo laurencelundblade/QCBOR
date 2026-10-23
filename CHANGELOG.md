@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
 - Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
   than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on encoded input that is a non-aggregate CBOR type
+  (e.g., an integer) resulted in a NULL deference.
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
+  QCBOR_ERR_MAP_NOT_ENTERED.
 - Fix some #include path names by adding "qcbor/" to the beginning of them.
 - QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
   wrong results when the encoded CBOR input is floating-point and conversion
