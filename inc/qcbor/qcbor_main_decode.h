@@ -512,9 +512,13 @@ typedef enum {
 
 /* 79, 80, 82, 83 is used above for decimal fraction and big float */
 
+/** @private  Used internally; never returned  */
+#define QCBOR_TYPE_ARRAY_END_SEARCH  126
 
 /** @private  Used internally; never returned  */
 #define QCBOR_TYPE_TAG_NUMBER 127
+
+
 
 /** Start of user-defined data types. The range is mainly for user-defined tag content
  * decoders. See QCBORTagContentCallBack */

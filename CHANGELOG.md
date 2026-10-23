@@ -69,7 +69,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the encoded mantissa is an integer, including 65-bit negative
   and full 64-bit unsigned values.
 - Fix some #include path names by adding "qcbor/" to the beginning of them.
-
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on encoded input that is a non-aggregate CBOR type
+  (e.g., an integer) resulted in a NULL deference.
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
+  QCBOR_ERR_MAP_NOT_ENTERED.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
