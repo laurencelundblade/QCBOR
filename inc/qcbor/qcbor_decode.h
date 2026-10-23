@@ -366,6 +366,8 @@ typedef enum {
  *  @c val.epochDays */
 #define QCBOR_TYPE_DAYS_EPOCH    78
 
+#define QCBOR_TYPE_ARRAY_END_SEARCH  253 /* Used internally; never returned */
+
 #define QCBOR_TYPE_TAG          254 /* Used internally; never returned */
 
 #define QCBOR_TYPE_OPTTAG   QCBOR_TYPE_TAG /* Depricated. See QCBOR_TYPE_TAG */

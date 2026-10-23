@@ -3346,17 +3346,23 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       goto Done2;
    }
 
-   if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
-      pItemArray->uLabelType != QCBOR_TYPE_NONE) {
-      /* QCBOR_TYPE_NONE as first item indicates just looking for the
-       * end of an array, so don't give error. */
+   if(! (DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) ||
+         DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_ARRAY))) {
+         /* Searching a non-aggretate type is an error */
+      uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
+      goto Done2;
+   }
+
+   if(DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_ARRAY) &&
+      pItemArray->uLabelType != QCBOR_TYPE_ARRAY_END_SEARCH) {
+      /* Searching an array is an error except for looking its end */
       uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
       goto Done2;
    }
 
    if(DecodeNesting_IsBoundedEmpty(&(pMe->nesting))) {
       /* It is an empty bounded array or map */
-      if(pItemArray->uLabelType == QCBOR_TYPE_NONE) {
+      if(pItemArray->uLabelType == QCBOR_TYPE_ARRAY_END_SEARCH) {
          /* Just trying to find the end of the map or array */
          pMe->uMapEndOffsetCache = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
          uReturn = QCBOR_SUCCESS;
@@ -4298,9 +4304,10 @@ QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pMe,
     from previous map search, then do a dummy search.
     */
    if(pMe->uMapEndOffsetCache == QCBOR_MAP_OFFSET_CACHE_INVALID) {
-      QCBORItem Dummy;
-      Dummy.uLabelType = QCBOR_TYPE_NONE;
-      uErr = QCBORDecode_Private_MapSearch(pMe, &Dummy, NULL, NULL);
+      QCBORItem Dummy[2];
+      Dummy[0].uLabelType = QCBOR_TYPE_ARRAY_END_SEARCH;
+      Dummy[1].uLabelType = QCBOR_TYPE_NONE;
+      uErr = QCBORDecode_Private_MapSearch(pMe, Dummy, NULL, NULL);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
