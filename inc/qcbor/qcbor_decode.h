@@ -203,11 +203,6 @@ typedef enum {
  */
 #define QCBOR_MAX_DECODE_INPUT_SIZE (UINT32_MAX - 2)
 
-/**
- * The maximum number of tags that may occur on an individual nested
- * item. Typically 4.
- */
-#define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
 
 
@@ -410,6 +405,13 @@ typedef enum {
  * applied (doing so requires somewhat complex big number arithmetic
  * and may increase the length of the big number). To get the correct
  * value @c bigNum must be incremented by one before use.
+ *
+ * Warning: this has a gap for mantissa integers larger than INT64_MAX and
+ * less than UINT64_MAX. This also doesn't cover the negative
+ * integers in the range of INT64_MIN to -UINT64_MAX which
+ * CBOR can encode, but common C types don't handle. These
+ * are addressed in QCBOR v2. Because of the bignum -- integer
+ * unification in RFC 8949, this is a real problem.
  *
  * Also see QCBOREncode_AddTDecimalFraction(),
  * QCBOREncode_AddTBigFloat(), QCBOREncode_AddTDecimalFractionBigNum()

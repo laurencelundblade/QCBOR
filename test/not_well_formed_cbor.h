@@ -99,7 +99,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     // Definite length array containing an unclosed indefinite array
     {(uint8_t[]){0x81, 0x9f}, 2},
     // Deeply nested definite length arrays with deepest one unclosed
-    {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 9},
+    {(uint8_t[]){0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}, 7},
     // Deeply nested indefinite length arrays with deepest one unclosed
     {(uint8_t[]){0x9f, 0x9f, 0x9f, 0x9f, 0x9f, 0xff, 0xff, 0xff, 0xff}, 9},
     // Mixed nesting with indefinite unclosed
@@ -264,9 +264,9 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     // A text string is of length 1 without the 1 byte
     {(uint8_t[]){0x61}, 1},
     // Byte string should have 65520 bytes, but has one
-    {(uint8_t[]){0x59, 0xff, 0xf0, 0x00}, 6},
+    {(uint8_t[]){0x59, 0xff, 0xf0, 0x00}, 4},
     // Byte string should have 65520 bytes, but has one
-    {(uint8_t[]){0x79, 0xff, 0xf0, 0x00}, 6},
+    {(uint8_t[]){0x79, 0xff, 0xf0, 0x00}, 4},
 
 
     // Use of unassigned additional information values
@@ -326,7 +326,7 @@ static const struct someBinaryBytes paNotWellFormedCBOR[] = {
     // Map with 1 item when it should have 2
     {(uint8_t[]){0xa1, 0x00}, 2},
     // Map with 3 item when it should have 4
-    {(uint8_t[]){0xa2, 0x00, 0x00, 0x00}, 2},
+    {(uint8_t[]){0xa2, 0x00, 0x00, 0x00}, 4},
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
     // Map with 1 item when it should have 2
     {(uint8_t[]){0xbf, 0x00, 0xff}, 3},

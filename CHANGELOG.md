@@ -11,9 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Going forward, CHANGELOG.md (this file) is the source of truth for change history
   - Text in GitHub release notes will be copied from here 
   - Some of the version history from GitHub releases has been copied in here
+- Support for changing compiled-in limits on nesting and tag numbers
+  - Documentation
+  - Makefile and Cmake support
+  - Test coverage for nesting and tag number limits other than defaults
 - QCBOR_VERSION_NUMBER allows > and < version number comparison
+- New header added: qcbor_config.h for custom configurations. CMake
+  generates this for custom configuration installs.
 
 ### Changed
+- Default nesting maximum is increased from 15 to 35
+- Improve documentation on nesting and tag number limits
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
 - Revised & moved qcbor.spec to be much more useful for downstream packagers
 - CI now checks qcbor.spec
@@ -22,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CMake improvements for compiler optimization flags and libm config
 
 ### Fixed
+- User-defined error strings now include the correct final decimal digit.
 - When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
   and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above 
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
@@ -33,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
   is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
   QCBOR_ERR_MAP_NOT_ENTERED.
+- Fix some #include path names by adding "qcbor/" to the beginning of them.
+- QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when conversion types is QCBOR_CONVERT_TYPE_XINT64
+- Fix multiple bugs in QCBORDecode_GetDecimalFractionBig() and
+  QCBORDecode_GetBigFloatBig() including infinite loops and incorrect
+  results. (Sorry these bugs were so bad; test coverage is much expanded).
 
 
 ## [1.6.1] - 2025-03-03

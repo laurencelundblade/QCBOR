@@ -2557,7 +2557,7 @@ QCBOR_Private_ProcessTaggedString(uint16_t uTag, QCBORItem *pDecodedItem)
 #endif /* QCBOR_DISABLE_TAGS */
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief Figures out data type for exponent mantissa tags.
  *
@@ -2586,7 +2586,7 @@ QCBOR_Private_ExpMantissaDataType(const uint16_t   uTagToProcess,
    }
    return uBase;
 }
-#endif /* QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
 /**
@@ -6292,12 +6292,12 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
    switch(pItem->uDataType) {
       case QCBOR_TYPE_FLOAT:
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+         /* This case probably never occurs because QCBOR_TYPE_FLOAT only
+          * the type when all float conversion is off. */
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
-            } else {
-               return QCBOR_ERR_UNEXPECTED_TYPE;
-            }
+            *pdValue = IEEE754_SingleToDouble( UsefulBufUtil_CopyFloatToUint32(pItem->val.fnum));
+         } else {
+            return QCBOR_ERR_UNEXPECTED_TYPE;
          }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          return QCBOR_ERR_HALF_PRECISION_DISABLED;
@@ -6306,11 +6306,9 @@ QCBOR_Private_ConvertDouble(const QCBORItem *pItem,
 
       case QCBOR_TYPE_DOUBLE:
          if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-            if(uConvertTypes & QCBOR_CONVERT_TYPE_FLOAT) {
-               *pdValue = pItem->val.dfnum;
-            } else {
-               return QCBOR_ERR_UNEXPECTED_TYPE;
-            }
+            *pdValue = pItem->val.dfnum;
+         } else {
+            return QCBOR_ERR_UNEXPECTED_TYPE;
          }
          break;
 
@@ -6687,29 +6685,42 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext *pMe,
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
- * @brief Convert an integer to a big number
+ * @brief Convert an integer to a big number.
  *
- * @param[in] uInt  The integer to convert.
- * @param[in] Buffer  The buffer to output the big number to.
+ * @param[in] uInt    The unsigned integer to convert.
+ * @param[in] Buffer  The buffer to output the big number to; must be
+ *                    at least 8 bytes.
  *
- * @returns The big number or NULLUsefulBufC is the buffer is to small.
+ * @returns  The big number, or NULLUsefulBufC if the buffer is too small.
  *
- * This always succeeds unless the buffer is too small.
+ * The result is the shortest big-endian byte string that represents
+ * @c uInt, with no leading zero bytes. Zero is represented as a single
+ * 0x00 byte rather than an empty string.
  */
 static UsefulBufC
-QCBOR_Private_ConvertIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
+QCBOR_Private_ConvertUIntToBigNum(uint64_t uInt, const UsefulBuf Buffer)
 {
-   while((uInt & 0xff00000000000000ULL) == 0) {
-      uInt = uInt << 8;
-   };
-
    UsefulOutBuf UOB;
+   int          nShift;
 
    UsefulOutBuf_Init(&UOB, Buffer);
 
-   while(uInt) {
-      UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt & 0xff00000000000000ULL) >> 56));
-      uInt = uInt << 8;
+   /* Find the most significant non-zero byte. nShift ends up < 0
+    * when uInt is zero. */
+   for(nShift = 56; nShift >= 0; nShift -= 8) {
+      if((uInt >> nShift) & 0xffULL) {
+         break;
+      }
+   }
+
+   if(nShift < 0) {
+      /* Zero is one 0x00 byte, not an empty string */
+      UsefulOutBuf_AppendByte(&UOB, 0x00);
+   } else {
+      /* All bytes from there down, trailing zero bytes included */
+      for(; nShift >= 0; nShift -= 8) {
+         UsefulOutBuf_AppendByte(&UOB, (uint8_t)((uInt >> nShift) & 0xffULL));
+      }
    }
 
    return UsefulOutBuf_OutUBuf(&UOB);
@@ -6890,7 +6901,7 @@ QCBOR_Private_ProcessExpMantissa(QCBORDecodeContext         *pMe,
  * @param[in] BufferForMantissa  Buffer to output mantissa into.
  * @param[out] pMantissa         The output mantissa.
  * @param[out] pbIsNegative      The sign of the output.
- * @param[out] pnExponent        The mantissa of the output.
+ * @param[out] pnExponent        The exponent of the output.
  *
  * This is the common processing of a decimal fraction or a big float
  * into a big number. This will decode and consume all the CBOR items
@@ -6933,13 +6944,19 @@ QCBORDecode_Private_ProcessExpMantissaBig(QCBORDecodeContext          *pMe,
                uMantissa = (uint64_t)INT64_MAX+1;
             }
             *pbIsNegative = true;
+            /* Reverse the offset by 1 for type 1 negative value to be
+             * consistent with big num case below which don't offset
+             * because it requires big number arithmetic. This is a
+             * bug fix for QCBOR v1.5.
+             *
+             * In v1.5 and v1.6 this decrement was outside this
+             * conditional and very incorrectly applied to positive
+             * values. Fixed in v1.7.
+             */
+            uMantissa--;
          }
-         /* Reverse the offset by 1 for type 1 negative value to be consistent
-          * with big num case below which don't offset because it requires
-          * big number arithmetic. This is a bug fix for QCBOR v1.5.
-          */
-         uMantissa--;
-         *pMantissa = QCBOR_Private_ConvertIntToBigNum(uMantissa, BufferForMantissa);
+
+         *pMantissa = QCBOR_Private_ConvertUIntToBigNum(uMantissa, BufferForMantissa);
          *pnExponent = pItem->val.expAndMantissa.nExponent;
          break;
 
