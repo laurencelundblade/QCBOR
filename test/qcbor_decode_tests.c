@@ -7426,6 +7426,12 @@ static const uint8_t spNested[] = {
 };
 
 
+/* [[_ [1]], 0] */
+static const uint8_t spIndefNestX[] = {0x82, 0x9F, 0x81, 0x01, 0xFF, 0x00};
+
+
+
+
 static int32_t EnterMapCursorTest(void)
 {
    QCBORDecodeContext DCtx;
@@ -8252,6 +8258,25 @@ int32_t EnterMapTest(void)
 
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
+   /* [[_ [1]], 0] */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefNestX), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_INT64 && Item.val.int64 != 1) {
+      return 6700;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 6702;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_INT64 && Item.val.int64 != 0) {
+      return 6700;
+   }
 
    nReturn = EnterMapCursorTest();
 
