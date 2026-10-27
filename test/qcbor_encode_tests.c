@@ -2010,12 +2010,12 @@ int32_t BstrWrapErrorTest(void)
 
    // --------------- test nesting too deep ----------------------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   for(int i = 1; i < 18; i++) {
-      QCBOREncode_BstrWrap(&EC);
+   for(int i = 1; i < QCBOR_MAX_ARRAY_NESTING + 4; i++) {
+      QCBOREncode_BstrWrap(&EC); /* Error occurs here */
    }
    QCBOREncode_AddBool(&EC, true);
 
-   for(int i = 1; i < 18; i++) {
+   for(int i = 1; i < QCBOR_MAX_ARRAY_NESTING + 4; i++) {
       QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    }
 
@@ -2028,6 +2028,7 @@ int32_t BstrWrapErrorTest(void)
 }
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
 /*
  This is bstr wrapped CBOR in 6 levels.
 
@@ -2358,6 +2359,7 @@ int32_t BstrWrapNestTest(void)
 
    return 0;
 }
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 
 static const uint8_t spCoseSign1Signature[] = {
