@@ -10328,6 +10328,9 @@ static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
 
+#include <stdio.h>
+
+
 /* Simple value 1, not well formed */
 static const uint8_t spNWF[] = {0xf8, 0x01};
 
@@ -10340,6 +10343,30 @@ int32_t GetMapAndArrayTest(void)
    size_t             uPosition ;
    QCBORItem          Item;
    UsefulBufC         ReturnedEncodedCBOR;
+
+   {
+      /* CBOR sequence of indefinite array [1,2,3] followed by integer 9 */
+      uint8_t msg[] = {0x9F, 0x01, 0x02, 0x03, 0xFF, 0x09};
+
+      QCBORDecodeContext ctx;
+      QCBORItem item;
+      UsefulBufC enc;
+
+      QCBORDecode_Init(&ctx, (UsefulBufC){msg, sizeof msg}, QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_GetArray(&ctx, &item, &enc);
+
+      printf("err=%d len=%zu bytes:", QCBORDecode_GetError(&ctx), enc.len);
+      for(size_t i = 0; i < enc.len; i++) printf(" %02x", ((uint8_t*)enc.ptr)[i]);
+      printf("\n");
+
+      /* Slice MUST contain 0xFF to be re-decodable CBOR. It does not. */
+      const uint8_t last = ((const uint8_t*)enc.ptr)[enc.len - 1];
+      if(last != 0xFF){
+          printf("BUG CONFIRMED: slice truncated, last byte=%02x (expected FF)\n", last);
+          return 1;
+      }
+      printf("OK: slice complete\n");
+   }
 
    // Improvement: rework so it can run with QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DCtx,
