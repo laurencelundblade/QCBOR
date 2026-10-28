@@ -75,6 +75,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
   is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
   QCBOR_ERR_MAP_NOT_ENTERED.
+- Fix QCBORDecode_GetArray() and QCBORDecode_GetMap() called on some indefinite
+  length arrays or maps nested in definite length arrays or maps. The returned
+  CBOR did not include the terminating break.
+- Exiting a definite-length array/map inside, and at the end of, an
+  indefinite-length array/map didn't fully complete the exit; nesting
+  tracking was off and a subsequet QCBORDecode_GetNext() succeeded that
+  should have failed.
+
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
