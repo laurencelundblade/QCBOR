@@ -1701,7 +1701,7 @@ QCBOR_Private_NextIsBreak(QCBORDecodeContext *pMe, bool *pbNextIsBreak)
  * @brief Ascend out of arrays and maps that have been fully consumed.
  *
  * @param[in] pMe       The decode context.
- * @param[in,out] pEnd  If level @c pEnd->uTargetLevel
+ * @param[in,out] pEnd  If not NULL and level @c pEnd->uTargetLevel
  *                      closes during this call, @c pEnd->uEndOffset is
  *                      set to the input offset just past its end.
  *                      Otherwise @c pEnd->uEndOffset is unchanged.
@@ -1762,9 +1762,10 @@ QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct ItemEndTra
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       }
 
-      /* --- The array/map at the current level has been consumed/closed --- */
+      /* --- The array/map at the current level has been consumed --- */
 
-      if(DecodeNesting_GetCurrentLevel(&(pMe->nesting)) == pEnd->uTargetLevel) {
+      if(pEnd &&
+         DecodeNesting_GetCurrentLevel(&(pMe->nesting)) == pEnd->uTargetLevel) {
          /* Record the end offset for particular level if requested */
          pEnd->uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
       }
