@@ -8222,6 +8222,9 @@ static const uint8_t spUnRecoverableMapError3[] = {
    0xbf, 0x02, 0x69, 0x64, 0x64, 0xff
 };
 
+/* [[_ [1]], 0] */
+static const uint8_t spIndefNestX[] = {0x82, 0x9F, 0x81, 0x01, 0xFF, 0x00};
+
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 const unsigned char not_well_formed_submod_section[] = {
@@ -8912,6 +8915,26 @@ int32_t EnterMapTest(void)
    uErr = QCBORDecode_GetAndResetError(&DCtx);
    if(uErr != QCBOR_ERR_DECODE_NESTING_TOO_DEEP) {
       return 2033;
+   }
+
+   /* [[_ [1]], 0] */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefNestX), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64 && Item1.val.int64 != 1) {
+      return 6700;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 6702;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_VGetNext(&DCtx, &Item1);
+   if(Item1.uDataType != QCBOR_TYPE_INT64 && Item1.val.int64 != 0) {
+      return 6700;
    }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
@@ -13080,6 +13103,10 @@ static const uint8_t spDefAndIndef[] = {
    0x82,
       0x9f, 0x9f, 0x9f, 0x82, 0x00, 0x9f, 0xff, 0xff, 0xff, 0xff, 0x00
 };
+
+/* CBOR sequence of indefinite array [1,2,3] followed by integer 9 */
+static const uint8_t spSeq9[] = {0x9F, 0x01, 0x02, 0x03, 0xFF, 0x09};
+
 #endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 #ifndef QCBOR_DISABLE_TAGS
@@ -13211,6 +13238,15 @@ int32_t GetMapAndArrayTest(void)
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSeq9), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+
+   /* Slice MUST contain 0xFF to be re-decodable CBOR. It does not. */
+   const uint8_t last = ((const uint8_t*)ReturnedEncodedCBOR.ptr)[ReturnedEncodedCBOR.len - 1];
+   if(last != 0xFF){
+       return 1;
+   }
+
 
    UsefulBufC DefAndIndef = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDefAndIndef);
    QCBORDecode_Init(&DCtx, DefAndIndef, 0);
