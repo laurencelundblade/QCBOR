@@ -932,6 +932,7 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
                                      const uint32_t      uEndOffset)
 {
    QCBORError uErr;
+   struct ItemEndTracker Dummy;
 
    /*
     * First the pre-order-traversal byte offset is positioned to the
@@ -954,7 +955,7 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     * level is reached.  It may do nothing, or ascend all the way to
     * the top level.
     */
-   uErr = QCBORDecode_Private_NestLevelAscender(pMe, NULL);
+   uErr = QCBORDecode_Private_NestLevelAscender(pMe, &Dummy);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
