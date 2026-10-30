@@ -49,6 +49,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix multiple bugs in QCBORDecode_GetDecimalFractionBig() and
   QCBORDecode_GetBigFloatBig() including infinite loops and incorrect
   results. (Sorry these bugs were so bad; test coverage is much expanded).
+- Fix QCBORDecode_GetArray() and QCBORDecode_GetMap() called on some indefinite
+  length arrays or maps nested in definite length arrays or maps. The returned
+  CBOR did not include the terminating break.
+- Exiting a definite-length array/map inside, and at the end of, an
+  indefinite-length array/map didn't fully complete the exit; nesting
+  tracking was off and a subsequet QCBORDecode_GetNext() succeeded that
+  should have failed.
+- QCBORDecode_GetArray(), QCBORDecode_GetMap() and QCBORDecode_VGetNextConsume()
+  now error out on recoverable errors; they didn't previously. This is
+  a small change in behavior. Behavior now aligns with documentation.
 
 
 ## [1.6.1] - 2025-03-03

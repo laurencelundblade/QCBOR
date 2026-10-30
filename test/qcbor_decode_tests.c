@@ -3895,7 +3895,7 @@ int32_t SpiffyDateDecodeTest(void)
 
    QCBORDecode_ExitArray(&DC);
    uError = QCBORDecode_Finish(&DC);
-   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT)) {
       return 1000 + (int32_t)uError;
    }
 #else /* QCBOR_DISABLE_TAGS */
@@ -7355,6 +7355,9 @@ static const uint8_t spUnRecoverableMapError3[] = {
    0xbf, 0x02, 0x69, 0x64, 0x64, 0xff
 };
 
+/* [[_ [1]], 0] */
+static const uint8_t spIndefNestX[] = {0x82, 0x9F, 0x81, 0x01, 0xFF, 0x00};
+
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 const unsigned char not_well_formed_submod_section[] = {
@@ -7424,6 +7427,7 @@ static const uint8_t spNested[] = {
    0x04, 0x81,                   /*   Map entry 4: [, an array of 1       */
       0xA0                       /*     Array entry {}, an empty map      */
 };
+
 
 
 static int32_t EnterMapCursorTest(void)
@@ -7646,6 +7650,7 @@ Get65ItemsTest(void)
 int32_t EnterMapTest(void)
 {
    QCBORItem          Item1;
+   QCBORItem          Item;
    QCBORDecodeContext DCtx;
    int32_t            nReturn;
    QCBORError         uErr;
@@ -7948,6 +7953,26 @@ int32_t EnterMapTest(void)
    if(uErr != QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP) {
       return 2033;
    }
+
+   /* [[_ [1]], 0] */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spIndefNestX), 0);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_EnterArray(&DCtx, NULL);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_INT64 && Item.val.int64 != 1) {
+      return 6700;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 6702;
+   }
+   QCBORDecode_ExitArray(&DCtx);
+   QCBORDecode_VGetNext(&DCtx, &Item);
+   if(Item.uDataType != QCBOR_TYPE_INT64 && Item.val.int64 != 0) {
+      return 6700;
+   }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
@@ -8020,7 +8045,7 @@ int32_t EnterMapTest(void)
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput2), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_TOO_MANY_TAGS) {
       return 2700;
    }
 
@@ -8215,7 +8240,6 @@ int32_t EnterMapTest(void)
    }
 
    /* Test QCBORDecode_GetItemInMapN (covered indireclty by many other tests) */
-   QCBORItem Item;
    QCBORDecode_GetItemInMapN(&DCtx, 1, QCBOR_TYPE_ANY, &Item);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_CALLBACK_FAIL) {
       return 4311;
@@ -10935,6 +10959,11 @@ static const uint8_t spDefAndIndef[] = {
    0x82,
       0x9f, 0x9f, 0x9f, 0x82, 0x00, 0x9f, 0xff, 0xff, 0xff, 0xff, 0x00
 };
+
+
+/* CBOR sequence of indefinite array [1,2,3] followed by integer 9 */
+static const uint8_t spSeq9[] = {0x9F, 0x01, 0x02, 0x03, 0xFF, 0x09};
+
 #endif /* !QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 #ifndef QCBOR_DISABLE_TAGS
@@ -10944,6 +10973,7 @@ static const uint8_t spExpMant[] = {0x81, 0x81, 0xC4, 0x82, 0x20, 0x03};
 #endif
 
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+
 
 /* Simple value 1, not well formed */
 static const uint8_t spNWF[] = {0xf8, 0x01};
@@ -10957,6 +10987,7 @@ int32_t GetMapAndArrayTest(void)
    size_t             uPosition ;
    QCBORItem          Item;
    UsefulBufC         ReturnedEncodedCBOR;
+
 
    // Improvement: rework so it can run with QCBOR_DISABLE_NON_INTEGER_LABELS
    QCBORDecode_Init(&DCtx,
@@ -11104,6 +11135,15 @@ int32_t GetMapAndArrayTest(void)
 
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spSeq9), QCBOR_DECODE_MODE_NORMAL);
+   QCBORDecode_GetArray(&DCtx, &Item, &ReturnedEncodedCBOR);
+
+   /* Slice MUST contain 0xFF to be re-decodable CBOR. It does not. */
+   const uint8_t last = ((const uint8_t*)ReturnedEncodedCBOR.ptr)[ReturnedEncodedCBOR.len - 1];
+   if(last != 0xFF){
+       return 1;
+   }
 
    UsefulBufC DefAndIndef = UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spDefAndIndef);
    QCBORDecode_Init(&DCtx, DefAndIndef, 0);

@@ -1854,35 +1854,44 @@ QCBOR_Private_NextIsBreak(QCBORDecodeContext *pMe, bool *pbNextIsBreak)
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
+/* Used by QCBORDecode_GetArray()/GetMap() to find the end of the
+ * target array/map. uEndOffset is set to the cursor right after each
+ * item's head is decoded and is overridden with the cursor at the
+ * moment the target's own nesting level is closed out, before any
+ * enclosing levels (and their breaks) are ascended. */
+struct ItemEndTracker {
+   uint8_t uTargetLevel;
+   size_t  uEndOffset;
+};
+
+
 /**
  * @brief Ascend up nesting levels if all items in them have been consumed.
  *
  * @param[in] pMe       The decode context.
- * @param[in] bMarkEnd  If true mark end of maps/arrays with count of zero.
- * @param[out] pbBreak  Set to true if extra break was consumed.
+ * @param[in,out] pEnd  If not NULL, records the input offset at which
+ *                      the level @c pEnd->uTargetLevel is closed out.
  *
  * An item was just consumed, now figure out if it was the
  * end of an array/map map that can be closed out. That
  * may in turn close out the above array/map...
  *
- * When ascending indefinite-length arrays and maps, this will correctly
- * consume the break for the level above. This is a problem for the
- * implementation of QCBORDecode_GetArray() that must not return
- * that break. @c pbBreak is set to true to indicate that one
- * byte should be removed.
+ * When ascending indefinite-length arrays and maps, this consumes
+ * the breaks for all the levels it closes, including levels above
+ * the array/map that QCBORDecode_GetArray() or QCBORDecode_GetMap()
+ * is fetching. Those breaks must not be included in what they return,
+ * so the offset right after the target level closes is recorded in
+ * @c pEnd.
  *
  * Improvement: this could reduced further if indef is disabled
  */
 static QCBORError
-QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd, bool *pbBreak)
+QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct ItemEndTracker *pEnd)
 {
    QCBORError uReturn;
 
    /* Loop ascending nesting levels as long as there is ascending to do */
    while(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
-      if(pbBreak) {
-         *pbBreak = false;
-      }
 
       if(DecodeNesting_IsCurrentBstrWrapped(&(pMe->nesting))) {
          /* Nesting level is bstr-wrapped CBOR */
@@ -1924,27 +1933,25 @@ QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd, bo
          /* It was a break in an indefinitelength map / array so
           * it is time to ascend one level.
           */
-         if(pbBreak) {
-            *pbBreak = true;
-         }
 
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       }
 
 
       /* All items in the array/map have been consumed. */
+      if(pEnd != NULL &&
+         DecodeNesting_GetCurrentLevel(&(pMe->nesting)) == pEnd->uTargetLevel) {
+         pEnd->uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+      }
 
       /* But ascent in bounded mode is only by explicit call to
        * QCBORDecode_ExitBoundedMode().
        */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for definite-length arrays to indicate
-         * cursor is at end of bounded array/map */
-         if(bMarkEnd) {
-            /* Used for definite and indefinite to signal end */
-            DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
-
-         }
+          * cursor is at end of bounded array/map. */
+         /* Used for definite and indefinite to signal end */
+         DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
          break;
       }
 
@@ -1966,7 +1973,7 @@ Done:
  * @brief Ascending & Descending out of nesting levels (decode layer 2).
  *
  * @param[in] pMe            Decoder context
- * @param[out] pbBreak       Set to true if extra break was consumed.
+ * @param[in,out] pEnd       Passed to QCBORDecode_Private_NestLevelAscender(); can be NULL.
  * @param[out] pDecodedItem  The decoded item that work is done on.
 
  * @retval QCBOR_ERR_UNSUPPORTED             Encountered unsupported/reserved
@@ -2006,9 +2013,9 @@ Done:
  * top-level sequence and of bstr-wrapped CBOR by byte count.
  */
 static QCBORError
-QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
-                                      bool               *pbBreak,
-                                      QCBORItem          *pDecodedItem)
+QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext    *pMe,
+                                      struct ItemEndTracker *pEnd,
+                                      QCBORItem             *pDecodedItem)
 {
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
@@ -2042,9 +2049,11 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
       goto Done;
    }
 
-   /* Record the nesting level for this data item before processing
-    * any of decrementing and descending.
-    */
+   /* Record the nesting level and offset for this data item before processing
+    * any of decrementing and descending. */
+   if(pEnd != NULL) {
+      pEnd->uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+   }
    pDecodedItem->uNestingLevel = DecodeNesting_GetCurrentLevel(&(pMe->nesting));
 
 
@@ -2089,7 +2098,7 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
        * to the top level.
        */
       QCBORError uAscendErr;
-      uAscendErr = QCBORDecode_Private_NestLevelAscender(pMe, true, pbBreak);
+      uAscendErr = QCBORDecode_Private_NestLevelAscender(pMe, pEnd);
       if(uAscendErr != QCBOR_SUCCESS) {
          /* This error is probably a traversal error and it overrides
           * the non-traversal error.
@@ -3134,8 +3143,7 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
  * @param[in]  pMe              The decoder context.
  * @param[in]  pItemToConsume   The array/map whose contents are to be
  *                              consumed.
- * @param[out] pbBreak          Set to true if extra break was consumed.
- *                              Can be NULL.
+ * @param[in,out] pEnd          Tracks where the target ends. Can be NULL.
  * @param[out] puNextNestLevel  The next nesting level after the item was
  *                              fully consumed.
  *
@@ -3144,10 +3152,10 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
  * since there is nothing to do.
  */
 static QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
-                                bool               *pbBreak,
-                                uint8_t            *puNextNestLevel)
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
+                                const QCBORItem       *pItemToConsume,
+                                struct ItemEndTracker *pEnd,
+                                uint8_t               *puNextNestLevel)
 {
    QCBORError uReturn;
    QCBORItem  Item;
@@ -3159,19 +3167,12 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
       /* There is only real work to do for non-empty maps and arrays */
 
       /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level
-       */
+       * arrays by using the nesting level */
       do {
-         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbBreak, &Item);
-         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
-            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-            goto Done;
-         }
-      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item);
+      } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
       *puNextNestLevel = Item.uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
 
    } else {
       /* pItemToConsume is not a map or array. Just pass the nesting
@@ -3181,8 +3182,7 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
       uReturn = QCBOR_SUCCESS;
    }
 
-Done:
-    return uReturn;
+   return uReturn;
 }
 
 
@@ -3637,14 +3637,22 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    size_t     uTempSaveCursor;
    bool       bInMap;
    QCBORItem  LabelItem;
-   bool       EndedByBreak = false;
+   struct ItemEndTracker End;
+
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return;
+   }
 
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
 
+
+   /* Set up to find the end offset */
+   End.uTargetLevel = (uint8_t)(DecodeNesting_GetCurrentLevel(&(pMe->nesting)) + 1);
+
    /* Could call GetNext here, but don't need to because this
     * is only interested in arrays and maps. */
-   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem);
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, &End, pItem);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       return;
@@ -3688,19 +3696,14 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    }
 
    /* Consume the entire array/map to find the end */
-   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &EndedByBreak, &uNestLevel);
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &End, &uNestLevel);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       goto Done;
    }
 
    /* Fill in returned values */
-   uEndOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
-   if(EndedByBreak) {
-      /* When ascending nesting levels, a break for the level above
-       * was consumed. That break is not a part of what is consumed here. */
-      uEndOfReturned--;
-   }
+   uEndOfReturned = End.uEndOffset;
    pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf), uStartOfReturned);
    pEncodedCBOR->len = uEndOfReturned - uStartOfReturned;
 
@@ -4253,7 +4256,7 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     * level is reached.  It may do nothing, or ascend all the way to
     * the top level.
     */
-   uErr = QCBORDecode_Private_NestLevelAscender(pMe, false, NULL);
+   uErr = QCBORDecode_Private_NestLevelAscender(pMe, NULL);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
