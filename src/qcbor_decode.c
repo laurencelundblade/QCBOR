@@ -1949,7 +1949,7 @@ QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct ItemEndTra
        */
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
          /* Set the count to zero for definite-length arrays to indicate
-         * cursor is at end of bounded array/map */
+          * cursor is at end of bounded array/map. */
          /* Used for definite and indefinite to signal end */
          DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
          break;
@@ -2048,13 +2048,12 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext    *pMe,
       /* Error is so bad that traversal is not possible. */
       goto Done;
    }
+
+   /* Record the nesting level and offset for this data item before processing
+    * any of decrementing and descending. */
    if(pEnd != NULL) {
       pEnd->uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
    }
-
-   /* Record the nesting level for this data item before processing
-    * any of decrementing and descending.
-    */
    pDecodedItem->uNestingLevel = DecodeNesting_GetCurrentLevel(&(pMe->nesting));
 
 
@@ -3168,19 +3167,12 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
       /* There is only real work to do for non-empty maps and arrays */
 
       /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level
-       */
+       * arrays by using the nesting level */
       do {
          uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item);
-         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
-            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-            goto Done;
-         }
-      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+      } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
       *puNextNestLevel = Item.uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
 
    } else {
       /* pItemToConsume is not a map or array. Just pass the nesting
@@ -3190,8 +3182,7 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
       uReturn = QCBOR_SUCCESS;
    }
 
-Done:
-    return uReturn;
+   return uReturn;
 }
 
 

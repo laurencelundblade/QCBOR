@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   indefinite-length array/map didn't fully complete the exit; nesting
   tracking was off and a subsequet QCBORDecode_GetNext() succeeded that
   should have failed.
+- QCBORDecode_GetArray(), QCBORDecode_GetMap() and QCBORDecode_VGetNextConsume()
+  now error out on recoverable errors; they didn't previously.
 
 
 ## [1.6.1] - 2025-03-03
