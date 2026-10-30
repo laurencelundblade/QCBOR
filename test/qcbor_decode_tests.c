@@ -3895,7 +3895,7 @@ int32_t SpiffyDateDecodeTest(void)
 
    QCBORDecode_ExitArray(&DC);
    uError = QCBORDecode_Finish(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC_NO_FLOAT_HW(QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT)) {
+   if(uError != FLOAT_ERR_CODE_NO_HALF_PREC(QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT)) {
       return 1000 + (int32_t)uError;
    }
 #else /* QCBOR_DISABLE_TAGS */
