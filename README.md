@@ -550,6 +550,7 @@ EAT and CWT.
 * Dave Thaler for portability to Windows
 * Maksim Hayder for QCBORDecode_GetItemsInMap() security report
 * Brian Sipos for lots of packaging, CI and release stuff
+* Jujian for finding and reporting some bugs and security issues
 
 
 ### Copyright for this README
