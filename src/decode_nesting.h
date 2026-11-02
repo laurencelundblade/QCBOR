@@ -51,7 +51,6 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
 }
 
 
-
 static inline bool
 DecodeNesting_IsBoundedType(const QCBORDecodeNesting *pNesting, uint8_t uType)
 {
@@ -397,7 +396,6 @@ DecodeNesting_LevelUpBounded(QCBORDecodeNesting *pNesting)
       }
    }
 }
-
 
 
 
