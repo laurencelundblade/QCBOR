@@ -1,42 +1,45 @@
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-## QCBOR 2.0 Alpha
+## QCBOR 2.0 Beta
 
-This is a QCBOR 2.0 alpha release. It is suitable for test and prototyping,
-but not commerical use. The planned 2.0 changes are in, but they are
-not fully tested or documented. The interface is also subject to change.
+This is a QCBOR 2.0 beta release. It is suitable for test and prototyping,
+but not commerical use. The planned 2.0 changes are complete and stable,
+but they are not fully tested or documented.
 
 QCBOR 2.0 is compatible with 1.0 with one exception that can be overriden
 with a call to QCBORDecode_Compatibilityv1().
 
 Please file issues found with this release in GitHub.
 
-### Major Changes
+## Differences between QCBOR v1 and v2
 
-* Unexpected tag numbers are not silently ignored unless in v1 compatibility
-mode. This is more correct decoding behavior.
-
-* New API to explicitly decode tag numbers to make tag numbers easier to
-work with.
-
-* Plug-in API scheme for custom tag content processors.
-
-* Streamed encoding mode -- encoded output doesn't have to fit in one buffer
-
-* Indefinite-length string encoding
-
-* Sort maps and check for duplicate labels when encoding.
-
-* Encode modes for dCBOR, deterministic and preferred serialization.
-
-* Decode modes that check for conformance with dCBOR, deterministic and preferred serialization.
-
-* Full support for preferred serialization of big numbers, decimal fractions and big numbers.
-
-* Full support for 65-bit negative integers.
-
-* The decoding interface is split into four files (sources files are too).
+- **Improved tag handling**
+  - Tag numbers that aren't processed now cause a decode error instead of
+    being silently ignored. This is more correct decoding behavior; the v1
+    behavior is still available in a compatibility mode.
+  - New API for explicitly decoding tag numbers, which makes them easier
+    to work with
+  - Plug-in scheme for custom tag content decoders
+- **Serialization modes and conformance checking**
+  - Encode modes for preferred-plus serialization, deterministic encoding
+    and dCBOR
+  - Map sorting and duplicate label detection when encoding
+  - Decode modes that check input for conformance with preferred-plus
+    serialization, deterministic encoding and dCBOR
+  - QCBOR has always rejected input that isn't well-formed. These modes add
+    checks beyond well-formedness.
+- **Improved number handling**
+  - Full support for preferred-plus serialization of big numbers, decimal
+    fractions and big floats
+  - Full support for 65-bit negative integers (down to -2^64)
+- **Encoding in low-memory environments**
+  - Streamed encoding mode, so the encoded output doesn't have to fit
+    in one buffer
+  - Indefinite-length string encoding
+- **Reorganized headers**
+  - The public interface is split into several header files,
+    grouped by function
 
 ### Compatibility with QCBOR v1
 
@@ -160,14 +163,13 @@ QCBOR.
 
 ## Code Status
 
-This is the 2.0 alpha release. It has large changes and feature
+This is the 2.0 beta release. It has large changes and feature
 additions. It's not ready for commericial use yet. The main short
-coming is the need for more testing of the newer features. It will
-go through alpha, then to beta and then to an official 2.0
-commerical release sometimes in 2025.
+coming is the need for more testing of the newer features. Commercial
+release is planned for 2027.
 
-The official QCBOR commercial quality release (as of this writing) is QCBOR 1.6. It
-is very stable. Only small fixes and features additions have been
+The official QCBOR commercial quality release (as of this writing) is
+QCBOR 1.7. It is very stable. Only small fixes and features additions have been
 made to it over the last years.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
@@ -205,5 +207,5 @@ EAT and CWT.
 
 ### Copyright for this README
 
-Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
 Copyright (c) 2021-2023, Arm Limited. All rights reserved.
