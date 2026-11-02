@@ -9008,7 +9008,8 @@ int32_t EnterMapTest(void)
 #ifndef QCBOR_DISABLE_TAGS
    QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput2), 0);
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
-   if(QCBORDecode_GetError(&DCtx) != QCBOR_SUCCESS) {
+#define EXPECTED_ERR_INPUT2 (QCBOR_MAX_TAGS_PER_ITEM < 5 ? QCBOR_ERR_TOO_MANY_TAGS : QCBOR_SUCCESS)
+   if(QCBORDecode_GetError(&DCtx) != EXPECTED_ERR_INPUT2) {
       return 2700;
    }
 

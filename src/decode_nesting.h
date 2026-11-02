@@ -44,12 +44,12 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
       /* Is indefinite */
       return false;
    }
-
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* All checks passed; is a definte length map or array */
    return true;
 }
+
 
 
 static inline bool
@@ -397,6 +397,7 @@ DecodeNesting_LevelUpBounded(QCBORDecodeNesting *pNesting)
       }
    }
 }
+
 
 
 

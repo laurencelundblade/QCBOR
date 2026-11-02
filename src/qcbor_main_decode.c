@@ -118,6 +118,17 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
    return true;
 }
 
+
+/* Test for array/map being empty based on nest levels. This works
+ * on definite or indefinite lengths. This only works on arrays
+ * and maps. */
+static bool
+QCBORItem_IsEmpty(const QCBORItem Item)
+{
+   return Item.uNextNestLevel <= Item.uNestingLevel;
+}
+
+
 /* This must be called on a map or array */
 static bool
 QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem Item)
@@ -1694,6 +1705,7 @@ QCBOR_Private_NextIsBreak(QCBORDecodeContext *pMe, bool *pbNextIsBreak)
 
    return QCBOR_SUCCESS;
 }
+
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
@@ -1834,10 +1846,10 @@ QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct ItemEndTra
  * top-level sequence and of bstr-wrapped CBOR by byte count.
  */
 QCBORError
-QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
+QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext    *pMe,
                                       struct ItemEndTracker *pEnd,
-                                      QCBORItem          *pDecodedItem,
-                                      uint32_t *puLabelEndOffset)
+                                      QCBORItem             *pDecodedItem,
+                                      uint32_t              *puLabelEndOffset)
 {
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
@@ -2015,63 +2027,69 @@ Done:
 
 
 /**
- * @brief Consume an entire map or array including its contents.
+ * @brief Consume an item, including everything in it if it is an array or map.
  *
  * @param[in]  pMe              The decoder context.
- * @param[in]  pItemToConsume   The array/map whose contents are to be
- *                              consumed.
- * @param[out] pbEndedByBreak   Indicate if consumption was ended by a
- *                              break.  May be NULL. The indication is
- *                              only set if the result is true, so the
- *                              contents of this pointer should be set
- *                              to false before calling this.
- * @param[out] puNextNestLevel  The next nesting level after the item was
- *                              fully consumed.
+ * @param[in]  pItemToConsume   The item most recently decoded by
+ *                              QCBORDecode_Private_GetNextMapOrArray().
+ *                              The cursor must still be right after it.
+ * @param[in,out] pEnd          Passed on to
+ *                              QCBORDecode_Private_GetNextMapOrArray() to
+ *                              record where a nesting level ends. May be
+ *                              NULL.
+ * @param[out] puNextNestLevel  The nesting level of the item that follows
+ *                              @c pItemToConsume. Not set when traversal
+ *                              stops early.
  *
- * This may be called when @c pItemToConsume is not an array or
- * map. In that case, this is just a pass through for @c puNextNestLevel
- * since there is nothing to do.
+ * @retval QCBOR_SUCCESS            Everything was consumed without error.
+ * @retval QCBOR_ERR_NO_MORE_ITEMS  Input ended before the array or map
+ *                                  did. Traversal stopped.
+ *
+ * Any other error is either unrecoverable, in which case traversal
+ * stopped at it, or the first recoverable error in the contents, in
+ * which case everything was still consumed.
+ *
+ * Only a non-empty array or map opens a nesting level, that is, has a
+ * @c uNextNestLevel deeper than its own @c uNestingLevel. For anything
+ * else there is nothing to consume, and this only passes
+ * @c uNextNestLevel through.
+ *
+ * Otherwise this gets items until one closes the level the array or
+ * map opened. Using nesting levels this way works for both definite
+ * and indefinite lengths.
+ *
+ * Recoverable errors don't stop the traversal, so the cursor still ends
+ * up after the array or map and decoding can continue. Each caller
+ * decides whether the error matters: QCBORDecode_VGetNextConsume() and
+ * QCBORDecode_GetArray() report it, and map searches ignore it.
  */
 QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
+                                const QCBORItem       *pItemToConsume,
                                 struct ItemEndTracker *pEnd,
-                                uint8_t            *puNextNestLevel)
+                                uint8_t               *puNextNestLevel)
 {
-   QCBORError uReturn;
-   QCBORItem  Item;
+   QCBORError  uReturn;
+   QCBORItem   Item;
 
-   /* If it is a map or array, this will tell if it is empty. */
-   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
-
-   if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
-      /* There is only real work to do for non-empty maps and arrays */
-
-      /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level
-       */
-      do {
-         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
-         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
-            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-            goto Done;
-         }
-      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
-
-      *puNextNestLevel = Item.uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
-
-   } else {
-      /* pItemToConsume is not a map or array. Just pass the nesting
-       * level through. */
+   if(!QCBORItem_IsMapOrArray(*pItemToConsume) || QCBORItem_IsEmpty(*pItemToConsume)) {
+      /* Item to consume is either not an array/map or is an empty
+       * array/map. Nothing to do but pass on the nesting level */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
+      return QCBOR_SUCCESS;
    }
 
-Done:
-    return uReturn;
+   /* Pre-order traversal to consume all the items in the non-empty array/map */
+   do {
+      uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
+
+      /* This works for definite- and indefinite-length maps and
+       * arrays by using the nesting level */
+   } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+
+   *puNextNestLevel = Item.uNextNestLevel;
+
+   return uReturn;
 }
 
 

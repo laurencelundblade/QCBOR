@@ -316,7 +316,7 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * This traverses the whole array and every subordinate array or map in
  * it. This is necessary to determine the length of the array.
  *
- * This will fail if any item in the array is not well-formed.
+ * This will fail if any item in the array is in error.
  *
  * This uses a few hundred bytes of stack, more than most methods.
  *
@@ -467,7 +467,7 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  * it. This is necessary to determine the length of the map. The
  * traversal cursor is left at the first item after the map.
  *
- * This will fail if any item in the map is not well-formed.
+ * This will fail if any item in the map is in error.
  *
  * This uses a few hundred bytes of stack, more than most methods.
  *
