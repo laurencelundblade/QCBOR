@@ -1516,12 +1516,6 @@ uint64_t
 QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
                                    const uint16_t            uMappedTagNumber);
 
-/** @private  Semi-private function. See qcbor_decode.c */
-QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
-                                bool               *pbEndedByBreak,
-                                uint8_t            *puNextNestLevel);
 
 /** @private  Semi-private function. See qcbor_decode.c */
 QCBORError
@@ -1531,10 +1525,28 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
                                   QCBORItem          *pDecodedItem);
 
 /** @private  Semi-private function. See qcbor_decode.c */
+
+/* Used by QCBORDecode_GetArray()/GetMap() to find the end of the
+ * target array/map. uEndOffset is set to the cursor right after each
+ * item's head is decoded and is overridden with the cursor at the
+ * moment the target's own nesting level is closed out, before any
+ * enclosing levels (and their breaks) are ascended. */
+struct ItemEndTracker {
+   uint8_t uTargetLevel;
+   size_t  uEndOffset;
+};
+
 QCBORError
-QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe,
-                                      bool                bMarkEnd,
-                                      bool               *pbBreak);
+QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext    *pMe,
+                                      struct ItemEndTracker  *pEnd);
+
+/** @private  Semi-private function. See qcbor_decode.c */
+QCBORError
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
+                                const QCBORItem    *pItemToConsume,
+                                struct ItemEndTracker *pEnd,
+                                uint8_t            *puNextNestLevel);
+
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 static inline void
