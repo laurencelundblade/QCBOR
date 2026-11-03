@@ -1,5 +1,7 @@
 # Changelog
 
+See README.md for the differences between QCBOR v1.x and v2.0.
+
 All notable changes to QCBOR are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
