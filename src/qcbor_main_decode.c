@@ -123,7 +123,7 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
  * on definite or indefinite lengths. This only works on arrays
  * and maps. */
 static bool
-QCBORItem_IsEmpty(const QCBORItem Item)
+QCBORItem_IsEmptyArrayOrMap(const QCBORItem Item)
 {
    return Item.uNextNestLevel <= Item.uNestingLevel;
 }
@@ -2072,9 +2072,9 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
    QCBORError  uReturn;
    QCBORItem   Item;
 
-   if(!QCBORItem_IsMapOrArray(*pItemToConsume) || QCBORItem_IsEmpty(*pItemToConsume)) {
-      /* Item to consume is either not an array/map or is an empty
-       * array/map. Nothing to do but pass on the nesting level */
+   if(!QCBORItem_IsMapOrArray(*pItemToConsume) ||
+      QCBORItem_IsEmptyArrayOrMap(*pItemToConsume)) {
+      /* Nothing to do but pass on the nesting level */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
       return QCBOR_SUCCESS;
    }
@@ -2083,8 +2083,7 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
    do {
       uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
 
-      /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level */
+      /* Nest level end detection works for definite and indefinite lengths */
    } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
    *puNextNestLevel = Item.uNextNestLevel;
@@ -2547,8 +2546,8 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    }
 
    /* Fill in returned values */
-   uEndOfReturned = End.uEndOffset;
-    pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf), uStartOfReturned);
+   uEndOfReturned    = End.uEndOffset;
+   pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf), uStartOfReturned);
    pEncodedCBOR->len = uEndOfReturned - uStartOfReturned;
 
 Done:
