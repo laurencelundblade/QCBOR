@@ -68,6 +68,13 @@
 //#define QCBOR_DISABLE_ENCODE_USAGE_GUARDS
 
 
+/**
+ *`QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
+ * fractions and big floats.
+ */
+//#define QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+
+
 /** Indefinite lengths are a feature of CBOR that makes encoding simpler
  * and the decoding more complex. They allow the encoder to not have to
  * know the length of a string, map, or array when they start encoding
@@ -100,13 +107,6 @@
  * recognition of these from a major type 6 tag.
  */
 //#define QCBOR_DISABLE_UNCOMMON_TAGS
-
-
-/**
- *`QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
- * fractions and big floats.
- */
-//#define QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
 
 
 /**
