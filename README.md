@@ -43,30 +43,46 @@ Please file issues found with this release in GitHub.
 
 ### Compatibility with QCBOR v1
 
-QCBOR v1 does not error out when a tag number occurs where it is not
-expected. QCBOR v2 does. Tag numbers really do change the type of an
-item, so it is more correct to error out.
+QCBOR v2 handles tag numbers more strictly than v1. A tag number changes
+the type of the item it applies to, so ignoring an unrecognized tag
+number can silently produce a wrong result. For this reason, v2 reports
+an error when a tag number is not processed. QCBOR v1 ignored such tag
+numbers.
 
-For many protocols, the v2 behavior produces a more correct implementation,
-so it is often better to not return to QCBOR v1 behavior.
+In QCBOR v2, every tag number must be consumed in one of three ways:
 
-Another difference is that the tag content decoders for big numbers,
-big floats, URIs and such are not enabled by default. These are
-what notices the things like the big number and big float tags,
-decodes them and turns them into QCBOR types for big numbers and floats.
+- Explicitly, by calling `QCBORDecode_VGetNextTagNumber()`.
+- By a tag content decoder, such as `QCBORDecode_DateEpochTagCB()`,
+  installed with `QCBORDecode_InstallTagDecoders()`.
+- By a spiffy decode function that expects the tag, such as
+  `QCBORDecode_GetTBigNumber()`.
 
-QCBORDecode_Compatibilityv1() disables the error out on unprocessed
-tag numbers and installs the same tag content decoders that v1 had.
+If a tag number is not consumed in one of these ways, decoding fails
+with `QCBOR_ERR_UNPROCESSED_TAG_NUMBER`.
 
-The tag number decoders can be installed with the retention of
-erroring out on unprocessed tag numbers by calling
-QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
+The second difference is that v2 does not install any tag content
+decoders by default. In v1, tags such as big numbers, big floats, and
+URIs were recognized automatically and converted to the corresponding
+QCBOR types. In v2, you must install these decoders yourself.
 
-QCBOR v2 requires tag numbers to be consumed in one of three ways.
-It may be consumed explicitly with QCBORDecode_VGetNextTagNumber().
-It may be consumed by a tag content process or like QCBORDecode_DateEpochTagCB()
-installed with QCBORDecode_InstallTagDecoders(). It may be
-consumed with a spiffy decode function like QCBORDecode_GetTBigNumber().
+For many protocols, the stricter v2 behavior gives a more correct
+implementation, so restore v1 behavior only if you need it. There are
+three options:
+
+- To get full v1 behavior, call `QCBORDecode_CompatibilityV1()`. This
+  disables the error for unprocessed tag numbers and installs the same
+  tag content decoders that v1 used.
+
+- To install the v1 tag content decoders but keep the error for
+  unprocessed tag numbers, call:
+
+  ```c
+  QCBORDecode_InstallTagDecoders(pMe, QCBORDecode_TagDecoderTablev1, NULL);
+  ```
+
+- To relax the tag number consumption requirement without
+  installing the tag content decoders, set
+  `QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS`
 
 ## Manifesto
 
