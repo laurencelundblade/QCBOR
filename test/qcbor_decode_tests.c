@@ -7819,6 +7819,11 @@ static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
       QCBOR_DECODE_MODE_NORMAL,
       {"\xC4\xA2", 2},
       QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"Recursion limit",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80", 20},
+      QCBOR_ERR_TAG_NESTING_TOO_DEEP
    }
 };
 
