@@ -152,9 +152,62 @@ enum QCBORDecodeTagReq {
 };
 
 
-
-
 #ifndef QCBOR_DISABLE_TAGS
+/**
+ * @brief Set the maximum nesting of tag content decoders.
+ *
+ * @param[in] pCtx  The decode context.
+ * @param[in] uMax  Maximum nesting depth of tag content decoders.
+ *
+ * This bounds stack use when decoding input that may be malicious by
+ * limiting how deeply tag content decoders may nest. It applies to
+ * all tag content decoders installed with
+ * QCBORDecode_InstallTagDecoders(), including those in
+ * @ref QCBORDecode_TagDecoderTablev1.
+ *
+ * A tag content decoder nests when it fetches more items while it
+ * runs and one of them causes another tag content decoder to run. For
+ * example, the big float decoder fetches the exponent and mantissa. If
+ * the mantissa is a big number, the big number decoder runs inside the
+ * big float decoder. That is one level of nesting.
+ *
+ * Without a limit, input can nest without bound. A big float whose
+ * exponent or mantissa is another big float is invalid, but the inner
+ * one is decoded before the error is detected, and the same is true
+ * at every level.
+ *
+ * With @c uMax of 0, a tag content decoder may run but may not cause
+ * another one to run. With N, decoders may nest N levels deep, so at
+ * most N + 1 run at once. Fetching items that have no tag numbers, or
+ * whose tag numbers have no installed decoder, does not count.
+ *
+ * Exceeding the limit results in @ref QCBOR_ERR_TAG_NESTING_TOO_DEEP.
+ *
+ * The default is 8, intended for environments that are not short of
+ * stack. Stack use per level depends on the decoder. The big float
+ * and decimal fraction decoders use about 250 bytes per level on a
+ * 64-bit target, so the default limits nested big floats to about
+ * 2KB. Other decoders may use much less or much more. The worst case
+ * is roughly (uMax + 1) times the largest per-level stack use of the
+ * installed decoders.
+ *
+ * Environments with small stacks may set this lower, even to 0. Of
+ * the decoders QCBOR provides, only the big float and decimal
+ * fraction decoders nest. With 0, a big float or decimal fraction
+ * whose mantissa is a big number fails with
+ * @ref QCBOR_ERR_TAG_NESTING_TOO_DEEP. Those with integer mantissas
+ * decode normally.
+ *
+ * If tags are completely disabled with @ref QCBOR_DISABLE_TAGS, there
+ * are no tag content decoders and no possibility of recursion.
+ *
+ * This limit is separate from @ref QCBOR_MAX_ARRAY_NESTING, which
+ * limits the nesting of arrays, maps and byte-string-wrapped CBOR.
+ */
+static void
+QCBORDecode_SetMaxTagNesting(QCBORDecodeContext *pCtx, uint8_t uMax);
+
+
 /**
  * @brief Get the next tag number.
  *
@@ -881,6 +934,10 @@ QCBORDecode_GetTBinaryUUIDInMapSZ(QCBORDecodeContext    *pCtx,
  * big number content decoder will fire first and the big float
  * decoder will get @ref QCBOR_TYPE_POSBIGNUM instead of a tag number and
  * a byte string.
+ *
+ * Installed tag content decoders may result in recursive calls or calls to other
+ * tag content decoders. QCBOR limits this to protect the stack. See
+ * QCBORDecode_SetMaxTagNesting().
  */
 typedef QCBORError (QCBORTagContentCallBack)(QCBORDecodeContext *pCtx,
                                              void               *pTagDecodersContext,
@@ -1439,6 +1496,14 @@ QCBOR_Private_BigNumConformance(UsefulBufC BigNum){
 
 
 #ifndef QCBOR_DISABLE_TAGS
+
+static inline void
+QCBORDecode_SetMaxTagNesting(QCBORDecodeContext *pMe, uint8_t uMax)
+{
+   pMe->uTagContentNestMax = uMax;
+}
+
+
 static inline void
 QCBORDecode_InstallTagDecoders(QCBORDecodeContext                *pMe,
                                const struct QCBORTagDecoderEntry *pTagDecoderTable,

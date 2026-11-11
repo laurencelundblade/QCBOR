@@ -228,6 +228,7 @@ QCBORDecode_Init(QCBORDecodeContext *pMe,
    memset(pMe->auMappedTagNumbers, 0xff, sizeof(pMe->auMappedTagNumbers));
 
    pMe->uTagNumberCheckOffset = SIZE_MAX;
+   pMe->uTagContentNestMax = 8;
 }
 
 
@@ -1982,14 +1983,19 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
    QCBORError uErr;
 
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem, NULL);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
+   }
 
 #ifndef QCBOR_DISABLE_TAGS
    uint64_t   uTagNumber;
    int        nTagIndex;
    const struct QCBORTagDecoderEntry *pTagDecoder;
 
-   if(uErr != QCBOR_SUCCESS) {
-      goto Done;
+   /* Guard stack against malicious input causing recursive tag decodes */
+   if(pMe->uTagContentNest > pMe->uTagContentNestMax) {
+      pMe->uTagContentNest = 0;
+      return QCBOR_ERR_TAG_NESTING_TOO_DEEP;
    }
 
    /* Loop over tag numbers in reverse, those closest to content first */
@@ -2007,10 +2013,13 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
       }
 
       /* Call the content decoder */
+      pMe->uTagContentNest++;
       uErr = pTagDecoder->pfContentDecoder(pMe,
                                            pMe->pTagDecodersContext,
                                            pTagDecoder->uTagNumber,
                                            pDecodedItem);
+      pMe->uTagContentNest--;
+
       if(uErr != QCBOR_SUCCESS) {
          break; /* Error exit from the loop */
       }
@@ -2018,8 +2027,6 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
       /* Remove tag number from list since its content was decoded */
       pDecodedItem->auTagNumbers[nTagIndex] = CBOR_TAG_INVALID16;
    }
-
-Done:
 #endif /* ! QCBOR_DISABLE_TAGS */
 
    return uErr;

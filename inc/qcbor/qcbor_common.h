@@ -659,6 +659,9 @@ typedef enum {
    /** Trying to do something that is not allowed. */
    QCBOR_ERR_NOT_ALLOWED = 93,
 
+   // TODO: 
+   QCBOR_ERR_TAG_NESTING_TOO_DEEP = 94,
+
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
