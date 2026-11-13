@@ -1,5 +1,5 @@
 
-![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
+![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/dev/v2logo.png?raw=true)
 
 ## QCBOR 2.0 Beta
 
