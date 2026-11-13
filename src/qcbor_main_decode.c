@@ -2169,7 +2169,7 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
                                          uCompareLabelStart, uCompareLabelLen,
                                          uLabelStart, uLabelLen);
       if(nCompare == 0) {
-         uErr = QCBOR_ERR_DUPLICATE_LABEL;
+         uErr = QCBOR_ERR_DECODE_DUPLICATE_LABEL;
          break;
       }
 

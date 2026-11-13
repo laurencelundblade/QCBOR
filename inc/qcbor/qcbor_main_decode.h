@@ -1374,6 +1374,8 @@ QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
  *
  * @param[in] uErr    The QCBOR error code.
  * @return @c true if the error code indicates non-well-formed CBOR.
+ *
+ * The input to decode is not well-formed according to RFC 8949.
  */
 static bool
 QCBORDecode_IsNotWellFormedError(QCBORError uErr);
@@ -1395,11 +1397,33 @@ QCBORDecode_IsNotWellFormedError(QCBORError uErr);
  * unrecoverable error because the internal decoding doesn't try to
  * decode everything in the tag.
  *
+ * All not-well formed errors per QCBORDecode_IsNotWellFormedError()
+ * are included here.
+ *
  * The unrecoverable errors are a range of the errors in
  * @ref QCBORError.
  */
 static bool
 QCBORDecode_IsUnrecoverableError(QCBORError uErr);
+
+
+/**
+ * @brief Whether a decoding error should halt decoding.
+ *
+ * @param[in] uErr    The QCBOR error code.
+ * @return @c true if the error code indicates and uncrecoverable error.
+ *
+ * These errors primarily occur when the decoder has been
+ * configured for conformance checking. By doing so they
+ * have indicated they want decoding halted if there is
+ * any conformance error. See @ref QCBORDecodeMode.
+ *
+ * All unrecoverable errors per QCBORDecode_IsUnrecoverableError()
+ * are included here.
+ */
+static bool
+QCBORDecode_IsHaltingError(QCBORError uErr);
+
 
 
 /**
@@ -1609,6 +1633,17 @@ QCBORDecode_IsUnrecoverableError(const QCBORError uErr)
 {
    if(uErr >= QCBOR_START_OF_UNRECOVERABLE_DECODE_ERRORS &&
       uErr <= QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS) {
+      return true;
+   } else {
+      return false;
+   }
+}
+
+static inline bool
+QCBORDecode_IsHaltingError(QCBORError uErr)
+{
+   if(uErr >= QCBOR_START_OF_HALTING_ERRORS &&
+      uErr <= QCBOR_END_OF_HALTING_ERRORS) {
       return true;
    } else {
       return false;

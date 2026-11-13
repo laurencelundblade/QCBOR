@@ -4340,7 +4340,7 @@ SortMapTest(void)
    QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
-   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+   if(uErr != QCBOR_ERR_ENCODE_DUPLICATE_LABEL) {
       return 114;
    }
 
@@ -4352,7 +4352,7 @@ SortMapTest(void)
    QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
-   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+   if(uErr != QCBOR_ERR_ENCODE_DUPLICATE_LABEL) {
       return 115;
    }
 
@@ -4364,7 +4364,7 @@ SortMapTest(void)
    QCBOREncode_AddInt64ToMap(&EC, "def", 2);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
-   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+   if(uErr != QCBOR_ERR_ENCODE_DUPLICATE_LABEL) {
       return 116;
    }
 
