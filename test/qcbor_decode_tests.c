@@ -3913,7 +3913,7 @@ int32_t SpiffyDateDecodeTest(void)
 
    QCBORDecode_ExitArray(&DC);
    uError = QCBORDecode_Finish(&DC);
-   if(uError != FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT)) {
+   if(uError != QCBOR_ERR_UNRECOVERABLE_TAG_CONTENT) {
       return 1000 + (int32_t)uError;
    }
 #endif /* QCBOR_MAX_TAGS_PER_ITEM > 2 */
