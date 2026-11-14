@@ -1601,11 +1601,17 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
 
+   if(QCBORItem_IsMapOrArray(LabelItem)) {
+      /* No support at all for traversing a label that is an arry or label */
+      uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+      goto Done;
+   }
+
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(puLabelEndOffset != NULL) {
-       /* Cast is OK because lengths are all 32-bit in QCBOR */
-       *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
-    }
+      /* Cast is OK because lengths are all 32-bit in QCBOR */
+      *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+   }
 #else
    (void)puLabelEndOffset;
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1616,11 +1622,13 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
       uErr = uErr2;
       goto Done;
    }
-   if(uErr2 != QCBOR_SUCCESS) {
-      /* The recoverable error for the value overrides the recoverable
-       * error for the label, if there was an error for the label */
-      uErr = uErr2;
+
+   if(uErr != QCBOR_SUCCESS) {
+      /* Label error. Entry consumed. Label not usable for matching. */
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
+      goto Done;
    }
+   uErr = uErr2; /* Value error, if any; label checks below override it */
 
    /* Combine the label item and value item into one */
    pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
@@ -1651,12 +1659,12 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
-         /* It is possible to skip over labels that are non-aggregate
-          * types like floats, but not to skip over labels that are
-          * arrays or maps. We might eventually handle more label
-          * types like floats as they are not too hard and we now
-          * have QCBOR_DISABLE_NON_INTEGER_LABELS */
-         if(!pMe->bAllowAllLabels || QCBORItem_IsMapOrArray(LabelItem)) {
+         /* If requested, skip over labels that are not integers or
+          * strings like floats. Aggregate type labels were elimated
+          * above. We might eventually handle more label types like
+          * floats as they are not too hard and we now have
+          * QCBOR_DISABLE_NON_INTEGER_LABELS */
+         if(!pMe->bAllowAllLabels) {
             uErr = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
@@ -2083,8 +2091,18 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
    do {
       uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
 
+      if(QCBORDecode_IsHaltingError(uReturn)) {
+         break;
+      }
+      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+         /* Should never occur. Errors are caught by check above;
+          * normal exit is by nest level check. Retained to to prevent
+          * infinite loop if understanding of this is wrong. */
+         break;
+      }
+
       /* Nest level end detection works for definite and indefinite lengths */
-   } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+   } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
    *puNextNestLevel = Item.uNextNestLevel;
 
@@ -2169,7 +2187,7 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
                                          uCompareLabelStart, uCompareLabelLen,
                                          uLabelStart, uLabelLen);
       if(nCompare == 0) {
-         uErr = QCBOR_ERR_DUPLICATE_LABEL;
+         uErr = QCBOR_ERR_DECODE_DUPLICATE_LABEL;
          break;
       }
 

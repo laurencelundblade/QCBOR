@@ -45,7 +45,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
 - User-defined error strings now include the correct final decimal digit.
-
+- New error code classification: halting errors which include unrecoverable
+  and conformance errors.
+- Large error code renumbering to have more space for future errors and allows
+  user-defined unrecoverable and halting errors.
+- Map searches by label, VGetNextConsume and related exit or don't exit based
+  on whether an error is a halting error.
+- Split QCBOR_ERR_DUPLICATE_LABEL into QCBOR_ERR_DECODE_DUPLICATE_LABEL and
+  QCBOR_ERR_ENCODE_DUPLICATE_LABEL so all encode errors are disticnt from decode.
+- Split QCBOR_ERR_ADDITIONAL_TAGS_NOT_ALLOWED out of QCBOR_ERR_NOT_ALLOWED.
 
 
 ### Fixed
@@ -86,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   should have failed.
 - QCBORDecode_VGetNextConsume() returns non-recoverable errors. Previously
   it ignored them and returned success.
-
+- More correctly abort decoding of map labels that are arrays or maps.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
