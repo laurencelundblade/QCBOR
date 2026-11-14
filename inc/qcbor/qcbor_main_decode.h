@@ -937,6 +937,9 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
 
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+
+
+
 /**
  * @brief Get the next item (integer, byte string, array...) in the
  * preorder traversal of the CBOR tree.

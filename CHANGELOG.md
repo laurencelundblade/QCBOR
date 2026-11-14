@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add subject documentation on strings
 - New header added: qcbor_config.h for custom configurations. CMake
   generates this for custom configuration installs.
+- QCBORDecode_SetTagNestMax() to limit tag content decoding recursion to 
+  limit and protect stack usage. A limit of 8 levels is set by default.
 
 
 ### Changed

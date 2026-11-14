@@ -217,9 +217,8 @@ EAT and CWT.
 * Dave Thaler for portability to Windows
 * Maksim Hayder for QCBORDecode_GetItemsInMap() security report
 * Jujian for finding and reporting some bugs and security issues
+* Ernesto Cruz for reporting tag content recursion issue
 * Harriet Wang -- CMO, logo design
-
-
 * Brian Sipos for lots of packaging, CI and release stuff 
 
 ### Copyright for this README

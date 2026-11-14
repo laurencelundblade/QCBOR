@@ -140,6 +140,7 @@ static test_entry s_tests[] = {
    TEST_ENTRY(ExponentAndMantissaDecodeTests),
 #ifndef QCBOR_DISABLE_TAGS
    TEST_ENTRY(ExponentAndMantissaDecodeFailTests),
+   TEST_ENTRY(TagNestingTests),
 #endif /* ! QCBOR_DISABLE_TAGS */
    TEST_ENTRY(ExponentAndMantissaEncodeTests),
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */

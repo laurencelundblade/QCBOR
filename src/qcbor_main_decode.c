@@ -228,6 +228,7 @@ QCBORDecode_Init(QCBORDecodeContext *pMe,
    memset(pMe->auMappedTagNumbers, 0xff, sizeof(pMe->auMappedTagNumbers));
 
    pMe->uTagNumberCheckOffset = SIZE_MAX;
+   pMe->uTagContentNestMax = 8;
 }
 
 
@@ -1990,15 +1991,14 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
    QCBORError uErr;
 
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem, NULL);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
+   }
 
 #ifndef QCBOR_DISABLE_TAGS
    uint64_t   uTagNumber;
    int        nTagIndex;
    const struct QCBORTagDecoderEntry *pTagDecoder;
-
-   if(uErr != QCBOR_SUCCESS) {
-      goto Done;
-   }
 
    /* Loop over tag numbers in reverse, those closest to content first */
    for(nTagIndex = QCBOR_MAX_TAGS_PER_ITEM-1; nTagIndex >= 0; nTagIndex--) {
@@ -2014,11 +2014,22 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
          break; /* Successful exist -- a tag with no callback  */
       }
 
+      /* Guard stack against malicious input causing recursive tag
+       * decodes. Only counts when a content decoder is about to run.
+       * The UINT8_MAX check keeps the counter from wrapping. */
+      if(pMe->uTagContentNest > pMe->uTagContentNestMax || pMe->uTagContentNest == UINT8_MAX) {
+         uErr = QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP;
+         break;
+      }
+
       /* Call the content decoder */
+      pMe->uTagContentNest++;
       uErr = pTagDecoder->pfContentDecoder(pMe,
                                            pMe->pTagDecodersContext,
                                            pTagDecoder->uTagNumber,
                                            pDecodedItem);
+      pMe->uTagContentNest--;
+
       if(uErr != QCBOR_SUCCESS) {
          break; /* Error exit from the loop */
       }
@@ -2026,8 +2037,6 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
       /* Remove tag number from list since its content was decoded */
       pDecodedItem->auTagNumbers[nTagIndex] = CBOR_TAG_INVALID16;
    }
-
-Done:
 #endif /* ! QCBOR_DISABLE_TAGS */
 
    return uErr;

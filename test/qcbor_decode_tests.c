@@ -7819,6 +7819,11 @@ static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
       QCBOR_DECODE_MODE_NORMAL,
       {"\xC4\xA2", 2},
       QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"Recursion limit",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80\xc5\x80", 20},
+      QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP
    }
 };
 
@@ -7830,6 +7835,368 @@ ExponentAndMantissaDecodeFailTests(void)
                                 C_ARRAY_COUNT(ExponentAndMantissaFailures,
                                               struct DecodeFailTestInput));
 }
+
+
+#if !defined(QCBOR_DISABLE_EXP_AND_MANTISSA) && !defined(QCBOR_DISABLE_TAGS)
+
+/* Tests for QCBORDecode_SetMaxTagNesting() and
+ * QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP.
+ *
+ * Input is generated as Prefix repeated uCount times, then Base, then
+ * Suffix repeated uCount times. Two kinds of nesting are used:
+ *
+ * - Decimal fractions and big floats with another one as the
+ *   exponent, using the built-in tag content decoders. These are
+ *   invalid, but each inner one is decoded before that is detected.
+ * - A custom tag content decoder for tag 1000 whose content is an
+ *   array of one item, which it fetches with QCBORDecode_GetNext().
+ *   This nests validly, so the limit is the only thing that stops it.
+ */
+
+#define TAG_NEST_DEFAULT  -1  /* Don't call QCBORDecode_SetMaxTagNesting() */
+
+enum TagNestTable { TAG_NEST_V1, TAG_NEST_WRAP };
+
+struct TagNestTest {
+   const char        *szDescription;
+   enum TagNestTable  eTable;
+   int                nMax;
+   UsefulBufC         Prefix;
+   size_t             uCount;
+   UsefulBufC         Base;
+   UsefulBufC         Suffix;
+   QCBORError         uExpected;
+};
+
+#define TN_UB(x) {x, sizeof(x) - 1}
+
+/* 4([e, m]) with e a decimal fraction: c4 82 ... 01 */
+#define TN_DEC_FRAC_PRE   TN_UB("\xc4\x82")
+#define TN_ONE            TN_UB("\x01")
+/* 5([]): big float with empty array, the input that recursed without bound */
+#define TN_EMPTY_BF_PRE   TN_UB("\xc5\x80")
+/* 1000([x]) */
+#define TN_WRAP_PRE       TN_UB("\xd9\x03\xe8\x81")
+#define TN_ZERO           TN_UB("\x00")
+#define TN_NONE           {NULL, 0}
+
+static QCBORError
+TagNestWrapCB(QCBORDecodeContext *pDecodeCtx,
+              void               *pTagDecodersContext,
+              uint64_t            uTagNumber,
+              QCBORItem          *pDecodedItem)
+{
+   QCBORItem  Inner;
+   QCBORError uErr;
+
+   (void)pTagDecodersContext;
+   (void)uTagNumber;
+
+   if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY ||
+      pDecodedItem->val.uCount != 1) {
+      return QCBOR_ERR_UNEXPECTED_TYPE;
+   }
+
+   uErr = QCBORDecode_GetNext(pDecodeCtx, &Inner);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
+   }
+
+   *pDecodedItem = Inner;
+   return QCBOR_SUCCESS;
+}
+
+static const struct QCBORTagDecoderEntry TagNestWrapTable[] = {
+   {1000, TagNestWrapCB},
+   {CBOR_TAG_INVALID64, NULL}
+};
+
+
+static const struct TagNestTest TagNestTests[] = {
+   /* --- Built-in decoders, default limit of 8 --- */
+   {"9 decimal fractions nested in exponent, under default limit",
+    TAG_NEST_V1, TAG_NEST_DEFAULT,
+    TN_DEC_FRAC_PRE, 9, TN_ONE, TN_ONE,
+    QCBOR_ERR_BAD_EXP_AND_MANTISSA},
+   {"10 decimal fractions nested in exponent, over default limit",
+    TAG_NEST_V1, TAG_NEST_DEFAULT,
+    TN_DEC_FRAC_PRE, 10, TN_ONE, TN_ONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+   {"1000 big floats with empty arrays, default limit",
+    TAG_NEST_V1, TAG_NEST_DEFAULT,
+    TN_EMPTY_BF_PRE, 1000, TN_NONE, TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+
+   /* --- Limit of 0: one decoder may run, but not cause another --- */
+   {"decimal fraction with integer mantissa, limit 0",
+    TAG_NEST_V1, 0,
+    TN_NONE, 0, TN_UB("\xc4\x82\x01\x01"), TN_NONE,
+    QCBOR_SUCCESS},
+   {"decimal fraction with big number mantissa, limit 0",
+    TAG_NEST_V1, 0,
+    TN_NONE, 0, TN_UB("\xc4\x82\x01\xc2\x41\x01"), TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+   {"big float with negative big number mantissa, limit 0",
+    TAG_NEST_V1, 0,
+    TN_NONE, 0, TN_UB("\xc5\x82\x01\xc3\x41\x01"), TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+   {"decimal fraction with big number mantissa, limit 1",
+    TAG_NEST_V1, 1,
+    TN_NONE, 0, TN_UB("\xc4\x82\x01\xc2\x41\x01"), TN_NONE,
+    QCBOR_SUCCESS},
+
+   /* --- Custom decoder that nests validly --- */
+   {"custom decoder, 1 level, limit 0",
+    TAG_NEST_WRAP, 0,
+    TN_WRAP_PRE, 1, TN_ZERO, TN_NONE,
+    QCBOR_SUCCESS},
+   {"custom decoder, 2 levels, limit 0",
+    TAG_NEST_WRAP, 0,
+    TN_WRAP_PRE, 2, TN_ZERO, TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+   {"custom decoder, 4 levels, limit 3",
+    TAG_NEST_WRAP, 3,
+    TN_WRAP_PRE, 4, TN_ZERO, TN_NONE,
+    QCBOR_SUCCESS},
+   {"custom decoder, 5 levels, limit 3",
+    TAG_NEST_WRAP, 3,
+    TN_WRAP_PRE, 5, TN_ZERO, TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+   {"custom decoder, 9 levels, default limit",
+    TAG_NEST_WRAP, TAG_NEST_DEFAULT,
+    TN_WRAP_PRE, 9, TN_ZERO, TN_NONE,
+    QCBOR_SUCCESS},
+   {"custom decoder, 10 levels, default limit",
+    TAG_NEST_WRAP, TAG_NEST_DEFAULT,
+    TN_WRAP_PRE, 10, TN_ZERO, TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+   {"custom decoder, tag number with no decoder inside, limit 0",
+    TAG_NEST_WRAP, 0,
+    TN_WRAP_PRE, 1, TN_UB("\xd8\x64\x00"), TN_NONE,
+    QCBOR_SUCCESS},
+
+   /* --- Interaction with other limits --- */
+   {"array nesting limit reached before tag nesting limit",
+    TAG_NEST_V1, QCBOR_MAX_ARRAY_NESTING + 10,
+    TN_DEC_FRAC_PRE, QCBOR_MAX_ARRAY_NESTING + 5, TN_ONE, TN_ONE,
+    QCBOR_ERR_DECODE_NESTING_TOO_DEEP},
+   /* Recurses 255 levels before the error, about 64KB of stack on a
+    * 64-bit target. Checks the counter can't wrap and disable the
+    * limit. */
+   {"1000 big floats with empty arrays, limit 255",
+    TAG_NEST_V1, 255,
+    TN_EMPTY_BF_PRE, 1000, TN_NONE, TN_NONE,
+    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP},
+};
+
+
+static UsefulBufC
+TagNestMakeInput(UsefulBuf Buf, const struct TagNestTest *pTest)
+{
+   UsefulOutBuf OB;
+   size_t       i;
+
+   UsefulOutBuf_Init(&OB, Buf);
+   for(i = 0; i < pTest->uCount; i++) {
+      UsefulOutBuf_AppendUsefulBuf(&OB, pTest->Prefix);
+   }
+   UsefulOutBuf_AppendUsefulBuf(&OB, pTest->Base);
+   for(i = 0; i < pTest->uCount; i++) {
+      UsefulOutBuf_AppendUsefulBuf(&OB, pTest->Suffix);
+   }
+   return UsefulOutBuf_OutUBuf(&OB);
+}
+
+
+static void
+TagNestSetup(QCBORDecodeContext *pDCtx,
+             UsefulBufC          Input,
+             enum TagNestTable   eTable,
+             int                 nMax)
+{
+   QCBORDecode_Init(pDCtx, Input, QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS);
+   if(eTable == TAG_NEST_WRAP) {
+      QCBORDecode_InstallTagDecoders(pDCtx, TagNestWrapTable, NULL);
+   } else {
+      QCBORDecode_CompatibilityV1(pDCtx);
+   }
+   if(nMax != TAG_NEST_DEFAULT) {
+      QCBORDecode_SetMaxTagNesting(pDCtx, (uint8_t)nMax);
+   }
+}
+
+
+/* Like a TagNestTest, but put inside a map {1: x, 2: 7} or {1: [x], 2: 7} */
+static UsefulBufC
+TagNestMakeMap(UsefulBuf Buf, UsefulBufC Inner, bool bWrapInArray, bool bSecondEntry)
+{
+   UsefulOutBuf OB;
+
+   UsefulOutBuf_Init(&OB, Buf);
+   UsefulOutBuf_AppendByte(&OB, bSecondEntry ? 0xa2 : 0xa1);
+   UsefulOutBuf_AppendByte(&OB, 0x01);
+   if(bWrapInArray) {
+      UsefulOutBuf_AppendByte(&OB, 0x81);
+   }
+   UsefulOutBuf_AppendUsefulBuf(&OB, Inner);
+   if(bSecondEntry) {
+      UsefulOutBuf_AppendByte(&OB, 0x02);
+      UsefulOutBuf_AppendByte(&OB, 0x07);
+   }
+   return UsefulOutBuf_OutUBuf(&OB);
+}
+
+
+int32_t
+TagNestingTests(void)
+{
+   QCBORDecodeContext DCtx;
+   QCBORItem          Item;
+   QCBORError         uErr;
+   UsefulBufC         Input;
+   UsefulBufC         Inner;
+   int64_t            nInt;
+   int64_t            nExponent;
+   size_t             uIndex;
+   UsefulBuf_MAKE_STACK_UB(InputBuf, 2100);
+   UsefulBuf_MAKE_STACK_UB(InnerBuf, 100);
+
+   /* --- Table of single-item decodes with QCBORDecode_GetNext() --- */
+   for(uIndex = 0; uIndex < C_ARRAY_COUNT(TagNestTests, struct TagNestTest); uIndex++) {
+      const struct TagNestTest *pT = &TagNestTests[uIndex];
+
+      Input = TagNestMakeInput(InputBuf, pT);
+      if(UsefulBuf_IsNULLC(Input)) {
+         return MakeTestResultCode(0, (uint32_t)uIndex, 0);
+      }
+      TagNestSetup(&DCtx, Input, pT->eTable, pT->nMax);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != pT->uExpected) {
+         return MakeTestResultCode(1, (uint32_t)uIndex, uErr);
+      }
+   }
+
+   /* --- The nesting count returns to zero after an error --- */
+   {
+      const struct TagNestTest Wrap4 = {"", TAG_NEST_WRAP, 3,
+                                        TN_WRAP_PRE, 4, TN_ZERO, TN_NONE,
+                                        QCBOR_SUCCESS};
+      Input = TagNestMakeInput(InputBuf, &Wrap4);
+      TagNestSetup(&DCtx, Input, TAG_NEST_WRAP, 3);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(2, 1, uErr);
+      }
+      QCBORDecode_SetMaxTagNesting(&DCtx, 2);
+      QCBORDecode_Rewind(&DCtx);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP) {
+         return MakeTestResultCode(2, 2, uErr);
+      }
+      QCBORDecode_SetMaxTagNesting(&DCtx, 3);
+      QCBORDecode_Rewind(&DCtx);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(2, 3, uErr);
+      }
+   }
+
+   /* --- Spiffy decode functions follow the same limit --- */
+   {
+      const struct TagNestTest DecFrac9  = {"", TAG_NEST_V1, TAG_NEST_DEFAULT,
+                                            TN_DEC_FRAC_PRE, 9, TN_ONE, TN_ONE,
+                                            QCBOR_SUCCESS};
+      const struct TagNestTest DecFrac10 = {"", TAG_NEST_V1, TAG_NEST_DEFAULT,
+                                            TN_DEC_FRAC_PRE, 10, TN_ONE, TN_ONE,
+                                            QCBOR_SUCCESS};
+      UsefulBuf_MAKE_STACK_UB(MantissaBuf, 20);
+      UsefulBufC Mantissa;
+      bool       bIsNegative;
+
+      Input = TagNestMakeInput(InputBuf, &DecFrac9);
+      TagNestSetup(&DCtx, Input, TAG_NEST_V1, TAG_NEST_DEFAULT);
+      QCBORDecode_GetTDecimalFraction(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &nInt, &nExponent);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_ERR_BAD_EXP_AND_MANTISSA) {
+         return MakeTestResultCode(3, 1, uErr);
+      }
+
+      Input = TagNestMakeInput(InputBuf, &DecFrac10);
+      TagNestSetup(&DCtx, Input, TAG_NEST_V1, TAG_NEST_DEFAULT);
+      QCBORDecode_GetTDecimalFraction(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &nInt, &nExponent);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP) {
+         return MakeTestResultCode(3, 2, uErr);
+      }
+
+      TagNestSetup(&DCtx, UsefulBuf_FROM_SZ_LITERAL("\xc4\x82\x01\xc2\x41\x01"), TAG_NEST_V1, 0);
+      QCBORDecode_GetTDecimalFractionBigMantissa(&DCtx, QCBOR_TAG_REQUIREMENT_TAG,
+                                                 MantissaBuf, &Mantissa,
+                                                 &bIsNegative, &nExponent);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP) {
+         return MakeTestResultCode(3, 3, uErr);
+      }
+   }
+
+   /* --- Map traversal: the error is halting --- */
+   {
+      const struct TagNestTest DecFrac10 = {"", TAG_NEST_V1, TAG_NEST_DEFAULT,
+                                            TN_DEC_FRAC_PRE, 10, TN_ONE, TN_ONE,
+                                            QCBOR_SUCCESS};
+      Inner = TagNestMakeInput(InnerBuf, &DecFrac10);
+
+      /* A search passing over the member stops with the error */
+      Input = TagNestMakeMap(InputBuf, Inner, false, true);
+      TagNestSetup(&DCtx, Input, TAG_NEST_V1, TAG_NEST_DEFAULT);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      QCBORDecode_GetInt64InMapN(&DCtx, 2, &nInt);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP) {
+         return MakeTestResultCode(4, 1, uErr);
+      }
+
+      /* Exiting the map passes over the member and stops with the error */
+      Input = TagNestMakeMap(InputBuf, Inner, false, false);
+      TagNestSetup(&DCtx, Input, TAG_NEST_V1, TAG_NEST_DEFAULT);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      QCBORDecode_ExitMap(&DCtx);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP) {
+         return MakeTestResultCode(4, 2, uErr);
+      }
+
+      /* Content inside a skipped array is consumed without running
+       * tag content decoders, so the limit is never reached */
+      Input = TagNestMakeMap(InputBuf, Inner, true, true);
+      TagNestSetup(&DCtx, Input, TAG_NEST_V1, TAG_NEST_DEFAULT);
+      QCBORDecode_EnterMap(&DCtx, NULL);
+      QCBORDecode_GetInt64InMapN(&DCtx, 2, &nInt);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_SUCCESS || nInt != 7) {
+         return MakeTestResultCode(4, 3, uErr);
+      }
+
+      /* Same for QCBORDecode_VGetNextConsume() on [x] */
+      {
+         UsefulOutBuf OB;
+         UsefulOutBuf_Init(&OB, InputBuf);
+         UsefulOutBuf_AppendByte(&OB, 0x81);
+         UsefulOutBuf_AppendUsefulBuf(&OB, Inner);
+         Input = UsefulOutBuf_OutUBuf(&OB);
+      }
+      TagNestSetup(&DCtx, Input, TAG_NEST_V1, TAG_NEST_DEFAULT);
+      QCBORDecode_VGetNextConsume(&DCtx, &Item);
+      uErr = QCBORDecode_GetError(&DCtx);
+      if(uErr != QCBOR_SUCCESS) {
+         return MakeTestResultCode(4, 4, uErr);
+      }
+   }
+
+   return 0;
+}
+
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA && ! QCBOR_DISABLE_TAGS */
 
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
