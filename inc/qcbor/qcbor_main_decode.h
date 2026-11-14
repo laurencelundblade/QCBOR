@@ -1494,7 +1494,7 @@ QCBORDecode_IsHaltingError(QCBORError uErr);
  * error codes too.
  *
  * In @ref QCBORError, there are ranges reserved for user-defined errors
- * in that classify and unrecoverable and halting and will be picked up
+ * that classify and unrecoverable and halting and will be picked up
  * by QCBORDecode_IsUnrecoverableError() and QCBORDecode_IsHaltingError().
  */
 static void

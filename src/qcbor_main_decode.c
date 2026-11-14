@@ -1602,7 +1602,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    LabelItem = *pDecodedItem;
 
    if(QCBORItem_IsMapOrArray(LabelItem)) {
-      /* No code for traversal a label that is an arry or label */
+      /* No support at all for traversing a label that is an arry or label */
       uErr = QCBOR_ERR_MAP_LABEL_TYPE;
       goto Done;
    }
@@ -1624,11 +1624,11 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    }
 
    if(uErr != QCBOR_SUCCESS) {
-      /* Label error. Entry consumed; label not usable for matching */
+      /* Label error. Entry consumed. Label not usable for matching. */
       pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
       goto Done;
    }
-   uErr = uErr2;   /* Value error, if any; label checks below override it */
+   uErr = uErr2; /* Value error, if any; label checks below override it */
 
    /* Combine the label item and value item into one */
    pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
@@ -1659,11 +1659,11 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
-         /* If requested, skip over labels that are not integers
-          * or strings like floats. Non-aggregate type labels
-          * are elimated above. We might eventually handle more label
-          * types like floats as they are not too hard and we now
-          * have QCBOR_DISABLE_NON_INTEGER_LABELS */
+         /* If requested, skip over labels that are not integers or
+          * strings like floats. Aggregate type labels were elimated
+          * above. We might eventually handle more label types like
+          * floats as they are not too hard and we now have
+          * QCBOR_DISABLE_NON_INTEGER_LABELS */
          if(!pMe->bAllowAllLabels) {
             uErr = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
@@ -2090,9 +2090,17 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
    /* Pre-order traversal to consume all the items in the non-empty array/map */
    do {
       uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
-      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS || QCBORDecode_IsHaltingError(uReturn)) {
+
+      if(QCBORDecode_IsHaltingError(uReturn)) {
          break;
       }
+      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+         /* Should never occur. Errors are caught by check above;
+          * normal exit is by nest level check. Retained to to prevent
+          * infinite loop if understanding of this is wrong. */
+         break;
+      }
+
       /* Nest level end detection works for definite and indefinite lengths */
    } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 

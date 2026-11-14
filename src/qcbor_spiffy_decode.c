@@ -318,12 +318,13 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
        * be able to return the the error code for the found item. */
       uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
       if(QCBORDecode_IsHaltingError(uResult)) {
-         /* The map/array can't be decoded when unrecoverable errors occur */
          uReturn = uResult;
          goto Done;
       }
       if(uResult == QCBOR_ERR_NO_MORE_ITEMS) {
-         /* Unexpected end of map or array. */
+         /* Should never occur. Errors are caught by check above;
+          * normal exit is by nest level check. Retained to to prevent
+          * infinite loop if understanding of this is wrong. */
          uReturn = uResult;
          goto Done;
       }
