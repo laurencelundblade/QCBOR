@@ -1602,7 +1602,7 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    LabelItem = *pDecodedItem;
 
    if(QCBORItem_IsMapOrArray(LabelItem)) {
-      /* No support at all for traversing a label that is an arry or label */
+      /* No support at all for traversing a label that is an arry or map */
       uErr = QCBOR_ERR_MAP_LABEL_TYPE;
       goto Done;
    }
