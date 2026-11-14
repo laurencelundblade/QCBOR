@@ -2000,12 +2000,6 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
    int        nTagIndex;
    const struct QCBORTagDecoderEntry *pTagDecoder;
 
-   /* Guard stack against malicious input causing recursive tag decodes */
-   if(pMe->uTagContentNest > pMe->uTagContentNestMax) {
-      pMe->uTagContentNest = 0;
-      return QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP;
-   }
-
    /* Loop over tag numbers in reverse, those closest to content first */
    for(nTagIndex = QCBOR_MAX_TAGS_PER_ITEM-1; nTagIndex >= 0; nTagIndex--) {
 
@@ -2018,6 +2012,14 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
       pTagDecoder = QCBORDecode_Private_GetTagContentDecoder(pMe->pTagDecoderTable, uTagNumber);
       if(pTagDecoder == NULL) {
          break; /* Successful exist -- a tag with no callback  */
+      }
+
+      /* Guard stack against malicious input causing recursive tag
+       * decodes. Only counts when a content decoder is about to run.
+       * The UINT8_MAX check keeps the counter from wrapping. */
+      if(pMe->uTagContentNest > pMe->uTagContentNestMax || pMe->uTagContentNest == UINT8_MAX) {
+         uErr = QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP;
+         break;
       }
 
       /* Call the content decoder */
