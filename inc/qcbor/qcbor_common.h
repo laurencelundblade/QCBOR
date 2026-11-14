@@ -274,24 +274,34 @@ extern "C" {
 
 
 
-
 /**
- * Error codes returned by QCBOR Encoder-Decoder.
+ * Error codes returned by the QCBOR encoder and decoder.
  *
- *    0         Success
- *    1..39:    Encode errors and errors common to encode and decode
- *    40..59:   Not well-formed. QCBORDecode_IsNotWellFormedError()
- *    40..99:   Unrecoverable. QCBORDecode_IsUnrecoverableError()
- *    40..139:  Halting. QCBORDecode_IsHaltingError()
- *    140..255: Other decode errors
+ *    0:         Success
+ *    1..39:     Encode errors and errors common to encode and decode
+ *    40..59:    Not well-formed. QCBORDecode_IsNotWellFormedError()
+ *    40..99:    Unrecoverable. QCBORDecode_IsUnrecoverableError()
+ *    40..139:   Halting. QCBORDecode_IsHaltingError()
+ *    140..255:  Other decode errors
  *
- *    User-defined for QCBORDecode_SetError(), never used by QCBOR:
- *    90..99:   Unrecoverable
- *    130..139: Halting
- *    230..255: Other
+ * The ranges nest: every not-well-formed error is unrecoverable, and
+ * every unrecoverable error is halting.
  *
- * Error renumbering may occur in the future when new error codes are
- * added for new QCBOR features.
+ * Within those ranges, these are reserved for the caller, for
+ * QCBORDecode_SetError() and for errors returned by custom tag
+ * content decoders. QCBOR will never return them in any version.
+ * They are classified by the functions above, so the range chosen
+ * determines how QCBOR treats the error, for example whether a map
+ * search stops:
+ *
+ *    90..99:    Unrecoverable
+ *    130..139:  Halting
+ *    230..255:  Other
+ *
+ * Error code names are stable. New errors are added without
+ * changing existing numbers. If numbers ever do change, the ABI
+ * version (QCBOR_SOVERSION in CMakeLists.txt) will be increased.
+ * The user-defined ranges will never change.
  */
 typedef enum {
    /** The encode or decode completed correctly. */
@@ -337,7 +347,6 @@ typedef enum {
    QCBOR_ERR_ENCODE_NESTING_TOO_DEEP = 11,
    /** Alias for ::QCBOR_ERR_ENCODE_NESTING_TOO_DEEP for backward compatibility. */
    QCBOR_ERR_ARRAY_NESTING_TOO_DEEP = QCBOR_ERR_ENCODE_NESTING_TOO_DEEP,
-
 
    /** During encoding, the type of close doesn't match what is open. Also
     * an indefinite-length string chunk is of the wrong type or
@@ -512,7 +521,6 @@ typedef enum {
    QCBOR_ERR_TAGS_DISABLED = 71,
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 99
-
 
 
    /** Indefinite lengths are disallowed by

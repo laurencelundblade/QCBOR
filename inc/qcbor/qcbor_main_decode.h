@@ -1120,7 +1120,8 @@ QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * will be consumed leaving the cursor after the array or map.
  *
  * If an array or map is being consumed by this, an error will occur
- * if any of the items in the array or map are in error.
+ * if any of the items in the array or map result in a halting error.
+ * (See QCBORDecode_IsHaltingError()).
  *
  * If the item is a tag the contents of which is an array or map, like
  * a big float, @c pItem will identify it as such and the contents
@@ -1370,60 +1371,106 @@ QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
 /**
- * @brief Whether an error indicates non-well-formed CBOR.
+ * @brief Whether an error means the input is not well-formed CBOR.
  *
- * @param[in] uErr    The QCBOR error code.
- * @return @c true if the error code indicates non-well-formed CBOR.
+ * @param[in] uErr  The QCBOR error code.
  *
- * The input to decode is not well-formed according to RFC 8949.
+ * @return @c true if the error means the input is not well-formed.
+ *
+ * Not well-formed means the input violates the basic CBOR encoding
+ * rules of RFC 8949, independent of any protocol, profile or
+ * conformance checking. Examples are a reserved additional info
+ * value, a string or array running past the end of the input, and a
+ * break outside an indefinite-length item.
+ *
+ * These errors are a subset of QCBORDecode_IsUnrecoverableError().
+ * This function is mostly useful for reporting: telling broken or
+ * malicious input apart from input that hit an implementation limit
+ * or a conformance policy, for example to choose a protocol response
+ * or for logging.
  */
 static bool
 QCBORDecode_IsNotWellFormedError(QCBORError uErr);
 
 
 /**
- * @brief Whether a decoding error is recoverable.
+ * @brief Whether a decoding error is unrecoverable.
  *
- * @param[in] uErr    The QCBOR error code.
- * @return @c true if the error code indicates and uncrecoverable error.
+ * @param[in] uErr  The QCBOR error code.
+ *
+ * @return @c true if the error is unrecoverable.
  *
  * When an error is unrecoverable, no further decoding of the input is
- * possible.  CBOR is a compact format with almost no redundancy so
- * errors like incorrect lengths or array counts are
- * unrecoverable. Unrecoverable errors also occur when implementation
- * limits such as the limit on array and map nesting are encountered.
- * When the built-in decoding of a tag like an epoch date encounters
- * an error such as a data item of an unexpected type, this is also an
- * unrecoverable error because the internal decoding doesn't try to
- * decode everything in the tag.
+ * possible. Calling QCBORDecode_GetAndResetError() and continuing
+ * will not give meaningful results.
  *
- * All not-well formed errors per QCBORDecode_IsNotWellFormedError()
- * are included here.
+ * Usually this is because the decoder can no longer know where the
+ * next data item begins. CBOR is compact and has almost no
+ * redundancy, so errors such as incorrect lengths or array counts are
+ * unrecoverable.
  *
- * The unrecoverable errors are a range of the errors in
+ * All not-well-formed errors (QCBORDecode_IsNotWellFormedError()) are
+ * unrecoverable, because RFC 8949 Section 1.2 says decoders return
+ * content only from well-formed data items.
+ *
+ * Some unrecoverable errors come from implementation limits, for
+ * example nesting deeper than @ref QCBOR_MAX_ARRAY_NESTING.
+ *
+ * Decoding the content of a tag can also give an unrecoverable error,
+ * when the content is not what the tag content decoder expects and it
+ * does not consume all of it.
+ *
+ * Unrecoverable errors are a subset of QCBORDecode_IsHaltingError().
+ * A range of user-defined unrecoverable error codes is reserved, see
  * @ref QCBORError.
  */
 static bool
 QCBORDecode_IsUnrecoverableError(QCBORError uErr);
 
 
+
 /**
  * @brief Whether a decoding error should halt decoding.
  *
- * @param[in] uErr    The QCBOR error code.
- * @return @c true if the error code indicates and uncrecoverable error.
+ * @param[in] uErr  The QCBOR error code.
  *
- * These errors primarily occur when the decoder has been
- * configured for conformance checking. By doing so they
- * have indicated they want decoding halted if there is
- * any conformance error. See @ref QCBORDecodeMode.
+ * @return @c true if decoding should halt.
  *
- * All unrecoverable errors per QCBORDecode_IsUnrecoverableError()
- * are included here.
+ * QCBOR uses this whenever it passes over items to get to another one
+ * or to the end of an array or map:
+ *
+ * - Map searches by label, such as QCBORDecode_GetItemsInMap() and
+ *   QCBORDecode_GetInt64InMapN()
+ * - Entering a map or array found by label, such as
+ *   QCBORDecode_EnterMapFromMapN()
+ * - QCBORDecode_ExitMap() and QCBORDecode_ExitArray() skipping to
+ *   the end
+ * - QCBORDecode_VGetNextConsume(), QCBORDecode_GetArray() and
+ *   QCBORDecode_GetMap() consuming the contents of an array or map
+ *
+ * A halting error on any item passed over stops the operation and is
+ * returned. Other errors on items passed over are ignored. An error
+ * on the requested item itself is always returned. To check every
+ * item inside an array or map for every kind of error, decode the
+ * items one by one.
+ *
+ * All unrecoverable errors (QCBORDecode_IsUnrecoverableError()) are
+ * halting errors. The other halting errors come from conformance
+ * checking that the caller has requested through
+ * @ref QCBORDecodeMode. Requesting conformance checking means
+ * non-conforming input should be rejected, not skipped.
+ *
+ * Halting errors that are not unrecoverable leave the decoder
+ * positioned after the item in error, so decoding can resume after
+ * QCBORDecode_GetAndResetError(), for example to report every
+ * conformance problem in the input. The input is well-formed, so it
+ * can also be decoded again with conformance checking turned off.
+ *
+ * A range of user-defined halting error codes is reserved, see
+ * @ref QCBORError.
  */
 static bool
 QCBORDecode_IsHaltingError(QCBORError uErr);
-
 
 
 /**
@@ -1445,6 +1492,10 @@ QCBORDecode_IsHaltingError(QCBORError uErr);
  * range of @ref QCBOR_ERR_FIRST_USER_DEFINED to
  * @ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
  * error codes too.
+ *
+ * In @ref QCBORError, there are ranges reserved for user-defined errors
+ * in that classify and unrecoverable and halting and will be picked up
+ * by QCBORDecode_IsUnrecoverableError() and QCBORDecode_IsHaltingError().
  */
 static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);

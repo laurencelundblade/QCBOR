@@ -317,7 +317,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
        * because a label match is performed on recoverable errors to
        * be able to return the the error code for the found item. */
       uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-      if(QCBORDecode_IsUnrecoverableError(uResult)) {
+      if(QCBORDecode_IsHaltingError(uResult)) {
          /* The map/array can't be decoded when unrecoverable errors occur */
          uReturn = uResult;
          goto Done;

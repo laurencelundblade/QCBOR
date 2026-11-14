@@ -45,8 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
 - User-defined error strings now include the correct final decimal digit.
-- New error code classification: halting errors
+- New error code classification: halting errors; they include unrecoverable and conformance errors.
 - Large error code renumbering. Allows user-defined unrecoverable and halting errors.
+- Map searching, VGetNextConsume and related stop/go on haling errors.
 
 
 ### Fixed

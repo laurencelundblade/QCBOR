@@ -2090,9 +2090,11 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
    /* Pre-order traversal to consume all the items in the non-empty array/map */
    do {
       uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
-
+      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS || QCBORDecode_IsHaltingError(uReturn)) {
+         break;
+      }
       /* Nest level end detection works for definite and indefinite lengths */
-   } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+   } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
    *puNextNestLevel = Item.uNextNestLevel;
 
