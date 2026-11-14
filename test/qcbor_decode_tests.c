@@ -2626,7 +2626,7 @@ ProcessDecodeFailures(const struct DecodeFailTestInput *pFailInputs, const int n
       }
 #endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
-      if(nIndex == 44) {
+      if(nIndex == 58) {
          uCBORError = 9; /* For setting break points */
       }
 
@@ -12647,7 +12647,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "map with map label with non-preferred part",
       QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
-      QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
+      QCBOR_ERR_MAP_LABEL_TYPE
    },
    { "map without enough entries",
       QCBOR_DECODE_MODE_DETERMINISTIC,

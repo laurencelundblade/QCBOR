@@ -45,7 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
 - User-defined error strings now include the correct final decimal digit.
-
+- New error code classification: halting errors
+- Large error code renumbering. Allows user-defined unrecoverable and halting errors.
 
 
 ### Fixed
@@ -86,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   should have failed.
 - QCBORDecode_VGetNextConsume() returns non-recoverable errors. Previously
   it ignored them and returned success.
-
+- More correctly abort unsupported decoding of map labels that are arrays or maps.
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
