@@ -210,7 +210,7 @@ QCBORDecode_Rewind(QCBORDecodeContext *pMe)
  *
  * @retval QCBOR_ERR_NOT_ENTERED     Trying to search without entering a map.
  *
- * @retval QCBOR_ERR_DUPLICATE_LABEL Duplicate items (items with the same label)
+ * @retval QCBOR_ERR_DECODE_DUPLICATE_LABEL Duplicate items (items with the same label)
  *                                   were found for one of the labels being
  *                                   search for. This duplicate detection is
  *                                   only performed for items in pItemArray,
@@ -317,13 +317,14 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
        * because a label match is performed on recoverable errors to
        * be able to return the the error code for the found item. */
       uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-      if(QCBORDecode_IsUnrecoverableError(uResult)) {
-         /* The map/array can't be decoded when unrecoverable errors occur */
+      if(QCBORDecode_IsHaltingError(uResult)) {
          uReturn = uResult;
          goto Done;
       }
       if(uResult == QCBOR_ERR_NO_MORE_ITEMS) {
-         /* Unexpected end of map or array. */
+         /* Should never occur. Errors are caught by check above;
+          * normal exit is by nest level check. Retained to to prevent
+          * infinite loop if understanding of this is wrong. */
          uReturn = uResult;
          goto Done;
       }
@@ -338,7 +339,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
          if(QCBORItem_MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
             if(uFoundItemBitMap & (0x01ULL << nIndex)) {
-               uReturn = QCBOR_ERR_DUPLICATE_LABEL;
+               uReturn = QCBOR_ERR_DECODE_DUPLICATE_LABEL;
                goto Done;
             }
             if(uResult != QCBOR_SUCCESS) {

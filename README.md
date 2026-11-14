@@ -1,5 +1,5 @@
 
-![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
+![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/dev/v2logo.png?raw=true)
 
 ## QCBOR 2.0 Beta
 
@@ -218,8 +218,7 @@ EAT and CWT.
 * Maksim Hayder for QCBORDecode_GetItemsInMap() security report
 * Jujian for finding and reporting some bugs and security issues
 * Ernesto Cruz for reporting tag content recursion issue
-
-
+* Harriet Wang -- CMO, logo design
 * Brian Sipos for lots of packaging, CI and release stuff 
 
 ### Copyright for this README
