@@ -2003,7 +2003,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
    /* Guard stack against malicious input causing recursive tag decodes */
    if(pMe->uTagContentNest > pMe->uTagContentNestMax) {
       pMe->uTagContentNest = 0;
-      return QCBOR_ERR_TAG_NESTING_TOO_DEEP;
+      return QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP;
    }
 
    /* Loop over tag numbers in reverse, those closest to content first */

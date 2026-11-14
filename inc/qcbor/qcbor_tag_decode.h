@@ -181,7 +181,8 @@ enum QCBORDecodeTagReq {
  * most N + 1 run at once. Fetching items that have no tag numbers, or
  * whose tag numbers have no installed decoder, does not count.
  *
- * Exceeding the limit results in @ref QCBOR_ERR_TAG_NESTING_TOO_DEEP.
+ * Exceeding the limit results in
+ * @ref QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP.
  *
  * The default is 8, intended for environments that are not short of
  * stack. Stack use per level depends on the decoder. The big float
@@ -195,8 +196,8 @@ enum QCBORDecodeTagReq {
  * the decoders QCBOR provides, only the big float and decimal
  * fraction decoders nest. With 0, a big float or decimal fraction
  * whose mantissa is a big number fails with
- * @ref QCBOR_ERR_TAG_NESTING_TOO_DEEP. Those with integer mantissas
- * decode normally.
+ * @ref QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP. Those with integer
+ * mantissas decode normally.
  *
  * If tags are completely disabled with @ref QCBOR_DISABLE_TAGS, there
  * are no tag content decoders and no possibility of recursion.
