@@ -1298,7 +1298,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
             uStart1 = uStart2;
             Lens1   = Lens2;
          } else /* nComparison == 0 */ {
-            pMe->uError = QCBOR_ERR_DUPLICATE_LABEL;
+            pMe->uError = QCBOR_ERR_ENCODE_DUPLICATE_LABEL;
             return;
          }
          uStart2 = uStart2 + Lens2.uItemLen;
