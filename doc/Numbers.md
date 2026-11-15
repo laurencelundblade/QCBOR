@@ -364,7 +364,7 @@ For example, 256 encoded as a positive big number is 0xc2 0x42 0x01
 example in next section).
 
 
-## Preferred-Pluse Serialization
+## Preferred-Plus Serialization
 
 The integer number space encodable by big numbers overlaps with the
 number space encodable by regular integers, by CBOR type 0 and type 1,

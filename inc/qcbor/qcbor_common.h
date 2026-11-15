@@ -524,6 +524,7 @@ typedef enum {
     * QCBORDecode_SetMaxTagNesting(). */
    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP = 72,
 
+   
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 99
 
 
@@ -555,10 +556,6 @@ typedef enum {
    QCBOR_ERR_CANT_CHECK_CONFORMANCE = 106,
 
    QCBOR_ERR_NOT_PREFERRED_BIGNUM = 107,
-
-   /** Decoded CBOR is does not conform to preferred-plus serialization. The CBOR head's argument is not
-    * encoded in shortest form, or indefinite lengths are used. */
-   QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE = 108,
 
 
 #define QCBOR_END_OF_HALTING_ERRORS 139
