@@ -1660,8 +1660,9 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  * @param[in] uStart2   Offset of second bytes to compare.
  * @param[in] uLen2     Length of second bytes to compare.
  *
- * @return  0 for equality, positive if uStart1 is lexographically larger,
- *          negative if uStart2 is lexographically larger.
+ * @return  0 for equality, positive if the string at @c uStart1
+ *          lexicographically precedes the one at @c uStart2, negative
+ *          if it follows it.
  *
  * This looks into bytes that have been output at the offsets
  * @c start1 and @c start2. It compares bytes at those two starting
@@ -1680,11 +1681,11 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  * the second is "abc", a positive value is returned. The empty string
  * is always the smallest and sorts ahead of all others.
  *
- * If either starting offset is beyond the end of the output buffer,
- * the function returns zero.  It is the caller’s responsibility to
- * ensure that offsets are within bounds so that a valid comparison is
- * performed. No data will ever be read beyond the buffer’s end,
- * making the function safe regardless of the provided offsets.
+ * A string whose starting offset is at or beyond the end of the
+ * output data is empty. It is the caller’s responsibility to ensure
+ * that offsets are within bounds so that a meaningful comparison is
+ * performed. No data is ever read outside the output data, making
+ * the function safe regardless of the provided offsets and lengths.
  *
  * This is a relatively odd function in that it works on data in the
  * output buffer. It is employed by QCBOR to sort CBOR-encoded maps
