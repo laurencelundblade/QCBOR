@@ -7390,6 +7390,11 @@ const unsigned char spBadConsumeInput5[] = {
    0xa1, 0x80, 0x00
 };
 
+/* An array of one item with no bytes for the item */
+const unsigned char spBadConsumeInput6[] = {
+   0x81
+};
+
 const unsigned char spOneInteger[] = {
    0x01
 };
@@ -8087,6 +8092,17 @@ int32_t EnterMapTest(void)
    QCBORDecode_VGetNextConsume(&DCtx, &Item1);
    if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_MAP_LABEL_TYPE) {
       return 3000;
+   }
+
+   /* When consuming stops early, uNextNestLevel keeps the value
+    * QCBORDecode_VGetNext() returned for the array */
+   QCBORDecode_Init(&DCtx, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spBadConsumeInput6), 0);
+   QCBORDecode_VGetNextConsume(&DCtx, &Item1);
+   if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_NO_MORE_ITEMS) {
+      return 3001;
+   }
+   if(Item1.uDataType != QCBOR_TYPE_ARRAY || Item1.uNextNestLevel != 1) {
+      return 3002;
    }
 
    /* GetItemsInMap search for nothing on an item that isn't a map */

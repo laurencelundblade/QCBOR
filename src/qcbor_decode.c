@@ -3145,7 +3145,7 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
  *                              consumed.
  * @param[in,out] pEnd          Tracks where the target ends. Can be NULL.
  * @param[out] puNextNestLevel  The next nesting level after the item was
- *                              fully consumed.
+ *                              fully consumed. Not set on error.
  *
  * This may be called when @c pItemToConsume is not an array or
  * map. In that case, this is just a pass through for @c puNextNestLevel
@@ -3172,7 +3172,12 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
          uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item);
       } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
-      *puNextNestLevel = Item.uNextNestLevel;
+      /* On error, Item may not have been written, for example when
+       * the input ends before the array or map does (0x81 with
+       * nothing after it). Leave *puNextNestLevel unset then. */
+      if(uReturn == QCBOR_SUCCESS) {
+         *puNextNestLevel = Item.uNextNestLevel;
+      }
 
    } else {
       /* pItemToConsume is not a map or array. Just pass the nesting
