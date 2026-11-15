@@ -271,7 +271,7 @@ enum QCBOREncodeConfig {
     */
    QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE = 0x20,
 
-   /** Preferred serialization requires number reduction of big
+   /** Preferred-plus serialization requires number reduction of big
     * numbers to type 0 and 1 integers. With this set an error will be
     * set when trying to encode non-preferred big numbers with
     * QCBOREncode_AddTBigNumberNoPreferred() or
@@ -304,7 +304,7 @@ enum QCBOREncodeConfig {
     * mode, but there is usually no disadvantage to setting
     * it. Preferred serialization is defined in RFC 8949, section 4.1.
     */
-   QCBOR_ENCODE_CONFIG_PREFERRED =
+   QCBOR_ENCODE_CONFIG_PREFERRED_PLUS =
        QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS |
        QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS |
        QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS,
@@ -325,7 +325,7 @@ enum QCBOREncodeConfig {
     * usually work with most protocols. Deterministic encoding is defined in
     * RFC 8949 section 4.2.1. (TODO: reference new document).
     */
-   QCBOR_ENCODE_CONFIG_DETERMINISTIC = QCBOR_ENCODE_CONFIG_PREFERRED |
+   QCBOR_ENCODE_CONFIG_DETERMINISTIC = QCBOR_ENCODE_CONFIG_PREFERRED_PLUS |
                                        QCBOR_ENCODE_CONFIG_SORT,
 
    /**
@@ -440,7 +440,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  *
  * QCBOR usually functions as needed without configuration.
  *
- * QCBOR encodes with preferred serialization by default
+ * QCBOR encodes with preferred-plus serialization by default
  * but provides some explicit functions that don't. This
  * can configure QCBOR to error if they are used.
  *

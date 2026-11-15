@@ -340,7 +340,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf  *pUInBuf,
 
          if(nAdditionalInfo == LEN_IS_ONE_BYTE) {
             if(uArgument < 24) {
-               uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+               uReturn = QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE;
                goto Done;
             }
          } else {
@@ -349,7 +349,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf  *pUInBuf,
                int nArgLen = aIterate[nAdditionalInfo - LEN_IS_ONE_BYTE - 1];
                uMinArgument = UINT64_MAX >> ((int)sizeof(uint64_t) - nArgLen) * 8;
                if(uArgument <= uMinArgument) {
-                  uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+                  uReturn = QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE;
                   goto Done;
                }
             }
@@ -366,7 +366,7 @@ QCBOR_Private_DecodeHead(UsefulInputBuf  *pUInBuf,
    } else {
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
       if(uConfigFlags & QCBOR_DECODE_NO_INDEF_LENGTH && nAdditionalInfo == LEN_IS_INDEFINITE) {
-         uReturn = QCBOR_ERR_PREFERRED_CONFORMANCE;
+         uReturn = QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE;
          goto Done;
       }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -732,7 +732,7 @@ QCBORDecode_Private_SingleConformance(const uint32_t uSingle, const QCBORDecodeM
    if(uconfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
       ToSmaller = IEEE754_SingleToHalf(uSingle, true);
       if(ToSmaller.uSize != sizeof(float)) {
-         return QCBOR_ERR_PREFERRED_CONFORMANCE;
+         return QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE;
       }
    }
 
@@ -762,7 +762,7 @@ QCBORDecode_Private_DoubleConformance(const double d, QCBORDecodeMode uConfigFla
    if(uConfigFlags & QCBOR_DECODE_ONLY_PREFERRED_NUMBERS) {
       ToSmaller = IEEE754_DoubleToSmaller(d, true, true);
       if(ToSmaller.uSize != sizeof(double)) {
-         return QCBOR_ERR_PREFERRED_CONFORMANCE;
+         return QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE;
       }
    }
 

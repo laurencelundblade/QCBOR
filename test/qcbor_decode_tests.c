@@ -10821,7 +10821,7 @@ int32_t BoolTest(void)
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-#define PREFERRED_ERR    QCBOR_ERR_PREFERRED_CONFORMANCE
+#define PREFERRED_ERR    QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
 #define DCBOR_FLOAT_ERR  QCBOR_ERR_DCBOR_CONFORMANCE
 #define HALF_FLOAT_ERR   QCBOR_ERR_DCBOR_CONFORMANCE
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
@@ -10844,47 +10844,47 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "zero encoded in 2 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x18\x00", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "23 encoded in 2 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x18\x17", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "255 encoded in 3 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x19\x00\xff", 3},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "65535 encoded in 5 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x1a\x00\x00\xff\xff", 5},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "4294967295 encoded in 9 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x1b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "-24 encoded in 2 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x38\x17", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "-256 encoded in 3 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x39\x00\xff", 3},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "-65536 encoded in 5 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x3a\x00\x00\xff\xff", 5},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "-4294967296 encoded in 9 bytes",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\x3b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    /* TODO: what to do about this test?
     { "65-bit negative not allowed in dCBOR",
@@ -11053,23 +11053,23 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "byte string length not-shortest form",
       QCBOR_DECODE_MODE_DCBOR,
       {"\x59\x00\x01\x99", 4},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "array length not-shortest form",
       QCBOR_DECODE_MODE_DCBOR,
       {"\x9a\x00\x00\x00\x02\x05\x06", 7},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "tag number not shortest-form",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xd9\x00\xff\x00", 4},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
 #if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "tag number on lable not shortest-form",
       QCBOR_DECODE_MODE_PREFERRED,
       {"\xA3\xC1\x00\x61\x61\xD8\x01\x00\x61\x62\xD9\x00\x01\x00\x61\x63", 16},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
 #endif
 
@@ -11077,22 +11077,22 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "indefinite-length byte string",
       QCBOR_DECODE_MODE_DCBOR,
       {"\x5f\x62\x68\x69\xff", 5},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "indefinite-length text string",
       QCBOR_DECODE_MODE_DCBOR,
       {"\x7f\x62\x68\x69\xff", 5},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "indefinite-length array",
       QCBOR_DECODE_MODE_DCBOR,
       {"\x9f\xff", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "indefinite-length map",
       QCBOR_DECODE_MODE_DCBOR,
       {"\xbf\xff", 2},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
 
    /* --- Unsorted maps --- */
@@ -11165,7 +11165,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    { "map with map label with non-preferred part",
       QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xa1\xa1\x19\x00\x00\x01\x02", 7},
-      QCBOR_ERR_PREFERRED_CONFORMANCE
+      QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE
    },
    { "map without enough entries",
       QCBOR_DECODE_MODE_DETERMINISTIC,

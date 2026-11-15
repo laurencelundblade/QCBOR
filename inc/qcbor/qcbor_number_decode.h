@@ -566,7 +566,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  *
  * The object code for this is surprisingly large at about 1KB.  This
  * is to apply the offset of one for the negative values and to
- * operate all the data types used by big number specific preferred
+ * operate all the data types used by big number specific preferred-plus
  * serialization.
  *
  * See @ref BigNumbers for a useful overview of CBOR big numbers and

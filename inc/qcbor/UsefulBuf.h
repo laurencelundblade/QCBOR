@@ -106,7 +106,7 @@
  *
  * Note that most of QCBOR is unaffected by this configuration.  Its
  * endianness handling is integrated with the code that handles
- * alignment and preferred serialization. This configuration does
+ * alignment and preferred-plus serialization. This configuration does
  * affect QCBOR's (planned) implementation of integer arrays (tagged
  * arrays) and use of the functions here to serialize or deserialize
  * integers and floating-point values.

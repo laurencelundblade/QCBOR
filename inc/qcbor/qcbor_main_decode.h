@@ -260,9 +260,9 @@ typedef enum {
     * This checks that the input is encoded with preferred
     * serialization. The checking is performed as each item is
     * decoded. If no QCBORDecode_GetXxx() is called for an item,
-    * there's no check on that item. Preferred serialization was first
+    * there's no check on that item. Preferred-plus serialization was first
     * defined in section 4.1 of RFC 8949, but is more sharply in
-    * draft-ietf-cbor-cde. Summarizing, the requirements are: the use
+    * draft-ietf-cbor-serialization. Summarizing, the requirements are: the use
     * of definite-length encoding only, integers, including string
     * lengths and tags, must be in shortest form, and floating-point
     * numbers must be reduced to shortest form all the way to

@@ -474,9 +474,9 @@ typedef enum {
 
    // TODO: maybe reduce number of conformance codes to not use up unrecoverable errors
 
-   /** Decoded CBOR is does not conform to preferred serialization. The CBOR head's argument is not
+   /** Decoded CBOR is does not conform to preferred-plus serialization. The CBOR head's argument is not
     * encoded in shortest form, or indefinite lengths are used. */
-   QCBOR_ERR_PREFERRED_CONFORMANCE = 52,
+   QCBOR_ERR_PREFERRED_PLUS_CONFORMANCE = 52,
 
    /** Decoded CBOR does not conform to deterministic encoding. This
     * occurs when a map is not sorted. Other deterministic issues are
@@ -491,7 +491,7 @@ typedef enum {
    /** A map is unsorted and should be for deterministic encoding or dCBOR. */
    QCBOR_ERR_UNSORTED = 55,
 
-   /** Conformance checking requested, preferred serialization disabled, float in the input. */
+   /** Conformance checking requested, preferred-plus serialization disabled, float in the input. */
    QCBOR_ERR_CANT_CHECK_FLOAT_CONFORMANCE = 56,
 
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 59
@@ -561,7 +561,7 @@ typedef enum {
     *  that is disabled and the type of floating-point input. */
    QCBOR_ERR_FLOAT_DATE_DISABLED = 73,
 
-   /** Support for preferred serialization is disabled (QCBOR
+   /** Support for preferred-plus serialization is disabled (QCBOR
     * was compiled with QCBOR_DISABLE_PREFERRED_FLOAT). */
    QCBOR_ERR_PREFERRED_FLOAT_DISABLED = 74,
    QCBOR_ERR_HALF_PRECISION_DISABLED = 74, /* Deprecated */

@@ -84,7 +84,7 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pMe, const int64_t nNum)
  * without a loss of precision. See QCBOREncode_AddDouble().
  */
 void
-QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
+QCBOREncode_Private_AddPreferredPlusDouble(QCBOREncodeContext *pMe, double dNum)
 {
    IEEE754_union        FloatResult;
    bool                 bNoNaNPayload;
@@ -147,7 +147,7 @@ QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, double dNum)
  * without a loss of precision. See QCBOREncode_AddFloat().
  */
 void
-QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, float fNum)
+QCBOREncode_Private_AddPreferredPlusFloat(QCBOREncodeContext *pMe, float fNum)
 {
    IEEE754_union        FloatResult;
    bool                 bNoNaNPayload;
