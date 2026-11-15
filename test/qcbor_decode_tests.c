@@ -3752,6 +3752,21 @@ int32_t SpiffyDateDecodeTest(void)
       return 108;
    }
 
+   // A failed get leaves the output unchanged
+   nEpochDate6 = 42;
+   QCBORDecode_GetTEpochDateInMapN(&DC, 99999, QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                  &nEpochDate6);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_LABEL_NOT_FOUND || nEpochDate6 != 42) {
+      return 1081;
+   }
+   QCBORDecode_GetTEpochDaysInMapSZ(&DC, "no-label", QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
+                                   &nEpochDate6);
+   uError = QCBORDecode_GetAndResetError(&DC);
+   if(uError != QCBOR_ERR_LABEL_NOT_FOUND || nEpochDate6 != 42) {
+      return 1082;
+   }
+
    // Fail to get a string date by string label
    QCBORDecode_GetTDateStringInMapSZ(&DC, "no-label",
                                     QCBOR_TAG_REQUIREMENT_NOT_A_TAG,
