@@ -2187,10 +2187,12 @@ QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
  *                     values 0xffff and smaller will be encoded in 4
  *                     bytes. This is used primarily when encoding a
  *                     float or double put into uNumber as the leading
- *                     zero bytes for them must be encoded.
+ *                     zero bytes for them must be encoded. It
+ *                     must be 8 or less.
  * @param uNumber      The numeric argument part of the CBOR head.
  * @return             Pointer and length of the encoded head or
- *                     @ref NULLUsefulBufC if the output buffer is too small.
+ *                     @ref NULLUsefulBufC if the output buffer is too small
+ *                     or @c uMinLen is more than 8.
  *
  * Callers do not to need to call this for normal CBOR encoding. Note
  * that it doesn't even take a @ref QCBOREncodeContext argument.

@@ -420,6 +420,13 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
         return NULLUsefulBufC;
     }
 
+   /* The argument of a CBOR head is at most 8 bytes. A larger
+    * uMinLen would run the loop below past the end of aIterate[] and
+    * write before the start of Buffer. */
+   if(uMinLen > sizeof(uint64_t)) {
+      return NULLUsefulBufC;
+   }
+
    /* Pointer to last valid byte in the buffer */
    uint8_t * const pBufferEnd = &((uint8_t *)Buffer.ptr)[QCBOR_HEAD_BUFFER_SIZE-1];
 
@@ -491,7 +498,7 @@ QCBOREncode_EncodeHead(UsefulBuf Buffer,
     * pointer math in this function is not going wrong. Turn it on and
     * run the whole test suite to perform the check.
     */
-   if(pBufferEnd - pByte > 9 || pBufferEnd - pByte < 1 || pByte < (uint8_t *)buffer.ptr) {
+   if(pBufferEnd - pByte > 9 || pBufferEnd - pByte < 1 || pByte < (uint8_t *)Buffer.ptr) {
       return NULLUsefulBufC;
    }
 #endif /* EXTRA_ENCODE_HEAD_CHECK */
