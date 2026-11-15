@@ -467,7 +467,7 @@ The columns in the table are as follows:
   ignores leading zeros and the empty string has the value 0.
 
   When big number conformace checking is on, 
-  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS, decoding errors out
+  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS, decoding errors out
   on leading zeros or empty string.</dd>
 
   <dt>Integer Unification</dt>
@@ -476,7 +476,7 @@ The columns in the table are as follows:
   as type 0 and 1, not big numbers.
 
   When big number conformance checking is on,
-  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS, decoding errors out if
+  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS, decoding errors out if
   unification is not performed.e</dd>
   
   <dt>Size</dt>

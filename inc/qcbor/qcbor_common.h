@@ -377,11 +377,11 @@ typedef enum {
     *  added to it. */
    QCBOR_ERR_CANNOT_CANCEL = 17,
 
-   /** Attempt to output non-preferred, non-deterministic or non-dCBOR
+   /** Attempt to output non-preferred plus, non-deterministic or non-dCBOR
     * when not allowed by mode. See
     * @ref QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS,
-    * @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS,
-    * @ref QCBOR_ENCODE_CONFIG_PREFERRED,
+    * @ref QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT,
+    * @ref QCBOR_ENCODE_CONFIG_PREFERRED_PLUS,
     * @ref QCBOR_ENCODE_CONFIG_DETERMINISTIC,
     * @ref QCBOR_ENCODE_CONFIG_DCBOR.
      */
@@ -524,7 +524,7 @@ typedef enum {
     * QCBORDecode_SetMaxTagNesting(). */
    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP = 72,
 
-   
+
 #define QCBOR_END_OF_UNRECOVERABLE_DECODE_ERRORS 99
 
 

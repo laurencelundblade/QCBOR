@@ -88,8 +88,7 @@ extern "C" {
  * an integer is 0. See
  * [RFC 8949 Appendix A](https://www.rfc-editor.org/rfc/rfc8949.html#section-appendix.a)
  * for more examples of CBOR encoding. This compact encoding is
- * preferred-plus serialization CBOR as per
- * [RFC 8949 section 4.1](https://www.rfc-editor.org/rfc/rfc8949.html#section-4.1)
+ * preferred-plus serialization CBOR as per https://www.ietf.org/archive/id/draft-ietf-cbor-serialization-12.html
  *
  * There are no functions to add @c int16_t or @c int32_t because they
  * are not necessary because this always encodes to the smallest
@@ -393,7 +392,7 @@ QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pCtx,
  *
  * Leading zeros are not encoded.
  *
- * This uses preferred serialization described specifically for big
+ * This uses preferred-plus serialization described specifically for big
  * numbers. Positive values between 0 and (2^64)-1 are encoded as
  * common type 0 integers. Negative values between -(2^64) and -1 are
  * encoded as common type 1 integers.
@@ -1318,7 +1317,7 @@ static inline void
 QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
@@ -1399,7 +1398,7 @@ static inline void
 QCBOREncode_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
