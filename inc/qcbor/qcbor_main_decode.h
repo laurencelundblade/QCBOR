@@ -2,7 +2,7 @@
  * qcbor_main_decode.h -- The main CBOR decoder.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -119,7 +119,7 @@ extern "C" {
  * correct behavior.
  *
  * This behavior is not backwards compatible with v1. The v1 behavior
- * can be restored with @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
+ * can be restored with @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS.
  * However, the v2 behavior is more correct, so this configuration
  * should not be used.
  *
@@ -226,38 +226,51 @@ typedef enum {
     *  @ref QCBOR_ERR_UNPROCESSED_TAG_NUMBER is not returned.  See
     *  @ref v2-Tag-Decoding and QCBORDecode_CompatibilityV1().
     */
-   QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS = 0x04,
+   QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS = 0x04,
 
-   /** Error out on indefinite length strings, arrays and maps. */
-   QCBOR_DECODE_NO_INDEF_LENGTH = 0x08,
+    /** NaN payloads in the input will error with
+     * @ref QCBOR_ERR_NAN_PAYLOAD unless this is set. */
+   QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS = 0x08,
+   // TODO: QCBOR_DECODE_MODE_ALLOW_NON_TRIVIAL_NAN = 0x08,
 
-   /** Error out if integers or floats are encoded as
-    *  non-preferred. */
-   QCBOR_DECODE_ONLY_PREFERRED_NUMBERS = 0x10,
+   /** @ref QCBOR_ERR_INDEF_LENGTH on indefinite length strings,
+    * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+   QCBOR_DECODE_MODE_NO_INDEF_LENGTH = 0x10,
 
-   /** If big numbers that will fit into normal integers are
-    *  encountered error XXX will occur. This is to comply with big
-    *  number preferred serialization. */
-   QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS = 0x20,
+   /** @ref QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT when the CBOR
+    * argument is not shortest length. The CBOR argument is used for
+    * encoded integers, string lengths, array lengths, map lengths and
+    * simple types.  See @ref QCBOR_DECODE_MODE_PREFERRED. */
+   QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT = 0x20,
 
-   /** If maps are not sorted, error @ref QCBOR_ERR_UNSORTED
-    *  occurs. This is makes map decoding take more CPU time, but that
-    *  is probably only of consequence with big maps on small CPUs. */
-   QCBOR_DECODE_ONLY_SORTED_MAPS = 0x40,
+    /** @ref QCBOR_ERR_NOT_SHORTEST_FLOAT when floats aren't
+     * serialized with the shortest form that doesn't lose
+     * precision. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+    QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT = 0x40,
 
-   /** If whole number floats are present (they are not encoded as
-    * integers), error @ref QCBOR_ERR_DCBOR_CONFORMANCE occurs. This
-    * is as required for dCBOR.
+   /** Check that big numbers conform with the preferred
+    * serialization: no empty strings, no leading zeros, and values
+    * that fit within the type 0 or type 1 integer ranges are not encoded
+    * as big numbers.
     */
-   QCBOR_DECODE_ONLY_REDUCED_FLOATS = 0x80,
+   QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS = 0x80,
 
-   /** dCBOR allows only the simple types true, false and NULL
-    * This enforces that.
-    */
-   QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES = 0x100,
+   /** @ref QCBOR_ERR_UNSORTED if a map is not sorted. See
+    * @ref QCBOR_DECODE_MODE_DETERMINISTIC. */
+   QCBOR_DECODE_MODE_ONLY_SORTED_MAPS = 0x100,
+
+   /** @ref QCBOR_ERR_FLOAT_NOT_REDUCED if whole number floats are
+    * present (they are not encoded as integers). See
+    * @ref QCBOR_DECODE_MODE_DCBOR. */
+   QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS = 0x200,
+
+   /** @ref QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE is a simple value is
+    * other than true, false or null, the same as JSON. See
+    * @ref QCBOR_DECODE_MODE_DCBOR. */
+   QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES = 0x400,
 
    /**
-    * This checks that the input is encoded with preferred
+    * This checks that the input is in conformance with preferred
     * serialization. The checking is performed as each item is
     * decoded. If no QCBORDecode_GetXxx() is called for an item,
     * there's no check on that item. Preferred-plus serialization was first
@@ -266,10 +279,12 @@ typedef enum {
     * of definite-length encoding only, integers, including string
     * lengths and tags, must be in shortest form, and floating-point
     * numbers must be reduced to shortest form all the way to
-    * half-precision. */
-   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_NO_INDEF_LENGTH |
-                                 QCBOR_DECODE_ONLY_PREFERRED_NUMBERS |
-                                 QCBOR_DECODE_ONLY_PREFERRED_BIG_NUMBERS,
+    * half-precision.
+    * TODO: update text above*/
+   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_MODE_NO_INDEF_LENGTH |
+                                 QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT |
+                                 QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT |
+                                 QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS,
 
    /** This checks that maps in the input are sorted by label as
     * described in RFC 8949 section 4.2.1.  This also performs
@@ -278,26 +293,24 @@ typedef enum {
     * for large inputs on slow CPUs.
     *
     * This also performs all the checks that
-    * @ref QCBOR_DECODE_MODE_PREFERRED does. */
+    * @ref QCBOR_DECODE_MODE_PREFERRED does.
+    * todo: update text above*/
    QCBOR_DECODE_MODE_DETERMINISTIC = QCBOR_DECODE_MODE_PREFERRED |
-                                     QCBOR_DECODE_ONLY_SORTED_MAPS,
+                                     QCBOR_DECODE_MODE_ONLY_SORTED_MAPS,
 
-   /** This requires integer-float unification. It performs all the checks that
-    * @ref QCBOR_DECODE_MODE_DETERMINISTIC does. */
+   /** dCBOR is a special-use serialization whose primary requirement
+    * in addition to @ref QCBOR_DECODE_MODE_DETERMINISTIC is that the
+    * float and integer number spaces are unified.  It also restricts
+    * the simple types to true, false and null.  Last, it disallows
+    * NaNs with payloads, but QCBOR does that by default. See
+    * draft-mcnally-deterministic-cbor. */
    QCBOR_DECODE_MODE_DCBOR = QCBOR_DECODE_MODE_DETERMINISTIC |
-                             QCBOR_DECODE_ONLY_REDUCED_FLOATS |
-                             QCBOR_DECODE_DISALLOW_DCBOR_SIMPLES,
+                             QCBOR_DECODE_MODE_ONLY_REDUCED_FLOATS |
+                             QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES,
 
 } QCBORDecodeMode;
 
 
-
-
-/**
- * The maximum number of tags that may occur on an individual nested
- * item. Typically 4. This is a QCBOR implementation limit.
- */
-#define QCBOR_MAX_TAGS_PER_ITEM QCBOR_MAX_TAGS_PER_ITEM1
 
 
 
@@ -431,10 +444,10 @@ typedef enum {
 /** Type for the simple value undef. */
 #define QCBOR_TYPE_UNDEF         23
 
-/** Type for a floating-point number. Data is in @c val.fnum. */
+/** Type for a floating-point number. Data is in @c val.fnum.  See @ref Floating-Point-Decode. */
 #define QCBOR_TYPE_FLOAT         26
 
-/** Type for a double floating-point number. Data is in @c val.dfnum. */
+/** Type for a double floating-point number. Data is in @c val.dfnum. See @ref Floating-Point-Decode. */
 #define QCBOR_TYPE_DOUBLE        27
 
 /** Special type for integers between -2^63 - 1 to -2^64 that
@@ -499,9 +512,13 @@ typedef enum {
 
 /* 79, 80, 82, 83 is used above for decimal fraction and big float */
 
+/** @private  Used internally; never returned  */
+#define QCBOR_TYPE_ARRAY_END_SEARCH  126
 
 /** @private  Used internally; never returned  */
 #define QCBOR_TYPE_TAG_NUMBER 127
+
+
 
 /** Start of user-defined data types. The range is mainly for user-defined tag content
  * decoders. See QCBORTagContentCallBack */
@@ -512,8 +529,16 @@ typedef enum {
 
 
 /**
- * The largest value in @c utags that is unmapped and can be used without
- * mapping it through QCBORDecode_GetNthTagNumber().
+ * Tag numbers above this value are remapped when stored
+ * internally. Only @ref QCBOR_NUM_MAPPED_TAGS (typically 4) tag
+ * numbers above this value can be stored per decoder instance. This
+ * value is described publically only for the caller to understand
+ * @ref QCBOR_NUM_MAPPED_TAGS.
+ *
+ * Tag numbers in QCBORItem and QCBORDecodeContext should
+ * be accessed through QCBORDecode_GetNthTagNumber(), not
+ * directly. @c auTagNumbers in @ref QCBORItem is a private
+ * data structure and subject to change.
  */
 #define QCBOR_LAST_UNMAPPED_TAG (CBOR_TAG_INVALID16 - QCBOR_NUM_MAPPED_TAGS - 1)
 
@@ -522,28 +547,16 @@ typedef enum {
  * @anchor expAndMantissa
  *
  * This holds the value for big floats and decimal fractions, as an
- * exponent and mantissa.  For big floats the base for exponentiation
- * is 2. For decimal fractions it is 10. Whether an instance is a big
+ * exponent and mantissa. Whether an instance is a big
  * float or decimal fraction is known by context, usually by @c uDataType
  * in @ref QCBORItem which might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
  * @ref QCBOR_TYPE_BIGFLOAT, ...
- *
- * The mantissa may be an @c int64_t or a big number. This is again
- * determined by context, usually @c uDataType in @ref QCBORItem which
- * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
- * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
- * big number also comes from the context
- * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
- * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
- *
- * @c bigNum is big endian or network byte order. The most significant
- * byte is first.
  *
  * When @c Mantissa is @c int64_t, it represents the true value of the
  * mantissa with the offset of 1 for CBOR negative values
  * applied. When it is a negative big number
  * (@ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM or
- * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGNUM), the offset of 1 has NOT been
+ * @ref QCBOR_TYPE_BIGFLOAT_NEG_BIGMANTISSA), the offset of 1 has NOT been
  * applied (doing so requires somewhat complex big number arithmetic
  * and may increase the length of the big number). To get the correct
  * value @c bigNum must be incremented by one before use.
@@ -553,10 +566,22 @@ typedef enum {
  * and QCBOREncode_AddTBigFloatBigNum().
  */
 typedef struct  {
+   /** For big floats the exponent base is 2. For decimal fractions it is 10. */
    int64_t nExponent;
+
+   /** The mantissa may be an @c int64_t or a big number. This is
+    * determined by context, usually @c uDataType in @ref QCBORItem which
+    * might be @ref QCBOR_TYPE_DECIMAL_FRACTION,
+    * @ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM, ...  The sign of the
+    * big number also comes from the context
+    * (@ref QCBOR_TYPE_DECIMAL_FRACTION_POS_BIGNUM,
+    * @ref QCBOR_TYPE_DECIMAL_FRACTION_NEG_BIGNUM,...).
+    */
    union {
       int64_t    nInt;
       uint64_t   uInt;
+       /** @c bigNum is big endian or network byte order. The most significant
+        * byte is first. */
       UsefulBufC bigNum;
    } Mantissa;
 } QCBORExpAndMantissa;
@@ -686,7 +711,7 @@ typedef struct _QCBORItem {
    /**
     * PRIVATE MEMBER
     * Use  QCBORDecode_GetNthTagNumber() to retrieve tag numbers on an item.
-    * Also see @ref CBORTags
+    * Also see @ref CBORTags.
     *
     * In QCBOR v1 this was named uTags and was in the reverse order.
     * It wasn't explicitly described as private, but was implicitly private.
@@ -912,6 +937,9 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
 
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
+
+
+
 /**
  * @brief Get the next item (integer, byte string, array...) in the
  * preorder traversal of the CBOR tree.
@@ -936,7 +964,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * - The label for an item in a map, which may be a text or byte string
  *   or an integer.
  *
- * - When @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
+ * - When @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS is set,
  *   unprocessed tag numbers.
  *
  * See @ref QCBORItem for all the details about what is returned.
@@ -1050,7 +1078,7 @@ QCBORDecode_SetUpAllocator(QCBORDecodeContext *pCtx,
  * | @ref QCBOR_ERR_INT_OVERFLOW                  | Input integer smaller than INT64_MIN |
  * | @ref QCBOR_ERR_ARRAY_DECODE_TOO_LONG         | Array or map has more elements than can be handled |
  * | @ref QCBOR_ERR_DATE_OVERFLOW                 | Date larger than can be handled |
- * | @ref QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
+ * | @ref QCBOR_ERR_DECODE_NESTING_TOO_DEEP | Nesting deeper than can be handled |
  * | @ref QCBOR_ERR_STRING_TOO_LONG               | Encountered a string longer than size_t can hold less 4 bytes |
  * | @ref QCBOR_ERR_TOO_MANY_TAGS                 | Tag nesting deeper than limit, typically 4 |
  * | __Configuration errors__  ||
@@ -1095,7 +1123,8 @@ QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem);
  * will be consumed leaving the cursor after the array or map.
  *
  * If an array or map is being consumed by this, an error will occur
- * if any of the items in the array or map are in error.
+ * if any of the items in the array or map result in a halting error.
+ * (See QCBORDecode_IsHaltingError()).
  *
  * If the item is a tag the contents of which is an array or map, like
  * a big float, @c pItem will identify it as such and the contents
@@ -1345,36 +1374,106 @@ QCBORDecode_GetAndResetError(QCBORDecodeContext *pCtx);
 
 
 /**
- * @brief Whether an error indicates non-well-formed CBOR.
+ * @brief Whether an error means the input is not well-formed CBOR.
  *
- * @param[in] uErr    The QCBOR error code.
- * @return @c true if the error code indicates non-well-formed CBOR.
+ * @param[in] uErr  The QCBOR error code.
+ *
+ * @return @c true if the error means the input is not well-formed.
+ *
+ * Not well-formed means the input violates the basic CBOR encoding
+ * rules of RFC 8949, independent of any protocol, profile or
+ * conformance checking. Examples are a reserved additional info
+ * value, a string or array running past the end of the input, and a
+ * break outside an indefinite-length item.
+ *
+ * These errors are a subset of QCBORDecode_IsUnrecoverableError().
+ * This function is mostly useful for reporting: telling broken or
+ * malicious input apart from input that hit an implementation limit
+ * or a conformance policy, for example to choose a protocol response
+ * or for logging.
  */
 static bool
 QCBORDecode_IsNotWellFormedError(QCBORError uErr);
 
 
 /**
- * @brief Whether a decoding error is recoverable.
+ * @brief Whether a decoding error is unrecoverable.
  *
- * @param[in] uErr    The QCBOR error code.
- * @return @c true if the error code indicates and uncrecoverable error.
+ * @param[in] uErr  The QCBOR error code.
+ *
+ * @return @c true if the error is unrecoverable.
  *
  * When an error is unrecoverable, no further decoding of the input is
- * possible.  CBOR is a compact format with almost no redundancy so
- * errors like incorrect lengths or array counts are
- * unrecoverable. Unrecoverable errors also occur when implementation
- * limits such as the limit on array and map nesting are encountered.
- * When the built-in decoding of a tag like an epoch date encounters
- * an error such as a data item of an unexpected type, this is also an
- * unrecoverable error because the internal decoding doesn't try to
- * decode everything in the tag.
+ * possible. Calling QCBORDecode_GetAndResetError() and continuing
+ * will not give meaningful results.
  *
- * The unrecoverable errors are a range of the errors in
+ * Usually this is because the decoder can no longer know where the
+ * next data item begins. CBOR is compact and has almost no
+ * redundancy, so errors such as incorrect lengths or array counts are
+ * unrecoverable.
+ *
+ * All not-well-formed errors (QCBORDecode_IsNotWellFormedError()) are
+ * unrecoverable, because RFC 8949 Section 1.2 says decoders return
+ * content only from well-formed data items.
+ *
+ * Some unrecoverable errors come from implementation limits, for
+ * example nesting deeper than @ref QCBOR_MAX_ARRAY_NESTING.
+ *
+ * Decoding the content of a tag can also give an unrecoverable error,
+ * when the content is not what the tag content decoder expects and it
+ * does not consume all of it.
+ *
+ * Unrecoverable errors are a subset of QCBORDecode_IsHaltingError().
+ * A range of user-defined unrecoverable error codes is reserved, see
  * @ref QCBORError.
  */
 static bool
 QCBORDecode_IsUnrecoverableError(QCBORError uErr);
+
+
+
+/**
+ * @brief Whether a decoding error should halt decoding.
+ *
+ * @param[in] uErr  The QCBOR error code.
+ *
+ * @return @c true if decoding should halt.
+ *
+ * QCBOR uses this whenever it passes over items to get to another one
+ * or to the end of an array or map:
+ *
+ * - Map searches by label, such as QCBORDecode_GetItemsInMap() and
+ *   QCBORDecode_GetInt64InMapN()
+ * - Entering a map or array found by label, such as
+ *   QCBORDecode_EnterMapFromMapN()
+ * - QCBORDecode_ExitMap() and QCBORDecode_ExitArray() skipping to
+ *   the end
+ * - QCBORDecode_VGetNextConsume(), QCBORDecode_GetArray() and
+ *   QCBORDecode_GetMap() consuming the contents of an array or map
+ *
+ * A halting error on any item passed over stops the operation and is
+ * returned. Other errors on items passed over are ignored. An error
+ * on the requested item itself is always returned. To check every
+ * item inside an array or map for every kind of error, decode the
+ * items one by one.
+ *
+ * All unrecoverable errors (QCBORDecode_IsUnrecoverableError()) are
+ * halting errors. The other halting errors come from conformance
+ * checking that the caller has requested through
+ * @ref QCBORDecodeMode. Requesting conformance checking means
+ * non-conforming input should be rejected, not skipped.
+ *
+ * Halting errors that are not unrecoverable leave the decoder
+ * positioned after the item in error, so decoding can resume after
+ * QCBORDecode_GetAndResetError(), for example to report every
+ * conformance problem in the input. The input is well-formed, so it
+ * can also be decoded again with conformance checking turned off.
+ *
+ * A range of user-defined halting error codes is reserved, see
+ * @ref QCBORError.
+ */
+static bool
+QCBORDecode_IsHaltingError(QCBORError uErr);
 
 
 /**
@@ -1396,6 +1495,10 @@ QCBORDecode_IsUnrecoverableError(QCBORError uErr);
  * range of @ref QCBOR_ERR_FIRST_USER_DEFINED to
  * @ref QCBOR_ERR_LAST_USER_DEFINED, but it is OK to set QCBOR-defined
  * error codes too.
+ *
+ * In @ref QCBORError, there are ranges reserved for user-defined errors
+ * that classify and unrecoverable and halting and will be picked up
+ * by QCBORDecode_IsUnrecoverableError() and QCBORDecode_IsHaltingError().
  */
 static void
 QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
@@ -1410,7 +1513,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pCtx, QCBORError uError);
  * This saves the decode state such that any decoding done after
  * this call can be abandoned with a call to QCBORDecode_RestoreCursor().
  */
-void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pSavedState);
+void QCBORDecode_SaveCursor(QCBORDecodeContext     *pCtx,
+                            QCBORSavedDecodeCursor *pSavedState);
 
 
 /**
@@ -1421,7 +1525,8 @@ void QCBORDecode_SaveCursor(QCBORDecodeContext *pCtx, QCBORSavedDecodeCursor *pS
  *
  * See QCBORDecode_SaveCursor().
  */
-void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeCursor *pSavedState);
+void QCBORDecode_RestoreCursor(QCBORDecodeContext           *pCtx,
+                               const QCBORSavedDecodeCursor *pSavedState);
 
 
 
@@ -1446,7 +1551,7 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  *
  * This performs two actions to make QCBOR v2 decoding compatible with v1.
  *
- * First, it sets @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS
+ * First, it sets @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS
  * which causes no error to be returned when un processed tag numbers
  * are encountered.
  *
@@ -1460,7 +1565,7 @@ void QCBORDecode_RestoreCursor(QCBORDecodeContext *pCtx, const QCBORSavedDecodeC
  * This links in a fair bit of object code for all the tag content
  * handlers that were always present in v1. To get the v1 tag number behavior
  * without the object code for the tag content handlers, pass
- * @ref QCBOR_DECODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
+ * @ref QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS to
  * QCBORDecode_Init().
  */
 void
@@ -1489,12 +1594,6 @@ uint64_t
 QCBORDecode_Private_UnMapTagNumber(const QCBORDecodeContext *pMe,
                                    const uint16_t            uMappedTagNumber);
 
-/** @private  Semi-private function. See qcbor_decode.c */
-QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
-                                bool               *pbEndedByBreak,
-                                uint8_t            *puNextNestLevel);
 
 /** @private  Semi-private function. See qcbor_decode.c */
 QCBORError
@@ -1504,10 +1603,28 @@ QCBORDecode_Private_GetItemChecks(QCBORDecodeContext *pMe,
                                   QCBORItem          *pDecodedItem);
 
 /** @private  Semi-private function. See qcbor_decode.c */
+
+/* Used by QCBORDecode_GetArray()/GetMap() to find the end of the
+ * target array/map. uEndOffset is set to the cursor right after each
+ * item's head is decoded and is overridden with the cursor at the
+ * moment the target's own nesting level is closed out, before any
+ * enclosing levels (and their breaks) are ascended. */
+struct ItemEndTracker {
+   uint8_t uTargetLevel;
+   size_t  uEndOffset;
+};
+
 QCBORError
-QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe,
-                                      bool                bMarkEnd,
-                                      bool               *pbBreak);
+QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext    *pMe,
+                                      struct ItemEndTracker  *pEnd);
+
+/** @private  Semi-private function. See qcbor_decode.c */
+QCBORError
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
+                                const QCBORItem    *pItemToConsume,
+                                struct ItemEndTracker *pEnd,
+                                uint8_t            *puNextNestLevel);
+
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
 static inline void
@@ -1576,6 +1693,17 @@ QCBORDecode_IsUnrecoverableError(const QCBORError uErr)
    }
 }
 
+static inline bool
+QCBORDecode_IsHaltingError(QCBORError uErr)
+{
+   if(uErr >= QCBOR_START_OF_HALTING_ERRORS &&
+      uErr <= QCBOR_END_OF_HALTING_ERRORS) {
+      return true;
+   } else {
+      return false;
+   }
+}
+
 
 static inline void
 QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
@@ -1586,7 +1714,8 @@ QCBORDecode_SetError(QCBORDecodeContext *pMe, QCBORError uError)
 
 /** @private */
 static inline void
-QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pItem)
+QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe,
+                                   const QCBORItem    *pItem)
 {
 #ifndef QCBOR_DISABLE_TAGS
    memcpy(pMe->auLastTagNumbers,
@@ -1600,7 +1729,9 @@ QCBORDecode_Private_SaveTagNumbers(QCBORDecodeContext *pMe, const QCBORItem *pIt
 
 /** @private */
 static inline void
-QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe, QCBORItem *Item, size_t *uOffset)
+QCBORDecode_Private_GetAndTell(QCBORDecodeContext *pMe,
+                               QCBORItem          *Item,
+                               size_t             *uOffset)
 {
 #ifndef QCBOR_DISABLE_TAGS
    if(pMe->uLastError != QCBOR_SUCCESS) {

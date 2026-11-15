@@ -485,6 +485,7 @@ UsefulOutBuf_AppendUsefulBuf(UsefulOutBuf *pMe, UsefulBufC NewData)
 
 
    /* Loop because the bytes to append might be more than the buffer can hold */
+   // TODO: can this be simpler if there is no streaming?
    for(uNewDataCurrentOffset = 0; uNewDataCurrentOffset < NewData.len;) { /* Check #11 */
       uRoomLeft = UsefulOutBuf_RoomLeft(pMe);
 

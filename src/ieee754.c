@@ -1,7 +1,7 @@
 /* ==========================================================================
  * ieee754.c -- floating-point conversion for half, double & single-precision
  *
- * Copyright (c) 2018-2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2018-2026, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -367,13 +367,13 @@ IEEE754_AssembleHalf(int      nIsNegative,
 
 /*  Public function; see ieee754.h */
 IEEE754_union
-IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
+IEEE754_SingleToHalf(const uint32_t uSingle)
 {
    IEEE754_union result;
-   uint32_t      uDroppedBits;
    int           nExponentDifference;
    int           nShiftAmount;
    uint32_t      uHalfSignificand;
+   uint32_t      uSignificandWithImplied1;
 
    /* Pull the three parts out of the double-precision float Most work
     * is done with uint32_t which helps avoid integer promotions and
@@ -406,37 +406,12 @@ IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
          result.uSize  = IEEE754_UNION_IS_HALF;
          result.uValue = IEEE754_AssembleHalf(nIsNegative, 0, HALF_EXPONENT_INF_OR_NAN);
       } else {
-         if(bNoNaNPayload) {
-            /* --- REQUIRE CANNONICAL NAN --- */
-            result.uSize  = IEEE754_UNION_IS_HALF;
-            result.uValue = IEEE754_AssembleHalf(nIsNegative,
-                                                 HALF_QUIET_NAN_BIT,
-                                                 HALF_EXPONENT_INF_OR_NAN);
-         } else {
-            /* The NaN can only be converted if no significand bits are lost
-             * per RFC 8949 section 4.1 that defines Preferred
-             * Serializaton. Note that Deterministically Encode CBOR in
-             * section 4.2 allows for some variation of this rule, but at
-             * the moment this implementation is of Preferred
-             * Serialization, not deterministic encoding. As of December 2023, we are also
-             * expecting an update to deterministic encoding. This code may need to be
-             * updated.
-             */
-            uDroppedBits = uSingleSignificand & (SINGLE_SIGNIFICAND_MASK >> HALF_NUM_SIGNIFICAND_BITS);
-            if(uDroppedBits == 0) {
-               /* --- IS CONVERTABLE NAN --- */
-               uHalfSignificand = uSingleSignificand >> (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-               result.uSize  = IEEE754_UNION_IS_HALF;
-               result.uValue = IEEE754_AssembleHalf(nIsNegative,
-                                                    uHalfSignificand,
-                                                    HALF_EXPONENT_INF_OR_NAN);
-
-            } else {
-               /* --- IS UNCONVERTABLE NAN --- */
-               result.uSize   = IEEE754_UNION_IS_SINGLE;
-               result.uValue  = uSingle;
-            }
-         }
+         /* --- NAN --- */
+         /* The comment on NaNs in IEEE754_DoubleToSingle() applies here */
+         result.uSize  = IEEE754_UNION_IS_HALF;
+         result.uValue = IEEE754_AssembleHalf(0,
+                                              HALF_QUIET_NAN_BIT,
+                                              HALF_EXPONENT_INF_OR_NAN);
       }
    } else {
       /* ---- REGULAR NUMBER ---- */
@@ -472,39 +447,50 @@ IEEE754_SingleToHalf(const uint32_t uSingle, const int bNoNaNPayload)
           * smaller. Normals don't lose precision because the exponent
           * allows all the bits of the significand to be significant.
           */
-         /* The exponent of the largest possible half-precision
-          * subnormal is HALF_EXPONENT_MIN (-14).  Exponents larger
-          * than this are normal and handled above. We're going to
-          * shift the significand right by at least this amount.
+
+         /* --- DO NOT CONVERT --- */
+         /* This is the default. It is overwritten below only if the
+          * value is exactly representable as a half subnormal.
           */
-         nExponentDifference = -(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
+         result.uSize   = IEEE754_UNION_IS_SINGLE;
+         result.uValue  = uSingle;
 
-         /* In addition to the shift based on the exponent's value,
-          * the single significand has to be shifted right to fit into
-          * a half-precision significand */
-         nShiftAmount = nExponentDifference + (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-
-         /* Must add 1 in to the possible significand because there is
-          * an implied 1 for normal values and not for subnormal
-          * values. See equations here:
-          * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
+         /* The exponent range is checked before the shift amount is
+          * computed. Outside this range nShiftAmount is negative or
+          * >= 32, and shifting by that is undefined behavior even
+          * if the result is never used.
           */
-         uHalfSignificand = (uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
-
-         /* If only zero bits get shifted out, this can be converted
-          * to subnormal */
          if(nSingleUnbiasedExponent < HALF_EXPONENT_MIN &&
-            nSingleUnbiasedExponent >= HALF_EXPONENT_MIN - HALF_NUM_SIGNIFICAND_BITS &&
-            uHalfSignificand << nShiftAmount == uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) {
-            /* --- CONVERTABLE TO HALF SUBNORMAL --- */
-            result.uSize  = IEEE754_UNION_IS_HALF;
-            result.uValue = IEEE754_AssembleHalf(nIsNegative,
-                                                 uHalfSignificand,
-                                                 HALF_EXPONENT_ZERO);
-         } else {
-            /* --- DO NOT CONVERT --- */
-            result.uSize   = IEEE754_UNION_IS_SINGLE;
-            result.uValue  = uSingle;
+            nSingleUnbiasedExponent >= HALF_EXPONENT_MIN - HALF_NUM_SIGNIFICAND_BITS) {
+            /* The exponent of the largest possible half-precision
+             * subnormal is HALF_EXPONENT_MIN (-14).  Exponents larger
+             * than this are normal and handled above. We're going to
+             * shift the significand right by at least this amount.
+             */
+            nExponentDifference = -(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
+
+            /* In addition to the shift based on the exponent's value,
+             * the single significand has to be shifted right to fit into
+             * a half-precision significand */
+            nShiftAmount = nExponentDifference + (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+
+            /* Must add 1 in to the possible significand because there is
+             * an implied 1 for normal values and not for subnormal
+             * values. See equations here:
+             * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
+             */
+            uSignificandWithImplied1 = uSingleSignificand + (1U << SINGLE_NUM_SIGNIFICAND_BITS);
+            uHalfSignificand = uSignificandWithImplied1 >> nShiftAmount;
+
+            /* If only zero bits get shifted out, this can be converted
+             * to subnormal */
+            if(uHalfSignificand << nShiftAmount == uSignificandWithImplied1) {
+               /* --- CONVERTABLE TO HALF SUBNORMAL --- */
+               result.uSize  = IEEE754_UNION_IS_HALF;
+               result.uValue = IEEE754_AssembleHalf(nIsNegative,
+                                                    uHalfSignificand,
+                                                    HALF_EXPONENT_ZERO);
+            }
          }
       }
    }
@@ -549,7 +535,7 @@ IEEE754_AssembleSingle(int      nIsNegative,
  * This always succeeds. If the value cannot be converted without the
  * loss of precision, it is not converted.
  *
- * This handles all subnormals and NaN payloads.
+ * This handles all subnormals.
  */
 static IEEE754_union
 IEEE754_DoubleToSingle(const double d)
@@ -559,6 +545,7 @@ IEEE754_DoubleToSingle(const double d)
    int           nShiftAmount;
    uint64_t      uSingleSignificand;
    uint64_t      uDroppedBits;
+   uint64_t      uSignificandWithImplied1;
 
 
    /* Pull the three parts out of the double-precision float. Most
@@ -598,28 +585,26 @@ IEEE754_DoubleToSingle(const double d)
                                                 0,
                                                 SINGLE_EXPONENT_INF_OR_NAN);
       } else {
-         /* The NaN can only be converted if no payload bits are lost
-          * per RFC 8949 section 4.1 that defines Preferred
-          * Serializaton. Note that Deterministically Encode CBOR in
-          * section 4.2 allows for some variation of this rule, but at
-          * the moment this implementation is of Preferred
-          * Serialization, not deterministic encoding. As of December 2023, we are also
-          * expecting an update to deterministic encoding. This code may need to be
-          * updated.
+         /* --- NaN --- */
+
+         /* This converts all NaNs to single precision regardless of
+          * their payload (the bits in the significand).
+          *
+          * This has been a controversial matter in the CBOR WG.
+          * It's generally accepted that for preferred serialization
+          * defined in RFC 8949, that NaN payloads are allowed and
+          * that they should be converted to shortest length, but this
+          * has been overridden by a consensus that they should be
+          * all downgraded to quiet NaNs. This consensus is expressed
+          * in the up coming CBOR serialization draft and is expected
+          * to become a standard. That is what this implementation does.
+          * Previous versions of QCBOR aligned with RFC 8949 preferred
+          * serialization.
           */
-         uDroppedBits = uDoubleSignificand & (DOUBLE_SIGNIFICAND_MASK >> SINGLE_NUM_SIGNIFICAND_BITS);
-         if(uDroppedBits == 0) {
-            /* --- IS CONVERTABLE NAN --- */
-            uSingleSignificand = uDoubleSignificand >> (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
-            Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(nIsNegative,
-                                                   uSingleSignificand,
-                                                   SINGLE_EXPONENT_INF_OR_NAN);
-         } else {
-           /* --- IS UNCONVERTABLE NAN --- */
-           Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-           Result.uValue  = uDouble;
-         }
+         Result.uSize  = IEEE754_UNION_IS_SINGLE;
+         Result.uValue = IEEE754_AssembleSingle(0,
+                                                SINGLE_QUIET_NAN_BIT,
+                                                SINGLE_EXPONENT_INF_OR_NAN);
       }
    } else {
       /* ---- REGULAR NUMBER ---- */
@@ -648,22 +633,35 @@ IEEE754_DoubleToSingle(const double d)
           * to the exponent and 1 must be added in. See
           * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
           */
-         nExponentDifference = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
-         nShiftAmount        = nExponentDifference + (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
-         uSingleSignificand  = (uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
 
+         /* --- CAN NOT BE CONVERTED --- */
+         /* This is the default. It is overwritten below only if the
+          * value is exactly representable as a single subnormal.
+          */
+         Result.uSize   = IEEE754_UNION_IS_DOUBLE;
+         Result.uValue  = uDouble;
+
+         /* The exponent range is checked before the shift amount is
+          * computed. Outside this range nShiftAmount is negative or
+          * >= 64, and shifting by that is undefined behavior even
+          * if the result is never used.
+          */
          if(nDoubleUnbiasedExponent < SINGLE_EXPONENT_MIN &&
-            nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS &&
-            uSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
-            /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
-            Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(nIsNegative,
-                                                   uSingleSignificand,
-                                                   SINGLE_EXPONENT_ZERO);
-         } else {
-            /* --- CAN NOT BE CONVERTED --- */
-            Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-            Result.uValue  = uDouble;
+            nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS) {
+            nExponentDifference      = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
+            nShiftAmount             = nExponentDifference + (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+            uSignificandWithImplied1 = uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS);
+            uSingleSignificand       = uSignificandWithImplied1 >> nShiftAmount;
+
+            /* If only zero bits get shifted out, this can be converted
+             * to subnormal */
+            if(uSingleSignificand << nShiftAmount == uSignificandWithImplied1) {
+               /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
+               Result.uSize  = IEEE754_UNION_IS_SINGLE;
+               Result.uValue = IEEE754_AssembleSingle(nIsNegative,
+                                                      uSingleSignificand,
+                                                      SINGLE_EXPONENT_ZERO);
+            }
          }
       }
    }
@@ -674,18 +672,16 @@ IEEE754_DoubleToSingle(const double d)
 
 /* Public function; see ieee754.h */
 IEEE754_union
-IEEE754_DoubleToSmaller(const double d,
-                        const int    bAllowHalfPrecision,
-                        const int    bNoNanPayload)
+IEEE754_DoubleToSmaller(const double d)
 {
    IEEE754_union result;
 
    result = IEEE754_DoubleToSingle(d);
 
-   if(result.uSize == IEEE754_UNION_IS_SINGLE && bAllowHalfPrecision) {
+   if(result.uSize == IEEE754_UNION_IS_SINGLE) {
       /* Cast to uint32_t is OK, because value was just successfully
        * converted to single. */
-      result = IEEE754_SingleToHalf((uint32_t)result.uValue, bNoNanPayload);
+      result = IEEE754_SingleToHalf((uint32_t)result.uValue);
    }
 
    return result;
@@ -719,7 +715,7 @@ IEEE754_Private_CountPrecisionBits(uint64_t uSignificand)
    uint64_t uMask;
 
    for(nNonZeroBitsCount = 64; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
-      uMask = 0x01UL << (64 - nNonZeroBitsCount);
+      uMask = 0x01ULL << (64 - nNonZeroBitsCount);
       if(uMask & uSignificand) {
          break;
       }
@@ -965,38 +961,62 @@ IEEE754_UintToDouble(const uint64_t uInt, const int nIsNegative)
 
 /* Public function; see ieee754.h */
 int
-IEEE754_DoubleHasNaNPayload(const double d)
+IEEE754_DoubleIsNonTrivialNaN(const double d)
 {
    const uint64_t uDouble                 = CopyDoubleToUint64(d);
    const uint64_t uDoubleBiasedExponent   = (uDouble & DOUBLE_EXPONENT_MASK) >> DOUBLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < DOUBLE_EXPONENT_MAX */
    const int64_t  nDoubleUnbiasedExponent = (int64_t)uDoubleBiasedExponent - DOUBLE_EXPONENT_BIAS;
    const uint64_t uDoubleSignificand      = uDouble & DOUBLE_SIGNIFICAND_MASK;
+   const uint64_t bIsNegative             = uDouble & DOUBLE_SIGN_MASK;
 
-   if(nDoubleUnbiasedExponent == DOUBLE_EXPONENT_INF_OR_NAN &&
-      uDoubleSignificand != 0 &&
-      uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
-      return 1;
-   } else {
+   if(nDoubleUnbiasedExponent != DOUBLE_EXPONENT_INF_OR_NAN) {
+      return 0; /* Definitely not a NaN */
+   }
+   if(uDoubleSignificand == 0) {
+      /* It is infinity, so not a NaN */
       return 0;
    }
+   /* It's known to be a NaN */
+   if(bIsNegative) {
+      /* A sign bit is a form of payload */
+      return 1;
+   }
+   if(uDoubleSignificand != DOUBLE_QUIET_NAN_BIT) {
+      /* Not a quite NaN so it has a payload */
+      return 1;
+   }
+   return 0;
 }
 
 
 /* Public function; see ieee754.h */
 int
-IEEE754_SingleHasNaNPayload(const uint32_t uSingle)
+IEEE754_SingleIsNonTrivialNaN(const uint32_t uSingle)
 {
    const uint32_t uSingleBiasedExponent   = (uSingle & SINGLE_EXPONENT_MASK) >> SINGLE_EXPONENT_SHIFT;
    /* Cast safe because of mask above; exponents < SINGLE_EXPONENT_MAX */
    const int32_t  nSingleUnbiasedExponent = (int32_t)uSingleBiasedExponent - SINGLE_EXPONENT_BIAS;
    const uint32_t uSingleSignificand      = uSingle & SINGLE_SIGNIFICAND_MASK;
+   const uint32_t bIsNegative             = uSingle & SINGLE_SIGN_MASK;
 
-   if(nSingleUnbiasedExponent == SINGLE_EXPONENT_INF_OR_NAN &&
-      uSingleSignificand != 0 &&
-      uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
-      return 1;
-   } else {
+   if(nSingleUnbiasedExponent != SINGLE_EXPONENT_INF_OR_NAN) {
+      return 0; /* Definitely not a NaN */
+   }
+   if(uSingleSignificand == 0) {
+      /* It is infinity, so not a NaN */
       return 0;
    }
+   /* It's known to be a NaN */
+   if(bIsNegative) {
+      /* A sign bit is a form of payload */
+      return 1;
+   }
+   if(uSingleSignificand != SINGLE_QUIET_NAN_BIT) {
+      /* Not a quite NaN so it has a payload */
+      return 1;
+   }
+
+   return 0;
 }
+

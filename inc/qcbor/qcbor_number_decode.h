@@ -1,7 +1,7 @@
 /* ==========================================================================
  * qcbor_number_decode.h -- CBOR number decoding.
  *
- * Copyright (c) 2020-2025, Laurence Lundblade. All rights reserved.
+ * Copyright (c) 2020-2026, Laurence Lundblade. All rights reserved.
  * Copyright (c) 2021, Arm Limited. All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -40,7 +40,8 @@ extern "C" {
 
 
 /** Bit flags to indicate what types of number conversions should be
-    performed. */
+ * performed. These are put in a uint8_t in NumberConvertCheckEntry,
+ * so don't exceed 0x80. */
 enum QCBORDecodeNumberConvert {
 
     /** Conversion will proceed if the CBOR item to be decoded is an
@@ -192,7 +193,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
  * is below 1, unless the mantissa is zero, in which case the
  * coversion is successful and the value of 0 is returned.
  *
- * See also QCBORDecode_GetInt64ConvertAll() which does some of these
+ * See also QCBORDecode_GetInt64Convert() which does some of these
  * conversions, but links in much less object code. See also
  * QCBORDecode_GetUInt64ConvertAll().
  *
@@ -345,6 +346,13 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
  * The CBOR data item to decode must be a half-precision,
  * single-precision or double-precision floating-point value. If not
  * @ref QCBOR_ERR_UNEXPECTED_TYPE is set.
+ *
+ * NaN and +/- Infinity are supported.
+ *
+ * By default anything but a quiet NaN will result in @ref
+ * QCBOR_ERR_NAN_PAYLOAD. If @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS
+ * is configured, all NaNs (signaling, non-trivial or with payload)
+ * are decoded and returned. See @ref NaNs.
  *
  * If floating-point HW use is disabled this will set
  * @ref QCBOR_ERR_HW_FLOAT_DISABLED if a single-precision number is
@@ -499,7 +507,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pCtx,
  *
  * Doubles -- All other numbers are returned as double with type
  * @ref QCBOR_TYPE_DOUBLE, except for a special class of large negative
- * integers described below.
+ * integers described below. NaNs are also returned as doubles.
  *
  * 65-bit negative integers -- Negative integers in the range -(2^63 + 1)
  * down to -(2^64) may exceed the 52-bit precision of IEEE 754
@@ -527,12 +535,14 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
 
 
 /**
- * @brief Decode a preferred serialization big number.
+ * @brief Process a preferred serialization big number.
  *
- * @param[in] Item              The number to process.
- * @param[in] BigNumberBuf      The buffer to output to.
- * @param[out] pBigNumber       The resulting big number.
- * @param[in,out] pbIsNegative  The sign of the resulting big number.
+ * @param[in] Item                 The number to process.
+ * @param [in] bBignumConformance  If true, a big number input must conform to
+ *                                 preferred serialization.
+ * @param[in] BigNumberBuf         The buffer to output to.
+ * @param[out] pBigNumber          The resulting big number.
+ * @param[in,out] pbIsNegative     The sign of the resulting big number.
  *
  * This exists to process a @ref QCBORItem that is expected to be a
  * big number encoded with preferred serialization. This will turn the
@@ -541,7 +551,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * @ref QCBOR_TYPE_NEGBIGNUM.  Leading zeros are removed. The value 0
  * is always returned as a one-byte big number with the value 0x00.
  *
- *| Type |
+ * | Type |
  * | ---- |
  * | @ref QCBOR_TYPE_INT64 |
  * | @ref QCBOR_TYPE_UINT64 |
@@ -564,42 +574,26 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  * the length of they type @ref QCBOR_TYPE_65BIT_NEG_INT plus the
  * possibility of an arithmetic carry.
  *
+ * If @c bBignumConformance is true and the item is a big number, then
+ * it will be checked for conformance with preferred serialization --
+ * the string can't be empty there must be no leading zeros, and the
+ * value must not be in the range that can be encoded as type 0 or 1.
+ *
  * The object code for this is surprisingly large at about 1KB.  This
  * is to apply the offset of one for the negative values and to
  * operate all the data types used by big number specific preferred-plus
  * serialization.
  *
  * See @ref BigNumbers for a useful overview of CBOR big numbers and
- * QCBOR's support for them. See also
- * QCBORDecode_ProcessBigNumberNoPreferred(),
- * QCBORDecode_GetTBigNumber() and QCBOREncode_AddTBigNumber().
+ * QCBOR's support for them. See also  QCBORDecode_GetTBigNumber()
+ * and QCBOREncode_AddTBigNumber().
  */
 QCBORError
 QCBORDecode_ProcessBigNumber(const QCBORItem Item,
+                             bool            bBignumConformance,
                              UsefulBuf       BigNumberBuf,
                              UsefulBufC     *pBigNumber,
                              bool           *pbIsNegative);
-
-
-/**
- * @brief Decode a big number.
- *
- * @param[in] Item    The number to process.
- * @param[in] BigNumberBuf  The buffer to output to.
- * @param[out] pBigNumber   The resulting big number.
- * @param[out] pbIsNegative  The sign of the resulting big number.
- *
- * This is the same as QCBORDecode_ProcessBigNumber(), but doesn't
- * allow @ref QCBOR_TYPE_INT64, @ref QCBOR_TYPE_UINT64 and @ref
- * QCBOR_TYPE_65BIT_NEG_INT.
- */
-QCBORError
-QCBORDecode_ProcessBigNumberNoPreferred(const QCBORItem Item,
-                                        UsefulBuf       BigNumberBuf,
-                                        UsefulBufC     *pBigNumber,
-                                        bool           *pbIsNegative);
-
-
 
 
 /**
@@ -683,94 +677,48 @@ QCBORDecode_GetTBigNumberInMapSZ(QCBORDecodeContext   *pCtx,
 
 
 /**
- * @brief Decode next item as a big number without preferred serialization.
+ * @brief Decode the next item as a big number with no processing.
  *
- * @param[in] pCtx              The decode context.
- * @param[in] uTagRequirement   See @ref QCBORDecodeTagReq.
- * @param[in] BigNumberBuf      The buffer to write the result into.
- * @param[out] pBigNumber       The decoded big number, most significant
- *                              byte first (network byte order).
- * @param[in,out] pbIsNegative  Set to true if the returned big number
- *                              is negative.
+ * @param[in] pCtx             The decode context.
+ * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
+ * @param[out] pBigNumber      The decoded big number, most significant
+ *                             byte first (network byte order).
+ * @param[out] pbIsNegative    Is @c true if the big number is negative. This
+ *                             is only valid when @c uTagRequirement is
+ *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
  *
- * This is the same as QCBORDecode_GetTBigNumber(), but will error out
- * on type 0 and 1 integers as it doesn't support the preferred
- * serialization specific for big numbers.
+ * This decodes CBOR tag numbers 2 and 3, positive and negative big
+ * numbers, as defined in [RFC 8949 section 3.4.3]
+ * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
+ *
+ * This returns the raw byte string representing the big number
+ * directly. It does not remove leading zeros, process an empty string
+ * as zero, nor apply the required the offset of one for negative big
+ * numbers. It will error out on big numbers that have been encoded as
+ * type 0 and 1 integers as required for big number preferred
+ * serialization.
+ *
+ * This is most useful when a big number library has been linked, and
+ * it can be (trivially) used to perform the offset of one for
+ * negative numbers.
+ *
+ * This links in much less object code than
+ * QCBORDecode_GetTBigNumber().
+ *
+ * This does the same minimal processing as installing
+ * QCBORDecode_StringsTagCB() installed to handle @ref
+ * CBOR_TAG_POS_BIGNUM and @ref CBOR_TAG_NEG_BIGNUM so
+ * QCBORDecode_VGetNext() returns a @ref QCBORItem of type @ref
+ * QCBOR_TYPE_POSBIGNUM or @ref QCBOR_TYPE_POSBIGNUM
  *
  * See @ref BigNumbers for a useful overview of CBOR big numbers and
- * QCBOR's support for them. See QCBOREncode_AddTBigNumberNoPreferred(),
- * the encode counter part for this. See also QCBORDecode_GetTBigNumber()
- * and QCBORDecode_GetTBigNumberRaw().
+ * QCBOR's support for them. See QCBOREncode_AddTBigNumberRaw() for
+ * the encoding counter part. See QCBORDecode_GetTBigNumber() which
+ * does perform the offset for negative numbers and handles preferred
+ * serialization big numbers.
+ *
+ * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
  */
-void
-QCBORDecode_GetTBigNumberNoPreferred(QCBORDecodeContext    *pCtx,
-                                     enum QCBORDecodeTagReq uTagRequirement,
-                                     UsefulBuf              BigNumberBuf,
-                                     UsefulBufC            *pBigNumber,
-                                     bool                  *pbIsNegative);
-
-/** See QCBORDecode_GetTBigNumberNoPreferred(). */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapN(QCBORDecodeContext   *pCtx,
-                                          int64_t                nLabel,
-                                          enum QCBORDecodeTagReq uTagRequirement,
-                                          UsefulBuf              BigNumberBuf,
-                                          UsefulBufC            *pBigNumber,
-                                          bool                  *pbIsNegative);
-
-/** See QCBORDecode_GetTBigNumberNoPreferred(). */
-void
-QCBORDecode_GetTBigNumberNoPreferredInMapSZ(QCBORDecodeContext    *pCtx,
-                                           const char            *szLabel,
-                                           enum QCBORDecodeTagReq uTagRequirement,
-                                           UsefulBuf              BigNumberBuf,
-                                           UsefulBufC            *pBigNumber,
-                                           bool                  *pbIsNegative);
-
-
- /**
-  * @brief Decode the next item as a big number with no processing.
-  *
-  * @param[in] pCtx             The decode context.
-  * @param[in] uTagRequirement  See @ref QCBORDecodeTagReq.
-  * @param[out] pBigNumber      The decoded big number, most significant
-  *                             byte first (network byte order).
-  * @param[out] pbIsNegative    Is @c true if the big number is negative. This
-  *                             is only valid when @c uTagRequirement is
-  *                             @ref QCBOR_TAG_REQUIREMENT_TAG.
-  *
-  * This decodes CBOR tag numbers 2 and 3, positive and negative big
-  * numbers, as defined in [RFC 8949 section 3.4.3]
-  * (https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
-  *
-  * This returns the byte string representing the big number
-  * directly. It does not apply the required the offset of one for
-  * negative big numbers. It will error out big numbers that have been
-  * encoded as type 0 and 1 integer because of big number preferred
-  * serialization.
-  *
-  * This is most useful when a big number library has been linked, and
-  * it can be (trivially) used to perform the offset of one for
-  * negative numbers.
-  *
-  * This links in much less object code than
-  * QCBORDecode_GetTBigNumber() and
-  * QCBORDecode_GetTBigNumberNoPreferred().
-  *
-  * This does the same minimal processing as installing
-  * QCBORDecode_StringsTagCB() installed to handle @ref
-  * CBOR_TAG_POS_BIGNUM and @ref CBOR_TAG_NEG_BIGNUM so
-  * QCBORDecode_VGetNext() returns a @ref QCBORItem of type @ref
-  * QCBOR_TYPE_POSBIGNUM or @ref QCBOR_TYPE_POSBIGNUM
-  *
-  * See @ref BigNumbers for a useful overview of CBOR big numbers and
-  * QCBOR's support for them. See QCBOREncode_AddTBigNumberRaw() for
-  * the encoding counter part. See QCBORDecode_GetTBigNumber() which
-  * does perform the offset for negative numbers and handles preferred
-  * serialization big numbers.
-  *
-  * Please see @ref Decode-Errors-Overview "Decode Errors Overview".
-  */
 void
 QCBORDecode_GetTBigNumberRaw(QCBORDecodeContext    *pCtx,
                              enum QCBORDecodeTagReq uTagRequirement,
@@ -888,6 +836,9 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext    *pMe,
  * number) or type 2 tag 3 (negative big number). This implementation
  * will convert all these to a big number. The limit to this
  * conversion is the size of @c MantissaBuffer.
+ *
+ * See also QCBORDecode_GetTDecimalFractionBigMantissaRaw() which
+ * is less object code but returns negative numbers offset by one.
  *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll() and
@@ -1069,9 +1020,12 @@ QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext    *pCtx,
  * is returned as a big number. The only limit to precision is the
  * size of @c MantissaBuffer.
  *
- * The encoded mantissa may be an integer or a big number.  The
+ * The encoded mantissa may be an integer or a big number. The
  * standard CBOR offset of 1 for negative is applied, so the mantissa
  * can be used as returned.
+ *
+ * See also QCBORDecode_GetTBigFloatBigMantissaRaw() which
+ * is less object code but returns negative numbers offset by one.
  *
  * See also @ref CBOR_TAG_BIGFLOAT,
  * QCBOREncode_AddTBigFloatBigNumber(), @ref QCBOR_TYPE_BIGFLOAT and
@@ -1219,6 +1173,7 @@ QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
 {
@@ -1230,6 +1185,7 @@ QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
 {
@@ -1241,6 +1197,7 @@ QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 {
@@ -1255,6 +1212,7 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 /** @private Fix misnaming in previous versions.  */
 #define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
 {
@@ -1266,6 +1224,7 @@ QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
 {
@@ -1277,6 +1236,7 @@ QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 {
@@ -1326,7 +1286,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext    *pCtx,
                              UsefulBufC            *pValue,
                              bool                  *pbIsNegative);
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief [Deprecated] Decode a decimal fraction.
  * @deprecated. Use QCBORDecode_GetTDecimalFraction() instead. */
@@ -1461,7 +1421,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                         *
  * ========================================================================= */
 
 
@@ -1792,7 +1752,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext          *pMe,
                                        pbIsNegative);
 }
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 static inline void /* Deprecated */
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext          *pMe,
                                const enum QCBORDecodeTagReq uTagRequirement,

@@ -259,6 +259,13 @@ int32_t ExponentAndMantissaDecodeTests(void);
  Hostile input tests for decimal fractions and big floats.
  */
 int32_t ExponentAndMantissaDecodeFailTests(void);
+
+#ifndef QCBOR_DISABLE_TAGS
+/*
+ Tests for QCBORDecode_SetMaxTagNesting()
+ */
+int32_t TagNestingTests(void);
+#endif /* ! QCBOR_DISABLE_TAGS */
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 
@@ -340,6 +347,6 @@ int32_t CursorTests(void);
 
 int32_t TagModesFanOutTest(void);
 
-
-
+int32_t
+SerializationExampleDecode(void);
 #endif /* defined(__QCBOR__qcbort_decode_tests__) */

@@ -316,7 +316,7 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * This traverses the whole array and every subordinate array or map in
  * it. This is necessary to determine the length of the array.
  *
- * This will fail if any item in the array is not well-formed.
+ * This will fail if any item in the array is in error.
  *
  * This uses a few hundred bytes of stack, more than most methods.
  *
@@ -467,7 +467,7 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  * it. This is necessary to determine the length of the map. The
  * traversal cursor is left at the first item after the map.
  *
- * This will fail if any item in the map is not well-formed.
+ * This will fail if any item in the map is in error.
  *
  * This uses a few hundred bytes of stack, more than most methods.
  *
@@ -531,14 +531,18 @@ QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
  * @brief Position traversal cursor by map label.
  *
  * @param[in] pCtx  The decode context.
- * @param[in] nLabel  The map label to seek too.
+ * @param[in] szLabel  The map label to seek too.
  *
  * On failure, such as map label not found, this sets the last error
  * and doesn't change the traversal cursor.  On success the traversal
  * cursor is moved to the map label item.
  */
 void
-QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pMe, const char *szLabel);
+QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pCtx, const char *szLabel);
+
+
+/** Maximum number of items that can be fetched with QCBORDecode_GetItemsInMap(). */
+#define QCBOR_DECODE_MAX_GET_ITEMS 64
 
 
 /**
@@ -637,8 +641,8 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * - @ref QCBOR_ERR_UNEXPECTED_TYPE --- The type of a found item does
  *   not match the expected @c uDataType.
  *
- * - @ref QCBOR_ERR_ARRAY_NESTING_TOO_DEEP --- and other QCBOR implementation
- *   @ref Limitations errors.
+ * - @ref QCBOR_ERR_DECODE_NESTING_TOO_DEEP --- and other QCBOR implementation
+ *   @ref QCBORLimitations errors.
  *
  * Because the entire map is traversed, these errors can occur on
  * unrelated items—not just those being searched for.

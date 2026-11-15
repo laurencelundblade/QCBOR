@@ -1013,6 +1013,22 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x20", 1},
    },
    {
+      "4703919738795935662080 and -4703919738795935662080",
+      {"\xff\x00\x00\x00\x00\x00\x00\x00\x00", 9},
+      {"\xc2\x49\xff\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xc2\x49\xff\x00\x00\x00\x00\x00\x00\x00\x00", 11},
+      {"\xc3\x49\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff", 11},
+      {"\xc3\x49\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff", 11},
+   },
+   {
+      "32 and -32",
+      {"\x02\x00", 2},
+      {"\xC2\x42\x02\x00", 4},
+      {"\x19\x02\x00", 3},
+      {"\xC3\x42\x01\xff", 4},
+      {"\x39\x01\xff", 3},
+   },
+   {
       "0 and error for no negative 0",
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
@@ -1044,7 +1060,7 @@ int32_t BigNumEncodeTests(void)
    for(uTestIndex = 0; uTestIndex < uTestCount; uTestIndex++) {
       const struct BigNumEncodeTest *pTest = &BigNumEncodeTestCases[uTestIndex];
 
-      if(uTestIndex == 6) {
+      if(uTestIndex == 5) {
          EncodedBigNumber.len = 0; /* Line of code so a break point can be set. */
       }
 
@@ -1577,7 +1593,7 @@ int32_t ArrayNestingTest2(void)
    }
 
    UsefulBufC Encoded;
-   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_Finish(&ECtx, &Encoded) != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       nReturn = -1;
    }
 
@@ -2197,17 +2213,17 @@ int32_t BstrWrapErrorTest(void)
 
    // --------------- test nesting too deep ----------------------------------
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
-   for(int i = 1; i < 18; i++) {
-      QCBOREncode_BstrWrap(&EC);
+   for(int i = 1; i < QCBOR_MAX_ARRAY_NESTING + 4; i++) {
+      QCBOREncode_BstrWrap(&EC); /* Error occurs here */
    }
    QCBOREncode_AddBool(&EC, true);
 
-   for(int i = 1; i < 18; i++) {
+   for(int i = 1; i < QCBOR_MAX_ARRAY_NESTING + 4; i++) {
       QCBOREncode_CloseBstrWrap(&EC, &Wrapped);
    }
 
    uError = QCBOREncode_Finish(&EC, &Encoded2);
-   if(uError != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(uError != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return (int32_t)(300 + uError);
    }
 
@@ -2215,8 +2231,9 @@ int32_t BstrWrapErrorTest(void)
 }
 
 
+#if QCBOR_MAX_ARRAY_NESTING > 13
 /*
- This is bstr wrapped CBOR in 6 levels.
+ This is bstr-wrapped CBOR in 6 levels.
 
  [
    h'82004E82014B8202488203458204428105',
@@ -2245,9 +2262,7 @@ int32_t BstrWrapErrorTest(void)
     65: "hello",
     34: h'A3121218426568656C6C6F18234BA2131318436568656C6C6F'
  }
-
  ...
-
  */
 static const uint8_t spExpectedDeepBstr[] =
 {
@@ -2265,12 +2280,12 @@ static const uint8_t spExpectedDeepBstr[] =
 
 
 /*
- Get an int64 out of the decoder or fail.
+ * Get an int64 out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2285,12 +2300,12 @@ static int32_t GetInt64(QCBORDecodeContext *pDC, int64_t *pInt)
 }
 
 /*
- Get an array out of the decoder or fail.
+ * Get an array out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2305,12 +2320,12 @@ static int32_t GetArray(QCBORDecodeContext *pDC, uint16_t *pInt)
 }
 
 /*
- Get a map out of the decoder or fail.
+ * Get a map out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2325,12 +2340,12 @@ static int32_t GetMap(QCBORDecodeContext *pDC, uint16_t *pInt)
 }
 
 /*
- Get a byte string out of the decoder or fail.
+ * Get a byte string out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
 {
-   QCBORItem Item;
-   int32_t nReturn;
+   QCBORItem  Item;
+   int32_t    nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2345,12 +2360,12 @@ static int32_t GetByteString(QCBORDecodeContext *pDC, UsefulBufC *pBstr)
 }
 
 /*
- Get a byte string out of the decoder or fail.
+ * Get a byte string out of the decoder or fail. Used by BstrWrapNestTest().
  */
 static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 {
-   QCBORItem Item;
-   int nReturn;
+   QCBORItem  Item;
+   int        nReturn;
 
    nReturn = (int32_t)QCBORDecode_GetNext(pDC, &Item);
    if(nReturn) {
@@ -2366,11 +2381,12 @@ static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
 
 
 /*
- Recursively decode array containing a little CBOR and a bstr wrapped array
- with a little CBOR and a bstr wrapped array...
-
- Part of bstr_wrap_nest_test.
- */static int32_t DecodeNextNested(UsefulBufC Wrapped)
+ * Recursively decode *array* containing a little CBOR and a bstr
+ * wrapped array with a little CBOR and a bstr wrapped array...
+ *
+ * Part of Used by BstrWrapNestTest().
+ */
+static int32_t DecodeNextNested(UsefulBufC Wrapped)
 {
    int64_t            nInt;
    UsefulBufC         Bstr;
@@ -2393,7 +2409,6 @@ static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
       if(nArrayCount != 1) {
          return -12;
       } else {
-         // successful exit
          return 0;
       }
    }
@@ -2401,16 +2416,15 @@ static int32_t GetTextString(QCBORDecodeContext *pDC, UsefulBufC *pTstr)
       return -13;
    }
 
-   // tail recursion; good compilers will reuse the stack frame
    return DecodeNextNested(Bstr);
 }
 
 
 /*
- Recursively decode map containing a little CBOR and a bstr wrapped map
- with a little CBOR and a bstr wrapped map...
-
- Part of bstr_wrap_nest_test.
+ * Recursively decode *map* containing a little CBOR and a bstr
+ * wrapped map with a little CBOR and a bstr wrapped map...
+ *
+ * Part of BstrWrapNestTest().
  */
 static int32_t DecodeNextNested2(UsefulBufC Wrapped)
 {
@@ -2430,7 +2444,7 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
       return -21;
    }
 
-   // The "hello"
+   /* The "hello" */
    if(GetTextString(&DC, &Bstr)) {
       return -22;
    }
@@ -2438,7 +2452,6 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
    nResult = GetByteString(&DC, &Bstr);
    if(nResult == QCBOR_ERR_HIT_END || nResult == QCBOR_ERR_NO_MORE_ITEMS) {
       if(nMapCount == 2) {
-         // successful exit
          return 0;
       } else {
          return -23;
@@ -2449,40 +2462,58 @@ static int32_t DecodeNextNested2(UsefulBufC Wrapped)
       return -24;
    }
 
-   // tail recursion; good compilers will reuse the stack frame
    return DecodeNextNested2(Bstr);
 }
 
 
+/* Public test entry point */
 int32_t BstrWrapNestTest(void)
 {
-   QCBOREncodeContext EC;
-   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncodeContext  EC;
+   UsefulBufC          Bstr;
+   uint16_t            nArrayCount;
+   UsefulBufC          Encoded;
+   int                 nReturn;
+   int                 i;
 
-   // ---- Make a complicated nested CBOR structure ---
-   #define BSTR_TEST_DEPTH 6
+   /* This test requires QCBOR_MAX_ARRAY_NESTING to be 13 because it 6
+    * times nests an array/map + a bstr wrap plus one more.
+
+    * This test can work with the test depth other than 6 (it was
+    * verified), but then comparison to spExpectedDeepBstr can't work
+    * because it is the hand-coded and verified encoding for 6 levels.
+
+    * The decision taken is to keep the nesting at 6 and only run the
+    * test if QCBOR_MAX_ARRAY_NESTING > 13. This will be a regular
+    * occurance with the default QCBOR_MAX_ARRAY_NESTING of 35 (and
+    * maybe more).
+    */
+
+   /* ---- Make a complicated nested CBOR structure --- */
+#define BSTR_TEST_DEPTH 6
+   QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
 
    QCBOREncode_OpenArray(&EC);
 
-   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
+   for(i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_BstrWrap(&EC);
       QCBOREncode_OpenArray(&EC);
       QCBOREncode_AddInt64(&EC, i);
    }
-   for(int i = 0; i < BSTR_TEST_DEPTH; i++) {
+   for(i = 0; i < BSTR_TEST_DEPTH; i++) {
       QCBOREncode_CloseArray(&EC);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
 
    QCBOREncode_OpenMap(&EC);
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+   for(i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
       QCBOREncode_BstrWrapInMapN(&EC, i+0x20);
       QCBOREncode_OpenMap(&EC);
       QCBOREncode_AddInt64ToMapN(&EC, i+0x10, i+0x10);
       QCBOREncode_AddSZStringToMapN(&EC, i+0x40, "hello");
    }
 
-   for(int i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
+   for(i = 0; i < (BSTR_TEST_DEPTH-2); i++) {
       QCBOREncode_CloseMap(&EC);
       QCBOREncode_CloseBstrWrap(&EC, NULL);
    }
@@ -2490,50 +2521,46 @@ int32_t BstrWrapNestTest(void)
 
    QCBOREncode_CloseArray(&EC);
 
-   UsefulBufC Encoded;
    if(QCBOREncode_Finish(&EC, &Encoded)) {
       return -1;
    }
 
-   // ---Compare it to expected. Expected was hand checked with use of CBOR playground ----
+   /* ---Compare it to expected. Expected was hand checked with use of CBOR playground ---- */
    if(UsefulBuf_Compare(UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedDeepBstr), Encoded)) {
       return -2;
    }
 
-   // ---- Decode it and see if it is OK ------
+   /* ---- Decode it and see if it is OK ------ */
    QCBORDecodeContext DC;
    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
 
-   UsefulBufC Bstr;
-   uint16_t nArrayCount;
-
-   // Array surrounding the the whole thing
+   /* Array surrounding the the whole thing */
    if(GetArray(&DC, &nArrayCount) || nArrayCount != 2) {
       return -3;
    }
 
-   // Get the byte string wrapping some array stuff
+   /* Get the byte string wrapping some array stuff */
    if(GetByteString(&DC, &Bstr)) {
       return -4;
    }
 
-   // Decode the wrapped nested structure
-   int nReturn = DecodeNextNested(Bstr);
+   /* Decode the wrapped nested structure */
+   nReturn = DecodeNextNested(Bstr);
    if(nReturn) {
       return nReturn;
    }
 
-   // A map enclosing some map-oriented bstr wraps
+   /* A map enclosing some map-oriented bstr wraps */
    if(GetMap(&DC, &nArrayCount)) {
       return -5;
    }
 
-   // Get the byte string wrapping some array stuff
+   /* Get the byte string wrapping some array stuff */
    if(GetByteString(&DC, &Bstr)) {
       return -6;
    }
 
-   // Decode the wrapped nested structure
+   /* Decode the wrapped nested structure */
    nReturn = DecodeNextNested2(Bstr);
    if(nReturn) {
       return nReturn;
@@ -2545,6 +2572,7 @@ int32_t BstrWrapNestTest(void)
 
    return 0;
 }
+#endif /* QCBOR_MAX_ARRAY_NESTING > 13 */
 
 
 static const uint8_t spCoseSign1Signature[] = {
@@ -2798,7 +2826,7 @@ int32_t EncodeErrorTests(void)
    }
 
 
-   // ----- QCBOR_ERR_ARRAY_NESTING_TOO_DEEP -------
+   // ----- QCBOR_ERR_ENCODE_NESTING_TOO_DEEP -------
    QCBOREncode_Init(&EC, Large);
    for(int i = QCBOR_MAX_ARRAY_NESTING; i > 0; i--) {
       QCBOREncode_OpenArray(&EC);
@@ -2819,7 +2847,7 @@ int32_t EncodeErrorTests(void)
    for(int i = QCBOR_MAX_ARRAY_NESTING+1; i > 0; i--) {
       QCBOREncode_CloseArray(&EC);
    }
-   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ARRAY_NESTING_TOO_DEEP) {
+   if(QCBOREncode_FinishGetSize(&EC, &xx) != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
       return -6;
    }
 
@@ -3417,6 +3445,14 @@ static const uint8_t spExpectedForOpenBytes2[] = {
    0x79, 0x79, 0x18, 0x28, 0x81, 0x40
 };
 
+static const uint8_t spExpectedForOpenSizedBytes[] = {
+   0x44, 'x', 'x', 'x', 'x'
+};
+
+static const uint8_t spExpectedForWrappedOpenSizedBytes[] = {
+   0x45, 0x44, 'x', 'x', 'x', 'x'
+};
+
 int32_t
 OpenCloseBytesTest(void)
 {
@@ -3426,6 +3462,7 @@ OpenCloseBytesTest(void)
    UsefulBuf                  Place;
    UsefulBufC                 Encoded;
    QCBORError                 uErr;
+   UsefulOutBuf              *pUOB;
 
    /* Normal use case -- add a byte string that fits */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3471,12 +3508,28 @@ OpenCloseBytesTest(void)
    QCBOREncode_Init(&EC, TestBuf);
    QCBOREncode_AddSZString(&EC, "012345678901234567");
    QCBOREncode_OpenBytes(&EC, &Place);
-   /* Don't bother to write any bytes*/
+   /* Don't bother to write any bytes */
    QCBOREncode_CloseBytes(&EC, Place.len+1);
    uErr = QCBOREncode_GetErrorState(&EC);
    if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
       return 6;
    }
+
+   /* Open byte string in error condition */
+   QCBOREncode_Init(&EC, TestBuf);
+   /* Get into error state with too many opens*/
+   for(int i = QCBOR_MAX_ARRAY_NESTING + 2; i > 0; i--) {
+      QCBOREncode_OpenMap(&EC);
+   }
+   QCBOREncode_OpenBytes(&EC, &Place);
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 7;
+   }
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_ENCODE_NESTING_TOO_DEEP) {
+      return 8;
+   }
+
 
    /* Close a byte string without opening one. */
    QCBOREncode_Init(&EC, TestBuf);
@@ -3485,11 +3538,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
-      return 7;
+      return 9;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 107;
+      return 10;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3500,11 +3553,11 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_Finish(&EC, &Encoded);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
-      return 8;
+      return 11;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 108;
+      return 12;
    }
 #endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3516,11 +3569,34 @@ OpenCloseBytesTest(void)
    uErr = QCBOREncode_GetErrorState(&EC);
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
    if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
-      return 9;
+      return 13;
+   }
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 14;
    }
 #else
    if(uErr != QCBOR_SUCCESS) {
-      return 109;
+      return 15;
+   }
+#endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
+   /* Try to open a byte string in a byte string */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenSizedBytes(&EC, 2, &pUOB);
+   QCBOREncode_OpenBytes(&EC, &Place);
+   uErr = QCBOREncode_GetErrorState(&EC);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
+      return 20;
+   }
+   if(!UsefulBuf_IsNULL(Place)) {
+      return 25;
+   }
+#else
+   if(uErr != QCBOR_SUCCESS) {
+      return 26;
    }
 #endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
 
@@ -3543,11 +3619,214 @@ OpenCloseBytesTest(void)
    QCBOREncode_CloseMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &Encoded);
    if(uErr != QCBOR_SUCCESS) {
-      return 10;
+      return 27;
    }
    if(UsefulBuf_Compare(Encoded,
                         UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
-      return 11;
+      return 28;
+   }
+
+
+   /* ---- Normal use case -- add a byte string that fits ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenSizedBytes(&EC, 4, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xxxx"));
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return 29;
+   }
+   if(UsefulBuf_Compare(Encoded,
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenSizedBytes))) {
+      return 30;
+   }
+
+   /* ---- Same, but the payload is written in two segments ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_OpenSizedBytes(&EC, 4, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xx"));
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xx"));
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return 31;
+   }
+   if(UsefulBuf_Compare(Encoded,
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenSizedBytes))) {
+      return 32;
+   }
+
+   /* ---- Run the same test but with a NULL buffer (size-computation mode) ---- */
+   QCBOREncode_Init(&EC, (UsefulBuf){NULL, 20});
+   QCBOREncode_OpenSizedBytes(&EC, 4, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xxxx"));
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS ||
+      Encoded.len != sizeof(spExpectedForOpenSizedBytes)) {
+      return 33;
+   }
+
+   /* ---- Open a byte string with no room left at all ----
+    * Unlike QCBOREncode_OpenBytes(), QCBOREncode_OpenSizedBytes()
+    * writes the CBOR head right away, so the buffer-too-small error
+    * shows up immediately rather than being deferred to the close.
+    */
+   QCBOREncode_Init(&EC, TestBuf);
+   /* 1-byte head + 19-byte payload exactly fills the 20-byte buffer. */
+   QCBOREncode_AddSZString(&EC, "0123456789012345678");
+   pUOB = NULL;
+   QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      return 34;
+   }
+
+   QCBOREncode_Init(&EC, TestBuf);
+   /* 21-byte payload over fills the 20-byte buffer. */
+   QCBOREncode_AddSZString(&EC, "012345678901234567890");
+   QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
+   if(pUOB != NULL) {
+      return 35;
+   }
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      return 36;
+   }
+
+
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   /* ---- Open a byte string with encoder in error state ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_CloseArray(&EC); /* Cause error */
+   QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
+   if(pUOB != NULL) {
+      return 50;
+   }
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 51;
+   }
+#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARD */
+
+   /* ---- Try to write more bytes than fit in the output buffer ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   /* 1-byte head + 17-byte payload leaves just 2 bytes free. */
+   QCBOREncode_AddSZString(&EC, "01234567890123456");
+   QCBOREncode_OpenSizedBytes(&EC, 5, &pUOB);
+   /* The declared size's 1-byte head fits in the 2 remaining bytes,
+    * leaving room for only 1 of the 5 bytes about to be written. */
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xxxxx"));
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_GetErrorState(&EC);
+   if(uErr != QCBOR_ERR_BUFFER_TOO_SMALL) {
+      return 52;
+   }
+
+   /* ---- Close a byte string without opening one ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_GetErrorState(&EC);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(uErr != QCBOR_ERR_TOO_MANY_CLOSES) {
+      return 53;
+   }
+#else
+   if(uErr != QCBOR_SUCCESS) {
+      return 54;
+   }
+#endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* ---- Forget to close a byte string ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenSizedBytes(&EC, 3, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xxx"));
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(uErr != QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN) {
+      return 55;
+   }
+#else
+   if(uErr != QCBOR_SUCCESS) {
+      return 56;
+   }
+#endif /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* ---- Try to open a byte string inside an open byte string ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenSizedBytes(&EC, 3, &pUOB);
+   QCBOREncode_OpenSizedBytes(&EC, 3, &pUOB);
+   uErr = QCBOREncode_GetErrorState(&EC);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
+      return 57;
+   }
+#else
+   if(uErr != QCBOR_SUCCESS) {
+      return 58;
+   }
+#endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+
+   /* ---- Try to open a byte string inside an indef len byte string ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_AddSZString(&EC, "012345678");
+   QCBOREncode_OpenIndefiniteLengthBytes(&EC);
+   QCBOREncode_OpenSizedBytes(&EC, 3, &pUOB);
+   uErr = QCBOREncode_GetErrorState(&EC);
+#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+   if(uErr != QCBOR_ERR_OPEN_BYTE_STRING) {
+      return 59;
+   }
+#else
+   if(uErr != QCBOR_SUCCESS) {
+      return 60;
+   }
+#endif  /* QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+
+   /* ---- A successful case with a little complexity ---- */
+   QCBOREncode_Init(&EC, TestBuf2);
+   QCBOREncode_OpenMap(&EC);
+      QCBOREncode_AddInt64ToMapN(&EC, 10, 22);
+      QCBOREncode_OpenSizedBytesInMapN(&EC, 20, 2, &pUOB);
+         UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xx"));
+      QCBOREncode_CloseSizedBytes(&EC);
+      QCBOREncode_OpenSizedBytesInMapSZ(&EC, "thirty", 3, &pUOB);
+         UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("yyy"));
+      QCBOREncode_CloseSizedBytes(&EC);
+      QCBOREncode_OpenArrayInMapN(&EC, 40);
+         QCBOREncode_OpenSizedBytes(&EC, 0, &pUOB);
+         QCBOREncode_CloseSizedBytes(&EC);
+      QCBOREncode_CloseArray(&EC);
+   QCBOREncode_CloseMap(&EC);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return 61;
+   }
+   /* This produces the exact same bytes as the QCBOREncode_OpenBytes()
+    * equivalent test, since both write the same definite-length CBOR. */
+   if(UsefulBuf_Compare(Encoded,
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForOpenBytes2))) {
+      return 62;
+   }
+
+   /* ---- Bstr wrap it ---- */
+   QCBOREncode_Init(&EC, TestBuf);
+   QCBOREncode_BstrWrap(&EC);
+   QCBOREncode_OpenSizedBytes(&EC, 4, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("xxxx"));
+   QCBOREncode_CloseSizedBytes(&EC);
+   QCBOREncode_CloseBstrWrap2(&EC, false, NULL);
+   uErr = QCBOREncode_Finish(&EC, &Encoded);
+   if(uErr != QCBOR_SUCCESS) {
+      return 80;
+   }
+   if(UsefulBuf_Compare(Encoded,
+                        UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spExpectedForWrappedOpenSizedBytes))) {
+      return 81;
    }
 
    return 0;
@@ -4061,7 +4340,7 @@ SortMapTest(void)
    QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
-   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+   if(uErr != QCBOR_ERR_ENCODE_DUPLICATE_LABEL) {
       return 114;
    }
 
@@ -4073,7 +4352,7 @@ SortMapTest(void)
    QCBOREncode_AddInt64ToMapN(&EC, 2, 2);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
-   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+   if(uErr != QCBOR_ERR_ENCODE_DUPLICATE_LABEL) {
       return 115;
    }
 
@@ -4085,7 +4364,7 @@ SortMapTest(void)
    QCBOREncode_AddInt64ToMap(&EC, "def", 2);
    QCBOREncode_CloseAndSortMap(&EC);
    uErr = QCBOREncode_Finish(&EC, &EncodedAndSorted);
-   if(uErr != QCBOR_ERR_DUPLICATE_LABEL) {
+   if(uErr != QCBOR_ERR_ENCODE_DUPLICATE_LABEL) {
       return 116;
    }
 
@@ -4360,6 +4639,7 @@ int32_t StreamTest(void)
    QCBORError                uErr;
    UsefulBuf                 UB;
    UsefulBufC                UBC;
+   UsefulOutBuf             *pUOB;
 
    QCBOREncode_Init(&EC, Small);
    Streamer_init(&Streamer, StreamerBuf);
@@ -4446,6 +4726,23 @@ int32_t StreamTest(void)
    uErr = QCBOREncode_FinishStream(&EC);
    if(uErr != QCBOR_ERR_NOT_ALLOWED_IN_STREAMING) {
       return 60;
+   }
+
+   /* Unlike QCBOREncode_OpenBytes(), QCBOREncode_OpenSizedBytes() is
+    * allowed in streaming mode. */
+   QCBOREncode_Init(&EC, Small);
+   Streamer_init(&Streamer, StreamerBuf);
+   QCBOREncode_SetStream(&EC, Streamer_CB, &Streamer);
+   QCBOREncode_OpenSizedBytes(&EC, 7, &pUOB);
+   UsefulOutBuf_AppendUsefulBuf(pUOB, UsefulBuf_FROM_SZ_LITERAL("and ham"));
+   QCBOREncode_CloseSizedBytes(&EC);
+   uErr = QCBOREncode_FinishStream(&EC);
+   if(uErr != QCBOR_SUCCESS) {
+      return 65;
+   }
+   if(UsefulBuf_Compare(Streamer_Out(&Streamer),
+                        UsefulBuf_FROM_SZ_LITERAL("\x47" "and ham"))) {
+      return 66;
    }
 
    /* Try bstr wrapping in streamed mode */
@@ -4631,7 +4928,7 @@ int32_t EncodeIndefiniteStringsTest(void)
    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
    QCBOREncode_AddIndefiniteLengthTextChunk(&EC, UsefulBuf_FROM_SZ_LITERAL("xxx"));
    uExpectedErr = QCBOREncode_Finish(&EC, &Encoded);
-   if(uExpectedErr != QCBOR_ERR_TOO_MANY_CLOSES) { // TODO: better error code?
+   if(uExpectedErr != QCBOR_ERR_NESTED_TYPE_MISMATCH) {
       return 80;
    }
 #endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
@@ -4672,3 +4969,956 @@ int32_t EncodeIndefiniteStringsTest(void)
    return 0;
 }
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+
+
+
+
+/*  call back to encode the value
+ *  says what type of serialization it did.
+ *  in: Encoder context; out: type of serialization */
+
+enum SrlType {General, PreferredPlus, Deterministic};
+
+/* This encodes the item. There is often many of these for a given
+ * item for different methods of encoding and for different
+ * serializations. */
+typedef int (SrlEncodeCB)(QCBOREncodeContext *CB, enum SrlType *pnType);
+
+
+struct SrlDecExample {
+   const char *description;
+
+   SrlEncodeCB *CBs[10];
+
+   // Don't include the EDN, since it isn't useful
+   UsefulBufC general_serializations[10];
+   UsefulBufC preferred_plus_serializations[10];
+   UsefulBufC deterministic_serializations[10];
+};
+
+
+static int
+SrlEnc_Zero(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddInt64(pECtx, 0);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_Three(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddInt64(pECtx, 3);
+   *pT = Deterministic;
+   return 0;
+}
+
+/*static int
+SrlEnc_Zero2(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTBigNumberRaw(pECtx, QCBOR_ENCODE_AS_TAG, false, SZLiteralToUsefulBufC(""));
+   *pT = General;
+   return 0;
+}
+ */
+
+static int
+SrlEnc_Minus25(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddInt64(pECtx, -25);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_65BitNeg(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   // -18446742974197923840 with sign changed and one subtracted
+   QCBOREncode_AddNegativeUInt64(pECtx, 18446742974197923839ULL);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_ByteString(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddBytes(pECtx, SZLiteralToUsefulBufC("\x01\x02\x03"));
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_TextString(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddSZString(pECtx, "hi there");
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_ArrayDef(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenArray(pECtx);
+   QCBOREncode_AddInt64(pECtx, 1);
+   QCBOREncode_AddInt64(pECtx, 2);
+   QCBOREncode_AddInt64(pECtx, 3);
+   QCBOREncode_CloseArray(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+static int
+SrlEnc_ArrayIndef(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenArrayIndefiniteLength(pECtx);
+   QCBOREncode_AddInt64(pECtx, 1);
+   QCBOREncode_AddInt64(pECtx, 2);
+   QCBOREncode_AddInt64(pECtx, 3);
+   QCBOREncode_CloseArrayIndefiniteLength(pECtx);
+   *pT = General;
+   return 0;
+}
+#endif
+
+static int
+SrlEnc_MapDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZStringToMapN(pECtx, 1, "x");
+   QCBOREncode_AddSZStringToMapN(pECtx, 2, "y");
+   QCBOREncode_AddSZStringToMapN(pECtx, 3, "z");
+   QCBOREncode_CloseMap(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+static int
+SrlEnc_MapSzDet(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddInt64ToMapSZ(pECtx, "abc", 1);
+   QCBOREncode_AddInt64ToMapSZ(pECtx, "def", 2);
+   QCBOREncode_AddInt64ToMapSZ(pECtx, "ghi", 3);
+   QCBOREncode_CloseMap(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+#endif
+
+static int
+SrlEnc_MapGen1(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZStringToMapN(pECtx, 1, "x");
+   QCBOREncode_AddSZStringToMapN(pECtx, 3, "z");
+   QCBOREncode_AddSZStringToMapN(pECtx, 2, "y");
+   QCBOREncode_CloseMap(pECtx);
+   *pT = General;
+   return 0;
+}
+
+static int
+SrlEnc_MapDet2(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_OpenMap(pECtx);
+   QCBOREncode_AddSZStringToMapN(pECtx, 1, "x");
+   QCBOREncode_AddSZStringToMapN(pECtx, 3, "z");
+   QCBOREncode_AddSZStringToMapN(pECtx, 2, "y");
+   QCBOREncode_CloseAndSortMap(pECtx);
+   *pT = Deterministic;
+   return 0;
+}
+
+#ifndef QCBOR_DISABLE_TAGS
+
+static int
+SrlEnc_BigNum(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTBigNumber(pECtx, QCBOR_ENCODE_AS_TAG, false,
+                             (UsefulBufC){ (uint8_t[]){0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 12});
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_NegBigNum(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   /* negative 18446744073709551617 (before offset by 1 in cbor */
+   QCBOREncode_AddTBigNumber(pECtx, QCBOR_ENCODE_AS_TAG, true,
+                             (UsefulBufC){ (uint8_t[]){0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9});
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_EpochDate(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTDateEpoch(pECtx, QCBOR_ENCODE_AS_TAG, 1776614355);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_StringDate(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddTDateString(pECtx, QCBOR_ENCODE_AS_TAG, "2026-04-19T03:59:15Z");
+   *pT = Deterministic;
+   return 0;
+}
+
+#endif /* ! QCBOR_DISABLE_TAGS */
+
+static int
+SrlEnc_True(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddBool(pECtx, true);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_Simple111(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddSimple(pECtx, 111);
+   *pT = Deterministic;
+   return 0;
+}
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+
+static int
+SrlEnc_DoubleSubnormal(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, -5.0e-324);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_Double(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 1.7976931348623157e+308);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_Half(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 65504.0);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_MinusInfinity(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, -INFINITY);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_HalfSubnormal(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 3.0517578125E-5);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_SingleSubnormal(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 5.8774717541114375E-39);
+   *pT = Deterministic;
+   return 0;
+}
+
+
+static int
+SrlEnc_Single(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, -16777216.0);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_FloatZero(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, 0.0);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_NaN(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   QCBOREncode_AddDouble(pECtx, NAN);
+   *pT = Deterministic;
+   return 0;
+}
+
+static int
+SrlEnc_NaNPayload(QCBOREncodeContext *pECtx, enum SrlType *pT)
+{
+   uint64_t uNaNPayload = (0x1ffULL << (52 - 10)) + /* Payload 0x01ff shifted for double */
+                          (0x7ffULL << 52); /* exponent indiciating NaN */
+
+   QCBOREncode_AddDoubleRaw(pECtx, UsefulBufUtil_CopyUint64ToDouble(uNaNPayload));
+   *pT = General;
+   return 0;
+}
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+
+static const struct SrlDecExample SrlEncExamples[] = {
+   /* zero.edn */
+   {
+      .CBs = {SrlEnc_Zero, /* TODO: SrlEnc_Zero2,*/ NULL},
+
+      .description = "The integer 0",
+      .general_serializations = {
+         { (uint8_t[]){0x00}, 1 },
+         { (uint8_t[]){0x18, 0x00}, 2 },
+         { (uint8_t[]){0x19, 0x00, 0x00}, 3 },
+         { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+#ifndef QCBOR_DISABLE_TAGS
+         { (uint8_t[]){0xc2, 0x42, 0x00, 0x00}, 4 },
+         { (uint8_t[]){0xc2, 0x40}, 2 },
+#endif
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x00}, 1 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x00}, 1 },
+         { NULL, 0 },
+      },
+   },
+
+   /* three.edn */
+   {
+      .CBs = {SrlEnc_Three, NULL},
+
+      .description = "The integer 3",
+      .general_serializations = {
+         { (uint8_t[]){0x03}, 1 },
+         { (uint8_t[]){0x18, 0x03}, 2 },
+         { (uint8_t[]){0x19, 0x00, 0x03}, 3 },
+         { (uint8_t[]){0x1a, 0x00, 0x00, 0x00, 0x03}, 5 },
+         { (uint8_t[]){0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03}, 9 },
+#ifndef QCBOR_DISABLE_TAGS
+         { (uint8_t[]){0xc2, 0x42, 0x00, 0x03}, 4 },
+#endif
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x03}, 1 },
+            { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x03}, 1 },
+         { NULL, 0 },
+      },
+   },
+
+   /* minus_twenty_five.edn */
+   {
+      .CBs = {SrlEnc_Minus25, NULL},
+
+       .description = "The integer -25",
+       .general_serializations = {
+           { (uint8_t[]){0x38, 0x18}, 2 },
+           { (uint8_t[]){0x39, 0x00, 0x18}, 3 },
+           { (uint8_t[]){0x3a, 0x00, 0x00, 0x00, 0x18}, 5 },
+           { (uint8_t[]){0x3b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18}, 9 },
+#ifndef QCBOR_DISABLE_TAGS
+           { (uint8_t[]){0xc3, 0x42, 0x00, 0x18}, 4 },
+#endif
+           { NULL, 0 },
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0x38, 0x18}, 2 },
+           { NULL, 0 },
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0x38, 0x18}, 2 },
+           { NULL, 0 },
+       },
+   },
+
+   /* 65-bit-neg.edn */
+   {
+      .CBs = {SrlEnc_65BitNeg,  NULL},
+
+      .description = "Large negative integer (doesn't fit in int64_t)",
+      .general_serializations = {
+         { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x3b, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+   },
+
+   /* byte_string.edn */
+   {
+      .CBs = {SrlEnc_ByteString, NULL},
+
+      .description = "The byte string of length 3: 0x010203",
+      .general_serializations = {
+         { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+         { (uint8_t[]){0x5f, 0x41, 0x01, 0x42, 0x02, 0x03, 0xff}, 7 },
+         { (uint8_t[]){0x5f, 0x58, 0x01, 0x01, 0x5a, 0x00, 0x00, 0x00, 0x02, 0x02, 0x03, 0xff}, 12 },
+#endif
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x43, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+   },
+
+   /* text_string.edn */
+   {
+      .CBs = {SrlEnc_TextString, NULL},
+
+      .description = "The text string 'hi there'",
+      .general_serializations = {
+         { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+         { (uint8_t[]){0x7f, 0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65, 0xff}, 11 },
+         { (uint8_t[]){0x7f, 0x64, 0x68, 0x69, 0x20, 0x74, 0x64, 0x68, 0x65, 0x72, 0x65, 0xff}, 12 },
+         { (uint8_t[]){0x7f, 0x79, 0x00, 0x04, 0x68, 0x69, 0x20, 0x74, 0x7B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x68, 0x65, 0x72, 0x65, 0xff}, 22 },
+#endif
+
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x68, 0x68, 0x69, 0x20, 0x74, 0x68, 0x65, 0x72, 0x65}, 9 },
+         { NULL, 0 },
+      },
+   },
+
+   /* array.edn */
+   {
+      .CBs = {SrlEnc_ArrayDef,
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+         SrlEnc_ArrayIndef,
+#endif
+         NULL},
+
+      .description = "The array [1, 2, 3]",
+      .general_serializations = {
+         { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+         { (uint8_t[]){0x9f, 0x01, 0x02, 0x03, 0xff}, 5 },
+#endif
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0x83, 0x01, 0x02, 0x03}, 4 },
+         { NULL, 0 },
+      },
+   },
+
+   /* map.edn */
+   {
+      .CBs = {SrlEnc_MapDet, SrlEnc_MapDet2, SrlEnc_MapGen1, NULL},
+
+      .description = "Map with three items. Note that map order is never significant in th data model in CBOR",
+      .general_serializations = {
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78}, 10 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+         { (uint8_t[]){0xbf, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0xff}, 11 },
+#endif
+         { (uint8_t[]){0xa3, 0x1a, 0x00, 0x00, 0x00, 0x03, 0x61, 0x7a, 0x19, 0x00, 0x02, 0x61, 0x79, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x61, 0x78}, 24 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78}, 10 },
+         { (uint8_t[]){0xa3, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78, 0x03, 0x61, 0x7a}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79}, 10 },
+         { (uint8_t[]){0xa3, 0x03, 0x61, 0x7a, 0x02, 0x61, 0x79, 0x01, 0x61, 0x78}, 10 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xa3, 0x01, 0x61, 0x78, 0x02, 0x61, 0x79, 0x03, 0x61, 0x7a}, 10 },
+         { NULL, 0 },
+      },
+   },
+
+#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
+   /* map_strings.edn */
+   {
+      .CBs = {SrlEnc_MapSzDet, NULL},
+
+      .description = "Three item map with string keys. Note that map order is never significant in the data model in CBOR",
+      .general_serializations = {
+         { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+         { (uint8_t[]){0xbf, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0xff}, 17 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+         { (uint8_t[]){0xbf, 0x7f, 0x61, 0x61, 0x62, 0x62, 0x63, 0xff, 0x01, 0x7f, 0x62, 0x64, 0x65, 0x61, 0x66, 0xff, 0x02, 0x7f, 0x63, 0x67, 0x68, 0x69, 0xff, 0x03, 0xff}, 25 },
+#endif
+#endif
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02}, 16 },
+         { (uint8_t[]){0xa3, 0x63, 0x67, 0x68, 0x69, 0x03, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x61, 0x62, 0x63, 0x01}, 16 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xa3, 0x63, 0x61, 0x62, 0x63, 0x01, 0x63, 0x64, 0x65, 0x66, 0x02, 0x63, 0x67, 0x68, 0x69, 0x03}, 16 },
+         { NULL, 0 },
+      },
+   },
+#endif
+
+#ifndef QCBOR_DISABLE_TAGS
+
+   /* positive_bignum.edn */
+   {
+      .CBs = {SrlEnc_BigNum, NULL},
+
+       .description = "The integer 2^96 -1, which can only be represented by a big number",
+       .general_serializations = {
+           { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+           { (uint8_t[]){0xc2, 0x4e, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 16 },
+           { NULL, 0 }, // TODO add one with indefinite length string
+       },
+       .preferred_plus_serializations = {
+           { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+           { NULL, 0 },
+       },
+       .deterministic_serializations = {
+           { (uint8_t[]){0xc2, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 14 },
+           { NULL, 0 },
+       },
+   },
+
+   /* negative_bignum.edn */
+   {
+     .CBs = {SrlEnc_NegBigNum, NULL},
+
+     .description = "-18446744073709551617",
+     .general_serializations = {
+        { (uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11 },
+        { (uint8_t[]){0xc3, 0x4c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 14 },
+        { (uint8_t[]){0xc3, 0x5f, 0x45, 0x00, 0x00, 0x00, 0x00, 0x01, 0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff}, 18 },
+        { NULL, 0 },
+     },
+     .preferred_plus_serializations = {
+        { (uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11 },
+        { NULL, 0 },
+     },
+     .deterministic_serializations = {
+        { (uint8_t[]){0xc3, 0x49, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 11 },
+        { NULL, 0 },
+     },
+  },
+
+   /* date-epoch-tag.edn */
+   {
+      .CBs = {SrlEnc_EpochDate,  NULL},
+
+      .description = "An epoch date",
+      .general_serializations = {
+         { (uint8_t[]){0xc1, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 6 },
+         { (uint8_t[]){0xd8, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 7 },
+         { (uint8_t[]){0xd9, 0x00, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 8 },
+         { (uint8_t[]){0xda, 0x00, 0x00, 0x00, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 10 },
+         { (uint8_t[]){0xdb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 14 },
+         { (uint8_t[]){0xc1, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x69, 0xe4, 0xfb, 0xd3}, 10 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xc1, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 6 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xc1, 0x1a, 0x69, 0xe4, 0xfb, 0xd3}, 6 },
+         { NULL, 0 },
+      },
+   },
+
+   /* date-string-tag.edn */
+   {
+      .CBs = {SrlEnc_StringDate,  NULL},
+
+      .description = "A date string",
+      .general_serializations = {
+         { (uint8_t[]){0xc0, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 22 },
+         { (uint8_t[]){0xd8, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 23 },
+         { (uint8_t[]){0xd9, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 24 },
+         { (uint8_t[]){0xda, 0x00, 0x00, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 26 },
+         { (uint8_t[]){0xdb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 30 },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+
+         { (uint8_t[]){0xc0, 0x7f, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a, 0xff}, 24 },
+         { (uint8_t[]){0xc0, 0x7f, 0x62, 0x32, 0x30, 0x72, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a, 0xff}, 25 },
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xc0, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 22 },
+             { NULL, 0 },
+         },
+      .deterministic_serializations = {
+          { (uint8_t[]){0xc0, 0x74, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x34, 0x2d, 0x31, 0x39, 0x54, 0x30, 0x33, 0x3a, 0x35, 0x39, 0x3a, 0x31, 0x35, 0x5a}, 22 },
+            { NULL, 0 },
+      },
+   },
+#endif /* ! QCBOR_DISABLE_TAGS */
+
+   /* true.edn */
+   {
+      .CBs = {SrlEnc_True,  NULL},
+
+      .description = "The simple value true",
+      .general_serializations = {
+         { (uint8_t[]){0xf5}, 1 },
+         { NULL, 0 }
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf5}, 1 },
+         { NULL, 0 }
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf5}, 1 },
+         { NULL, 0 }
+      },
+   },
+
+   /* simple111.edn */
+   {
+      .CBs = {SrlEnc_Simple111,  NULL},
+
+      .description = "The simple value 111",
+      .general_serializations = {
+         { (uint8_t[]){0xf8, 0x6f}, 2 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf8, 0x6f}, 2 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf8, 0x6f}, 2 },
+         { NULL, 0 },
+      },
+   },
+
+#ifndef QCBOR_DISABLE_PREFERRED_FLOAT
+
+   /* float_double_subnormal.edn */
+   {
+      .CBs = {SrlEnc_DoubleSubnormal, NULL},
+
+      .description = "Double-precision negative subnormal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfb, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfb, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, 9 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_double.edn */
+   {
+      .CBs = {SrlEnc_Double, NULL},
+
+      .description = "Double-precision normal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfb, 0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfb, 0x7f, 0xef, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 9 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_half_subnormal.edn */
+   {
+      .CBs = {SrlEnc_HalfSubnormal, NULL},
+
+      .description = "Half-precision subnormal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0x38, 0x00, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xf9, 0x02, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x02, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x02, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+   
+   /* float_half.edn */
+   {
+      .CBs = {SrlEnc_Half, NULL},
+
+      .description = "half-precision normal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x40, 0xef, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0x47, 0x7f, 0xe0, 0x00}, 5 },
+         { (uint8_t[]){0xf9, 0x7b, 0xff}, 3 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x7b, 0xff}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x7b, 0xff}, 3 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_nan_payload.edn */
+   {
+      .CBs = {SrlEnc_NaNPayload, NULL},
+
+      .description = " Floating-point NaN with payload/significand 0x1ff",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0x7d, 0xff}, 3 },
+         { (uint8_t[]){0xfa, 0x7f, 0xbf, 0xe0, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0x7f, 0xf7, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { NULL, 0 },
+      },
+   },
+
+   /* float_neg_infinity.edn */
+   {
+      .CBs = {SrlEnc_MinusInfinity, NULL},
+
+      .description = "Negative Infinity",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0xfc, 0x00}, 3 },
+         { (uint8_t[]){0xfa, 0xff, 0x80, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0xff, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0xfc, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0xfc, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+   
+   /* float_quiet_nan.edn */
+   {
+      .CBs = {SrlEnc_NaN, NULL},
+
+      .description = "Floating-point quiet NaN",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0x7e, 0x00}, 3 },
+         { (uint8_t[]){0xfa, 0x7f, 0xc0, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0x7f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x7e, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x7e, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_single_subnormal.edn */
+   {
+      .CBs = {SrlEnc_SingleSubnormal, NULL},
+
+      .description = "Single-precision subnormal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0x00, 0x40, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfa, 0x00, 0x40, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfa, 0x00, 0x40, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_single.edn */
+   {
+      .CBs = {SrlEnc_Single, NULL},
+
+      .description = "Single-precision normal float",
+      .general_serializations = {
+         { (uint8_t[]){0xfb, 0xc1, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { (uint8_t[]){0xfa, 0xcb, 0x80, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xfa, 0xcb, 0x80, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xfa, 0xcb, 0x80, 0x00, 0x00}, 5 },
+         { NULL, 0 },
+      },
+   },
+
+   /* float_zero.edn */
+   {
+      .CBs = {SrlEnc_FloatZero, NULL},
+
+      .description = "Floating-point positive zero",
+      .general_serializations = {
+         { (uint8_t[]){0xf9, 0x00, 0x00}, 3 },
+         { (uint8_t[]){0xfa, 0x00, 0x00, 0x00, 0x00}, 5 },
+         { (uint8_t[]){0xfb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, 9 },
+         { NULL, 0 },
+      },
+      .preferred_plus_serializations = {
+         { (uint8_t[]){0xf9, 0x00, 0x00}, 3 },
+         { NULL, 0 },
+      },
+      .deterministic_serializations = {
+         { (uint8_t[]){0xf9, 0x00, 0x00}, 3 },
+         { NULL, 0 },
+      },
+   },
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+
+   /* End Marker */
+   {
+      .description = NULL,
+   }
+};
+
+
+int32_t
+SerializationExampleEncode(void)
+{
+   QCBOREncodeContext       ECtx;
+   UsefulBuf_MAKE_STACK_UB( OutputBuf, 100);
+   size_t                   nExampleIndex;
+   size_t                   nCallbackIndex;
+   enum SrlType             t;
+   int                      err;
+   UsefulBufC               Output;
+   SrlEncodeCB             *pfEncodeCallback;
+
+   /* Loop over all the examples */
+   for(nExampleIndex = 0; ; nExampleIndex++) {
+      struct SrlDecExample Exmpl = SrlEncExamples[nExampleIndex];
+      if(Exmpl.description == NULL) {
+         break;
+      }
+
+      /* Loop over all test call backs */
+      for(nCallbackIndex = 0; ; nCallbackIndex++) {
+         pfEncodeCallback = Exmpl.CBs[nCallbackIndex];
+         if(pfEncodeCallback == NULL) {
+            break;
+         }
+
+         QCBOREncode_Init(&ECtx, OutputBuf);
+         QCBOREncode_Config(&ECtx, QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD);
+         err = (*pfEncodeCallback)(&ECtx, &t);
+         if(err != QCBOR_SUCCESS) {
+            return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);
+         }
+         QCBOREncode_Finish(&ECtx, &Output);
+
+         /* Select set of expected serializations */
+         UsefulBufC *pExpected;
+         switch(t) {
+            case General: pExpected = Exmpl.general_serializations; break;
+            case PreferredPlus: pExpected = Exmpl.preferred_plus_serializations; break;
+            case Deterministic: pExpected = Exmpl.deterministic_serializations; break;
+            default: return 88;
+         }
+
+         /* See if the output was one of the expected serializations */
+         for(int k = 0; k < 10; k++) {
+            UsefulBufC Ex = pExpected[k];
+            if(Ex.len == 0) {
+               return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, 0);
+            }
+            if(!UsefulBuf_Compare(Output, Ex)) {
+               break; /* Success */
+            }
+         }
+      }
+   }
+
+   return 0;
+}
+
