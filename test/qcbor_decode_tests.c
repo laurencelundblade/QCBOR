@@ -15903,7 +15903,7 @@ SerializationExampleDecode(void)
          }
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         /* Preferred Plus -- put it checking mode; run with general inputs; expect success or failure depending on whether preferred*/
+         /* Preferred-plus -- put it checking mode; run with general inputs; expect success or failure depending on whether preferred*/
          err = DecodeLooper(Exmpl.general_serializations, Exmpl.preferred_plus_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_PREFERRED_PLUS);
          if(err) {
             return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);

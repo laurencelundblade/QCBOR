@@ -259,10 +259,10 @@ enum QCBOREncodeConfig {
     * byte strings, arrays and maps will error out. */
    QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS = 0x08,
 
-   /** This disallows non-preferred plus floating number encoding,
+   /** This disallows non preferred-plus floating number encoding,
     * QCBOREncode_AddFloatRaw() and
     * QCBOREncode_AddDoubleRaw().  It is not possible to disable
-    * preferred plus serialization of type 0 and type 1 integers in QCBOR. */
+    * preferred-plus serialization of type 0 and type 1 integers in QCBOR. */
    QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT = 0x10,
 
    /**
@@ -296,14 +296,14 @@ enum QCBOREncodeConfig {
     * the above listed.
     *
     * This mode is just a user guard to prevent accidentally calling
-    * something that produces non-preferred plus serialization. It doesn't
+    * something that produces non-preferred-plus serialization. It doesn't
     * do anything but cause errors to occur on attempts to call the
     * above listed functions. This does nothing if the library is
     * compiled QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
     *
     * See @ref Serialization. It is usually not necessary to set this
     * mode, but there is usually no disadvantage to setting
-    * it. Preferred plus serialization is defined in draft-ietf-cbor-serialization
+    * it. Preferred-plus serialization is defined in draft-ietf-cbor-serialization
     */
    QCBOR_ENCODE_CONFIG_PREFERRED_PLUS =
        QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS |

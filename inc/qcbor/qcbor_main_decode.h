@@ -270,7 +270,7 @@ typedef enum {
    QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES = 0x400,
 
    /**
-    * This checks that the input is in conformance with preferred plus
+    * This checks that the input is in conformance with preferred-plus
     * serialization. The checking is performed as each item is
     * decoded. If no QCBORDecode_GetXxx() is called for an item,
     * there's no check on that item. Preferred serialization was first
