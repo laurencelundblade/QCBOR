@@ -62,7 +62,7 @@ extern "C" {
 #define QCBOR_VERSION_MINOR 0
 #define QCBOR_VERSION_PATCH 0
 
-/*Pre-release tag: "-alpha.1", "-beta.2", "-rc.1" during pre-release;
+/* Pre-release tag: "-alpha.1", "-beta.2", "-rc.1" during pre-release;
  * "" for a final release */
 #define QCBOR_VERSION_PRERELEASE "-beta.1"
 

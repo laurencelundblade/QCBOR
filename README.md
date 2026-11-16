@@ -1,20 +1,20 @@
 
 ![QCBOR Logo](https://github.com/laurencelundblade/qdv/blob/master/logo.png?raw=true)
 
-## QCBOR 2.0 Alpha
+## QCBOR 2.0.0 Beta
 
-This is a QCBOR 2.0 alpha release. It is suitable for test and prototyping,
-but not commerical use. The planned 2.0 changes are in, but they are
-not fully tested or documented. The interface is also subject to change.
+This is a QCBOR 2.0 beta release. It is suitable for test and prototyping,
+but not commerical use. The planned 2.0 changes are complete and not
+expected to change, but testing and documentation are not complete.
 
-QCBOR 2.0 is compatible with 1.0 with one exception that can be overriden
+QCBOR 2.0.0 is compatible with 1.x.x with one exception that can be overriden
 with a call to QCBORDecode_Compatibilityv1().
 
 Please file issues found with this release in GitHub.
 
 ### Major Changes
 
-* Unexpected tag numbers are not silently ignored unless in v1 compatibility
+* Unexpected tag numbers in the input are not silently ignored unless in v1 compatibility
 mode. This is more correct decoding behavior.
 
 * New API to explicitly decode tag numbers to make tag numbers easier to
@@ -28,7 +28,7 @@ work with.
 
 * Sort maps and check for duplicate labels when encoding.
 
-* Encode modes for dCBOR, deterministic and preferred serialization.
+* Encode modes for dCBOR, deterministic and preferred-plus serialization.
 
 * Decode modes that check for conformance with dCBOR, deterministic and preferred serialization.
 
@@ -65,6 +65,16 @@ It may be consumed by a tag content process or like QCBORDecode_DateEpochTagCB()
 installed with QCBORDecode_InstallTagDecoders(). It may be
 consumed with a spiffy decode function like QCBORDecode_GetTBigNumber().
 
+### Forward Change Porting from 1.x.x
+
+All changes made to QCBOR 1.x.x since QCBOR 2.0.0 was forked
+away from it have been forward-ported into QCBOR 2.0.0. This
+includes things better version indication, make system and CI.
+This also includes bug fixes and tests to validate bug fixes.
+
+The intent is to keep QCBOR 2.0.0 a super set of 1.x.x. 
+The intent is also to not add new features to QCBOR 1.x.x.
+
 ## Manifesto
 
 * Maximal set of CBOR features with mininum object code
@@ -91,7 +101,7 @@ Replaced by RFC 8949.
 ## Dependency
 * C99 or C++11
 * <stdint.h>, <stddef.h>, <stdbool.h> and <string.h>
-* <math.h> and <fenv.h> but can be excluded
+* <math.h>, plus <fenv.h> but it can be excluded.
 
 ## Documentation
 
@@ -156,15 +166,19 @@ QCBOR.
 
 ## Code Status
 
-This is the 2.0 alpha release. It has large changes and feature
-additions. It's not ready for commericial use yet. The main short
-coming is the need for more testing of the newer features. It will
-go through alpha, then to beta and then to an official 2.0
-commerical release sometimes in 2025.
+This is the 2.0.0 beta release. New features are not expected, nor
+are API changes. The remaining work to a 2.0.0 commercial quality
+release is testing and documentation.
 
-The official QCBOR commercial quality release (as of this writing) is QCBOR 1.6. It
-is very stable. Only small fixes and features additions have been
-made to it over the last years.
+QCBOR 2.0.0 is a large change relative to 1.x with many new 
+features and large internal changes in the implementation. With some minor
+exceptions, 2.0.0 is compatible with 1.x. QCBOR 2.0.0 has a
+mode that will make it exactly compatible with 1.x
+
+
+The official QCBOR commercial quality release (as of this writing) is
+QCBOR 1.6.1. It is very stable. Only small fixes and features 
+additions have been made to it over the last years.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
@@ -193,6 +207,7 @@ EAT and CWT.
 * Michael Richarson for CI set up and fixing some compiler warnings
 * Máté Tóth-Pál for float-point disabling and other
 * Dave Thaler for portability to Windows
+* Brian Sipos for packaging help
 
 
 ### Copyright for this README
