@@ -12671,47 +12671,47 @@ int32_t BoolTest(void)
 static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Major type 0 and 1 not shortest-form --- */
    { "zero encoded in 2 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x18\x00", 2},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "23 encoded in 2 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x18\x17", 2},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "255 encoded in 3 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x19\x00\xff", 3},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "65535 encoded in 5 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x1a\x00\x00\xff\xff", 5},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "4294967295 encoded in 9 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x1b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "-24 encoded in 2 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x38\x17", 2},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "-256 encoded in 3 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x39\x00\xff", 3},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "-65536 encoded in 5 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x3a\x00\x00\xff\xff", 5},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
    { "-4294967296 encoded in 9 bytes",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\x3b\x00\x00\x00\x00\xff\xff\xff\xff", 9},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
@@ -12751,57 +12751,57 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
 
    /* --- Floats not in shortest-form --- */
    { "1.5 single should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfa\x3f\xc0\x00\x00", 5},
       NOT_SHORTEST_FLOAT
    },
    { "1.5 double should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfb\x3f\xf8\x00\x00\x00\x00\x00\x00", 9},
       NOT_SHORTEST_FLOAT
    },
    { "8388607.0 double should be single",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xFB\x41\x5F\xFF\xFF\xC0\x00\x00\x00", 9},
       NOT_SHORTEST_FLOAT
    },
    { "3.0517578125E-5 double should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
       NOT_SHORTEST_FLOAT
    },
    { "255.875 single should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfa\x43\x7f\xe0\x00", 5},
       NOT_SHORTEST_FLOAT
    },
    { "INFINITY single should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfa\x7f\x80\x00\x00", 5},
       NOT_SHORTEST_FLOAT
    },
    { "INFINITY double should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfb\x7f\xf0\x00\x00\x00\x00\x00\x00", 9},
       NOT_SHORTEST_FLOAT
    },
    { "-INFINITY single should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfa\xff\x80\x00\x00", 5},
       NOT_SHORTEST_FLOAT
    },
    { "-INFINITY double should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfb\xff\xf0\x00\x00\x00\x00\x00\x00", 9},
       NOT_SHORTEST_FLOAT
    },
    { "NAN single should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfa\x7f\xc0\x00\x00", 5},
       NOT_SHORTEST_FLOAT
    },
    { "NAN double should be half",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xfb\x7f\xf8\x00\x00\x00\x00\x00\x00", 9},
       NOT_SHORTEST_FLOAT
    },
@@ -12880,18 +12880,18 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    /* --- Various big numbers ---*/
 #ifndef QCBOR_DISABLE_TAGS
    { "Empty string big number",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xc2\x40", 2},
       QCBOR_ERR_NOT_PREFERRED_BIGNUM
    },
    { "Zero encodes as a big number",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xc2\x41\x00", 3},
       QCBOR_ERR_NOT_PREFERRED_BIGNUM
    },
 #else
    { "Zero encodes as a big number",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xc2\x41\x00", 3},
       QCBOR_ERR_TAGS_DISABLED
    },
@@ -12916,7 +12916,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
    },
 #if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "tag number on label not shortest-form",
-      QCBOR_DECODE_MODE_PREFERRED,
+      QCBOR_DECODE_MODE_PREFERRED_PLUS,
       {"\xA3\xC1\x00\x61\x61\xD8\x01\x00\x61\x62\xD9\x00\x01\x00\x61\x63", 16},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
@@ -15903,8 +15903,8 @@ SerializationExampleDecode(void)
          }
 
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
-         /* Preferred Plus -- put it checking mode; run with general inputs; expect success or failure depending on whether preferred*/
-         err = DecodeLooper(Exmpl.general_serializations, Exmpl.preferred_plus_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_PREFERRED);
+         /* Preferred-plus -- put it checking mode; run with general inputs; expect success or failure depending on whether preferred*/
+         err = DecodeLooper(Exmpl.general_serializations, Exmpl.preferred_plus_serializations, pfDecodeCallback, QCBOR_DECODE_MODE_PREFERRED_PLUS);
          if(err) {
             return MakeTestResultCode((uint32_t)nExampleIndex, (uint32_t)nCallbackIndex, (QCBORError)err);
          }

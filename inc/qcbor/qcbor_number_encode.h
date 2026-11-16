@@ -71,7 +71,7 @@ extern "C" {
  * The integer will be encoded and added to the CBOR output.
  *
  * This function figures out the size and the sign and encodes using
- * CBOR preferred serialization. Specifically, it will select CBOR major type
+ * CBOR preferred-plus serialization. Specifically, it will select CBOR major type
  * 0 or 1 based on sign and will encode to 1, 2, 4 or 8 bytes
  * depending on the value of the integer. Values less than 24
  * effectively encode to one byte because they are encoded in with the
@@ -88,8 +88,7 @@ extern "C" {
  * an integer is 0. See
  * [RFC 8949 Appendix A](https://www.rfc-editor.org/rfc/rfc8949.html#section-appendix.a)
  * for more examples of CBOR encoding. This compact encoding is
- * preferred serialization CBOR as per
- * [RFC 8949 section 4.1](https://www.rfc-editor.org/rfc/rfc8949.html#section-4.1)
+ * preferred-plus serialization CBOR as per https://www.ietf.org/archive/id/draft-ietf-cbor-serialization-12.html
  *
  * There are no functions to add @c int16_t or @c int32_t because they
  * are not necessary because this always encodes to the smallest
@@ -207,17 +206,20 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx,
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This function performs preferred serialization of floating-point
- * values. It encodes a number using the smallest format that
- * preserves its exact value: double-, single-, or
- * half-precision. Reduction to single- or half-precision is only
- * applied when no precision is lost. The special values Infinity,
- * NaN, and 0 are always encoded as half-precision.
+ * This encodes using preferred-plus serialization, selectively encoding
+ * the input floating-point number as either double-precision,
+ * single-precision or half-precision. Infinity and 0 are always
+ * encoded as half-precision. The reduction to single-precision or
+ * half-precision is only performed if there is no loss or precision.
  *
- * Half-precision values occupy 2 bytes--half the size of
- * single-precision and one quarter of double-precisio--so this
- * optimization can significantly reduce encoded output size,
- * especially when 0, Infinity, or NaN appear frequently.
+ * Typically, a NaN is a "quiet NaN" with no payload. The @c NAN
+ * constant defined in <math.h> is the quiet NaN with no payload. Preferred-plus
+ * serilization reduces this to half-precision. If your use case goes
+ * out of its way to set NaN payloads, they are encoded using
+ * a reduction that is the same as for numeric values. If the right
+ * most bits of the NaN's significand that are removed in a reduction are zero, the reduction
+ * is performed. For example, if the rightmost 29 bits of a double NaN
+ * significand are zero, then it will be reduced to a single.
  *
  * Floating-point decoding (the functions QCBORDecode_GetNext() and
  * QCBORDecode_GetDouble()) return double-precision, reversing this
@@ -390,7 +392,7 @@ QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pCtx,
  *
  * Leading zeros are not encoded.
  *
- * This uses preferred serialization described specifically for big
+ * This uses preferred-plus serialization described specifically for big
  * numbers. Positive values between 0 and (2^64)-1 are encoded as
  * common type 0 integers. Negative values between -(2^64) and -1 are
  * encoded as common type 1 integers.
@@ -555,7 +557,7 @@ QCBOREncode_AddTBigNumberRawToMapN(QCBOREncodeContext *pCtx,
  * support this range to reduce code size and interface complexity a
  * little).
  *
- * CBOR Preferred serialization of the integers is used, thus they
+ * CBOR Preferred-plus serialization of the integers is used, thus they
  * will be encoded in the smallest number of bytes possible.
  *
  * See also QCBOREncode_AddTDecimalFractionBigNumber() for a decimal
@@ -605,7 +607,7 @@ QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  * mantissa is a big number (See QCBOREncode_AddTBignumber())
  * allowing for arbitrarily large precision.
  *
- * Preferred serialization of the big number is used. This means it
+ * Preferred-plus serialization of the big number is used. This means it
  * may be converted to a type 0 or type 1 integers making the result
  * the same as QCBOREncode_AddTDecimalFraction().  This also offsets
  * negative big numbers by one.
@@ -1145,6 +1147,10 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
 
+/** @private See qcbor_main_number_encode.c */
+void
+QCBOREncode_Private_AddPreferredPlusDouble(QCBOREncodeContext *pMe, const double dNum);
+
 /** @private See src/ieee754.h .c  (so AddDoubeRaw() can be inlined) */
 int
 IEEE754_DoubleIsNonTrivialNaN(double dNum);
@@ -1157,8 +1163,7 @@ IEEE754_SingleIsNonTrivialNaN(uint32_t uSingle);
 
 /** @private See qcbor_main_number_encode.c */
 void
-QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe,
-                                       const double        dNum);
+QCBOREncode_Private_AddPreferredPlusFloat(QCBOREncodeContext *pMe, const float fNum);
 
 
 /** @private See qcbor_main_number_encode.c */
@@ -1312,7 +1317,7 @@ static inline void
 QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
@@ -1348,7 +1353,7 @@ static inline void
 QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
+   QCBOREncode_Private_AddPreferredPlusDouble(pMe, dNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
       pMe->uError = QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
@@ -1393,7 +1398,7 @@ static inline void
 QCBOREncode_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
@@ -1413,7 +1418,7 @@ static inline void
 QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
+   QCBOREncode_Private_AddPreferredPlusFloat(pMe, fNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
       pMe->uError = QCBOR_ERR_PREFERRED_FLOAT_DISABLED;

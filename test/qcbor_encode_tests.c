@@ -3172,7 +3172,7 @@ EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
 
    switch(pTest->eSerialization) {
       case EAM_Pref:
-         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED );
+         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED_PLUS );
          break;
       case EAM_Deterministic:
          QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
