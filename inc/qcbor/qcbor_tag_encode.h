@@ -3,7 +3,7 @@
  * Forked from qcbor_encode.h 12/17/2024
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -65,7 +65,7 @@ extern "C" {
  * ## Tag Encoding
  *
  * If you are unfamiliar with CBOR tags and related terminology,
- * reviewing the @ref CBORTags documentation.
+ * review the @ref CBORTags documentation.
  *
  * QCBOR provides multiple ways to encode tags, some for standard tags
  * that QCBOR supports directly and another that works for any tag.
@@ -142,7 +142,7 @@ enum QCBOREncodeTagReq {
  * @param[in] uTagNumber  The tag number to add.
  *
  * This outputs a CBOR major type 6 item, a tag number that indicates
- * the next item is a different type.  See @ref TagEncoding.
+ * the next item is a different type.
  *
  * For many of the common standard tags, a function to encode data
  * using it is provided and this is not needed. For example,
@@ -575,11 +575,6 @@ QCBOREncode_AddTDaysStringToMapN(QCBOREncodeContext    *pCtx,
  *    They just have been replaced by something better.                      *
  * ========================================================================= */
 
-/**
- * \defgroup DeprecatedAddTag  Deprecated functions for adding tags.
- * @{
- */
-
 /** @deprecated Use QCBOREncode_AddTDateEpoch() instead. */
 static void
 QCBOREncode_AddDateEpoch(QCBOREncodeContext *pCtx, int64_t nDate);
@@ -695,8 +690,6 @@ static void
 QCBOREncode_AddDateStringToMapN(QCBOREncodeContext *pCtx,
                                 int64_t             nLabel,
                                 const char         *szDate);
-
-/**@}*/
 
 /* ========================================================================= *
  *    END OF DEPRECATED FUNCTION DECLARATIONS                                *

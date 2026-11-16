@@ -210,7 +210,7 @@ QCBORDecode_Rewind(QCBORDecodeContext *pMe)
  *
  * @retval QCBOR_ERR_NOT_ENTERED     Trying to search without entering a map.
  *
- * @retval QCBOR_ERR_DUPLICATE_LABEL Duplicate items (items with the same label)
+ * @retval QCBOR_ERR_DECODE_DUPLICATE_LABEL Duplicate items (items with the same label)
  *                                   were found for one of the labels being
  *                                   search for. This duplicate detection is
  *                                   only performed for items in pItemArray,
@@ -253,17 +253,23 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       goto Done2;
    }
 
-   if(!DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) &&
-      pItemArray->uLabelType != QCBOR_TYPE_NONE) {
-      /* QCBOR_TYPE_NONE as first item indicates just looking for the
-       * end of an array, so don't give error. */
+   if(! (DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_MAP) ||
+         DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_ARRAY))) {
+         /* Searching a non-aggretate type is an error */
+      uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
+      goto Done2;
+   }
+
+   if(DecodeNesting_IsBoundedType(&(pMe->nesting), QCBOR_TYPE_ARRAY) &&
+      pItemArray->uLabelType != QCBOR_TYPE_ARRAY_END_SEARCH) {
+      /* Searching an array is an error except for looking its end */
       uReturn = QCBOR_ERR_MAP_NOT_ENTERED;
       goto Done2;
    }
 
    if(DecodeNesting_IsBoundedEmpty(&(pMe->nesting))) {
       // It is an empty bounded array or map
-      if(pItemArray->uLabelType == QCBOR_TYPE_NONE) {
+      if(pItemArray->uLabelType == QCBOR_TYPE_ARRAY_END_SEARCH) {
          // Just trying to find the end of the map or array
          pMe->uMapEndOffsetCache = DecodeNesting_GetMapOrArrayStart(&(pMe->nesting));
          uReturn = QCBOR_SUCCESS;
@@ -311,13 +317,14 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
        * because a label match is performed on recoverable errors to
        * be able to return the the error code for the found item. */
       uResult = QCBORDecode_Private_GetNextTagContent(pMe, &Item);
-      if(QCBORDecode_IsUnrecoverableError(uResult)) {
-         /* The map/array can't be decoded when unrecoverable errors occur */
+      if(QCBORDecode_IsHaltingError(uResult)) {
          uReturn = uResult;
          goto Done;
       }
       if(uResult == QCBOR_ERR_NO_MORE_ITEMS) {
-         /* Unexpected end of map or array. */
+         /* Should never occur. Errors are caught by check above;
+          * normal exit is by nest level check. Retained to to prevent
+          * infinite loop if understanding of this is wrong. */
          uReturn = uResult;
          goto Done;
       }
@@ -325,10 +332,14 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
       /* See if item has one of the labels that are of interest */
       bMatched = false;
       for(int nIndex = 0; pItemArray[nIndex].uLabelType != QCBOR_TYPE_NONE; nIndex++) {
+         if(nIndex >= QCBOR_DECODE_MAX_GET_ITEMS) {
+            uReturn = QCBOR_ERR_TOO_MANY_GET_ITEMS;
+            goto Done;
+         }
          if(QCBORItem_MatchLabel(Item, pItemArray[nIndex])) {
             /* A label match has been found */
             if(uFoundItemBitMap & (0x01ULL << nIndex)) {
-               uReturn = QCBOR_ERR_DUPLICATE_LABEL;
+               uReturn = QCBOR_ERR_DECODE_DUPLICATE_LABEL;
                goto Done;
             }
             if(uResult != QCBOR_SUCCESS) {
@@ -404,7 +415,7 @@ QCBORDecode_Private_MapSearch(QCBORDecodeContext *pMe,
 
  Done2:
    /* For all items not found, set the data and label type to QCBOR_TYPE_NONE */
-   for(int i = 0; pItemArray[i].uLabelType != 0; i++) {
+   for(int i = 0; i < QCBOR_DECODE_MAX_GET_ITEMS && pItemArray[i].uLabelType != 0; i++) {
       if(!(uFoundItemBitMap & (0x01ULL << i))) {
          pItemArray[i].uDataType  = QCBOR_TYPE_NONE;
          pItemArray[i].uLabelType = QCBOR_TYPE_NONE;
@@ -944,7 +955,7 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     * level is reached.  It may do nothing, or ascend all the way to
     * the top level.
     */
-   uErr = QCBORDecode_Private_NestLevelAscender(pMe, false, NULL);
+   uErr = QCBORDecode_Private_NestLevelAscender(pMe, NULL);
    if(uErr != QCBOR_SUCCESS) {
       goto Done;
    }
@@ -956,54 +967,53 @@ QCBORDecode_Private_ExitBoundedLevel(QCBORDecodeContext *pMe,
     */
    DecodeNesting_LevelUpBounded(&(pMe->nesting));
 
-   pMe->uMapEndOffsetCache = QCBOR_MAP_OFFSET_CACHE_INVALID;
-
 Done:
    return uErr;
 }
 
 
 /**
- * @brief Get started exiting a map or array (semi-private)
+ * @brief Exit bounded decoding of an array or map (semi-private)
  *
  * @param[in] pMe  The decode context
  * @param[in] uType  QCBOR_TYPE_ARRAY or QCBOR_TYPE_MAP
  *
- * This does some work for map and array exiting (but not
- * bstr exiting). Then QCBORDecode_Private_ExitBoundedLevel()
- * is called to do the rest.
+ * The type of exit (array or map) must match what was entered.The
+ * nesting level is decreased by one and the traversal cursor is set
+ * to the end of the array or map exited.  See
+ * QCBORDecode_ExitBstrWrapped() for exiting byte strings.
  */
 void
 QCBORDecode_Private_ExitBoundedMapOrArray(QCBORDecodeContext *pMe,
                                           const uint8_t       uType)
 {
-   if(pMe->uLastError != QCBOR_SUCCESS) {
-      /* Already in error state; do nothing. */
-      return;
-   }
+   QCBORItem   Dummy[2];
+   QCBORError  uErr;
 
-   QCBORError uErr;
+   if(pMe->uLastError != QCBOR_SUCCESS) {
+      return; /* Already in error state; do nothing */
+   }
 
    if(!DecodeNesting_IsBoundedType(&(pMe->nesting), uType)) {
       uErr = QCBOR_ERR_EXIT_MISMATCH;
       goto Done;
    }
 
-   /*
-    Have to set the offset to the end of the map/array
-    that is being exited. If there is no cached value,
-    from previous map search, then do a dummy search.
-    */
+   /* Have to set the offset to the end of the map/array that is being
+    * exited. If there is no cached value from previous map search
+    * then do a dummy search. */
    if(pMe->uMapEndOffsetCache == QCBOR_MAP_OFFSET_CACHE_INVALID) {
-      QCBORItem Dummy;
-      Dummy.uLabelType = QCBOR_TYPE_NONE;
-      uErr = QCBORDecode_Private_MapSearch(pMe, &Dummy, NULL, NULL);
+      Dummy[0].uLabelType = QCBOR_TYPE_ARRAY_END_SEARCH;
+      Dummy[1].uLabelType = QCBOR_TYPE_NONE;
+      uErr = QCBORDecode_Private_MapSearch(pMe, Dummy, NULL, NULL);
       if(uErr != QCBOR_SUCCESS) {
          goto Done;
       }
    }
 
    uErr = QCBORDecode_Private_ExitBoundedLevel(pMe, pMe->uMapEndOffsetCache);
+
+   pMe->uMapEndOffsetCache = QCBOR_MAP_OFFSET_CACHE_INVALID;
 
 Done:
    pMe->uLastError = (uint8_t)uErr;

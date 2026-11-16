@@ -40,7 +40,8 @@ extern "C" {
 
 
 /** Bit flags to indicate what types of number conversions should be
-    performed. */
+ * performed. These are put in a uint8_t in NumberConvertCheckEntry,
+ * so don't exceed 0x80. */
 enum QCBORDecodeNumberConvert {
 
     /** Conversion will proceed if the CBOR item to be decoded is an
@@ -192,7 +193,7 @@ QCBORDecode_GetInt64ConvertInMapSZ(QCBORDecodeContext           *pCtx,
  * is below 1, unless the mantissa is zero, in which case the
  * coversion is successful and the value of 0 is returned.
  *
- * See also QCBORDecode_GetInt64ConvertAll() which does some of these
+ * See also QCBORDecode_GetInt64Convert() which does some of these
  * conversions, but links in much less object code. See also
  * QCBORDecode_GetUInt64ConvertAll().
  *
@@ -348,8 +349,9 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext            *pCtx,
  *
  * NaN and +/- Infinity are supported.
  *
- * By default anything but a quiet NaN will result in @ref QCBOR_ERR_NAN_PAYLOAD. If
- * @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS is configured, all NaNs (signaling, non-trivial or with payload)
+ * By default anything but a quiet NaN will result in @ref
+ * QCBOR_ERR_NAN_PAYLOAD. If @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS
+ * is configured, all NaNs (signaling, non-trivial or with payload)
  * are decoded and returned. See @ref NaNs.
  *
  * If floating-point HW use is disabled this will set
@@ -579,7 +581,7 @@ QCBORDecode_GetNumberConvertPrecisely(QCBORDecodeContext *pCtx,
  *
  * The object code for this is surprisingly large at about 1KB.  This
  * is to apply the offset of one for the negative values and to
- * operate all the data types used by big number specific preferred
+ * operate all the data types used by big number specific preferred-plus
  * serialization.
  *
  * See @ref BigNumbers for a useful overview of CBOR big numbers and
@@ -835,6 +837,9 @@ QCBORDecode_GetTDecimalFractionInMapSZ(QCBORDecodeContext    *pMe,
  * will convert all these to a big number. The limit to this
  * conversion is the size of @c MantissaBuffer.
  *
+ * See also QCBORDecode_GetTDecimalFractionBigMantissaRaw() which
+ * is less object code but returns negative numbers offset by one.
+ *
  * See also QCBORDecode_GetInt64ConvertAll(),
  * QCBORDecode_GetUInt64ConvertAll() and
  * QCBORDecode_GetDoubleConvertAll() which can convert decimal
@@ -1015,9 +1020,12 @@ QCBORDecode_GetTBigFloatInMapSZ(QCBORDecodeContext    *pCtx,
  * is returned as a big number. The only limit to precision is the
  * size of @c MantissaBuffer.
  *
- * The encoded mantissa may be an integer or a big number.  The
+ * The encoded mantissa may be an integer or a big number. The
  * standard CBOR offset of 1 for negative is applied, so the mantissa
  * can be used as returned.
+ *
+ * See also QCBORDecode_GetTBigFloatBigMantissaRaw() which
+ * is less object code but returns negative numbers offset by one.
  *
  * See also @ref CBOR_TAG_BIGFLOAT,
  * QCBOREncode_AddTBigFloatBigNumber(), @ref QCBOR_TYPE_BIGFLOAT and
@@ -1165,6 +1173,7 @@ QCBOR_Int64ToInt32(int64_t src, int32_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
 {
@@ -1176,6 +1185,7 @@ QCBOR_Int64ToInt16(int64_t src, int16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
 {
@@ -1187,6 +1197,7 @@ QCBOR_Int64ToInt8(int64_t src, int8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 {
@@ -1201,6 +1212,7 @@ QCBOR_Int64ToUInt32(int64_t src, uint32_t *dest)
 /** @private Fix misnaming in previous versions.  */
 #define QCBOR_Int64UToInt16 QCBOR_Int64ToUInt16
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
 {
@@ -1212,6 +1224,7 @@ QCBOR_Int64ToUInt16(int64_t src, uint16_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
 {
@@ -1223,6 +1236,7 @@ QCBOR_Int64ToUInt8(int64_t src, uint8_t *dest)
    return 0;
 }
 
+/** See  QCBOR_Int64ToInt32() */
 static inline int
 QCBOR_Int64ToUInt64(int64_t src, uint64_t *dest)
 {
@@ -1272,7 +1286,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext    *pCtx,
                              UsefulBufC            *pValue,
                              bool                  *pbIsNegative);
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /**
  * @brief [Deprecated] Decode a decimal fraction.
  * @deprecated. Use QCBORDecode_GetTDecimalFraction() instead. */
@@ -1407,7 +1421,7 @@ QCBORDecode_GetBigFloatBigInMapSZ(QCBORDecodeContext *pCtx,
 
 
 /* ========================================================================= *
- *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                             *
+ *    BEGINNING OF PRIVATE AND INLINE IMPLEMENTATION                         *
  * ========================================================================= */
 
 
@@ -1738,7 +1752,7 @@ QCBORDecode_GetBignumInMapSZ(QCBORDecodeContext          *pMe,
                                        pbIsNegative);
 }
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 static inline void /* Deprecated */
 QCBORDecode_GetDecimalFraction(QCBORDecodeContext          *pMe,
                                const enum QCBORDecodeTagReq uTagRequirement,

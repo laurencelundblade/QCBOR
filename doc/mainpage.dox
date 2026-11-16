@@ -11,23 +11,25 @@ v2 introduces new features and APIs not available in v1.
 API Reference:
 - Common
    - Error codes and common constants: @ref inc/qcbor/qcbor_common.h "qcbor_common.h"
-   - Functions for managing buffers of binary data: @ref inc/qcbor/UsefulBuf.h "UsefulBuf.h"
+   - Buffer management for binary data: @ref inc/qcbor/UsefulBuf.h "UsefulBuf.h"
 - Encoding
-   - Main/Basic encode functions: @ref inc/qcbor/qcbor_main_encode.h "qcbor_main_encode.h"
-   - Number encode functions: @ref inc/qcbor/qcbor_number_encode.h "qcbor_number_encode.h"
-   - Tag encode functions: @ref inc/qcbor/qcbor_tag_encode.h "qcbor_tag_encode.h"
+   - Main/Basic encoding: @ref inc/qcbor/qcbor_main_encode.h "qcbor_main_encode.h"
+   - Number encoding: @ref inc/qcbor/qcbor_number_encode.h "qcbor_number_encode.h"
+   - Tag encoding: @ref inc/qcbor/qcbor_tag_encode.h "qcbor_tag_encode.h"
 - Decoding
-   - Main/Basic decode functions: @ref inc/qcbor/qcbor_main_decode.h "qcbor_main_decode.h"
-   - Spiffy decode functions: @ref inc/qcbor/qcbor_spiffy_decode.h "qcbor_spiffy_decode.h"
-   - Tag decode functions: @ref inc/qcbor/qcbor_tag_decode.h "qcbor_tag_decode.h"
-   - Number decode functions: @ref inc/qcbor/qcbor_number_decode.h "qcbor_number_decode.h"
+   - Main/Basic decoding: @ref inc/qcbor/qcbor_main_decode.h "qcbor_main_decode.h"
+   - Spiffy decode: @ref inc/qcbor/qcbor_spiffy_decode.h "qcbor_spiffy_decode.h"
+   - Tag decoding: @ref inc/qcbor/qcbor_tag_decode.h "qcbor_tag_decode.h"
+   - Number decoding: @ref inc/qcbor/qcbor_number_decode.h "qcbor_number_decode.h"
 
 Subject Matter:
-- @ref Overview "QCBOR overview and implementation limits"
+- @ref Overview "QCBOR Overview"
+- @ref QCBORLimitations "Implementation Limits"
 - @ref Building "Building QCBOR with make and cmake"
 - @ref CodeSize "Minimizing the amount of code linked and disabling features"
 - @ref SpiffyDecode "The 'spiffy' decode functions for easier map decoding"
 - CBOR Numbers
+   - @ref Floating-Point "Encoding and decoding floating-point"
    - @ref BigNumbers "Characteristics, encoding and decoding big numbers"
 - Tags
    - @ref CBORTags

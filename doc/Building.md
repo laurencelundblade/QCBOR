@@ -1,6 +1,5 @@
 
-@anchor Building
-## Building
+@page Building Building QCBOR, Releases, Versions, Code Size
 
 The QCBOR library source is solely in the `src` and `inc` directories. The
 `inc` directory contains the public API. The other files and
@@ -15,9 +14,14 @@ majority of platforms.
 
 A number of C preprocessor `#define` options are available. Their
 primary purpose is to reduce object code size by disabling optional
-features, with a small number also providing modest performance
-improvements.  See the “Configuration” comments in inc/UsefulBuf.h, as
-well as the preprocessor symbols beginning with `QCBOR_DISABLE_XXX`.
+features and adjust some hard implementation limits like allowed
+nesting depth.
+
+The compile options can be managed:
+
+* Command line options for Make and CMake
+* CMake cached variables
+* @ref qcbor_config.h
 
 The test directory contains the test suite, which is nearly as
 portable as QCBOR itself. If your development environment does not
@@ -25,8 +29,17 @@ support a UNIX-style command line, you can create a simple project and
 add the test source files directly. Invoking RunTests() will execute
 the full test suite.
 
+# Building with Make
 
-### Building with CMake
+Building with make is kept simple and basic and is mostly for
+internal QCBOR development and simple projects.
+
+It doesn't really support packaging, building shared libraries,
+anything but a basic install or custom configurations. Use CMake 
+for those.
+
+
+# Building with CMake
 
 A modern CMake configuration is provided in CMakeLists.txt that can
 build, test, and install QCBOR. The installation includes CMake package
@@ -69,8 +82,70 @@ cmake --build <build_folder>
 <build_folder>/test/qcbortest
 ```
 
-@anchor CodeSize
-## Code Size
+# Version and changes {#VersionsAndChanges}
+
+QCBOR uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
+The master version number appears in inc/qcbor/qcbor_common.h.  It
+also appears in CMakelists.txt, qcbor.spec, CHANGELOG.md and in
+ GitHub releases.
+
+The master change history appears in CHANGELOG.md. The format is
+based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
+notes in GitHub releases are copied from CHANGELOG.md. The keeping 
+of CHANGELOG.md and this GitHub release convention was adopted 
+in version 1.6.2 and 2.0.0-beta.1.
+
+The shared library version, SOVERSION is set in CMakeLists.txt. It's
+range is 1..19 for QCBOR v1.x and 20... to QCBOR v2.x. It represents
+the ABI version for calls into the shared library, not the API
+compatibility of the public interface. This distinction is important
+because QCBOR makes heavy use of inlining in the public header files.
+This ABI version is updated relatively frequently, when ever there
+is a possibility of a change in the shared library ABI.
+
+See also @ref QCBORVersions
+
+
+# Releases, Install  and Packages {#ReleasesAndPackages}
+
+QCBOR is released only as source via GitHub. Packaging and package 
+releases are left to the various distros and packaging providers.
+CMake is well supported, including the ability to perform a simple
+install and support for packagers.
+
+
+# Changing Maximum Limits {#ChangingMaxLimits}
+
+QCBOR has some hard size limitations (See @ref QCBORLimitations)
+because it does not allocate memory. The following can be changed at
+compile time (see @ref qcbor_config.h):
+
+| Limit                         | Default |
+|-------------------------------|---------|
+| @ref QCBOR_MAX_ARRAY_NESTING  |   35    |
+| @ref QCBOR_MAX_TAGS_PER_ITEM  |   4     |
+| @ref QCBOR_NUM_MAPPED_TAGS    |   4     |
+
+These are all cached variables in CMake. Outside of CMake, definitions
+of these can be made on the compiler command line and they will
+override the defaults.
+
+@warning These limits are part of the ABI: they determine the size of
+data structures declared in the headers and are compiled into the
+library. The values used to build the library and the values in the
+headers used by calling code must match. A mismatch is not detected at
+build or run time and results in memory corruption.
+
+
+# Code Size {#CodeSize}
+
+The primary control over the amount of QCBOR code that is linked into
+an application is in which functions are actually used. When linking
+against a library, or when dead-code stripping is enabled, any code
+that is not explicitly referenced will not be linked. For example,
+never calling number conversion functions will result in less linked
+code. QCBOR's APIs and internal linkage are designed to make
+dead-code stripping effective.
 
 TODO: The sizes in this section need to be updated for QCBOR v2.
 
@@ -114,7 +189,15 @@ and standard tag types.
 
  In addition to using fewer QCBOR functions, the following are some
  ways to make the code smaller.
-
+ 
+ QCBOR can be compiled with features disabled. By default all
+ features are enabled. Note that disabling features can reduce
+ code size in ways that dead stripping can't. For example 
+ @ref QCBOR_DISABLE_ENCODE_USAGE_GUARDS, @ref QCBOR_DISABLE_NON_INTEGER_LABELS
+ and @ref QCBOR_DISABLE_DECODE_CONFORMANCE all eliminate
+ code from main QCBOR functions that can't be eliminated
+ by dead code stripping.  See @ref qcbor_config.h.
+ 
  The gcc compiler output is usually smaller than llvm because stack
  guards are off by default (be sure you actually have gcc and not llvm
  installed to be invoked by the gcc command). You can also turn off
@@ -125,108 +208,7 @@ and standard tag types.
  If QCBOR is installed as a shared library, then of course only one
  copy of the code is in memory no matter how many applications use it.
 
-### Disabling Features
-
-The primary control over the amount of QCBOR code that is linked into
-an application is in which functions are actually used. When linking
-against a library, or when dead-code stripping is enabled, any code
-that is not explicitly referenced will not be linked. For example,
-never calling number conversion functions will result in less linked
-code.
-
-In addition to minimizing the set of QCBOR functions used, the
-following preprocessor `#define` options can be set to further reduce
-code size. For example, defining `QCBOR_DISABLE_NON_INTEGER_LABELS`
-reduces the decoder size and can be set when building the library for
-protocols that use only integer map labels.
-
-The code-size reductions listed below are approximate. Actual savings
-depend on factors such as the target CPU, compiler, compiler options,
-build configuration, and the specific QCBOR functions used.
-
-
-| `#define`                                 |  Saves |
-| ------------------------------------------| -------|
-| `QCBOR_DISABLE_ENCODE_USAGE_GUARDS`       |  TODO  |
-| `QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS` |  TODO  |
-| `QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`  |  TODO  |
-| `QCBOR_DISABLE_EXP_AND_MANTISSA`          |  TODO  |
-| `QCBOR_DISABLE_PREFERRED_FLOAT`           |  TODO  |
-| `QCBOR_DISABLE_FLOAT_HW_USE`              |  TODO  |
-| `USEFULBUF_DISABLE_ALL_FLOAT`             |  TODO  |
-| `QCBOR_DISABLE_TAGS`                      |  TODO  |
-| `QCBOR_DISABLE_NON_INTEGER_LABELS`        |  TODO  |
-| `QCBOR_DISABLE_DECODE_CONFORMANCE`        |  TODO  |
-| `USEFULBUF_DISABLE_STREAMING`             |  TODO  |
-
-`QCBOR_DISABLE_ENCODE_USAGE_GUARDS` affects encoding only. It doesn't
-disable any encoding features, just extra error checking that helps
-debugging.  Disable it when you are confident that an encoding
-implementation is complete and correct.
-
-Indefinite lengths are a feature of CBOR that makes encoding simpler
-and the decoding more complex. They allow the encoder to not have to
-know the length of a string, map, or array when they start encoding
-it. Their main use is when encoding has to be done on a very
-constrained device.  Conversely, when decoding on a very constrained
-device, it is good to prohibit use of indefinite lengths so the
-decoder can be smaller.
-
-The QCBOR decode API processes both definite and indefinite lengths
-with the same API, except that to decode indefinite-length strings, a
-storage allocator must be configured.
-
-To reduce the size of the decoder, define
-`QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS`, particularly if you are not
-configuring a storage allocator.
-
-Further reduction can be acheived by defining
-`QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`, which will result in an error
-when an indefinite-length map or array arrives for decoding.
-
-`QCBOR_DISABLE_UNCOMMON_TAGS` is removed from QCBOR v2. It didn't save
-very much, and you can get the same effect by not installing
-the tag content handlers.
-
-`QCBOR_DISABLE_EXP_AND_MANTISSA` disables the decoding of decimal
-fractions and big floats.
-
-The options for disabling floating-point are detailed in the section
-on @ref Floating-Point. In short, `QCBOR_DISABLE_PREFERRED_FLOAT`
-eliminates a lot of floating-point-related code, particularly
-half-precision support, `QCBOR_DISABLE_FLOAT_HW_USE` eliminates
-dependency on the math library and `<math.h>`, and
-`USEFULBUF_DISABLE_ALL_FLOAT` eliminates all float-point dependency,
-such that the types double and float aren't used.
-
-@anchor QCBOR_DISABLE_TAGS
-
-`QCBOR_DISABLE_TAGS` disables decoding of all CBOR tags. If the input
-contains any tag, an unrecoverable error (@ref
-QCBOR_ERR_TAGS_DISABLED) is raised.  When this option is enabled, the
-decoder is suitable only for protocols that do not use CBOR tags.
-
-Setting `QCBOR_DISABLE_TAGS` reduces the size of the decoder core —
-particularly QCBORDecode_VGetNext() — by approximately 500 bytes.
-
-“Borrowed” tag content formats (for example, an epoch-based date
-encoded without the corresponding tag number) can still be
-decoded. See @ref Disabling-Tag-Decoding for additional details.
-
-`QCBOR_DISABLE_NON_INTEGER_LABELS` causes any label that doesn't fit
-in an int64_t to result in a @ref QCBOR_ERR_MAP_LABEL_TYPE error.
-This also disables `QCBOR_DECODE_MODE_MAP_AS_ARRAY` and
-`QCBOR_DECODE_MODE_MAP_STRINGS_ONLY`. It is fairly common for
-CBOR-based protocols to use only small integers as labels.
-
-`QCBOR_DISABLE_DECODE_CONFORMANCE` removes the decode features that
-the input conforms in a particular way, such as that it is
-deterministic of dCBOR.
-
-`USEFULBUF_DISABLE_STREAMING` removes the encode streaming features.
-
-
-### Size of spiffy decode
+## Size of spiffy decode
 
 When implementing a protocol decoder, you can choose between using the
 spiffy decode features or using the lower-level API,

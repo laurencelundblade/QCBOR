@@ -71,7 +71,7 @@ extern "C" {
  * The integer will be encoded and added to the CBOR output.
  *
  * This function figures out the size and the sign and encodes using
- * CBOR preferred serialization. Specifically, it will select CBOR major type
+ * CBOR preferred-plus serialization. Specifically, it will select CBOR major type
  * 0 or 1 based on sign and will encode to 1, 2, 4 or 8 bytes
  * depending on the value of the integer. Values less than 24
  * effectively encode to one byte because they are encoded in with the
@@ -88,8 +88,7 @@ extern "C" {
  * an integer is 0. See
  * [RFC 8949 Appendix A](https://www.rfc-editor.org/rfc/rfc8949.html#section-appendix.a)
  * for more examples of CBOR encoding. This compact encoding is
- * preferred serialization CBOR as per
- * [RFC 8949 section 4.1](https://www.rfc-editor.org/rfc/rfc8949.html#section-4.1)
+ * preferred-plus serialization CBOR as per https://www.ietf.org/archive/id/draft-ietf-cbor-serialization-12.html
  *
  * There are no functions to add @c int16_t or @c int32_t because they
  * are not necessary because this always encodes to the smallest
@@ -107,11 +106,15 @@ QCBOREncode_AddInt64(QCBOREncodeContext *pCtx, int64_t nNum);
 
 /** See QCBOREncode_AddInt64(). */
 static void
-QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nNum);
+QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pCtx,
+                            const char         *szLabel,
+                            int64_t             nNum);
 
 /** See QCBOREncode_AddInt64(). */
 static void
-QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, int64_t nNum);
+QCBOREncode_AddInt64ToMapN(QCBOREncodeContext *pCtx,
+                           int64_t             nLabel,
+                           int64_t             nNum);
 
 
 /**
@@ -133,11 +136,15 @@ QCBOREncode_AddUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
 
 /** See QCBOREncode_AddUInt64(). */
 static void
-QCBOREncode_AddUInt64ToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
+QCBOREncode_AddUInt64ToMapSZ(QCBOREncodeContext *pCtx,
+                             const char         *szLabel,
+                             uint64_t            uNum);
 
 /** See QCBOREncode_AddUInt64(). */
 static void
-QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
+QCBOREncode_AddUInt64ToMapN(QCBOREncodeContext *pCtx,
+                            int64_t             nLabel,
+                            uint64_t            uNum);
 
 
 /**
@@ -181,11 +188,15 @@ QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pCtx, uint64_t uNum);
 
 /** See QCBOREncode_AddNegativeUInt64(). */
 static void
-QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
+QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pCtx,
+                                   const char         *szLabel,
+                                   uint64_t            uNum);
 
 /** See QCBOREncode_AddNegativeUInt64(). */
 static void
-QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, uint64_t uNum);
+QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx,
+                                    int64_t             nLabel,
+                                    uint64_t            uNum);
 
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
@@ -195,17 +206,20 @@ QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, ui
  * @param[in] pCtx  The encoding context to add the double to.
  * @param[in] dNum  The double-precision number to add.
  *
- * This function performs preferred serialization of floating-point
- * values. It encodes a number using the smallest format that
- * preserves its exact value: double-, single-, or
- * half-precision. Reduction to single- or half-precision is only
- * applied when no precision is lost. The special values Infinity,
- * NaN, and 0 are always encoded as half-precision.
+ * This encodes using preferred-plus serialization, selectively encoding
+ * the input floating-point number as either double-precision,
+ * single-precision or half-precision. Infinity and 0 are always
+ * encoded as half-precision. The reduction to single-precision or
+ * half-precision is only performed if there is no loss or precision.
  *
- * Half-precision values occupy 2 bytes--half the size of
- * single-precision and one quarter of double-precisio--so this
- * optimization can significantly reduce encoded output size,
- * especially when 0, Infinity, or NaN appear frequently.
+ * Typically, a NaN is a "quiet NaN" with no payload. The @c NAN
+ * constant defined in <math.h> is the quiet NaN with no payload. Preferred-plus
+ * serilization reduces this to half-precision. If your use case goes
+ * out of its way to set NaN payloads, they are encoded using
+ * a reduction that is the same as for numeric values. If the right
+ * most bits of the NaN's significand that are removed in a reduction are zero, the reduction
+ * is performed. For example, if the rightmost 29 bits of a double NaN
+ * significand are zero, then it will be reduced to a single.
  *
  * Floating-point decoding (the functions QCBORDecode_GetNext() and
  * QCBORDecode_GetDouble()) return double-precision, reversing this
@@ -251,11 +265,15 @@ QCBOREncode_AddDouble(QCBOREncodeContext *pCtx, double dNum);
 
 /** See QCBOREncode_AddDouble(). */
 static void
-QCBOREncode_AddDoubleToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
+QCBOREncode_AddDoubleToMapSZ(QCBOREncodeContext *pCtx,
+                             const char         *szLabel,
+                             double              dNum);
 
 /** See QCBOREncode_AddDouble(). */
 static void
-QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum);
+QCBOREncode_AddDoubleToMapN(QCBOREncodeContext *pCtx,
+                            int64_t             nLabel,
+                            double              dNum);
 
 
 /**
@@ -276,11 +294,15 @@ QCBOREncode_AddFloat(QCBOREncodeContext *pCtx, float fNum);
 
 /** See QCBOREncode_AddFloat(). */
 static void
-QCBOREncode_AddFloatToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+QCBOREncode_AddFloatToMapSZ(QCBOREncodeContext *pCtx,
+                            const char         *szLabel,
+                            float               fNum);
 
 /** See QCBOREncode_AddFloat(). */
 static void
-QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum);
+QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx,
+                           int64_t             nLabel,
+                           float               dNum);
 
 
 /**
@@ -294,9 +316,10 @@ QCBOREncode_AddFloatToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float dNum)
  * or type reduction.
  *
  * If @c dNum is a @c NaN that is not a quiet NaN, the function
- * returns @ref QCBOR_ERR_NOT_ALLOWED. If @ref  QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD
- * is enabled, any NaN value--including signaling NaNs and NaNs with
- * payloads--is accepted and encoded as-is.
+ * returns @ref QCBOR_ERR_NOT_ALLOWED. If
+ * @ref QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD is enabled, any NaN
+ * value--including signaling NaNs and NaNs with payloads--is accepted
+ * and encoded as-is.
  *
  * Error handling is the same as QCBOREncode_AddInt64().
  *
@@ -308,11 +331,15 @@ QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pCtx, double dNum);
 
 /** See QCBOREncode_AddDoubleRaw(). */
 static void
-QCBOREncode_AddDoubleRawToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
+QCBOREncode_AddDoubleRawToMapSZ(QCBOREncodeContext *pCtx,
+                                const char         *szLabel,
+                                double              dNum);
 
 /** See QCBOREncode_AddDoubleRaw(). */
 static void
-QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, double dNum);
+QCBOREncode_AddDoubleRawToMapN(QCBOREncodeContext *pCtx,
+                               int64_t             nLabel,
+                               double              dNum);
 
 
 /**
@@ -332,11 +359,15 @@ QCBOREncode_AddFloatRaw(QCBOREncodeContext *pCtx, float fNum);
 
 /** See QCBOREncode_AddFloatRaw(). */
 static void
-QCBOREncode_AddFloatRawToMapSZ(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+QCBOREncode_AddFloatRawToMapSZ(QCBOREncodeContext *pCtx,
+                               const char         *szLabel,
+                               float               fNum);
 
 /** See QCBOREncode_AddFloatRaw(). */
 static void
-QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fNum);
+QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pCtx,
+                              int64_t             nLabel,
+                              float               fNum);
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
@@ -361,7 +392,7 @@ QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pCtx, int64_t nLabel, float fN
  *
  * Leading zeros are not encoded.
  *
- * This uses preferred serialization described specifically for big
+ * This uses preferred-plus serialization described specifically for big
  * numbers. Positive values between 0 and (2^64)-1 are encoded as
  * common type 0 integers. Negative values between -(2^64) and -1 are
  * encoded as common type 1 integers.
@@ -526,7 +557,7 @@ QCBOREncode_AddTBigNumberRawToMapN(QCBOREncodeContext *pCtx,
  * support this range to reduce code size and interface complexity a
  * little).
  *
- * CBOR Preferred serialization of the integers is used, thus they
+ * CBOR Preferred-plus serialization of the integers is used, thus they
  * will be encoded in the smallest number of bytes possible.
  *
  * See also QCBOREncode_AddTDecimalFractionBigNumber() for a decimal
@@ -576,7 +607,7 @@ QCBOREncode_AddTDecimalFractionToMapN(QCBOREncodeContext *pCtx,
  * mantissa is a big number (See QCBOREncode_AddTBignumber())
  * allowing for arbitrarily large precision.
  *
- * Preferred serialization of the big number is used. This means it
+ * Preferred-plus serialization of the big number is used. This means it
  * may be converted to a type 0 or type 1 integers making the result
  * the same as QCBOREncode_AddTDecimalFraction().  This also offsets
  * negative big numbers by one.
@@ -622,8 +653,8 @@ QCBOREncode_AddTDecimalFractionBigMantissaToMapN(QCBOREncodeContext *pCtx,
  * @param[in] bIsNegative      false if mantissa is positive, true if negative.
  * @param[in] nBase10Exponent   The exponent.
  *
- * This is the same as QCBOREncode_AddTDecimalFractionBigMantissa() except the mantissa
- * is not corrected by one and links in much less object code.
+ * This is the same as QCBOREncode_AddTDecimalFractionBigMantissa() except
+ * the mantissa is not corrected by one and links in much less object code.
  */static void
 QCBOREncode_AddTDecimalFractionBigMantissaRaw(QCBOREncodeContext *pCtx,
                                               uint8_t             uTagRequirement,
@@ -725,10 +756,13 @@ QCBOREncode_AddTBigFloatToMapN(QCBOREncodeContext *pCtx,
  * is a big number (See QCBOREncode_AddTBigMantissa()) allowing for
  * arbitrary precision.
  *
- *The big number will be offset by 1 if negative and preferred serialization will be used (tag 0 and 1).
+ *The big number will be offset by 1 if negative and preferred
+ *serialization will be used (tag 0 and 1).
  *
- * If you want the big number to be copied straight through without the conversion to type 0
- * and 1 integers and without the offset of 1 (and much smaller objet code) use QCBOREncode_AddTBigFloatBigMantissa().
+ * If you want the big number to be copied straight through without
+ * the conversion to type 0 and 1 integers and without the offset of 1
+ * (and much smaller objet code) use
+ * QCBOREncode_AddTBigFloatBigMantissa().
  *
  * See @ref expAndMantissa for decoded representation.
  */
@@ -812,16 +846,22 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pCtx,
 
 /** @deprecated Use QCBOREncode_AddInt64ToMapSZ() instead. */
 static void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, int64_t nNum);
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pCtx,
+                          const char         *szLabel,
+                          int64_t             nNum);
 
 /** @deprecated Use QCBOREncode_AddUInt64ToMapSZ() instead. */
 static void
-QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx, const char *szLabel, uint64_t uNum);
+QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pCtx,
+                           const char         *szLabel,
+                           uint64_t            uNum);
 
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 /** @deprecated Use QCBOREncode_AddDoubleToMapSZ() instead. */
 static void
-QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
+QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pCtx,
+                           const char         *szLabel,
+                           double              dNum);
 
 /** @deprecated Use QCBOREncode_AddDoubleRaw() nstead. */
 static inline void
@@ -829,19 +869,27 @@ QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum);
 
 /** @deprecated Use QCBOREncode_AddDoubleRawToMapSZ() instead. */
 static void
-QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, double dNum);
+QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pCtx,
+                                      const char         *szLabel,
+                                      double              dNum);
 
 /** @deprecated Use QCBOREncode_AddDoubleRawToMapN() nstead. */
 static void
-QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, double dNum);
+QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe,
+                                       int64_t             nLabel,
+                                       double              dNum);
 
 /** @deprecated Use QCBOREncode_AddDoubleRawToMapSZ() nstead. */
 static void
-QCBOREncode_AddDoubleNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, double dNum);
+QCBOREncode_AddDoubleNoPreferredToMapSZ(QCBOREncodeContext *pMe,
+                                        const char         *szLabel,
+                                        double              dNum);
 
 /** @deprecated Use QCBOREncode_AddFloatToMapSZ() instead. */
 static void
-QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+QCBOREncode_AddFloatToMap(QCBOREncodeContext *pCtx,
+                          const char         *szLabel,
+                          float               fNum);
 
 /** @deprecated Use QCBOREncode_AddFloatRaw() nstead. */
 static inline void
@@ -849,15 +897,21 @@ QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, float fNum);
 
 /** @deprecated Use QCBOREncode_AddFloatRawToMapSZ() instead. */
 static void
-QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx, const char *szLabel, float fNum);
+QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pCtx,
+                                     const char         *szLabel,
+                                     float               fNum);
 
 /** @deprecated Use QCBOREncode_AddFloatRawToMapN() nstead. */
 static void
-QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, float fNum);
+QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe,
+                                      int64_t             nLabel,
+                                      float               fNum);
 
 /** @deprecated Use QCBOREncode_AddFloatRawToMapSZ() nstead. */
 static void
-QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, float fNum);
+QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe,
+                                       const char         *szLabel,
+                                       float               fNum);
 
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
@@ -939,7 +993,7 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pCtx,
                                     UsefulBufC          BigNumber);
 
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 /** @deprecated Use QCBOREncode_AddTDecimalFraction() instead.*/
 static void
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pCtx,
@@ -968,7 +1022,7 @@ QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                       bool                bIsNegative,
                                       int64_t             nBase10Exponent);
 
-/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapSZ() instead. */
+/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapSZ() */
 static void
 QCBOREncode_AddTDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pCtx,
                                              const char         *szLabel,
@@ -977,7 +1031,7 @@ QCBOREncode_AddTDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pCtx,
                                              bool                bIsNegative,
                                              int64_t             nBase10Exponent);
 
-/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapN() instead. */
+/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapN()*/
 static void
 QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                             int64_t             nLabel,
@@ -986,14 +1040,14 @@ QCBOREncode_AddTDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                             bool                bIsNegative,
                                             int64_t             nBase10Exponent);
 
-/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRaw() instead. */
+/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRaw()  */
 static void
 QCBOREncode_AddDecimalFractionBigNum(QCBOREncodeContext *pCtx,
                                      UsefulBufC          Mantissa,
                                      bool                bIsNegative,
                                      int64_t             nBase10Exponent);
 
-/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapSZ() instead. */
+/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapSZ() */
 static void
 QCBOREncode_AddDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pCtx,
                                             const char         *szLabel,
@@ -1001,7 +1055,7 @@ QCBOREncode_AddDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pCtx,
                                             bool                bIsNegative,
                                             int64_t             nBase10Exponent);
 
-/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapN() instead. */
+/** @deprecated Use QCBOREncode_AddTDecimalFractionBigMantissaRawToMapN() */
 static void
 QCBOREncode_AddDecimalFractionBigNumToMapN(QCBOREncodeContext *pCtx,
                                            int64_t             nLabel,
@@ -1089,10 +1143,13 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pCtx,
 
 
 
-
 /* ========================================================================= *
  *    BEGINNING OF PRIVATE INLINE IMPLEMENTATION                             *
  * ========================================================================= */
+
+/** @private See qcbor_main_number_encode.c */
+void
+QCBOREncode_Private_AddPreferredPlusDouble(QCBOREncodeContext *pMe, const double dNum);
 
 /** @private See src/ieee754.h .c  (so AddDoubeRaw() can be inlined) */
 int
@@ -1106,12 +1163,13 @@ IEEE754_SingleIsNonTrivialNaN(uint32_t uSingle);
 
 /** @private See qcbor_main_number_encode.c */
 void
-QCBOREncode_Private_AddPreferredDouble(QCBOREncodeContext *pMe, const double dNum);
+QCBOREncode_Private_AddPreferredPlusFloat(QCBOREncodeContext *pMe, const float fNum);
 
 
 /** @private See qcbor_main_number_encode.c */
 void
-QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe, const float fNum);
+QCBOREncode_Private_AddPreferredFloat(QCBOREncodeContext *pMe,
+                                      const float         fNum);
 
 
 
@@ -1165,7 +1223,9 @@ QCBOREncode_AddInt64ToMapSZ(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, int64_t nNum)
+QCBOREncode_AddInt64ToMap(QCBOREncodeContext *pMe,
+                          const char         *szLabel,
+                          int64_t             nNum)
 {
    QCBOREncode_AddInt64ToMapSZ(pMe, szLabel, nNum);
 }
@@ -1197,7 +1257,9 @@ QCBOREncode_AddUInt64ToMapSZ(QCBOREncodeContext *pMe,
 }
 
 static inline void
-QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
+QCBOREncode_AddUInt64ToMap(QCBOREncodeContext *pMe,
+                           const char         *szLabel,
+                           uint64_t            uNum)
 {
    QCBOREncode_AddUInt64ToMapSZ(pMe, szLabel, uNum);
 }
@@ -1219,14 +1281,18 @@ QCBOREncode_AddNegativeUInt64(QCBOREncodeContext *pMe, const uint64_t uValue)
 }
 
 static inline void
-QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pMe, const char *szLabel, uint64_t uNum)
+QCBOREncode_AddNegativeUInt64ToMap(QCBOREncodeContext *pMe,
+                                   const char         *szLabel,
+                                   uint64_t            uNum)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddNegativeUInt64(pMe, uNum);
 }
 
 static inline void
-QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe, int64_t nLabel, uint64_t uNum)
+QCBOREncode_AddNegativeUInt64ToMapN(QCBOREncodeContext *pMe,
+                                    int64_t             nLabel,
+                                    uint64_t            uNum)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddNegativeUInt64(pMe, uNum);
@@ -1251,11 +1317,12 @@ static inline void
 QCBOREncode_AddDoubleRaw(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
-   if(IEEE754_DoubleIsNonTrivialNaN(dNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_DoubleIsNonTrivialNaN(dNum) &&
+      !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
@@ -1286,7 +1353,7 @@ static inline void
 QCBOREncode_AddDouble(QCBOREncodeContext *pMe, const double dNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   QCBOREncode_Private_AddPreferredDouble(pMe, dNum);
+   QCBOREncode_Private_AddPreferredPlusDouble(pMe, dNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
       pMe->uError = QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
@@ -1331,13 +1398,14 @@ static inline void
 QCBOREncode_AddFloatRaw(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
-   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS) {
+   if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT) {
       pMe->uError = QCBOR_ERR_NOT_PREFERRED;
       return;
    }
    uint32_t u32_fNum;
    u32_fNum = UsefulBufUtil_CopyFloatToUint32(fNum);
-   if(IEEE754_SingleIsNonTrivialNaN(u32_fNum) && !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
+   if(IEEE754_SingleIsNonTrivialNaN(u32_fNum) &&
+      !(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_ALLOW_NAN_PAYLOAD)) {
       pMe->uError = QCBOR_ERR_NOT_ALLOWED;
       return;
    }
@@ -1350,7 +1418,7 @@ static inline void
 QCBOREncode_AddFloat(QCBOREncodeContext *pMe, const float fNum)
 {
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-   QCBOREncode_Private_AddPreferredFloat(pMe, fNum);
+   QCBOREncode_Private_AddPreferredPlusFloat(pMe, fNum);
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
    if(pMe->uConfigFlags & QCBOR_ENCODE_CONFIG_FLOAT_REDUCTION) {
       pMe->uError = QCBOR_ERR_PREFERRED_FLOAT_DISABLED;
@@ -1408,7 +1476,11 @@ QCBOREncode_AddTBigNumber(QCBOREncodeContext *pMe,
                           const bool          bNegative,
                           const UsefulBufC    BigNumber)
 {
-   QCBOREncode_Private_AddTBigNumberMain(pMe, uTagRequirement, true, bNegative, BigNumber);
+   QCBOREncode_Private_AddTBigNumberMain(pMe,
+                                         uTagRequirement,
+                                         true,
+                                         bNegative,
+                                         BigNumber);
 }
 
 
@@ -1440,7 +1512,11 @@ QCBOREncode_AddTBigNumberNoPreferred(QCBOREncodeContext *pMe,
                                      const bool          bNegative,
                                      const UsefulBufC    BigNumber)
 {
-   QCBOREncode_Private_AddTBigNumberMain(pMe, uTagRequirement, false, bNegative, BigNumber);
+   QCBOREncode_Private_AddTBigNumberMain(pMe,
+                                         uTagRequirement,
+                                         false,
+                                         bNegative,
+                                         BigNumber);
 }
 
 static inline void
@@ -1451,7 +1527,10 @@ QCBOREncode_AddTBigNumberNoPreferredToMapSZ(QCBOREncodeContext *pMe,
                                             UsefulBufC          BigNumber)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
-   QCBOREncode_AddTBigNumberNoPreferred(pMe, uTagRequirement, bNegative, BigNumber);
+   QCBOREncode_AddTBigNumberNoPreferred(pMe,
+                                        uTagRequirement,
+                                        bNegative,
+                                        BigNumber);
 }
 
 static inline void
@@ -1462,7 +1541,10 @@ QCBOREncode_AddTBigNumberNoPreferredToMapN(QCBOREncodeContext *pMe,
                                            UsefulBufC          BigNumber)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
-   QCBOREncode_AddTBigNumberNoPreferred(pMe, uTagRequirement, bNegative, BigNumber);
+   QCBOREncode_AddTBigNumberNoPreferred(pMe,
+                                        uTagRequirement,
+                                        bNegative,
+                                        BigNumber);
 }
 
 /**
@@ -1479,7 +1561,8 @@ QCBOREncode_Private_BigNumberTag(QCBOREncodeContext *pMe,
                                  bool                bNegative)
 {
    if(uTagRequirement == QCBOR_ENCODE_AS_TAG) {
-      QCBOREncode_AddTagNumber(pMe, bNegative ? CBOR_TAG_NEG_BIGNUM : CBOR_TAG_POS_BIGNUM);
+      uint64_t uTag = bNegative ? CBOR_TAG_NEG_BIGNUM : CBOR_TAG_POS_BIGNUM;
+      QCBOREncode_AddTagNumber(pMe, uTag);
    }
 }
 
@@ -1771,11 +1854,11 @@ QCBOREncode_AddTBigFloatBigMantissaRaw(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddTBigFloatBigMantissaRawToMapSZ(QCBOREncodeContext *pMe,
-                                              const char         *szLabel,
-                                              const uint8_t       uTagRequirement,
-                                              const UsefulBufC    Mantissa,
-                                              const bool          bIsNegative,
-                                              const int64_t       nBase2Exponent)
+                                            const char         *szLabel,
+                                            const uint8_t       uTagRequirement,
+                                            const UsefulBufC    Mantissa,
+                                            const bool          bIsNegative,
+                                            const int64_t       nBase2Exponent)
 {
    QCBOREncode_AddSZString(pMe, szLabel);
    QCBOREncode_AddTBigFloatBigMantissaRaw(pMe,
@@ -1787,11 +1870,11 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapSZ(QCBOREncodeContext *pMe,
 
 static inline void
 QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pMe,
-                                             const int64_t       nLabel,
-                                             const uint8_t       uTagRequirement,
-                                             const UsefulBufC    Mantissa,
-                                             const bool          bIsNegative,
-                                             const int64_t       nBase2Exponent)
+                                            const int64_t       nLabel,
+                                            const uint8_t       uTagRequirement,
+                                            const UsefulBufC    Mantissa,
+                                            const bool          bIsNegative,
+                                            const int64_t       nBase2Exponent)
 {
    QCBOREncode_AddInt64(pMe, nLabel);
    QCBOREncode_AddTBigFloatBigMantissaRaw(pMe,
@@ -1803,8 +1886,6 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pMe,
 
 #endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
-
-
 /* ======================================================================== *
  *    END OF PRIVATE INLINE IMPLEMENTATION                                  *
  * ======================================================================== */
@@ -1815,27 +1896,32 @@ QCBOREncode_AddTBigFloatBigMantissaRawToMapN(QCBOREncodeContext *pMe,
 /* ========================================================================= *
  *    BEGINNING OF INLINES FOR DEPRECATED FUNCTIONS                          *
  * ========================================================================= */
+
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
 
-static inline void
-QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
+static inline void /* Deprecated */
+QCBOREncode_AddDoubleToMap(QCBOREncodeContext *pMe,
+                           const char         *szLabel,
+                           double              dNum)
 {
    QCBOREncode_AddDoubleToMapSZ(pMe, szLabel, dNum);
 }
 
-static inline void
+static inline void /* Deprecated */
 QCBOREncode_AddDoubleNoPreferred(QCBOREncodeContext *pMe, const double dNum)
 {
    QCBOREncode_AddDoubleRaw(pMe, dNum);
 }
 
-static inline void
-QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, double dNum)
+static inline void /* Deprecated */
+QCBOREncode_AddDoubleNoPreferredToMap(QCBOREncodeContext *pMe,
+                                      const char         *szLabel,
+                                      double              dNum)
 {
    QCBOREncode_AddDoubleRawToMapSZ(pMe, szLabel, dNum);
 }
 
-static inline void
+static inline void /* Deprecated */
 QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe,
                                        const int64_t       nLabel,
                                        const double        dNum)
@@ -1843,7 +1929,7 @@ QCBOREncode_AddDoubleNoPreferredToMapN(QCBOREncodeContext *pMe,
    QCBOREncode_AddDoubleRawToMapN(pMe, nLabel, dNum);
 }
 
-static inline void
+static inline void /* Deprecated */
 QCBOREncode_AddDoubleNoPreferredToMapSZ(QCBOREncodeContext *pMe,
                                        const char          *szLabel,
                                        const double        dNum)
@@ -1851,32 +1937,40 @@ QCBOREncode_AddDoubleNoPreferredToMapSZ(QCBOREncodeContext *pMe,
    QCBOREncode_AddDoubleRawToMapSZ(pMe, szLabel, dNum);
 }
 
-static inline void
-QCBOREncode_AddFloatToMap(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
+static inline void /* Deprecated */
+QCBOREncode_AddFloatToMap(QCBOREncodeContext *pMe,
+                          const char         *szLabel,
+                          float               fNum)
 {
    QCBOREncode_AddFloatToMapSZ(pMe, szLabel, fNum);
 }
 
-static inline void
+static inline void /* Deprecated */
 QCBOREncode_AddFloatNoPreferred(QCBOREncodeContext *pMe, const float fNum)
 {
    QCBOREncode_AddFloatRaw(pMe, fNum);
 }
 
-static inline void
-QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
+static inline void /* Deprecated */
+QCBOREncode_AddFloatNoPreferredToMap(QCBOREncodeContext *pMe,
+                                     const char         *szLabel,
+                                     float               fNum)
 {
    QCBOREncode_AddFloatRawToMapSZ(pMe, szLabel, fNum);
 }
 
-static inline void
-QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe, int64_t nLabel, float fNum)
+static inline void /* Deprecated */
+QCBOREncode_AddFloatNoPreferredToMapN(QCBOREncodeContext *pMe,
+                                      int64_t             nLabel,
+                                      float               fNum)
 {
    QCBOREncode_AddFloatRawToMapN(pMe, nLabel, fNum);
 }
 
-static inline void
-QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe, const char *szLabel, float fNum)
+static inline void /* Deprecated */
+QCBOREncode_AddFloatNoPreferredToMapSZ(QCBOREncodeContext *pMe,
+                                       const char         *szLabel,
+                                       float               fNum)
 {
    QCBOREncode_AddFloatRawToMapSZ(pMe, szLabel, fNum);
 }
@@ -1897,7 +1991,11 @@ QCBOREncode_AddTPositiveBignumToMapSZ(QCBOREncodeContext *pMe,
                                       const uint8_t       uTagRequirement,
                                       const UsefulBufC    BigNumber)
 {
-   QCBOREncode_AddTBigNumberRawToMapSZ(pMe, szLabel, uTagRequirement, false, BigNumber);
+   QCBOREncode_AddTBigNumberRawToMapSZ(pMe,
+                                       szLabel,
+                                       uTagRequirement,
+                                       false,
+                                       BigNumber);
 }
 
 static inline void  /* Deprecated */
@@ -1906,11 +2004,16 @@ QCBOREncode_AddTPositiveBignumToMapN(QCBOREncodeContext *pMe,
                                      const uint8_t       uTagRequirement,
                                      const UsefulBufC    BigNumber)
 {
-   QCBOREncode_AddTBigNumberRawToMapN(pMe, nLabel, uTagRequirement, false, BigNumber);
+   QCBOREncode_AddTBigNumberRawToMapN(pMe,
+                                      nLabel,
+                                      uTagRequirement,
+                                      false,
+                                      BigNumber);
 }
 
 static inline void  /* Deprecated */
-QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pMe, const UsefulBufC BigNumber)
+QCBOREncode_AddPositiveBignum(QCBOREncodeContext *pMe,
+                              const UsefulBufC    BigNumber)
 {
    QCBOREncode_AddTBigNumberRaw(pMe, QCBOR_ENCODE_AS_TAG, false, BigNumber);
 }
@@ -1920,7 +2023,11 @@ QCBOREncode_AddPositiveBignumToMap(QCBOREncodeContext *pMe,
                                    const char         *szLabel,
                                    const UsefulBufC    BigNumber)
 {
-   QCBOREncode_AddTBigNumberRawToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, false, BigNumber);
+   QCBOREncode_AddTBigNumberRawToMapSZ(pMe,
+                                       szLabel,
+                                       QCBOR_ENCODE_AS_TAG,
+                                       false,
+                                       BigNumber);
 }
 
 static inline void  /* Deprecated */
@@ -1928,7 +2035,11 @@ QCBOREncode_AddPositiveBignumToMapN(QCBOREncodeContext *pMe,
                                     const int64_t       nLabel,
                                     const UsefulBufC    BigNumber)
 {
-   QCBOREncode_AddTBigNumberRawToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, false, BigNumber);
+   QCBOREncode_AddTBigNumberRawToMapN(pMe,
+                                      nLabel,
+                                      QCBOR_ENCODE_AS_TAG,
+                                      false,
+                                      BigNumber);
 }
 
 static inline void  /* Deprecated */
@@ -1966,7 +2077,8 @@ QCBOREncode_AddTNegativeBignumToMapN(QCBOREncodeContext *pMe,
 }
 
 static inline void  /* Deprecated */
-QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pMe, const UsefulBufC BigNumber)
+QCBOREncode_AddNegativeBignum(QCBOREncodeContext *pMe,
+                              const UsefulBufC    BigNumber)
 {
    QCBOREncode_AddTBigNumberRaw(pMe, QCBOR_ENCODE_AS_TAG, true, BigNumber);
 }
@@ -1976,7 +2088,11 @@ QCBOREncode_AddNegativeBignumToMap(QCBOREncodeContext *pMe,
                                    const char         *szLabel,
                                    const UsefulBufC    BigNumber)
 {
-   QCBOREncode_AddTBigNumberRawToMapSZ(pMe, szLabel, QCBOR_ENCODE_AS_TAG, true, BigNumber);
+   QCBOREncode_AddTBigNumberRawToMapSZ(pMe,
+                                       szLabel,
+                                       QCBOR_ENCODE_AS_TAG,
+                                       true,
+                                       BigNumber);
 }
 
 static inline void  /* Deprecated */
@@ -1984,11 +2100,15 @@ QCBOREncode_AddNegativeBignumToMapN(QCBOREncodeContext *pMe,
                                     const int64_t       nLabel,
                                     const UsefulBufC    BigNumber)
 {
-   QCBOREncode_AddTBigNumberRawToMapN(pMe, nLabel, QCBOR_ENCODE_AS_TAG, true, BigNumber);
+   QCBOREncode_AddTBigNumberRawToMapN(pMe,
+                                      nLabel,
+                                      QCBOR_ENCODE_AS_TAG,
+                                      true,
+                                      BigNumber);
 
 }
 
-#ifndef QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA
+#ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 static inline void /* Deprecated */
 QCBOREncode_AddDecimalFraction(QCBOREncodeContext *pMe,
                                const int64_t       nMantissa,
@@ -2044,11 +2164,11 @@ QCBOREncode_AddTDecimalFractionBigNum(QCBOREncodeContext *pMe,
 
 static inline void /* Deprecated */
 QCBOREncode_AddTDecimalFractionBigNumToMapSZ(QCBOREncodeContext *pMe,
-                                             const char         *szLabel,
-                                             const uint8_t       uTagRequirement,
-                                             const UsefulBufC    Mantissa,
-                                             const bool          bIsNegative,
-                                             const int64_t       nBase10Exponent)
+                                            const char         *szLabel,
+                                            const uint8_t       uTagRequirement,
+                                            const UsefulBufC    Mantissa,
+                                            const bool          bIsNegative,
+                                            const int64_t       nBase10Exponent)
 {
    QCBOREncode_AddTDecimalFractionBigMantissaRawToMapSZ(pMe,
                                                         szLabel,
@@ -2245,7 +2365,7 @@ QCBOREncode_AddBigFloatBigNumToMapN(QCBOREncodeContext *pMe,
                                                 nBase2Exponent);
 }
 
-#endif /* ! QCBOR_CONFIG_DISABLE_EXP_AND_MANTISSA */
+#endif /* ! QCBOR_DISABLE_EXP_AND_MANTISSA */
 
 /* ========================================================================= *
  *    END OF INLINES FOR DEPRECATED FUNCTIONS                                *
