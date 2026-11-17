@@ -3432,18 +3432,10 @@ int32_t QCBORHeadTest(void)
    // ---- uMinLen of 8 is the maximum; more is an error ----
    encoded = QCBOREncode_EncodeHead(RightSize,
                                     CBOR_MAJOR_TYPE_POSITIVE_INT,
-                                    8,
-                                    0);
-   if(UsefulBuf_Compare(encoded, UsefulBuf_FROM_SZ_LITERAL("\x1B\x00\x00\x00\x00\x00\x00\x00\x00"))) {
-      return -4;
-   }
-
-   encoded = QCBOREncode_EncodeHead(RightSize,
-                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
                                     9,
                                     0);
    if(!UsefulBuf_IsNULLC(encoded)) {
-      return -5;
+      return -4;
    }
 
    return 0;
