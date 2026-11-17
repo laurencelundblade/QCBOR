@@ -43,6 +43,7 @@
 
  when         who             what, where, why
  --------     ----            --------------------------------------------------
+ 11/17/2026   fstosse         Correct documentation for UsefulOutBuf_Compare().
  11/30/2025   llundblade      Add streaming mode.
  11/10/2025   llundblade      Explicitly size integer literals (MSVC fix).
  02/21/2025   llundblade      Correct documentaion for UsefulOutBuf_Compare()
