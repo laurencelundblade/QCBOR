@@ -44,6 +44,7 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 11/17/2026  fstosse      UsefulOutBuf_Compare() safe for any offset and length.
  11/30/2025  llundblade   Add streaming mode.
  02/21/2025  llundblade   Improve magic number to detect lack of initialization.
  02/21/2025  llundblade   Bug fixes to UsefulOutBuf_Compare().
@@ -721,10 +722,15 @@ UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
 /*
  * Public function -- see UsefulBuf.h
  *
- * This works on offsets and lengths, not on pointers, so no pointer
- * outside the buffer is ever formed, whatever the offsets and lengths
- * passed in. Adding them to the buffer pointer first could go past
- * the end of the buffer or wrap around below its start.
+ * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ *
+ * The only pointer math is indexing pBase. It is safe because each
+ * string is first truncated to the output data, so every index is
+ * less than data_len. The offsets and lengths passed in are never
+ * added to the pointer before that, as the sum could go past the end
+ * of the buffer or wrap around below its start.
+ *
+ * There is no check that the UsefulOutBuf is in a valid state.
  */
 int UsefulOutBuf_Compare(UsefulOutBuf *pMe,
                          const size_t uStart1, const size_t uLen1,
@@ -735,7 +741,7 @@ int UsefulOutBuf_Compare(UsefulOutBuf *pMe,
    size_t         uComparedLen1;
    size_t         uComparedLen2;
    size_t         uIndex;
-   int            uComparison;
+   int            nComparison;
 
    pBase    = pMe->UB.ptr;
    uDataLen = pMe->data_len;
@@ -757,28 +763,28 @@ int UsefulOutBuf_Compare(UsefulOutBuf *pMe,
       }
    }
 
-   uComparison = 0;
+   nComparison = 0;
    for(uIndex = 0; uIndex < uComparedLen1 && uIndex < uComparedLen2; uIndex++) {
-      uComparison = pBase[uStart2 + uIndex] - pBase[uStart1 + uIndex];
-      if(uComparison != 0) {
+      nComparison = pBase[uStart2 + uIndex] - pBase[uStart1 + uIndex];
+      if(nComparison != 0) {
          break;
       }
    }
 
-   if(uComparison == 0) {
+   if(nComparison == 0) {
       /* All bytes were equal, now check the lengths */
       if(uComparedLen2 > uComparedLen1) {
-         /* string 1 is a substring of string 2 */
-         uComparison = 1;
+         /* string 1 is a prefix of string 2 */
+         nComparison = 1;
       } else if(uComparedLen1 > uComparedLen2) {
-         /* string 2 is a substring of string 1 */
-         uComparison = -1;
+         /* string 2 is a prefix of string 1 */
+         nComparison = -1;
       } else {
-         /* do nothing, uComparison already is 0 */
+         /* do nothing, nComparison already is 0 */
       }
    }
 
-   return uComparison;
+   return nComparison;
 }
 
 

@@ -1665,7 +1665,7 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  *          if it follows it.
  *
  * This looks into bytes that have been output at the offsets
- * @c start1 and @c start2. It compares bytes at those two starting
+ * @c uStart1 and @c uStart2. It compares bytes at those two starting
  * points until they are not equal or @c uLen1 or @c uLen2 is
  * reached. If the length of the string given is off the end of the
  * output data, the string will be effectively (not actually)
@@ -1676,7 +1676,7 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  * second precedes the first. If the strings are equal, it returns
  * zero.
  *
- * If one string is a substring of the other, the shorter string is
+ * If one string is a prefix of the other, the shorter string is
  * considered smaller. For example, if the first string is "ab" and
  * the second is "abc", a positive value is returned. The empty string
  * is always the smallest and sorts ahead of all others.
@@ -1686,6 +1686,12 @@ static UsefulBuf UsefulOutBuf_RetrieveOutputStorage(UsefulOutBuf *pUOutBuf);
  * that offsets are within bounds so that a meaningful comparison is
  * performed. No data is ever read outside the output data, making
  * the function safe regardless of the provided offsets and lengths.
+ *
+ * Unlike the functions that add data, this does not check that the
+ * @ref UsefulOutBuf is in a valid state. The above holds only for one
+ * that is initialized, not corrupted and has a buffer. It must not be
+ * called on one with a @c NULL buffer (see @ref SizeCalculateUsefulBuf)
+ * that has data in it.
  *
  * This is a relatively odd function in that it works on data in the
  * output buffer. It is employed by QCBOR to sort CBOR-encoded maps
