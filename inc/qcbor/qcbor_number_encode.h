@@ -386,7 +386,8 @@ QCBOREncode_AddFloatRawToMapN(QCBOREncodeContext *pCtx,
  * [RFC 8949 section 3.4.3](https://www.rfc-editor.org/rfc/rfc8949.html#section-3.4.3).
  *
  * This performs the offset of one required when encoding negative
- * numbers.
+ * numbers. There is no negative zero: if @c bNegative is true and
+ * @c BigNumber is zero (empty or all zero bytes), zero is encoded.
  *
  * Leading zeros are not encoded.
  *
@@ -439,7 +440,8 @@ QCBOREncode_AddTBigNumberToMapN(QCBOREncodeContext *pCtx,
  *
  * This is the same as QCBOREncode_AddTBigNumber(), without preferred
  * serialization. This always outputs tag 2 or 3, never type 0 or 1
- * integers.
+ * integers. A zero is always output as a positive big number (tag
+ * 2), whatever @c bNegative.
  *
  * Leading zeros are removed before encoding.
  *
