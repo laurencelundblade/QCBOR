@@ -97,6 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBORDecode_VGetNextConsume() returns non-recoverable errors. Previously
   it ignored them and returned success.
 - More correctly abort decoding of map labels that are arrays or maps.
+- A negative big number of value zero was encoded as -1 or -2^64; it is now
+  encoded as 0 (#440).
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
