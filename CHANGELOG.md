@@ -97,6 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBORDecode_VGetNextConsume() returns non-recoverable errors. Previously
   it ignored them and returned success.
 - More correctly abort decoding of map labels that are arrays or maps.
+- QCBOREncode_EncodeHead() wrote before its buffer when uMinLen was more than
+  8; it now returns NULLUsefulBufC (#443).
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
