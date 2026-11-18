@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBORDecode_GetArray(), QCBORDecode_GetMap() and QCBORDecode_VGetNextConsume()
   now error out on recoverable errors; they didn't previously. This is
   a small change in behavior. Behavior now aligns with documentation.
+- QCBORDecode_VGetNextConsume() set an uninitialized uNextNestLevel when an
+  array or map was truncated (#444).
 
 
 ## [1.6.1] - 2025-03-03
