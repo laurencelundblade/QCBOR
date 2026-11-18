@@ -2100,14 +2100,15 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
    do {
       uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
 
+      /* On these two, Item may not have been written, so
+       * *puNextNestLevel is left unset as documented. */
       if(QCBORDecode_IsHaltingError(uReturn)) {
-         break;
+         return uReturn;
       }
       if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-         /* Should never occur. Errors are caught by check above;
-          * normal exit is by nest level check. Retained to to prevent
-          * infinite loop if understanding of this is wrong. */
-         break;
+         /* Occurs when the input ends before the array or map does,
+          * for example 0x81 with nothing after it. */
+         return uReturn;
       }
 
       /* Nest level end detection works for definite and indefinite lengths */
