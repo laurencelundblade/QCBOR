@@ -366,6 +366,7 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
 {
    uint64_t     uInt;
    bool         bIs2exp64;
+   bool         bIsNegative;
     UsefulBufC  BigNumberNLZ;
    enum QCBORPrivateMajorType uMajorType;
 
@@ -378,10 +379,16 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
 
    BigNumberNLZ = QCBOREncode_Private_SkipLeadingZeros(BigNumber);
 
+   /* Zero has no sign. A "negative zero" would otherwise go through
+    * the offset of one below and come out as a negative number such
+    * as -1 or -2^64. The number is zero if it is empty or all zero
+    * bytes. */
+   bIsNegative = bNegative && UsefulBuf_SkipLeading(BigNumber, 0x00).len > 0;
+
    static const uint8_t twoExp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
    bIs2exp64 = ! UsefulBuf_Compare(BigNumberNLZ, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(twoExp64));
 
-   if(bPreferred && (BigNumberNLZ.len <= 8 || (bNegative && bIs2exp64))) {
+   if(bPreferred && (BigNumberNLZ.len <= 8 || (bIsNegative && bIs2exp64))) {
       if(bIs2exp64) {
          /* 2^64 is a 9 byte big number. Since negative numbers are offset
           * by one in CBOR, it can be encoded as a type 1 negative. The
@@ -391,14 +398,14 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
          uInt = UINT64_MAX;
       } else {
          uInt = QCBOREncode_Private_BigNumberToUInt(BigNumberNLZ);
-         if(bNegative) {
+         if(bIsNegative) {
             uInt--;
          }
       }
-      uMajorType = bNegative ? QCBOR_MT_NEGATIVE_INT : QCBOR_MT_POSITIVE_INT;
+      uMajorType = bIsNegative ? QCBOR_MT_NEGATIVE_INT : QCBOR_MT_POSITIVE_INT;
       QCBOREncode_Private_AppendCBORHead(pMe, uMajorType, uInt, 0);
    } else {
-      if(bNegative) {
+      if(bIsNegative) {
          QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
       } else {
          /* Not QCBOREncode_AddTBigNumberRaw(): its usage guard for

@@ -1029,20 +1029,28 @@ struct BigNumEncodeTest BigNumEncodeTestCases[] = {
       {"\x39\x01\xff", 3},
    },
    {
-      "0 and error for no negative 0",
+      "0; negative 0 is 0",
       {"\x00", 1},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufCConst,
-      NULLUsefulBufCConst
+      {"\xC2\x41\x00", 3},
+      {"\x00", 1}
    },
    {
-      "leading zeros -- 0 and error for no negative 0",
+      "leading zeros -- 0; negative 0 is 0",
       {"\x00\x00\x00\x00", 4},
       {"\xC2\x41\x00", 3},
       {"\x00", 1},
-      NULLUsefulBufCConst,
-      NULLUsefulBufCConst
+      {"\xC2\x41\x00", 3},
+      {"\x00", 1}
+   },
+   {
+      "empty string is 0; negative 0 is 0",
+      {"", 0},
+      {"\xC2\x40", 2},
+      {"\x00", 1},
+      {"\xC2\x40", 2},
+      {"\x00", 1}
    }
 
 };
