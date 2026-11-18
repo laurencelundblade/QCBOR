@@ -7,7 +7,7 @@ All notable changes to QCBOR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0-beta.1] - 2026-11-18
 
 ### Added
 - Going forward, CHANGELOG.md (this file) is the source of truth for change history

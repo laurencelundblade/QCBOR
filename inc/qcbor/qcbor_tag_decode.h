@@ -1487,7 +1487,9 @@ QCBORError
 QCBOR_Private_BigNumConformance(UsefulBufC BigNum);
 #else
 static inline QCBORError
-QCBOR_Private_BigNumConformance(UsefulBufC BigNum){
+QCBOR_Private_BigNumConformance(UsefulBufC BigNum)
+{
+   (void)BigNum;
    return QCBOR_ERR_CANT_CHECK_CONFORMANCE;
 }
 #endif /* !QCBOR_DISABLE_DECODE_CONFORMANCE */

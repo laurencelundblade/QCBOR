@@ -316,7 +316,7 @@ enum QCBOREncodeConfig {
     * produce exactly the same encoded CBOR for a given input.
     *
     * In addition to doing everything
-    * @ref QCBOR_ENCODE_CONFIG_PREFERRED does (including exclusion of
+    * @ref QCBOR_ENCODE_CONFIG_PREFERRED_PLUS does (including exclusion of
     * indefinite lengths), this causes maps to be sorted. The map is
     * sorted automatically when QCBOREncode_CloseMap() is called. See
     * @ref QCBOR_ENCODE_CONFIG_SORT.
@@ -335,7 +335,7 @@ enum QCBOREncodeConfig {
     * This is a superset of deterministic encoding. This does
     * everything @ref QCBOR_ENCODE_CONFIG_DETERMINISTIC does. Also, it
     * is a super set of preferred serialization and does everything
-    * @ref QCBOR_ENCODE_CONFIG_PREFERRED does.
+    * @ref QCBOR_ENCODE_CONFIG_PREFERRED_PLUS does.
     *
     * The main feature of dCBOR is that there is only one way to
     * serialize a particular numeric value. This changes the behavior

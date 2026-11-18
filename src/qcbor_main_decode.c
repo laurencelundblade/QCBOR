@@ -1752,7 +1752,7 @@ QCBOR_Private_NextIsBreak(QCBORDecodeContext *pMe, bool *pbNextIsBreak)
  * taken from the cursor afterwards.
  */
 QCBORError
-QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct ItemEndTracker *pEnd)
+QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct QCBORPrivate_ItemEndTracker *pEnd)
 {
    while(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
 
@@ -1856,7 +1856,7 @@ QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct ItemEndTra
  */
 QCBORError
 QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext    *pMe,
-                                      struct ItemEndTracker *pEnd,
+                                      struct QCBORPrivate_ItemEndTracker *pEnd,
                                       QCBORItem             *pDecodedItem,
                                       uint32_t              *puLabelEndOffset)
 {
@@ -2083,7 +2083,7 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
 QCBORError
 QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
                                 const QCBORItem       *pItemToConsume,
-                                struct ItemEndTracker *pEnd,
+                                struct QCBORPrivate_ItemEndTracker *pEnd,
                                 uint8_t               *puNextNestLevel)
 {
    QCBORError  uReturn;
@@ -2513,7 +2513,7 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    size_t     uTempSaveCursor;
    bool       bInMap;
    QCBORItem  LabelItem;
-   struct ItemEndTracker End;
+   struct QCBORPrivate_ItemEndTracker End;
 
 
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));

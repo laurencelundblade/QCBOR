@@ -19,27 +19,27 @@ Please file issues found with this release in GitHub.
     being silently ignored. This is more correct decoding behavior; the v1
     behavior is still available in a compatibility mode.
   - New API for explicitly decoding tag numbers, which makes them easier
-    to work with
-  - Plug-in scheme for custom tag content decoders
+    to work with.
+  - Plug-in scheme for custom tag content decoders.
 - **Serialization modes and conformance checking**
   - Encode modes for preferred-plus serialization, deterministic encoding
-    and dCBOR
-  - Map sorting and duplicate label detection when encoding
+    and dCBOR.
+  - Map sorting and duplicate label detection when encoding.
   - Decode modes that check input for conformance with preferred-plus
-    serialization, deterministic encoding and dCBOR
+    serialization, deterministic encoding and dCBOR.
   - QCBOR has always rejected input that isn't well-formed. These modes add
     checks beyond well-formedness.
 - **Improved number handling**
   - Full support for preferred-plus serialization of big numbers, decimal
-    fractions and big floats
-  - Full support for 65-bit negative integers (down to -2^64)
+    fractions and big floats.
+  - Full support for 65-bit negative integers (down to -2^64).
 - **Encoding in low-memory environments**
   - Streamed encoding mode, so the encoded output doesn't have to fit
-    in one buffer
-  - Indefinite-length string encoding
+    in one buffer.
+  - Indefinite-length string encoding.
 - **Reorganized headers**
   - The public interface is split into several header files,
-    grouped by function
+    grouped by function.
 
 ### Compatibility with QCBOR v1
 
@@ -235,6 +235,7 @@ EAT and CWT.
 * Ernesto Cruz for reporting tag content recursion issue
 * Harriet Wang -- CMO, logo design
 * Brian Sipos for lots of packaging, CI and release stuff 
+* Florian Stosse for bug fixez
 
 ### Copyright for this README
 

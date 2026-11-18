@@ -520,7 +520,7 @@ typedef enum {
     *  occurred in the decode input. */
    QCBOR_ERR_TAGS_DISABLED = 71,
 
-   /* Nested calling of tag content decoders is too deep. See
+   /** Nested calling of tag content decoders is too deep. See
     * QCBORDecode_SetMaxTagNesting(). */
    QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP = 72,
 
