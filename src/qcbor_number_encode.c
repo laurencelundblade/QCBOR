@@ -408,7 +408,14 @@ QCBOREncode_Private_AddTBigNumberMain(QCBOREncodeContext *pMe,
       if(bIsNegative) {
          QCBOREncode_Private_AddTNegativeBigNumber(pMe, uTagRequirement, BigNumberNLZ);
       } else {
-         QCBOREncode_AddTBigNumberRaw(pMe, false, uTagRequirement,BigNumberNLZ);
+         /* Not QCBOREncode_AddTBigNumberRaw(): its usage guard for
+          * QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS doesn't apply
+          * here. Either preferred serialization was not requested (and
+          * the guard above already ran) or the number is too large for
+          * a type 0 integer, and the big number is its preferred
+          * serialization. */
+         QCBOREncode_Private_BigNumberTag(pMe, uTagRequirement, false);
+         QCBOREncode_AddBytes(pMe, BigNumberNLZ);
       }
    }
 }

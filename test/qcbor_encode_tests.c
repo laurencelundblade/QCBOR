@@ -1126,6 +1126,27 @@ int32_t BigNumEncodeTests(void)
       return -2;
    }
 
+   /* A positive big number with QCBOR_ENCODE_AS_BORROWED has no tag
+    * number at all. */
+   static const uint8_t sp258[] = {0x01, 0x02};
+   QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_AddTBigNumberNoPreferred(&Enc, QCBOR_ENCODE_AS_BORROWED, false, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sp258));
+   QCBOREncode_Finish(&Enc, &EncodedBigNumber);
+   if(UsefulBuf_Compare(EncodedBigNumber, UsefulBuf_FROM_SZ_LITERAL("\x42\x01\x02"))) {
+      return -5;
+   }
+
+   /* The preferred serialization of 2^64 is a tag 2 big number, so it
+    * is allowed with QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS. */
+   static const uint8_t sp2exp64[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+   QCBOREncode_Init(&Enc, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+   QCBOREncode_Config(&Enc, QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS);
+   QCBOREncode_AddTBigNumber(&Enc, QCBOR_ENCODE_AS_TAG, false, UsefulBuf_FROM_BYTE_ARRAY_LITERAL(sp2exp64));
+   if(QCBOREncode_Finish(&Enc, &EncodedBigNumber) != QCBOR_SUCCESS ||
+      UsefulBuf_Compare(EncodedBigNumber, UsefulBuf_FROM_SZ_LITERAL("\xC2\x49\x01\x00\x00\x00\x00\x00\x00\x00\x00"))) {
+      return -6;
+   }
+
    return 0;
 }
 
