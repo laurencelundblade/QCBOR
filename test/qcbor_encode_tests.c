@@ -3429,6 +3429,15 @@ int32_t QCBORHeadTest(void)
       return -3;
    }
 
+   // ---- uMinLen of 8 is the maximum; more is an error ----
+   encoded = QCBOREncode_EncodeHead(RightSize,
+                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                    9,
+                                    0);
+   if(!UsefulBuf_IsNULLC(encoded)) {
+      return -4;
+   }
+
    return 0;
 }
 
