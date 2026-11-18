@@ -1297,7 +1297,7 @@ QCBORDecode_GetInt64ConvertAll(QCBORDecodeContext                  *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetInt64Convert(pMe, uConvertTypes, pnValue, &Item);
 
@@ -1327,7 +1327,7 @@ QCBORDecode_GetInt64ConvertAllInMapN(QCBORDecodeContext                  *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetInt64ConvertInMapN(pMe,
                                              nLabel,
@@ -1361,7 +1361,7 @@ QCBORDecode_GetInt64ConvertAllInMapSZ(QCBORDecodeContext                  *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetInt64ConvertInMapSZ(pMe,
                                               szLabel,
@@ -1501,7 +1501,7 @@ QCBORDecode_GetUInt64ConvertAll(QCBORDecodeContext                  *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetUInt64Convert(pMe, uConvertTypes, puValue, &Item);
 
@@ -1531,7 +1531,7 @@ QCBORDecode_GetUInt64ConvertAllInMapN(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetUInt64ConvertInMapN(pMe,
                                               nLabel,
@@ -1565,7 +1565,7 @@ QCBORDecode_GetUInt64ConvertAllInMapSZ(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;\
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;\
 
    QCBORDecode_Private_GetUInt64ConvertInMapSZ(pMe,
                                                szLabel,
@@ -1709,7 +1709,7 @@ QCBORDecode_GetDoubleConvertAll(QCBORDecodeContext                 *pMe,
 
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetDoubleConvert(pMe, uConvertTypes, pdValue, &Item);
 
@@ -1739,7 +1739,7 @@ QCBORDecode_GetDoubleConvertAllInMapN(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetDoubleConvertInMapN(pMe,
                                               nLabel,
@@ -1772,7 +1772,7 @@ QCBORDecode_GetDoubleConvertAllInMapSZ(QCBORDecodeContext                 *pMe,
 {
    QCBORItem Item;
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_GetDoubleConvertInMapSZ(pMe,
                                                szLabel,
@@ -2098,7 +2098,7 @@ QCBORDecode_Private_BigNumberMain(QCBORDecodeContext          *pMe,
                                   UsefulBufC                 *pBigNumber,
                                   bool                       *pbIsNegative)
 {
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    QCBORDecode_Private_ProcessTagItem(pMe,
                                       uTagRequirement,
@@ -2517,7 +2517,7 @@ QCBORDecode_Private_ExpBigMantissaMain(QCBORDecodeContext          *pMe,
    const uint8_t *qTypes;
    uint64_t       auTagNumbers[2];
 
-   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS;
+   const bool bBignumConformance = pMe->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS;
 
    if(pMe->uLastError) {
       return;
