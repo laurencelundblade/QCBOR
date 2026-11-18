@@ -97,6 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QCBORDecode_VGetNextConsume() returns non-recoverable errors. Previously
   it ignored them and returned success.
 - More correctly abort decoding of map labels that are arrays or maps.
+- The epoch date and days getters no longer overwrite the caller's output with
+  an uninitialized value on error (#442).
 
 
 ## [2.0.0-alpha.6] - 2025-05-01
