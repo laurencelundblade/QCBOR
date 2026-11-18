@@ -234,18 +234,18 @@ typedef enum {
    // TODO: QCBOR_DECODE_MODE_ALLOW_NON_TRIVIAL_NAN = 0x08,
 
    /** @ref QCBOR_ERR_INDEF_LENGTH on indefinite length strings,
-    * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+    * arrays and maps. See @ref QCBOR_DECODE_MODE_PREFERRED_PLUS. */
    QCBOR_DECODE_MODE_NO_INDEF_LENGTH = 0x10,
 
    /** @ref QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT when the CBOR
     * argument is not shortest length. The CBOR argument is used for
     * encoded integers, string lengths, array lengths, map lengths and
-    * simple types.  See @ref QCBOR_DECODE_MODE_PREFERRED. */
+    * simple types.  See @ref QCBOR_DECODE_MODE_PREFERRED_PLUS. */
    QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT = 0x20,
 
     /** @ref QCBOR_ERR_NOT_SHORTEST_FLOAT when floats aren't
      * serialized with the shortest form that doesn't lose
-     * precision. See @ref QCBOR_DECODE_MODE_PREFERRED. */
+     * precision. See @ref QCBOR_DECODE_MODE_PREFERRED_PLUS. */
     QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT = 0x40,
 
    /** Check that big numbers conform with the preferred
@@ -253,7 +253,7 @@ typedef enum {
     * that fit within the type 0 or type 1 integer ranges are not encoded
     * as big numbers.
     */
-   QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS = 0x80,
+   QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS = 0x80,
 
    /** @ref QCBOR_ERR_UNSORTED if a map is not sorted. See
     * @ref QCBOR_DECODE_MODE_DETERMINISTIC. */
@@ -270,21 +270,20 @@ typedef enum {
    QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES = 0x400,
 
    /**
-    * This checks that the input is in conformance with preferred
+    * This checks that the input is in conformance with preferred-plus
     * serialization. The checking is performed as each item is
     * decoded. If no QCBORDecode_GetXxx() is called for an item,
     * there's no check on that item. Preferred serialization was first
-    * defined in section 4.1 of RFC 8949, but is more sharply in
-    * draft-ietf-cbor-cde. Summarizing, the requirements are: the use
+    * defined in section 4.1 of RFC 8949, but is clarified and updated in
+    * draft-ietf-cbor-serialization. Summarizing, the requirements are: the use
     * of definite-length encoding only, integers, including string
     * lengths and tags, must be in shortest form, and floating-point
     * numbers must be reduced to shortest form all the way to
-    * half-precision.
-    * TODO: update text above*/
-   QCBOR_DECODE_MODE_PREFERRED = QCBOR_DECODE_MODE_NO_INDEF_LENGTH |
-                                 QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT |
-                                 QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT |
-                                 QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS,
+    * half-precision. */
+   QCBOR_DECODE_MODE_PREFERRED_PLUS = QCBOR_DECODE_MODE_NO_INDEF_LENGTH |
+                                      QCBOR_DECODE_MODE_ONLY_SHORTEST_CBOR_ARGUMENT |
+                                      QCBOR_DECODE_MODE_ONLY_SHORTEST_FLOAT |
+                                      QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS,
 
    /** This checks that maps in the input are sorted by label as
     * described in RFC 8949 section 4.2.1.  This also performs
@@ -293,9 +292,9 @@ typedef enum {
     * for large inputs on slow CPUs.
     *
     * This also performs all the checks that
-    * @ref QCBOR_DECODE_MODE_PREFERRED does.
+    * @ref QCBOR_DECODE_MODE_PREFERRED_PLUS does.
     * todo: update text above*/
-   QCBOR_DECODE_MODE_DETERMINISTIC = QCBOR_DECODE_MODE_PREFERRED |
+   QCBOR_DECODE_MODE_DETERMINISTIC = QCBOR_DECODE_MODE_PREFERRED_PLUS |
                                      QCBOR_DECODE_MODE_ONLY_SORTED_MAPS,
 
    /** dCBOR is a special-use serialization whose primary requirement

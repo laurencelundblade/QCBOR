@@ -373,6 +373,7 @@ IEEE754_SingleToHalf(const uint32_t uSingle)
    int           nExponentDifference;
    int           nShiftAmount;
    uint32_t      uHalfSignificand;
+   uint32_t      uSignificandWithImplied1;
 
    /* Pull the three parts out of the double-precision float Most work
     * is done with uint32_t which helps avoid integer promotions and
@@ -446,39 +447,50 @@ IEEE754_SingleToHalf(const uint32_t uSingle)
           * smaller. Normals don't lose precision because the exponent
           * allows all the bits of the significand to be significant.
           */
-         /* The exponent of the largest possible half-precision
-          * subnormal is HALF_EXPONENT_MIN (-14).  Exponents larger
-          * than this are normal and handled above. We're going to
-          * shift the significand right by at least this amount.
+
+         /* --- DO NOT CONVERT --- */
+         /* This is the default. It is overwritten below only if the
+          * value is exactly representable as a half subnormal.
           */
-         nExponentDifference = -(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
+         result.uSize   = IEEE754_UNION_IS_SINGLE;
+         result.uValue  = uSingle;
 
-         /* In addition to the shift based on the exponent's value,
-          * the single significand has to be shifted right to fit into
-          * a half-precision significand */
-         nShiftAmount = nExponentDifference + (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
-
-         /* Must add 1 in to the possible significand because there is
-          * an implied 1 for normal values and not for subnormal
-          * values. See equations here:
-          * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
+         /* The exponent range is checked before the shift amount is
+          * computed. Outside this range nShiftAmount is negative or
+          * >= 32, and shifting by that is undefined behavior even
+          * if the result is never used.
           */
-         uHalfSignificand = (uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
-
-         /* If only zero bits get shifted out, this can be converted
-          * to subnormal */
          if(nSingleUnbiasedExponent < HALF_EXPONENT_MIN &&
-            nSingleUnbiasedExponent >= HALF_EXPONENT_MIN - HALF_NUM_SIGNIFICAND_BITS &&
-            uHalfSignificand << nShiftAmount == uSingleSignificand + (1 << SINGLE_NUM_SIGNIFICAND_BITS)) {
-            /* --- CONVERTABLE TO HALF SUBNORMAL --- */
-            result.uSize  = IEEE754_UNION_IS_HALF;
-            result.uValue = IEEE754_AssembleHalf(nIsNegative,
-                                                 uHalfSignificand,
-                                                 HALF_EXPONENT_ZERO);
-         } else {
-            /* --- DO NOT CONVERT --- */
-            result.uSize   = IEEE754_UNION_IS_SINGLE;
-            result.uValue  = uSingle;
+            nSingleUnbiasedExponent >= HALF_EXPONENT_MIN - HALF_NUM_SIGNIFICAND_BITS) {
+            /* The exponent of the largest possible half-precision
+             * subnormal is HALF_EXPONENT_MIN (-14).  Exponents larger
+             * than this are normal and handled above. We're going to
+             * shift the significand right by at least this amount.
+             */
+            nExponentDifference = -(nSingleUnbiasedExponent - HALF_EXPONENT_MIN);
+
+            /* In addition to the shift based on the exponent's value,
+             * the single significand has to be shifted right to fit into
+             * a half-precision significand */
+            nShiftAmount = nExponentDifference + (SINGLE_NUM_SIGNIFICAND_BITS - HALF_NUM_SIGNIFICAND_BITS);
+
+            /* Must add 1 in to the possible significand because there is
+             * an implied 1 for normal values and not for subnormal
+             * values. See equations here:
+             * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
+             */
+            uSignificandWithImplied1 = uSingleSignificand + (1U << SINGLE_NUM_SIGNIFICAND_BITS);
+            uHalfSignificand = uSignificandWithImplied1 >> nShiftAmount;
+
+            /* If only zero bits get shifted out, this can be converted
+             * to subnormal */
+            if(uHalfSignificand << nShiftAmount == uSignificandWithImplied1) {
+               /* --- CONVERTABLE TO HALF SUBNORMAL --- */
+               result.uSize  = IEEE754_UNION_IS_HALF;
+               result.uValue = IEEE754_AssembleHalf(nIsNegative,
+                                                    uHalfSignificand,
+                                                    HALF_EXPONENT_ZERO);
+            }
          }
       }
    }
@@ -533,6 +545,7 @@ IEEE754_DoubleToSingle(const double d)
    int           nShiftAmount;
    uint64_t      uSingleSignificand;
    uint64_t      uDroppedBits;
+   uint64_t      uSignificandWithImplied1;
 
 
    /* Pull the three parts out of the double-precision float. Most
@@ -620,22 +633,35 @@ IEEE754_DoubleToSingle(const double d)
           * to the exponent and 1 must be added in. See
           * https://en.wikipedia.org/wiki/Single-precision_floating-point_format#Exponent_encoding
           */
-         nExponentDifference = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
-         nShiftAmount        = nExponentDifference + (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
-         uSingleSignificand  = (uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) >> nShiftAmount;
 
+         /* --- CAN NOT BE CONVERTED --- */
+         /* This is the default. It is overwritten below only if the
+          * value is exactly representable as a single subnormal.
+          */
+         Result.uSize   = IEEE754_UNION_IS_DOUBLE;
+         Result.uValue  = uDouble;
+
+         /* The exponent range is checked before the shift amount is
+          * computed. Outside this range nShiftAmount is negative or
+          * >= 64, and shifting by that is undefined behavior even
+          * if the result is never used.
+          */
          if(nDoubleUnbiasedExponent < SINGLE_EXPONENT_MIN &&
-            nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS &&
-            uSingleSignificand << nShiftAmount == uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS)) {
-            /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
-            Result.uSize  = IEEE754_UNION_IS_SINGLE;
-            Result.uValue = IEEE754_AssembleSingle(nIsNegative,
-                                                   uSingleSignificand,
-                                                   SINGLE_EXPONENT_ZERO);
-         } else {
-            /* --- CAN NOT BE CONVERTED --- */
-            Result.uSize   = IEEE754_UNION_IS_DOUBLE;
-            Result.uValue  = uDouble;
+            nDoubleUnbiasedExponent >= SINGLE_EXPONENT_MIN - SINGLE_NUM_SIGNIFICAND_BITS) {
+            nExponentDifference      = -(nDoubleUnbiasedExponent - SINGLE_EXPONENT_MIN);
+            nShiftAmount             = nExponentDifference + (DOUBLE_NUM_SIGNIFICAND_BITS - SINGLE_NUM_SIGNIFICAND_BITS);
+            uSignificandWithImplied1 = uDoubleSignificand + (1ULL << DOUBLE_NUM_SIGNIFICAND_BITS);
+            uSingleSignificand       = uSignificandWithImplied1 >> nShiftAmount;
+
+            /* If only zero bits get shifted out, this can be converted
+             * to subnormal */
+            if(uSingleSignificand << nShiftAmount == uSignificandWithImplied1) {
+               /* --- IS CONVERTABLE TO SINGLE SUBNORMAL --- */
+               Result.uSize  = IEEE754_UNION_IS_SINGLE;
+               Result.uValue = IEEE754_AssembleSingle(nIsNegative,
+                                                      uSingleSignificand,
+                                                      SINGLE_EXPONENT_ZERO);
+            }
          }
       }
    }
@@ -689,7 +715,7 @@ IEEE754_Private_CountPrecisionBits(uint64_t uSignificand)
    uint64_t uMask;
 
    for(nNonZeroBitsCount = 64; nNonZeroBitsCount > 0; nNonZeroBitsCount--) {
-      uMask = 0x01UL << (64 - nNonZeroBitsCount);
+      uMask = 0x01ULL << (64 - nNonZeroBitsCount);
       if(uMask & uSignificand) {
          break;
       }
