@@ -632,7 +632,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * - @ref QCBOR_ERR_MAP_NOT_ENTERED --- called before entering a map
  *    with QCBORDecode_EnterMap() or similar.
  *
- * - @ref QCBOR_ERR_DUPLICATE_LABEL --- One of the labels being
+ * - @ref QCBOR_ERR_DECODE_DUPLICATE_LABEL --- One of the labels being
  *   searched for is duplicated in the input CBOR.
  *
  * - @ref QCBOR_ERR_HIT_END --- and other well-formedness errors as
