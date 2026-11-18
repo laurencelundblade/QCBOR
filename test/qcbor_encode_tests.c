@@ -3180,7 +3180,7 @@ EAMTestSetup(const struct EAMEncodeTest *pTest, QCBOREncodeContext *pEnc)
 
    switch(pTest->eSerialization) {
       case EAM_Pref:
-         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED );
+         QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_PREFERRED_PLUS );
          break;
       case EAM_Deterministic:
          QCBOREncode_Config(pEnc, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
@@ -3435,6 +3435,15 @@ int32_t QCBORHeadTest(void)
 
    if(!UsefulBuf_IsNULLC(encoded)) {
       return -3;
+   }
+
+   // ---- uMinLen of 8 is the maximum; more is an error ----
+   encoded = QCBOREncode_EncodeHead(RightSize,
+                                    CBOR_MAJOR_TYPE_POSITIVE_INT,
+                                    9,
+                                    0);
+   if(!UsefulBuf_IsNULLC(encoded)) {
+      return -4;
    }
 
    return 0;

@@ -890,7 +890,9 @@ QCBORDecode_GetTEpochDate(QCBORDecodeContext          *pMe,
                                      QCBORDecode_DateEpochTagCB,
                                      uOffset,
                                      &Item);
-   *pnTime = Item.val.epochDate.nSeconds;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pnTime = Item.val.epochDate.nSeconds;
+   }
 }
 
 
@@ -916,7 +918,9 @@ QCBORDecode_GetTEpochDateInMapN(QCBORDecodeContext          *pMe,
                                      QCBORDecode_DateEpochTagCB,
                                      uOffset,
                                      &Item);
-   *pnTime = Item.val.epochDate.nSeconds;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pnTime = Item.val.epochDate.nSeconds;
+   }
 }
 
 
@@ -942,7 +946,9 @@ QCBORDecode_GetTEpochDateInMapSZ(QCBORDecodeContext          *pMe,
                                      QCBORDecode_DateEpochTagCB,
                                      uOffset,
                                      &Item);
-   *pnTime = Item.val.epochDate.nSeconds;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pnTime = Item.val.epochDate.nSeconds;
+   }
 }
 
 
@@ -963,7 +969,9 @@ QCBORDecode_GetTEpochDays(QCBORDecodeContext          *pMe,
                                      QCBORDecode_DaysEpochTagCB,
                                      uOffset,
                                      &Item);
-   *pnDays = Item.val.epochDays;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pnDays = Item.val.epochDays;
+   }
 }
 
 
@@ -989,7 +997,9 @@ QCBORDecode_GetTEpochDaysInMapN(QCBORDecodeContext          *pMe,
                                      QCBORDecode_DaysEpochTagCB,
                                      uOffset,
                                      &Item);
-   *pnDays = Item.val.epochDays;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pnDays = Item.val.epochDays;
+   }
 }
 
 
@@ -1015,7 +1025,9 @@ QCBORDecode_GetTEpochDaysInMapSZ(QCBORDecodeContext          *pMe,
                                      QCBORDecode_DaysEpochTagCB,
                                      uOffset,
                                      &Item);
-   *pnDays = Item.val.epochDays;
+   if(pMe->uLastError == QCBOR_SUCCESS) {
+      *pnDays = Item.val.epochDays;
+   }
 }
 
 
@@ -1494,7 +1506,7 @@ QCBORDecode_BigNumTagCB(QCBORDecodeContext *pDecodeCtx,
       pDecodedItem->uDataType = QCBOR_TYPE_NEGBIGNUM;
    }
 
-   if(pDecodeCtx->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS) {
+   if(pDecodeCtx->uDecodeMode & QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS) {
       QCBORError uErr = QCBOR_Private_BigNumConformance(pDecodedItem->val.bigNum);
       if(uErr) {
          return uErr;

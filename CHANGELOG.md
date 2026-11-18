@@ -99,6 +99,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More correctly abort decoding of map labels that are arrays or maps.
 - A negative big number of value zero was encoded as -1 or -2^64; it is now
   encoded as 0 (#440).
+- The epoch date and days getters no longer overwrite the caller's output with
+  an uninitialized value on error (#442).
+- QCBORDecode_VGetNextConsume() set an uninitialized uNextNestLevel when an
+  array or map was truncated (#444).
+- QCBOREncode_EncodeHead() wrote before its buffer when uMinLen was more than
+  8; it now returns NULLUsefulBufC (#443).
+- UsefulOutBuf_Compare() could read outside the buffer for offsets or
+  lengths near SIZE_MAX (#441).
 
 
 ## [2.0.0-alpha.6] - 2025-05-01

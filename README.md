@@ -7,7 +7,7 @@ This is a QCBOR 2.0 beta release. It is suitable for test and prototyping,
 but not commerical use. The planned 2.0 changes are complete and stable,
 but they are not fully tested or documented.
 
-QCBOR 2.0 is compatible with 1.0 with one exception that can be overriden
+QCBOR 2.0.0 is compatible with 1.x.x with one exception that can be overriden
 with a call to QCBORDecode_Compatibilityv1().
 
 Please file issues found with this release in GitHub.
@@ -84,6 +84,16 @@ three options:
   installing the tag content decoders, set
   `QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS`
 
+### Forward Change Porting from 1.x.x
+
+All changes made to QCBOR 1.x.x since QCBOR 2.0.0 was forked
+away from it have been forward-ported into QCBOR 2.0.0. This
+includes better version indication, make system and CI.
+This also includes bug fixes and tests to validate bug fixes.
+
+The intent is to keep QCBOR 2.0.0 a super set of 1.x.x. 
+The intent is also to not add new features to QCBOR 1.x.x.
+
 ## Manifesto
 
 * Maximal set of CBOR features with mininum object code
@@ -110,7 +120,7 @@ Replaced by RFC 8949.
 ## Dependency
 * C99 or C++11
 * <stdint.h>, <stddef.h>, <stdbool.h> and <string.h>
-* <math.h> and <fenv.h> but can be excluded
+* <math.h>, plus <fenv.h> but it can be excluded.
 
 ## Documentation
 
@@ -183,6 +193,11 @@ This is the 2.0 beta release. It has large changes and feature
 additions. It's not ready for commericial use yet. The main short
 coming is the need for more testing of the newer features. Commercial
 release is planned for 2027.
+
+QCBOR 2.0.0 is a large change relative to 1.x with many new 
+features and large internal changes in the implementation. With some minor
+exceptions, 2.0.0 is compatible with 1.x. QCBOR 2.0.0 has a
+mode that will make it exactly compatible with 1.x
 
 The official QCBOR commercial quality release (as of this writing) is
 QCBOR 1.7. It is very stable. Only small fixes and features additions have been
