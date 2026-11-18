@@ -44,6 +44,7 @@
 
  when        who          what, where, why
  --------    ----         ---------------------------------------------------
+ 11/17/2026  fstosse      UsefulOutBuf_Compare() safe for any offset and length.
  11/30/2025  llundblade   Add streaming mode.
  02/21/2025  llundblade   Improve magic number to detect lack of initialization.
  02/21/2025  llundblade   Bug fixes to UsefulOutBuf_Compare().
@@ -722,66 +723,68 @@ UsefulInputBuf_Compare(UsefulInputBuf *pUInBuf,
  * Public function -- see UsefulBuf.h
  *
  * Code Reviewers: THIS FUNCTION DOES POINTER MATH
+ *
+ * The only pointer math is indexing pBase. It is safe because each
+ * string is first truncated to the output data, so every index is
+ * less than data_len. The offsets and lengths passed in are never
+ * added to the pointer before that, as the sum could go past the end
+ * of the buffer or wrap around below its start.
+ *
+ * There is no check that the UsefulOutBuf is in a valid state.
  */
 int UsefulOutBuf_Compare(UsefulOutBuf *pMe,
                          const size_t uStart1, const size_t uLen1,
                          const size_t uStart2, const size_t uLen2)
 {
    const uint8_t *pBase;
-   const uint8_t *pEnd;
-   const uint8_t *p1;
-   const uint8_t *p2;
-   const uint8_t *p1Start;
-   const uint8_t *p2Start;
-   const uint8_t *p1End;
-   const uint8_t *p2End;
-   int            uComparison;
+   size_t         uDataLen;
    size_t         uComparedLen1;
    size_t         uComparedLen2;
+   size_t         uIndex;
+   int            nComparison;
 
-   pBase   = pMe->UB.ptr;
-   pEnd    = (const uint8_t *)pBase + pMe->data_len;
-   p1Start = pBase + uStart1;
-   p2Start = pBase + uStart2;
-   p1End   = p1Start + uLen1;
-   p2End   = p2Start + uLen2;
+   pBase    = pMe->UB.ptr;
+   uDataLen = pMe->data_len;
 
-   uComparison = 0;
-   for(p1 = p1Start, p2 = p2Start;
-       p1 < pEnd && p2 < pEnd && p1 < p1End && p2 < p2End;
-       p1++, p2++) {
-      uComparison = *p2 - *p1;
-      if(uComparison != 0) {
+   /* Effectively truncate each string to the data in the output
+    * buffer. A string that starts at or past the end is empty. */
+   uComparedLen1 = 0;
+   if(uStart1 < uDataLen) {
+      uComparedLen1 = uDataLen - uStart1;
+      if(uLen1 < uComparedLen1) {
+         uComparedLen1 = uLen1;
+      }
+   }
+   uComparedLen2 = 0;
+   if(uStart2 < uDataLen) {
+      uComparedLen2 = uDataLen - uStart2;
+      if(uLen2 < uComparedLen2) {
+         uComparedLen2 = uLen2;
+      }
+   }
+
+   nComparison = 0;
+   for(uIndex = 0; uIndex < uComparedLen1 && uIndex < uComparedLen2; uIndex++) {
+      nComparison = pBase[uStart2 + uIndex] - pBase[uStart1 + uIndex];
+      if(nComparison != 0) {
          break;
       }
    }
 
-   /* Loop might have terminated because strings were off
-    * the end of the buffer. Compute actual lengths compared.
-    */
-   uComparedLen1 = uLen1;
-   if(p1 >= pEnd) {
-      uComparedLen1 = (size_t)(p1 - p1Start);
-   }
-   uComparedLen2 = uLen2;
-   if(p2 >= pEnd) {
-      uComparedLen2 = (size_t)(p2 - p2Start);
-   }
-
-   if(uComparison == 0) {
+   if(nComparison == 0) {
       /* All bytes were equal, now check the lengths */
       if(uComparedLen2 > uComparedLen1) {
-         /* string 1 is a substring of string 2 */
-         uComparison = 1;
+         /* string 1 is a prefix of string 2 */
+         nComparison = 1;
       } else if(uComparedLen1 > uComparedLen2) {
-         /* string 2 is a substring of string 1 */
-         uComparison = -1;
+         /* string 2 is a prefix of string 1 */
+         nComparison = -1;
       } else {
-         /* do nothing, uComparison already is 0 */
+         /* do nothing, nComparison already is 0 */
       }
    }
 
-   return uComparison;
+   return nComparison;
 }
 
 

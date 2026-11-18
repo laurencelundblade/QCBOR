@@ -259,11 +259,11 @@ enum QCBOREncodeConfig {
     * byte strings, arrays and maps will error out. */
    QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS = 0x08,
 
-   /** This disallows non-preferred floating number encoding,
+   /** This disallows non preferred-plus floating number encoding,
     * QCBOREncode_AddFloatRaw() and
     * QCBOREncode_AddDoubleRaw().  It is not possible to disable
-    * preferred serialization of type 0 and type 1 integers in QCBOR. */
-   QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS = 0x10,
+    * preferred-plus serialization of type 0 and type 1 integers in QCBOR. */
+   QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT = 0x10,
 
    /**
     * This enforces a simple rule in dCBOR allows only the simple
@@ -272,7 +272,7 @@ enum QCBOREncodeConfig {
     */
    QCBOR_ENCODE_CONFIG_ONLY_DCBOR_SIMPLE = 0x20,
 
-   /** Preferred serialization requires number reduction of big
+   /** Preferred-plus serialization requires number reduction of big
     * numbers to type 0 and 1 integers. With this set an error will be
     * set when trying to encode non-preferred big numbers with
     * QCBOREncode_AddTBigNumberNoPreferred() or
@@ -296,18 +296,18 @@ enum QCBOREncodeConfig {
     * the above listed.
     *
     * This mode is just a user guard to prevent accidentally calling
-    * something that produces non-preferred serialization. It doesn't
-    * do anything but causes errors to occur on attempts to call the
+    * something that produces non-preferred-plus serialization. It doesn't
+    * do anything but cause errors to occur on attempts to call the
     * above listed functions. This does nothing if the library is
     * compiled QCBOR_DISABLE_ENCODE_USAGE_GUARDS.
     *
     * See @ref Serialization. It is usually not necessary to set this
     * mode, but there is usually no disadvantage to setting
-    * it. Preferred serialization is defined in RFC 8949, section 4.1.
+    * it. Preferred-plus serialization is defined in draft-ietf-cbor-serialization
     */
-   QCBOR_ENCODE_CONFIG_PREFERRED =
+   QCBOR_ENCODE_CONFIG_PREFERRED_PLUS =
        QCBOR_ENCODE_CONFIG_DISALLOW_INDEFINITE_LENGTHS |
-       QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_NUMBERS |
+       QCBOR_ENCODE_CONFIG_DISALLOW_NON_PREFERRED_PLUS_FLOAT |
        QCBOR_ENCODE_CONFIG_ONLY_PREFERRED_BIG_NUMBERS,
 
    /**
@@ -326,7 +326,7 @@ enum QCBOREncodeConfig {
     * usually work with most protocols. Deterministic encoding is defined in
     * RFC 8949 section 4.2.1. (TODO: reference new document).
     */
-   QCBOR_ENCODE_CONFIG_DETERMINISTIC = QCBOR_ENCODE_CONFIG_PREFERRED |
+   QCBOR_ENCODE_CONFIG_DETERMINISTIC = QCBOR_ENCODE_CONFIG_PREFERRED_PLUS |
                                        QCBOR_ENCODE_CONFIG_SORT,
 
    /**
@@ -441,7 +441,7 @@ QCBOREncode_Init(QCBOREncodeContext *pCtx, UsefulBuf Storage);
  *
  * QCBOR usually functions as needed without configuration.
  *
- * QCBOR encodes with preferred serialization by default
+ * QCBOR encodes with preferred-plus serialization by default
  * but provides some explicit functions that don't. This
  * can configure QCBOR to error if they are used.
  *
@@ -1678,10 +1678,12 @@ QCBOREncode_SubString(QCBOREncodeContext *pCtx, const size_t uStart);
  *                     values 0xffff and smaller will be encoded in 4
  *                     bytes. This is used primarily when encoding a
  *                     float or double put into uNumber as the leading
- *                     zero bytes for them must be encoded.
+ *                     zero bytes for them must be encoded. It
+ *                     must be 8 or less.
  * @param uNumber      The numeric argument part of the CBOR head.
  * @return             Pointer and length of the encoded head or
- *                     @ref NULLUsefulBufC if the output buffer is too small.
+ *                     @ref NULLUsefulBufC if the output buffer is too small
+ *                     or @c uMinLen is more than 8.
  *
  * Callers do not to need to call this for normal CBOR encoding. Note
  * that it doesn't even take a @ref QCBOREncodeContext argument.
