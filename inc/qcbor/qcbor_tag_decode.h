@@ -1109,7 +1109,7 @@ QCBORDecode_StringsTagCB(QCBORDecodeContext *pDecodeCtx,
  * performed.
  *
  * This performs conformance checking when
- * @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS is set.
+ * @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS is set.
  *
  * This is a call back to be installed by QCBORDecode_InstallTagDecoders().
  */

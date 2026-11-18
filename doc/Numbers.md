@@ -364,13 +364,13 @@ For example, 256 encoded as a positive big number is 0xc2 0x42 0x01
 example in next section).
 
 
-## Preferred Serialization
+## Preferred-Plus Serialization
 
 The integer number space encodable by big numbers overlaps with the
 number space encodable by regular integers, by CBOR type 0 and type 1,
 the range from -(2^64) to (2^64)-1.
 
-RFC 8949 big number preferred serialization requires that numbers in
+Draft-ietf-cbor-serialization big number preferred-plus serialization requires that numbers in
 the type 0 and 1 integer range must not be encoded as big
 numbers. They must be encoded as type 0 and type 1 integers.
 
@@ -467,7 +467,7 @@ The columns in the table are as follows:
   ignores leading zeros and the empty string has the value 0.
 
   When big number conformace checking is on, 
-  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS, decoding errors out
+  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS, decoding errors out
   on leading zeros or empty string.</dd>
 
   <dt>Integer Unification</dt>
@@ -476,7 +476,7 @@ The columns in the table are as follows:
   as type 0 and 1, not big numbers.
 
   When big number conformance checking is on,
-  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_BIG_NUMBERS, decoding errors out if
+  @ref QCBOR_DECODE_MODE_ONLY_PREFERRED_PLUS_BIG_NUMBERS, decoding errors out if
   unification is not performed.e</dd>
   
   <dt>Size</dt>
