@@ -39,7 +39,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "UsefulBuf.h"
+#include "qcbor/UsefulBuf.h"
 #include "qcbor/qcbor_common.h"
 
 
@@ -122,6 +122,25 @@ extern "C" {
       #define FLOAT_ERR_CODE_NO_FLOAT_HW(x)  x
    #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT*/
+
+
+#ifdef QCBOR_DISABLE_ALL
+
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#define USEFULBUF_DISABLE_ALL_FLOAT
+#define QCBOR_DISABLE_TAGS
+#define QCBOR_DISABLE_NON_INTEGER_LABELS
+#define QCBOR_DISABLE_DECODE_CONFORMANCE
+#define USEFULBUF_DISABLE_STREAMING
+
+#endif
+
+
+
 
 
 /*
@@ -371,6 +390,10 @@ struct _QCBORDecodeContext {
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
    uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
+
+   // TODO: conditional on tags?
+   uint8_t uTagContentNest; /* Protect stack use from tag content recursion */
+   uint8_t uTagContentNestMax; /* Error if */
 
    /* See QCBORDecode_Private_MapTagNumber() for how tags are mapped. */
    // TODO: can this be removed if tags are disabled?

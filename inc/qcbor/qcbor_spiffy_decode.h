@@ -316,7 +316,7 @@ QCBORDecode_ExitArray(QCBORDecodeContext *pCtx);
  * This traverses the whole array and every subordinate array or map in
  * it. This is necessary to determine the length of the array.
  *
- * This will fail if any item in the array is not well-formed.
+ * This will fail if any item in the array is in error.
  *
  * This uses a few hundred bytes of stack, more than most methods.
  *
@@ -467,7 +467,7 @@ QCBORDecode_ExitMap(QCBORDecodeContext *pCtx);
  * it. This is necessary to determine the length of the map. The
  * traversal cursor is left at the first item after the map.
  *
- * This will fail if any item in the map is not well-formed.
+ * This will fail if any item in the map is in error.
  *
  * This uses a few hundred bytes of stack, more than most methods.
  *
@@ -539,6 +539,10 @@ QCBORDecode_SeekToLabelN(QCBORDecodeContext *pCtx, int64_t nLabel);
  */
 void
 QCBORDecode_SeekToLabelSZ(QCBORDecodeContext *pCtx, const char *szLabel);
+
+
+/** Maximum number of items that can be fetched with QCBORDecode_GetItemsInMap(). */
+#define QCBOR_DECODE_MAX_GET_ITEMS 64
 
 
 /**
@@ -628,7 +632,7 @@ QCBORDecode_GetItemInMapSZ(QCBORDecodeContext *pCtx,
  * - @ref QCBOR_ERR_MAP_NOT_ENTERED --- called before entering a map
  *    with QCBORDecode_EnterMap() or similar.
  *
- * - @ref QCBOR_ERR_DUPLICATE_LABEL --- One of the labels being
+ * - @ref QCBOR_ERR_DECODE_DUPLICATE_LABEL --- One of the labels being
  *   searched for is duplicated in the input CBOR.
  *
  * - @ref QCBOR_ERR_HIT_END --- and other well-formedness errors as

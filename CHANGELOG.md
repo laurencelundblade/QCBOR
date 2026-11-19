@@ -1,11 +1,13 @@
 # Changelog
 
+See README.md for the differences between QCBOR v1.x and v2.0.
+
 All notable changes to QCBOR are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0-beta.1] - 2026-11-18
 
 ### Added
 - Going forward, CHANGELOG.md (this file) is the source of truth for change history
@@ -18,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makefile and Cmake support
   - Test coverage for nesting and tag number limits other than defaults
 - Add subject documentation on strings
+- New header added: qcbor_config.h for custom configurations. CMake
+  generates this for custom configuration installs.
+- QCBORDecode_SetTagNestMax() to limit tag content decoding recursion to 
+  limit and protect stack usage. A limit of 8 levels is set by default.
+
 
 ### Changed
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
@@ -34,6 +41,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename QCBOR_ERR_ARRAY_NESTING_TOO_DEEP to QCBOR_ERR_ENCODE_NESTING_TOO_DEEP
 - Improve documentation on nesting and tag number limits
 - Default nesting maximum is increase from 15 to 35
+- Revised & moved qcbor.spec to be much more useful for downstream packagers
+- CI now checks qcbor.spec
+- Establish SOVERSION and ABI version management policy
+- Remove Make-based shared lib install because it doesn't handle SOVERSION
+- CMake improvements for compiler optimization flags and libm config
+- User-defined error strings now include the correct final decimal digit.
+- New error code classification: halting errors which include unrecoverable
+  and conformance errors.
+- Large error code renumbering to have more space for future errors and allows
+  user-defined unrecoverable and halting errors.
+- Map searches by label, VGetNextConsume and related exit or don't exit based
+  on whether an error is a halting error.
+- Split QCBOR_ERR_DUPLICATE_LABEL into QCBOR_ERR_DECODE_DUPLICATE_LABEL and
+  QCBOR_ERR_ENCODE_DUPLICATE_LABEL so all encode errors are disticnt from decode.
+- Split QCBOR_ERR_ADDITIONAL_TAGS_NOT_ALLOWED out of QCBOR_ERR_NOT_ALLOWED.
+
 
 ### Fixed
 - Critical bad stack reference bug fix for big number decoding
@@ -42,6 +65,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
   and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above
   QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
+- Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
+  than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when conversion types is not QCBOR_CONVERT_TYPE_FLOAT.
+- QCBORDecode_GetInt64ConvertAll() and related functions succeeded and returned
+  wrong results when the encoded CBOR input is floating-point and conversion
+  for float is not requested, for example when then conversion type is not QCBOR_CONVERT_TYPE_FLOAT.
+- Error reporting for all decode number conversion is more accurate.
+- QCBORDecode_ProcessBigNumber() correctly handles integers now and
+  omits leading zeros.
+- QCBORDecode_GetTDecimalFractionBigMantissaRaw() and
+  QCBORDecode_GetTBigFloatBigMantissaRaw() return correct values when
+  the encoded mantissa is an integer, including 65-bit negative
+  and full 64-bit unsigned values.
+- Fix some #include path names by adding "qcbor/" to the beginning of them.
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on encoded input that is a non-aggregate CBOR type
+  (e.g., an integer) resulted in a NULL deference.
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
+  QCBOR_ERR_MAP_NOT_ENTERED.
+- Fix QCBORDecode_GetArray() and QCBORDecode_GetMap() called on some indefinite
+  length arrays or maps nested in definite length arrays or maps. The returned
+  CBOR did not include the terminating break.
+- Exiting a definite-length array/map inside, and at the end of, an
+  indefinite-length array/map didn't fully complete the exit; nesting
+  tracking was off and a subsequet QCBORDecode_GetNext() succeeded that
+  should have failed.
+- QCBORDecode_VGetNextConsume() returns non-recoverable errors. Previously
+  it ignored them and returned success.
+- More correctly abort decoding of map labels that are arrays or maps.
+- Positive big numbers encoded with QCBOR_ENCODE_AS_BORROWED were tagged as
+  negative (#439).
+- A negative big number of value zero was encoded as -1 or -2^64; it is now
+  encoded as 0 (#440).
+- The epoch date and days getters no longer overwrite the caller's output with
+  an uninitialized value on error (#442).
+- QCBORDecode_VGetNextConsume() set an uninitialized uNextNestLevel when an
+  array or map was truncated (#444).
+- QCBOREncode_EncodeHead() wrote before its buffer when uMinLen was more than
+  8; it now returns NULLUsefulBufC (#443).
+- UsefulOutBuf_Compare() could read outside the buffer for offsets or
+  lengths near SIZE_MAX (#441).
 
 
 ## [2.0.0-alpha.6] - 2025-05-01

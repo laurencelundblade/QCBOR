@@ -270,14 +270,6 @@ HWCheckDoubleToFloat(const uint32_t uSingleToConvert, uint64_t uExpectedDouble)
 #endif /* HW_FLOAT_CHECK */
 
 
-struct FloatTestCase {
-   double      dNumber;
-   float       fNumber;
-   UsefulBufC  Preferred;
-   UsefulBufC  NotPreferred;
-   UsefulBufC  Deterministic;
-   UsefulBufC  DCBOR;
-};
 
 /* Boundaries for destination conversions:
  *
@@ -302,7 +294,6 @@ struct FloatTestCase {
  * exponent 52, 52 significand bits set     9007199254740991
  * exponent 53, 52 bits set in significand  18014398509481982
  */
-
 /* Always four lines per test case so shell scripts can process into
  * other formats.
  *
@@ -313,7 +304,7 @@ struct FloatTestCase {
  * While the Deterministic and dCBOR standards are not complete as of mid-2025,
  * they are unlikely to change, so the tests here are likely correct.
  */
-static const struct FloatTestCase FloatTestCases[] =  {
+const struct FloatTestCase FloatTestCases[] =  {
    /* Zero */
    {0.0,                                         0.0f,
     {"\xF9\x00\x00", 3},                         {"\xFB\x00\x00\x00\x00\x00\x00\x00\x00", 9},
@@ -349,25 +340,80 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xF9\xC0\x00", 3},                         {"\xFB\xC0\x00\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\xC0\x00", 3},                         {"\x21", 1}},
 
-   /* 1/3 */
+   /* 0.333251953125 -- nearest half-precision value to 1/3 */
    {0.333251953125,                              0.333251953125f,
     {"\xF9\x35\x55", 3},                         {"\xFB\x3F\xD5\x54\x00\x00\x00\x00\x00", 9},
     {"\xF9\x35\x55", 3},                         {"\xF9\x35\x55", 3}},
 
+   /* 2.9802322387695312e-08 -- half the smallest half-precision subnormal (2^^-25), converts to single */
+   {2.9802322387695312e-08,                      2.9802322387695312e-08f,
+    {"\xFA\x33\x00\x00\x00", 5},                 {"\xFB\x3E\x60\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x33\x00\x00\x00", 5},                 {"\xFA\x33\x00\x00\x00", 5}},
+
+   /* 5.9604641222676946e-08 -- next single below smallest half-precision subnormal */
+   {5.9604641222676946e-08,                      5.9604641222676946e-08f,
+    {"\xFA\x33\x7F\xFF\xFF", 5},                 {"\xFB\x3E\x6F\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x33\x7F\xFF\xFF", 5},                 {"\xFA\x33\x7F\xFF\xFF", 5}},
+
+   /* 5.960464477539062e-08 -- slightly smaller than smallest half-precision subnormal */
+   {5.960464477539062e-08,                       0.0f,
+    {"\xFB\x3E\x6F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3E\x6F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x3E\x6F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3E\x6F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
+
    /* 5.9604644775390625E-8 -- smallest half-precision subnormal */
-   {5.9604644775390625E-8,                       0.0f,
+   {5.9604644775390625E-8,                       5.9604644775390625E-8f,
     {"\xF9\x00\x01", 3},                         {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x00\x01", 3},                         {"\xF9\x00\x01", 3}},
 
+   /* 5.960464477539064e-08 -- slightly larger than smallest half-precision subnormal */
+   {5.960464477539064e-08,                       0.0f,
+    {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3E\x70\x00\x00\x00\x00\x00\x01", 9}},
+
+   /* 5.960465188081798e-08 -- next single above smallest half-precision subnormal */
+   {5.960465188081798e-08,                       5.960465188081798e-08f,
+    {"\xFA\x33\x80\x00\x01", 5},                 {"\xFB\x3E\x70\x00\x00\x20\x00\x00\x00", 9},
+    {"\xFA\x33\x80\x00\x01", 5},                 {"\xFA\x33\x80\x00\x01", 5}},
+
+   /* 8.940696716308594e-08 -- halfway between the two smallest half-precision subnormals, converts to single */
+   {8.940696716308594e-08,                       8.940696716308594e-08f,
+    {"\xFA\x33\xC0\x00\x00", 5},                 {"\xFB\x3E\x78\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x33\xC0\x00\x00", 5},                 {"\xFA\x33\xC0\x00\x00", 5}},
+
    /* 3.0517578125E-5 -- a half-precision subnormal */
-   {3.0517578125E-5,                             0.0f,
+   {3.0517578125E-5,                             3.0517578125E-5f,
     {"\xF9\x02\x00", 3},                         {"\xFB\x3F\x00\x00\x00\x00\x00\x00\x00", 9},
     {"\xF9\x02\x00", 3},                         {"\xF9\x02\x00", 3}},
 
+   /* 6.09755479672458e-05 -- next single below largest half-precision subnormal */
+   {6.09755479672458e-05,                        6.09755479672458e-05f,
+    {"\xFA\x38\x7F\xBF\xFF", 5},                 {"\xFB\x3F\x0F\xF7\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x38\x7F\xBF\xFF", 5},                 {"\xFA\x38\x7F\xBF\xFF", 5}},
+
+   /* 6.09755516052246e-05 -- slightly smaller than largest half-precision subnormal */
+   {6.09755516052246e-05,                        0.0f,
+    {"\xFB\x3F\x0F\xF7\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xF7\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x3F\x0F\xF7\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xF7\xFF\xFF\xFF\xFF\xFF", 9}},
+
    /* 6.097555160522461E-5 -- largest half-precision subnormal */
-   {6.097555160522461E-5,                        0.0f,
+   {6.097555160522461E-5,                        6.097555160522461E-5f,
     {"\xF9\x03\xFF", 3},                         {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x00", 9},
     {"\xF9\x03\xFF", 3},                         {"\xF9\x03\xFF", 3}},
+
+   /* 6.0975551605224616e-05 -- slightly larger than largest half-precision subnormal */
+   {6.0975551605224616e-05,                      0.0f,
+    {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x0F\xF8\x00\x00\x00\x00\x01", 9}},
+
+   /* 6.0975555243203416e-05 -- next single above largest half-precision subnormal */
+   {6.0975555243203416e-05,                      6.0975555243203416e-05f,
+    {"\xFA\x38\x7F\xC0\x01", 5},                 {"\xFB\x3F\x0F\xF8\x00\x20\x00\x00\x00", 9},
+    {"\xFA\x38\x7F\xC0\x01", 5},                 {"\xFA\x38\x7F\xC0\x01", 5}},
+
+   /* 6.103515261202119e-05 -- next single below smallest half-precision normal */
+   {6.103515261202119e-05,                       6.103515261202119e-05f,
+    {"\xFA\x38\x7F\xFF\xFF", 5},                 {"\xFB\x3F\x0F\xFF\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x38\x7F\xFF\xFF", 5},                 {"\xFA\x38\x7F\xFF\xFF", 5}},
 
    /* 6.1035156249999993E-5 -- slightly smaller than smallest half-precision normal */
    {6.1035156249999993E-5,  0.0f,
@@ -375,46 +421,121 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x3F\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 6.103515625E-5 -- smallest half-precision normal */
-   {6.103515625E-5,                              0.0f,
-    {"\xF9\04\00", 3},                           {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
-    {"\xF9\04\00", 3},                           {"\xF9\04\00", 3}},
+   {6.103515625E-5,                              6.103515625E-5f,
+    {"\xF9\x04\x00", 3},                         {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x04\x00", 3},                         {"\xF9\x04\x00", 3}},
 
    /* 6.1035156250000014E-5 -- slightly larger than smallest half-precision normal */
    {6.1035156250000014E-5,                       0.0f,
     {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9},
     {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x3F\x10\x00\x00\x00\x00\x00\x01", 9}},
 
+   /* 6.103516352595761e-05 -- next single above smallest half-precision normal */
+   {6.103516352595761e-05,                       6.103516352595761e-05f,
+    {"\xFA\x38\x80\x00\x01", 5},                 {"\xFB\x3F\x10\x00\x00\x20\x00\x00\x00", 9},
+    {"\xFA\x38\x80\x00\x01", 5},                 {"\xFA\x38\x80\x00\x01", 5}},
+
+   /* 2047.0 -- 11 significant bits, the most half-precision can hold */
+   {2047.0,                                      2047.0f,
+    {"\xF9\x67\xFF", 3},                         {"\xFB\x40\x9F\xFC\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x67\xFF", 3},                         {"\x19\x07\xFF", 3}},
+
+   /* 2048.0 -- one more than above, still converts to half */
+   {2048.0,                                      2048.0f,
+    {"\xF9\x68\x00", 3},                         {"\xFB\x40\xA0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xF9\x68\x00", 3},                         {"\x19\x08\x00", 3}},
+
+   /* 2049.0 -- 12 significant bits, too much precision for half, converts to single */
+   {2049.0,                                      2049.0f,
+    {"\xFA\x45\x00\x10\x00", 5},                 {"\xFB\x40\xA0\x02\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x45\x00\x10\x00", 5},                 {"\x19\x08\x01", 3}},
+
+   /* 65503.99609375 -- next single below largest half-precision */
+   {65503.99609375,                              65503.99609375f,
+    {"\xFA\x47\x7F\xDF\xFF", 5},                 {"\xFB\x40\xEF\xFB\xFF\xE0\x00\x00\x00", 9},
+    {"\xFA\x47\x7F\xDF\xFF", 5},                 {"\xFA\x47\x7F\xDF\xFF", 5}},
+
+   /* 65503.99999999999 -- slightly smaller than largest half-precision */
+   {65503.99999999999,                           0.0f,
+    {"\xFB\x40\xEF\xFB\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x40\xEF\xFB\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x40\xEF\xFB\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x40\xEF\xFB\xFF\xFF\xFF\xFF\xFF", 9}},
+
    /* 65504.0 -- largest half-precision */
-   {65504.0,                                     0.0f,
+   {65504.0,                                     65504.0f,
     {"\xF9\x7B\xFF", 3},                         {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x00", 9},
     {"\xF9\x7B\xFF", 3},                         {"\x19\xFF\xE0", 3}},
+
+   /* 65504.00000000001 -- slightly larger than largest half-precision */
+   {65504.00000000001,                           0.0f,
+    {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x01", 9}, {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x01", 9}, {"\xFB\x40\xEF\xFC\x00\x00\x00\x00\x01", 9}},
+
+   /* 65504.00390625 -- next single above largest half-precision */
+   {65504.00390625,                              65504.00390625f,
+    {"\xFA\x47\x7F\xE0\x01", 5},                 {"\xFB\x40\xEF\xFC\x00\x20\x00\x00\x00", 9},
+    {"\xFA\x47\x7F\xE0\x01", 5},                 {"\xFA\x47\x7F\xE0\x01", 5}},
 
    /* 65504.1 -- exponent too large and too much precision to convert to half */
    {65504.1,                                     0.0f,
     {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9},
     {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}, {"\xFB\x40\xEF\xFC\x03\x33\x33\x33\x33", 9}},
 
+   /* 65520.0 -- halfway between largest half-precision and 2^^16, must not round to half infinity */
+   {65520.0,                                     65520.0f,
+    {"\xFA\x47\x7F\xF0\x00", 5},                 {"\xFB\x40\xEF\xFE\x00\x00\x00\x00\x00", 9},
+    {"\xFA\x47\x7F\xF0\x00", 5},                 {"\x19\xFF\xF0", 3}},
+
     /* 65536.0 -- exponent too large for half but not too much precision for single */
    {65536.0,                                     65536.0f,
     {"\xFA\x47\x80\x00\x00", 5},                 {"\xFB\x40\xF0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x47\x80\x00\x00", 5},                 {"\x1A\x00\x01\x00\x00", 5}},
+
+   /* 7.006492321624085e-46 -- half the smallest single subnormal (2^^-150) */
+   {7.006492321624085e-46,                       0.0f,
+    {"\xFB\x36\x90\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x36\x90\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFB\x36\x90\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x36\x90\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* 1.4012984643248169e-45 -- slightly smaller than smallest single subnormal */
+   {1.4012984643248169e-45,                      0.0f,
+    {"\xFB\x36\x9F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x36\x9F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
+    {"\xFB\x36\x9F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x36\x9F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 1.401298464324817e-45 -- smallest single subnormal */
    {1.401298464324817e-45,                       1.40129846E-45f,
     {"\xFA\x00\x00\x00\x01", 5},                 {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x00\x00\x01", 5},                 {"\xFA\x00\x00\x00\x01", 5}},
 
-   /* 5.8774717541114375E-39 -- slightly smaller than the smallest single normal */
+   /* 1.4012984643248174e-45 -- slightly larger than smallest single subnormal */
+   {1.4012984643248174e-45,                      0.0f,
+    {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x36\xA0\x00\x00\x00\x00\x00\x01", 9}},
+
+   /* 2.1019476964872256e-45 -- halfway between the two smallest single subnormals */
+   {2.1019476964872256e-45,                      0.0f,
+    {"\xFB\x36\xA8\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x36\xA8\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFB\x36\xA8\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x36\xA8\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* 5.8774717541114375E-39 -- a single subnormal, half the smallest single normal (2^^-127) */
    {5.8774717541114375E-39,                      5.87747175E-39f,
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFB\x38\x00\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x40\x00\x00", 5},                 {"\xFA\x00\x40\x00\x00", 5}},
+
+   /* 1.175494210692441e-38 -- slightly smaller than largest single subnormal */
+   {1.175494210692441e-38,                       0.0f,
+    {"\xFB\x38\x0F\xFF\xFF\xBF\xFF\xFF\xFF", 9}, {"\xFB\x38\x0F\xFF\xFF\xBF\xFF\xFF\xFF", 9},
+    {"\xFB\x38\x0F\xFF\xFF\xBF\xFF\xFF\xFF", 9}, {"\xFB\x38\x0F\xFF\xFF\xBF\xFF\xFF\xFF", 9}},
 
    /* 1.1754942106924411e-38 -- largest single subnormal */
    {1.1754942106924411E-38,                      1.17549421E-38f,
     {"\xFA\x00\x7f\xff\xff", 5},                 {"\xFB\x38\x0f\xff\xff\xC0\x00\x00\x00", 9},
     {"\xFA\x00\x7f\xff\xff", 5},                 {"\xFA\x00\x7f\xff\xff", 5} },
 
-   /* 1.1754943508222874E-38 -- slightly bigger than smallest single normal */
+   /* 1.1754942106924412e-38 -- slightly larger than largest single subnormal */
+   {1.1754942106924412e-38,                      0.0f,
+    {"\xFB\x38\x0F\xFF\xFF\xC0\x00\x00\x01", 9}, {"\xFB\x38\x0F\xFF\xFF\xC0\x00\x00\x01", 9},
+    {"\xFB\x38\x0F\xFF\xFF\xC0\x00\x00\x01", 9}, {"\xFB\x38\x0F\xFF\xFF\xC0\x00\x00\x01", 9}},
+
+   /* 1.1754943508222874E-38 -- slightly smaller than smallest single normal */
    {1.1754943508222874E-38,                      0.0f,
     {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9},
     {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}, {"\xFB\x38\x0f\xff\xff\xff\xff\xff\xff", 9}},
@@ -424,7 +545,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x00\x80\x00\x00", 5},                 {"\xFB\x38\x10\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x00\x80\x00\x00", 5},                 {"\xFA\x00\x80\x00\x00", 5}},
 
-   /* 1.1754943508222875e-38 -- slightly bigger than smallest single normal */
+   /* 1.1754943508222878e-38 -- slightly bigger than smallest single normal */
    {1.1754943508222878e-38,                      0.0f,
     {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9},
     {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x38\x10\x00\x00\x00\x00\x00\x01", 9}},
@@ -455,7 +576,7 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x4B\xFF\xFF\xFF", 5},                 {"\x1A\x01\xFF\xFF\xFE",                 5}},
 
    /* 4294967295 -- 2^^32 - 1 UINT32_MAX */
-   {4294967295.0,                                0,
+   {4294967295.0,                                0.0f,
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
     {"\xFB\x41\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x1A\xFF\xFF\xFF\xFF",                 5}},
 
@@ -469,18 +590,18 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x59\x00\x00\x00",                 5}, {"\xFB\x43\x20\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x59\x00\x00\x00",                 5}, {"\x1B\x00\x08\x00\x00\x00\x00\x00\x00", 9}},
 
-   /* 4503599627370495 -- exponent 51, 52 significand bits set to test double exponent boundary*/
-   {4503599627370495.0,                          0,
+   /* 4503599627370495 -- exponent 51, 51 significand bits set to test double exponent boundary */
+   {4503599627370495.0,                          0.0f,
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
     {"\xFB\x43\x2F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\x1B\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 9007199254740991 -- exponent 52, 52 significand bits set to test double exponent boundary */
-   {9007199254740991.0,                          0,
+   {9007199254740991.0,                          0.0f,
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x3F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x1F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* 18014398509481982 -- exponent 53, 52 bits set in significand (double lacks precision for 18014398509481983) */
-   {18014398509481982.0,                         0,
+   {18014398509481982.0,                         0.0f,
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\x4F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\x00\x3F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
 
@@ -489,13 +610,13 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\xFB\x43\x50\x00\x00\x00\x00\x00\x00", 9},
     {"\xFA\x5A\x80\x00\x00",                 5}, {"\x1B\x00\x40\x00\x00\x00\x00\x00\x00", 9}},
 
-   /* 18446742974197924000.0.0 -- largest single that can convert to uint64 */
+   /* 18446742974197924000.0 -- largest single that can convert to uint64 */
    {18446742974197924000.0,                      18446742974197924000.0f,
     {"\xFA\x5F\x7F\xFF\xFF",                 5}, {"\xFB\x43\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\x5F\x7F\xFF\xFF",                 5}, {"\x1B\xFF\xFF\xFF\x00\x00\x00\x00\x00", 9}},
 
    /* 18446744073709550000.0 -- largest double that can convert to uint64, almost UINT64_MAX (18446744073709551615) */
-   {18446744073709550000.0,                      0,
+   {18446744073709550000.0,                      0.0f,
     {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x43\xEF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x1B\xFF\xFF\xFF\xFF\xFF\xFF\xF8\x00", 9}},
 
@@ -505,19 +626,29 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFA\x5F\x80\x00\x00",                 5}, {"\xFA\x5F\x80\x00\x00",                 5}},
 
    /* -4294967295 -- negative UINT32_MAX */
-   {-4294967295.0,                               0,
+   {-4294967295.0,                               0.0f,
     {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9},
     {"\xFB\xC1\xEF\xFF\xFF\xFF\xE0\x00\x00", 9}, {"\x3A\xFF\xFF\xFF\xFE", 5}},
 
-   /* -9223372036854774784.0 -- most negative double that converts to int64 */
-   {-9223372036854774784.0,                      0,
+   /* -9223372036854774784.0 -- next double toward zero from INT64_MIN (-2^^63) */
+   {-9223372036854774784.0,                      0.0f,
     {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\xC3\xDF\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\x3B\x7F\xFF\xFF\xFF\xFF\xFF\xFB\xFF", 9}},
+
+   /* -9223372036854775808.0 -- INT64_MIN (-2^^63), most negative double that converts to int64 */
+   {-9223372036854775808.0,                      -9223372036854775808.0f,
+    {"\xFA\xDF\x00\x00\x00",                 5}, {"\xFB\xC3\xE0\x00\x00\x00\x00\x00\x00", 9},
+    {"\xFA\xDF\x00\x00\x00",                 5}, {"\x3B\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
 
    /* -18446742974197923840.0 -- large negative that converts to float, but too large for int64 */
    {-18446742974197923840.0,                     -18446742974197923840.0f,
     {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\xFB\xC3\xEF\xFF\xFF\xE0\x00\x00\x00", 9},
     {"\xFA\xDF\x7F\xFF\xFF",                 5}, {"\x3B\xFF\xFF\xFE\xFF\xFF\xFF\xFF\xFF", 9}},
+
+   /* 3.4028234663852882e+38 -- slightly smaller than largest possible single */
+   {3.4028234663852882e+38,                      0.0f,
+    {"\xFB\x47\xEF\xFF\xFF\xDF\xFF\xFF\xFF", 9}, {"\xFB\x47\xEF\xFF\xFF\xDF\xFF\xFF\xFF", 9},
+    {"\xFB\x47\xEF\xFF\xFF\xDF\xFF\xFF\xFF", 9}, {"\xFB\x47\xEF\xFF\xFF\xDF\xFF\xFF\xFF", 9}},
 
    /* 3.4028234663852886E+38 -- largest possible single */
    {3.4028234663852886E+38,                      3.40282347E+38f,
@@ -534,12 +665,22 @@ static const struct FloatTestCase FloatTestCases[] =  {
     {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9},
     {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x47\xF0\x00\x00\x00\x00\x00\x00", 9}},
 
-   /* 5.0e-324 -- smallest double subnormal normal */
+   /* 5.0e-324 -- smallest double subnormal */
    {5.0e-324,                                    0.0f,
     {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9},
     {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x01", 9}},
 
-   /* 2.2250738585072009E−308 -- largest double subnormal */
+   /* 1e-323 -- next double above smallest double subnormal */
+   {1e-323,                                      0.0f,
+    {"\xFB\x00\x00\x00\x00\x00\x00\x00\x02", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x02", 9},
+    {"\xFB\x00\x00\x00\x00\x00\x00\x00\x02", 9}, {"\xFB\x00\x00\x00\x00\x00\x00\x00\x02", 9}},
+
+   /* 2.2250738585072004e-308 -- next double below largest double subnormal */
+   {2.2250738585072004e-308,                     0.0f,
+    {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFE", 9},
+    {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
+
+   /* 2.2250738585072009e-308 -- largest double subnormal */
    {2.2250738585072009e-308,                     0.0f,
     {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9},
     {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}, {"\xFB\x00\x0F\xFF\xFF\xFF\xFF\xFF\xFF", 9}},
@@ -548,6 +689,16 @@ static const struct FloatTestCase FloatTestCases[] =  {
    {2.2250738585072014e-308,                     0.0f,
     {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9},
     {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x00", 9}},
+
+   /* 2.225073858507202e-308 -- next double above smallest double normal */
+   {2.225073858507202e-308,                      0.0f,
+    {"\xFB\x00\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x01", 9},
+    {"\xFB\x00\x10\x00\x00\x00\x00\x00\x01", 9}, {"\xFB\x00\x10\x00\x00\x00\x00\x00\x01", 9}},
+
+   /* 1.7976931348623155e+308 -- next double below largest double normal */
+   {1.7976931348623155e+308,                     0.0f,
+    {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFE", 9},
+    {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFE", 9}, {"\xFB\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFE", 9}},
 
    /* 1.7976931348623157E308 -- largest double normal */
    {1.7976931348623157e308,                      0.0f,
@@ -562,7 +713,6 @@ static const struct FloatTestCase FloatTestCases[] =  {
    /* List terminator */
    {0.0, 0.0f, {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0} }
 };
-
 
 /* Public function. See float_tests.h
  *
@@ -591,7 +741,7 @@ FloatValuesTests(void)
          uErr = 0;
       }
 
-      /* Preferred encode of double precision */
+      /* --- Preferred encode of double precision --- */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
@@ -611,7 +761,7 @@ FloatValuesTests(void)
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
 
-      /* Preferred encode of single precision */
+      /* --- Preferred encode of single precision --- */
       if(pTestCase->fNumber != 0.0) {
          QCBOREncode_Init(&EnCtx, TestOutBuffer);
          QCBOREncode_AddFloat(&EnCtx, pTestCase->fNumber);
@@ -631,7 +781,7 @@ FloatValuesTests(void)
       }
 
 
-      /* Non-preferred encode of double */
+      /* --- Non-preferred encode of double --- */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_AddDoubleRaw(&EnCtx, pTestCase->dNumber);
       uErr = QCBOREncode_Finish(&EnCtx, &TestOutput);
@@ -643,7 +793,7 @@ FloatValuesTests(void)
       }
 
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
-      /* Deterministic encode */
+      /* --- Deterministic encode of double --- */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DETERMINISTIC);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
@@ -656,7 +806,7 @@ FloatValuesTests(void)
          return MakeTestResultCode(uTestIndex, 31, 200);
       }
 
-      /* dCBOR encode of double */
+      /* --- dCBOR encode of double --- */
       QCBOREncode_Init(&EnCtx, TestOutBuffer);
       QCBOREncode_Config(&EnCtx, QCBOR_ENCODE_CONFIG_DCBOR);
       QCBOREncode_AddDouble(&EnCtx, pTestCase->dNumber);
@@ -686,7 +836,7 @@ FloatValuesTests(void)
 
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Decode preferred decode */
+      /* --- GetNext() decode of preferred --- */
       QCBORDecode_Init(&DCtx, pTestCase->Preferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
 #ifndef QCBOR_DISABLE_PREFERRED_FLOAT
@@ -707,6 +857,7 @@ FloatValuesTests(void)
       }
 #else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
       if(pTestCase->Preferred.len == 3) {
+         /* With QCBOR_DISABLE_PREFERRED_FLOAT, half-precision cannot be decoded so an error must be returned */
          if(uErr != QCBOR_ERR_PREFERRED_FLOAT_DISABLED) {
             return MakeTestResultCode(uTestIndex, 64, uErr);
          }
@@ -748,7 +899,7 @@ FloatValuesTests(void)
       }
 #endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
 
-      /* Decode not preferred */
+      /* --- GetNext() decode of non-preferred --- */
       QCBORDecode_Init(&DCtx, pTestCase->NotPreferred, 0);
       uErr = QCBORDecode_GetNext(&DCtx, &Item);
       if(uErr != QCBOR_SUCCESS) {

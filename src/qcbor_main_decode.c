@@ -118,6 +118,17 @@ QCBORItem_IsEmptyDefiniteLengthMapOrArray(const QCBORItem Item)
    return true;
 }
 
+
+/* Test for array/map being empty based on nest levels. This works
+ * on definite or indefinite lengths. This only works on arrays
+ * and maps. */
+static bool
+QCBORItem_IsEmptyArrayOrMap(const QCBORItem Item)
+{
+   return Item.uNextNestLevel <= Item.uNestingLevel;
+}
+
+
 /* This must be called on a map or array */
 static bool
 QCBORItem_IsIndefiniteLengthMapOrArray(const QCBORItem Item)
@@ -217,6 +228,7 @@ QCBORDecode_Init(QCBORDecodeContext *pMe,
    memset(pMe->auMappedTagNumbers, 0xff, sizeof(pMe->auMappedTagNumbers));
 
    pMe->uTagNumberCheckOffset = SIZE_MAX;
+   pMe->uTagContentNestMax = 8;
 }
 
 
@@ -406,25 +418,28 @@ Done:
  * @param[in] nAdditionalInfo  So it can be error-checked.
  * @param[out] pDecodedItem    The filled in decoded item.
  *
- * @retval QCBOR_ERR_INT_OVERFLOW  Too-large negative encountered.
- * @retval QCBOR_ERR_BAD_INT       nAdditionalInfo indicated indefinte.
+ * @retval QCBOR_SUCCESS       Successful decode.
+ * @retval QCBOR_ERR_BAD_INT  nAdditionalInfo indicated indefinite.
  *
  * Must only be called when major type is 0 or 1.
  *
- * CBOR doesn't explicitly specify two's compliment for integers but
+ * Must not be called when @c nAdditionalInfo is @ref ADDINFO_RESERVED1,
+ * @ref ADDINFO_RESERVED2 or @ref ADDINFO_RESERVED3.
+ *
+ * CBOR doesn't explicitly specify two's complement for integers but
  * all CPUs use it these days and the test vectors in the RFC are
  * so. All integers in encoded CBOR are unsigned and the CBOR major
  * type indicates positive or negative.  CBOR can express positive
- * integers up to 2^64 - 1 negative integers down to -2^64.  Note that
- * negative numbers can be one more
- * away from zero than positive because there is no negative zero.
+ * integers up to 2^64 - 1 and negative integers down to -2^64.  Note
+ * that negative numbers can be one more away from zero than positive
+ * because there is no negative zero.
  *
- * The "65-bit negs" are values CBOR can encode that can't fit
- * into an int64_t or uint64_t. They decoded as a special type
- * QCBOR_TYPE_65BIT_NEG_INT. Not that this type does NOT
- * take into account the offset of one for CBOR negative integers.
- * It must be applied to get the correct value. Applying this offset
- * would overflow a uint64_t.
+ * The "65-bit negs" are values CBOR can encode that can't fit into an
+ * int64_t or uint64_t. They are decoded as a special type
+ * @ref QCBOR_TYPE_65BIT_NEG_INT. Note that this type does NOT take
+ * into account the offset of one for CBOR negative integers. It must
+ * be applied to get the correct value. Applying this offset would
+ * overflow a uint64_t.
  */
 static QCBORError
 QCBOR_Private_DecodeInteger(const int      nMajorType,
@@ -432,11 +447,8 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
                             const int      nAdditionalInfo,
                             QCBORItem     *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
-
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-      uReturn = QCBOR_ERR_BAD_INT;
-      goto Done;
+      return QCBOR_ERR_BAD_INT;
    }
 
    if(nMajorType == CBOR_MAJOR_TYPE_POSITIVE_INT) {
@@ -449,7 +461,7 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
          pDecodedItem->uDataType  = QCBOR_TYPE_UINT64;
       }
 
-   } else {
+   } else { /* CBOR_MAJOR_TYPE_NEGATIVE_INT */
       if(uArgument <= INT64_MAX) {
          /* INT64_MIN is one further away from 0 than INT64_MAX
           * so the -1 here doesn't overflow. */
@@ -462,8 +474,7 @@ QCBOR_Private_DecodeInteger(const int      nMajorType,
       }
    }
 
-Done:
-   return uReturn;
+   return QCBOR_SUCCESS;
 }
 
 
@@ -477,14 +488,19 @@ Done:
  * @param[in] nAdditionalInfo  Whether it is an indefinite-length string.
  * @param[out] pDecodedItem    The filled-in decoded item.
  *
- * @retval QCBOR_ERR_HIT_END          Unexpected end of input.
- * @retval QCBOR_ERR_STRING_ALLOCATE  Out of memory.
- * @retval QCBOR_ERR_STRING_TOO_LONG  String longer than SIZE_MAX - 4.
- * @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Allocation requested, but no allocator
+ * @retval QCBOR_SUCCESS                  Successful decode.
+ * @retval QCBOR_ERR_HIT_END              Unexpected end of input.
+ * @retval QCBOR_ERR_STRING_ALLOCATE      Out of memory.
+ * @retval QCBOR_ERR_STRING_TOO_LONG      String longer than SIZE_MAX - 4.
+ * @retval QCBOR_ERR_NO_STRING_ALLOCATOR  Allocation requested; no allocator.
+ * @retval QCBOR_ERR_INDEF_LEN_STRINGS_DISABLED  Indef strings disabled.
  *
- * This reads @c uStrlen bytes from the input and fills in @c
+ * This reads @c uStrLen bytes from the input and fills in @c
  * pDecodedItem. If @c bAllocate is true, then memory for the string
  * is allocated.
+ *
+ * Must not be called when @c nAdditionalInfo is @ref ADDINFO_RESERVED1,
+ * @ref ADDINFO_RESERVED2 or @ref ADDINFO_RESERVED3.
  */
 static QCBORError
 QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
@@ -494,7 +510,11 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
                            const int            nAdditionalInfo,
                            QCBORItem           *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
+   QCBORError  uReturn;
+   UsefulBufC  Bytes;
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+   UsefulBuf   NewMem;
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS */
 
    /* ---- Figure out the major type ---- */
    #if CBOR_MAJOR_TYPE_BYTE_STRING + 4 != QCBOR_TYPE_BYTE_STRING
@@ -506,28 +526,28 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
    #endif
    pDecodedItem->uDataType = (uint8_t)(nMajorType + 4);
 
+   uReturn = QCBOR_SUCCESS;
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-      /* --- Just the head of an indefinite-length string --- */
+      /* --- The head (and not more) of an indefinite-length string --- */
       pDecodedItem->val.string = (UsefulBufC){NULL, QCBOR_STRING_LENGTH_INDEFINITE};
 
    } else {
       /* --- A definite-length string --- */
-      /* --- (which might be a chunk of an indefinte-length string) --- */
+      /* --- (which might be a chunk of an indefinite-length string) --- */
 
       /* CBOR lengths can be 64 bits, but size_t is not 64 bits on all
-       * CPUs.  This check makes the casts to size_t below safe.
+       * CPUs. This check makes the casts to size_t below safe.
        *
-       * The max is 4 bytes less than the largest sizeof() so this can be
-       * tested by putting a SIZE_MAX length in the CBOR test input (no
-       * one will care the limit on strings is 4 bytes shorter).
-       */
+       * The max is 4 bytes less than the largest value of size_t
+       * so this can be tested by putting a SIZE_MAX length
+       * in the CBOR test input (no one will care the limit on strings
+       * is 4 bytes shorter). */
       if(uStrLen > SIZE_MAX-4) {
          uReturn = QCBOR_ERR_STRING_TOO_LONG;
          goto Done;
       }
 
-      const UsefulBufC Bytes = UsefulInputBuf_GetUsefulBuf(&(pMe->InBuf),
-                                                           (size_t)uStrLen);
+      Bytes = UsefulInputBuf_GetUsefulBuf(&(pMe->InBuf), (size_t)uStrLen);
       if(UsefulBuf_IsNULLC(Bytes)) {
          /* Failed to get the bytes for this string item */
          uReturn = QCBOR_ERR_HIT_END;
@@ -542,15 +562,13 @@ QCBOR_Private_DecodeString(QCBORDecodeContext  *pMe,
           * indefinite-length strings is done. This is for when the
           * caller has requested all strings be allocated. Disabling
           * indefinite length strings also disables this allocate-all
-          * option.
-          */
+          * option. */
 
          if(pMe->StringAllocator.pfAllocator == NULL) {
             uReturn = QCBOR_ERR_NO_STRING_ALLOCATOR;
             goto Done;
          }
-         UsefulBuf NewMem = StringAllocator_Allocate(&(pMe->StringAllocator),
-                                                     (size_t)uStrLen);
+         NewMem = StringAllocator_Allocate(&(pMe->StringAllocator), (size_t)uStrLen);
          if(UsefulBuf_IsNULL(NewMem)) {
             uReturn = QCBOR_ERR_STRING_ALLOCATE;
             goto Done;
@@ -574,34 +592,39 @@ Done:
 /**
  * @brief Decode array or map.
  *
- * @param[in] uConfigFlags            Decoder mode.
- * @param[in] nMajorType       Whether it is a byte or text string.
- * @param[in] uItemCount       The length of the string.
+ * @param[in] uConfigFlags     Decoder mode.
+ * @param[in] nMajorType       Whether it is a map or array.
+ * @param[in] uItemCount       The length of the map or array.
  * @param[in] nAdditionalInfo  Whether it is an indefinite-length.
  * @param[out] pDecodedItem    The filled-in decoded item.
  *
+ * @retval QCBOR_SUCCESS                       Successful decode.
  * @retval QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED Indefinites disabled.
  * @retval QCBOR_ERR_ARRAY_DECODE_TOO_LONG     Too many items in array/map.
  *
- * Not much to do for arrays and maps. Just the type item count (but a
- * little messy because of ifdefs for indefinite-lengths and
+ * Not much to do for arrays and maps. Just the type and item count
+ * (but a little messy because of ifdefs for indefinite-lengths and
  * map-as-array decoding).
  *
- * This also does the bulk of the work for @ref
- * QCBOR_DECODE_MODE_MAP_AS_ARRAY, a special mode to handle
- * arbitrarily complex map labels. This ifdefs out with
- * QCBOR_DISABLE_NON_INTEGER_LABELS.
+ * Must only be called when major type is 4 or 5.
+ *
+ * @c pDecodedItem is only valid on @ref QCBOR_SUCCESS.
+ *
+ * This also does the bulk of the work for @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY,
+ * a special mode to handle arbitrarily complex map labels. This
+ * ifdefs out with @ref QCBOR_DISABLE_NON_INTEGER_LABELS.
  */
 static QCBORError
 QCBOR_Private_DecodeArrayOrMap(const QCBORDecodeMode  uConfigFlags,
                                const int              nMajorType,
-                               uint64_t               uItemCount,
+                               const uint64_t         uItemCount,
                                const int              nAdditionalInfo,
                                QCBORItem             *pDecodedItem)
 {
-   QCBORError uReturn;
+   uint64_t  uItemCountLimit;
+   uint64_t  uItemMultiplier;
 
-   /* ------ Sort out the data type ------ */
+   /* -- Compile-time checks on constants that generate no code -- */
    #if QCBOR_TYPE_ARRAY != CBOR_MAJOR_TYPE_ARRAY
    #error QCBOR_TYPE_ARRAY value not lined up with major type
    #endif
@@ -609,58 +632,86 @@ QCBOR_Private_DecodeArrayOrMap(const QCBORDecodeMode  uConfigFlags,
    #if QCBOR_TYPE_MAP != CBOR_MAJOR_TYPE_MAP
    #error QCBOR_TYPE_MAP value not lined up with major type
    #endif
+
+   #if QCBOR_MAX_ITEMS_IN_ARRAY >= QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH
+   #error QCBOR_MAX_ITEMS_IN_ARRAY collides with indefinite-length sentinel
+   #endif
+
+   #if QCBOR_MAX_ITEMS_IN_ARRAY >= UINT16_MAX
+   #error QCBOR_MAX_ITEMS_IN_ARRAY is too large
+   #endif
+
+   #if QCBOR_MAX_ITEMS_IN_MAP * 2 > QCBOR_MAX_ITEMS_IN_ARRAY
+   #error QCBOR_MAX_ITEMS_IN_MAP is too large
+   #endif
+
+   /* ------ Sort out the data type ------ */
    pDecodedItem->uDataType = (uint8_t)nMajorType;
+   uItemMultiplier         = 1;
+
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-   if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) && nMajorType == QCBOR_TYPE_MAP) {
+   if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) &&
+      nMajorType == CBOR_MAJOR_TYPE_MAP) {
+      /* Labels and values are each counted as an item, so twice as
+       * many are reported to the caller as there are pairs. */
       pDecodedItem->uDataType = QCBOR_TYPE_MAP_AS_ARRAY;
+      uItemMultiplier         = 2;
    }
-#else
+#else /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
    (void)uConfigFlags;
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
-   uReturn = QCBOR_SUCCESS;
-
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
-      /* ------ Indefinite-length array/map ----- */
+      /* ------ Indefinite length; there is no count ------ */
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
       pDecodedItem->val.uCount = QCBOR_COUNT_INDICATES_INDEFINITE_LENGTH;
-#else /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-      uReturn = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
+#else /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+      return QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
+
    } else {
-      /* ----- Definite-length array/map ----- */
-      if(uItemCount > (nMajorType == QCBOR_TYPE_MAP ? QCBOR_MAX_ITEMS_IN_MAP : QCBOR_MAX_ITEMS_IN_ARRAY)) {
-         uReturn = QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
+      /* ------ Definite length; range check and set the count ------ */
+      /* For the returned types, the limits are:
+       * QCBOR_TYPE_ARRAY: QCBOR_MAX_ITEMS_IN_ARRAY because val.uCount
+       *     is a uint16.
+       * QCBOR_TYPE_MAP: QCBOR_MAX_ITEMS_IN_MAP because the decode limit
+       *     is kept symmetrical with the encode limit even though
+       *     val.uCount counts pairs
+       * QCBOR_TYPE_MAP_AS_ARRAY: QCBOR_MAX_ITEMS_IN_MAP because the
+       *     label and value are not counted as a pair and val.uCount
+       *     is uint16
+       */
+      uItemCountLimit = nMajorType == CBOR_MAJOR_TYPE_MAP ?
+                             QCBOR_MAX_ITEMS_IN_MAP : QCBOR_MAX_ITEMS_IN_ARRAY;
 
-      } else {
-#ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
-         if((uConfigFlags & QCBOR_DECODE_MODE_MAP_AS_ARRAY) && nMajorType == QCBOR_TYPE_MAP) {
-            /* ------ Map as array ------ */
-            uItemCount *= 2;
-         }
-#endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
-
-         /* cast OK because of check above */
-         pDecodedItem->val.uCount = (uint16_t)uItemCount;
+      if(uItemCount > uItemCountLimit) {
+         return QCBOR_ERR_ARRAY_DECODE_TOO_LONG;
       }
+
+      /* Cast is safe because of the compile time checks on constant and
+	    * check against uItemCountLimit */
+      pDecodedItem->val.uCount = (uint16_t)(uItemCount * uItemMultiplier);
    }
 
-   return uReturn;
+   return QCBOR_SUCCESS;
 }
 
 
 /**
  * @brief Decode a tag number.
  *
- * @param[in] uTagNumber       The length of the string.
+ * @param[in] uTagNumber       Tag number from the head..
  * @param[in] nAdditionalInfo  So this can be error-checked.
  * @param[out] pDecodedItem    The filled-in decoded item.
  *
+ * @retval QCBOR_SUCCESS            Successful decode.
  * @retval QCBOR_ERR_BAD_INT        nAdditionalInfo is LEN_IS_INDEFINITE.
  * @retval QCBOR_ERR_TAGS_DISABLED  QCBOR_DISABLE_TAGS is defined.
  *
  * Not much to do for tags, but fill in pDecodedItem and check for
  * error in nAdditionalInfo.
+ *
+ * Must only be called when major type is 6.
  */
 static QCBORError
 QCBOR_Private_DecodeTagNumber(const uint64_t uTagNumber,
@@ -670,11 +721,13 @@ QCBOR_Private_DecodeTagNumber(const uint64_t uTagNumber,
 #ifndef QCBOR_DISABLE_TAGS
    if(nAdditionalInfo == LEN_IS_INDEFINITE) {
       return QCBOR_ERR_BAD_INT;
-   } else {
-      pDecodedItem->val.uTagNumber = uTagNumber;
-      pDecodedItem->uDataType = QCBOR_TYPE_TAG_NUMBER;
-      return QCBOR_SUCCESS;
    }
+
+   pDecodedItem->val.uTagNumber = uTagNumber;
+   pDecodedItem->uDataType      = QCBOR_TYPE_TAG_NUMBER;
+
+   return QCBOR_SUCCESS;
+
 #else /* ! QCBOR_DISABLE_TAGS */
    (void)nAdditionalInfo;
    (void)uTagNumber;
@@ -855,11 +908,9 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
          pDecodedItem->uDataType = QCBOR_TYPE_DOUBLE;
          uErr = QCBORDecode_Private_HalfConformance(pDecodedItem->val.dfnum,
                                                     uConfigFlags);
-         if(uErr != QCBOR_SUCCESS) {
-            break;
-         }
-#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
+#else /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          uErr = FLOAT_ERR_CODE_NO_PREF_FLOAT(QCBOR_SUCCESS);
+#endif /* ! QCBOR_DISABLE_PREFERRED_FLOAT */
          break;
 
       case SINGLE_PREC_FLOAT: /* 26 */
@@ -894,36 +945,6 @@ QCBOR_Private_DecodeFloat(const QCBORDecodeMode uConfigFlags,
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
 
 
-
-/* Make sure #define value line up as DecodeSimple counts on this. */
-#if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
-#error QCBOR_TYPE_FALSE macro value wrong
-#endif
-
-#if QCBOR_TYPE_TRUE != CBOR_SIMPLEV_TRUE
-#error QCBOR_TYPE_TRUE macro value wrong
-#endif
-
-#if QCBOR_TYPE_NULL != CBOR_SIMPLEV_NULL
-#error QCBOR_TYPE_NULL macro value wrong
-#endif
-
-#if QCBOR_TYPE_UNDEF != CBOR_SIMPLEV_UNDEF
-#error QCBOR_TYPE_UNDEF macro value wrong
-#endif
-
-#if QCBOR_TYPE_BREAK != CBOR_SIMPLE_BREAK
-#error QCBOR_TYPE_BREAK macro value wrong
-#endif
-
-#if QCBOR_TYPE_DOUBLE != DOUBLE_PREC_FLOAT
-#error QCBOR_TYPE_DOUBLE macro value wrong
-#endif
-
-#if QCBOR_TYPE_FLOAT != SINGLE_PREC_FLOAT
-#error QCBOR_TYPE_FLOAT macro value wrong
-#endif
-
 /**
  * @brief Decode major type 7 -- true, false, floating-point, break...
  *
@@ -944,33 +965,48 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
                           const uint64_t         uArgument,
                           QCBORItem             *pDecodedItem)
 {
-   QCBORError uReturn = QCBOR_SUCCESS;
 #if defined(USEFULBUF_DISABLE_ALL_FLOAT) || defined (QCBOR_DISABLE_DECODE_CONFORMANCE)
    (void)uConfigFlags;
 #endif
 
-   /* uAdditionalInfo is 5 bits from the initial byte. Compile time
-    * checks above make sure uAdditionalInfo values line up with
-    * uDataType values.  DecodeHead() never returns an AdditionalInfo
-    * > 0x1f so cast is safe.
-    */
-   pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
+   #if QCBOR_TYPE_FALSE != CBOR_SIMPLEV_FALSE
+   #error QCBOR_TYPE_FALSE macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_TRUE != CBOR_SIMPLEV_TRUE
+   #error QCBOR_TYPE_TRUE macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_NULL != CBOR_SIMPLEV_NULL
+   #error QCBOR_TYPE_NULL macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_UNDEF != CBOR_SIMPLEV_UNDEF
+   #error QCBOR_TYPE_UNDEF macro value wrong
+   #endif
+
+   #if QCBOR_TYPE_BREAK != CBOR_SIMPLE_BREAK
+   #error QCBOR_TYPE_BREAK macro value wrong
+   #endif
+
+   /* nAdditionalInfo is 5 bits from the initial byte and < 32 so
+    * casts to uint8_t below are safe. Compile time checks above make
+    * sure nAdditionalInfo values line up with uDataType values. */
 
    switch(nAdditionalInfo) {
-      /* No check for ADDINFO_RESERVED1 - ADDINFO_RESERVED3 as they
-       * are caught before this is called.
-       */
+      /* No check for ADDINFO_RESERVED1 (28) - ADDINFO_RESERVED3 (30) as they
+       * are caught before this is called. */
 
-      case HALF_PREC_FLOAT: /* 25 */
+      case HALF_PREC_FLOAT:   /* 25 */
       case SINGLE_PREC_FLOAT: /* 26 */
       case DOUBLE_PREC_FLOAT: /* 27 */
 #ifndef USEFULBUF_DISABLE_ALL_FLOAT
-         uReturn = QCBOR_Private_DecodeFloat(uConfigFlags,
-                                             nAdditionalInfo,
-                                             uArgument,
-                                             pDecodedItem);
+         return QCBOR_Private_DecodeFloat(uConfigFlags,
+                                          nAdditionalInfo,
+                                          uArgument,
+                                          pDecodedItem);
 #else
-         uReturn = QCBOR_ERR_ALL_FLOAT_DISABLED;
+         return QCBOR_ERR_ALL_FLOAT_DISABLED;
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT */
          break;
 
@@ -979,46 +1015,43 @@ QCBOR_Private_DecodeType7(const QCBORDecodeMode  uConfigFlags,
       case CBOR_SIMPLEV_NULL:  /* 22 */
       case CBOR_SIMPLEV_UNDEF: /* 23 */
       case CBOR_SIMPLE_BREAK:  /* 31 */
+         /* The officially assigned simple values & break */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
          if((uConfigFlags & QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES) &&
             nAdditionalInfo == CBOR_SIMPLEV_UNDEF) {
-            uReturn = QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
-            goto Done;
+            return QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
-         break; /* nothing to do */
+         pDecodedItem->uDataType = (uint8_t)nAdditionalInfo;
+         return QCBOR_SUCCESS;
+         break;
 
-      case CBOR_SIMPLEV_ONEBYTE: /* 24 */
+      case CBOR_SIMPLEV_ONEBYTE: /* 24 (simple value is in uArgument) */
          if(uArgument <= CBOR_SIMPLE_BREAK) {
             /* This takes out f8 00 ... f8 1f which should be encoded
-             * as e0 … f7 -- preferred serialization check for simple values.
-             */
-            uReturn = QCBOR_ERR_BAD_TYPE_7;
-            goto Done;
+             * as e0 … f7 -- preferred serialization check for simple
+             * values. */
+            return QCBOR_ERR_BAD_TYPE_7;
          }
          /* FALLTHROUGH */
 
-      default: /* 0-19 */
+      default: /* 0-19 + simple values in uArgument from fall through */
+         /* Unassigned simple values that are returned */
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
          if((uConfigFlags & QCBOR_DECODE_MODE_ONLY_BASIC_SIMPLE_VALUES) &&
             (uArgument < CBOR_SIMPLEV_FALSE || uArgument > CBOR_SIMPLEV_NULL)) {
-            uReturn = QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
-            goto Done;
+            return  QCBOR_ERR_NOT_BASIC_SIMPLE_VALUE;
          }
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
 
          pDecodedItem->uDataType = QCBOR_TYPE_UKNOWN_SIMPLE;
-         /* QCBOR_Private_DecodeHead() will make uArgument equal to
+         /* QCBOR_Private_DecodeHead() makes uArgument equal to
           * nAdditionalInfo when nAdditionalInfo is < 24. This cast is
-          * safe because the 2, 4 and 8 byte lengths of uNumber are in
-          * the double/float cases above
-          */
+          * safe because the 2, 4 and 8 byte lengths of uArgument are
+          * in the double/float cases above. */
          pDecodedItem->val.uSimple = (uint8_t)uArgument;
-         break;
+         return QCBOR_SUCCESS;
    }
-
-Done:
-   return uReturn;
 }
 
 
@@ -1497,11 +1530,11 @@ QCBORDecode_Private_GetNextTagNumber(QCBORDecodeContext *pMe,
 
    return uReturn;
 
-#else /* QCBOR_DISABLE_TAGS */
+#else /* ! QCBOR_DISABLE_TAGS */
 
    return QCBORDecode_Private_GetNextFullString(pMe, pDecodedItem);
 
-#endif /* QCBOR_DISABLE_TAGS */
+#endif /* ! QCBOR_DISABLE_TAGS */
 }
 
 
@@ -1569,11 +1602,17 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    /* Decoding a map entry, so the item decoded above was the label */
    LabelItem = *pDecodedItem;
 
+   if(QCBORItem_IsMapOrArray(LabelItem)) {
+      /* No support at all for traversing a label that is an arry or map */
+      uErr = QCBOR_ERR_MAP_LABEL_TYPE;
+      goto Done;
+   }
+
 #ifndef QCBOR_DISABLE_DECODE_CONFORMANCE
    if(puLabelEndOffset != NULL) {
-       /* Cast is OK because lengths are all 32-bit in QCBOR */
-       *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
-    }
+      /* Cast is OK because lengths are all 32-bit in QCBOR */
+      *puLabelEndOffset = (uint32_t)UsefulInputBuf_Tell(&(pMe->InBuf));
+   }
 #else
    (void)puLabelEndOffset;
 #endif /* ! QCBOR_DISABLE_DECODE_CONFORMANCE */
@@ -1584,11 +1623,13 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
       uErr = uErr2;
       goto Done;
    }
-   if(uErr2 != QCBOR_SUCCESS) {
-      /* The recoverable error for the value overrides the recoverable
-       * error for the label, if there was an error for the label */
-      uErr = uErr2;
+
+   if(uErr != QCBOR_SUCCESS) {
+      /* Label error. Entry consumed. Label not usable for matching. */
+      pDecodedItem->uLabelType = QCBOR_TYPE_NONE;
+      goto Done;
    }
+   uErr = uErr2; /* Value error, if any; label checks below override it */
 
    /* Combine the label item and value item into one */
    pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
@@ -1628,12 +1669,12 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
 #endif /* ! QCBOR_DISABLE_NON_INTEGER_LABELS */
 
       default:
-         /* It is possible to skip over labels that are non-aggregate
-          * types like floats, but not to skip over labels that are
-          * arrays or maps. We might eventually handle more label
-          * types like floats as they are not too hard and we now
-          * have QCBOR_DISABLE_NON_INTEGER_LABELS */
-         if(!pMe->bAllowAllLabels || QCBORItem_IsMapOrArray(LabelItem)) {
+         /* If requested, skip over labels that are not integers or
+          * strings like floats. Aggregate type labels were elimated
+          * above. We might eventually handle more label types like
+          * floats as they are not too hard and we now have
+          * QCBOR_DISABLE_NON_INTEGER_LABELS */
+         if(!pMe->bAllowAllLabels) {
             uErr = QCBOR_ERR_MAP_LABEL_TYPE;
             goto Done;
          }
@@ -1682,108 +1723,99 @@ QCBOR_Private_NextIsBreak(QCBORDecodeContext *pMe, bool *pbNextIsBreak)
 
    return QCBOR_SUCCESS;
 }
+
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
 
 /**
- * @brief Ascend up nesting levels if all items in arrays/maps have been consumed.
+ * @brief Ascend out of arrays and maps that have been fully consumed.
  *
  * @param[in] pMe       The decode context.
- * @param[in] bMarkEnd  If true mark end of maps/arrays with count of zero.
- * @param[out] pbBreak  Indicate if ascension was ended by a break. May be NULL.
- *                      Always set if not NULL.
+ * @param[in,out] pEnd  If not NULL and level @c pEnd->uTargetLevel
+ *                      closes during this call, @c pEnd->uEndOffset is
+ *                      set to the input offset just past its end.
+ *                      Otherwise @c pEnd->uEndOffset is unchanged.
  *
- * An item was just consumed, now figure out if it was the
- * end of an array/map map that can be closed out. That
- * may in turn close out the above array/map. This only closes
- * out arrays and maps, not any other sort of nesting.
+ * @retval QCBOR_SUCCESS  Any ascending that could be done was done.
+ * @retval other          Decoding the next item to check for a break
+ *                        failed.
  *
- * When ascending indefinite-length arrays and maps, this will
- * consume the break for the level above. This is a problem for the
- * implementation of QCBORDecode_GetArray() that must not return
- * that break. @c pbBreak is set to true to indicate that one byte
- * beyond was consumed.
+ * Call this after consuming an item that doesn't open a non-empty
+ * array or map. If that item was the last one in the current array
+ * or map, the level closes and this ascends to the level above, which
+ * may also close. This can close every level up to the top.
  *
- * Improvement: this could reduced further if indef is disabled
+ * A definite-length level closes when its count reaches zero. An
+ * indefinite-length level closes at a break, which this consumes.
+ *
+ * Ascent stops at the top level, at a level that does not close, at
+ * bstr-wrapped CBOR and at an entered (bounded) array or map. Those
+ * last two are exited only by explicit calls such as
+ * QCBORDecode_ExitBstrWrapped() and QCBORDecode_ExitArray().
+ *
+ * When several indefinite-length levels close at once, the breaks of
+ * all of them are consumed, including those of levels that enclose
+ * the array or map QCBORDecode_GetArray() or QCBORDecode_GetMap() is
+ * fetching. Those breaks are not part of what they return, so the end
+ * of the target level is recorded in @c pEnd as it closes rather than
+ * taken from the cursor afterwards.
  */
 QCBORError
-QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, bool bMarkEnd, bool *pbEndedByBreak)
+QCBORDecode_Private_NestLevelAscender(QCBORDecodeContext *pMe, struct QCBORPrivate_ItemEndTracker *pEnd)
 {
-   QCBORError uReturn;
-   bool       bEndedByBreak;
-
-   /* Loop ascending nesting levels as long as there is ascending to do */
-   bEndedByBreak = false;
-
-   while( ! DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
-      bEndedByBreak = false;
+   while(!DecodeNesting_IsCurrentAtTop(&(pMe->nesting))) {
 
       if(DecodeNesting_IsCurrentBstrWrapped(&(pMe->nesting))) {
-         /* Ascent for bstr-wrapped CBOR is always by explicit public API
-          * call so no further ascending can happen. */
-         break;
+         break; /* Ascent out of wrapped only with QCBORDecode_ExitBstrWrapped() */
       }
 
       if(DecodeNesting_IsCurrentDefiniteLength(&(pMe->nesting))) {
-         /* Level is a definite-length array/map */
-
-         /* Decrement the item count the definite-length array/map */
+         /* All items in definite-length array/map consumed? */
          DecodeNesting_DecrementDefiniteLengthMapOrArrayCount(&(pMe->nesting));
          if(!DecodeNesting_IsEndOfDefiniteLengthMapOrArray(&(pMe->nesting))) {
-             /* Didn't close out an array/map, so all work here is done */
-             break;
-          }
-          /* All items in a definite-length array were consumed so it
-           * is time to ascend one level. This happens below. */
+            break; /* Not end of definite-length array/amap */
+         }
 
 #ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
       } else {
-         /* Level is an indefinite-length array/map. */
+         /* Look for break in indefinte array/map */
+         bool       bIsBreak;
+         QCBORError uErr;
 
-         /* Check for break which is what ends indefinite-length arrays/maps */
-         uReturn = QCBOR_Private_NextIsBreak(pMe, &bEndedByBreak);
-         if(uReturn != QCBOR_SUCCESS) {
-            goto Done;
+         uErr = QCBOR_Private_NextIsBreak(pMe, &bIsBreak);
+         if(uErr != QCBOR_SUCCESS) {
+            return uErr;
          }
-
-         if( ! bEndedByBreak) {
-            /* Not a break so array/map does not close out. All work is done */
+         if(!bIsBreak) {
             break;
          }
-         /* It was a break in an indefinite length map / array so
-          * it is time to ascend one level. */
-
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
       }
 
-      /* All items in the array/map have been consumed. */
-      /* But ascent in bounded mode is only by explicit call to
-       * QCBORDecode_ExitBoundedMode(). */
+      /* --- The array/map at the current level has been consumed --- */
+
+      if(pEnd &&
+         DecodeNesting_GetCurrentLevel(&(pMe->nesting)) == pEnd->uTargetLevel) {
+         /* Record the end offset for particular level if requested */
+         pEnd->uEndOffset = UsefulInputBuf_Tell(&(pMe->InBuf));
+      }
+
       if(DecodeNesting_IsCurrentBounded(&(pMe->nesting))) {
-         /* Set the count to zero for definite-length arrays to indicate
-         * cursor is at end of bounded array/map */
-         if(bMarkEnd) {
-            /* Used for definite and indefinite to signal end */
-            DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
-         }
+         /* Don't ascend; mark the cursor as at the end of the entered
+          * array or map for DecodeNesting_IsAtEndOfBoundedLevel().
+          * The count of a definite-length level is already zero. For
+          * an indefinite-length level the break was just consumed, so
+          * zeroing the count is the only record that the end was
+          * reached. */
+         DecodeNesting_ZeroMapOrArrayCount(&(pMe->nesting));
          break;
       }
 
-      /* Finally, actually ascend one level. */
+      /* Finally, do the ascent */
       DecodeNesting_Ascend(&(pMe->nesting));
    }
 
-   uReturn = QCBOR_SUCCESS;
-
-#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
-Done:
-#endif /* QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
-
-   if(pbEndedByBreak != NULL) {
-      *pbEndedByBreak = bEndedByBreak;
-   }
-
-   return uReturn;
+   return QCBOR_SUCCESS;
 }
 
 
@@ -1832,10 +1864,10 @@ Done:
  * top-level sequence and of bstr-wrapped CBOR by byte count.
  */
 QCBORError
-QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
-                                      bool               *pbEndedByBreak,
-                                      QCBORItem          *pDecodedItem,
-                                      uint32_t           *puLabelEndOffset)
+QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext    *pMe,
+                                      struct QCBORPrivate_ItemEndTracker *pEnd,
+                                      QCBORItem             *pDecodedItem,
+                                      uint32_t              *puLabelEndOffset)
 {
    QCBORError uReturn;
    /* ==== First: figure out if at the end of a traversal ==== */
@@ -1918,7 +1950,7 @@ QCBORDecode_Private_GetNextMapOrArray(QCBORDecodeContext *pMe,
        * to the top level.
        */
       QCBORError uAscendErr;
-      uAscendErr = QCBORDecode_Private_NestLevelAscender(pMe, true, pbEndedByBreak);
+      uAscendErr = QCBORDecode_Private_NestLevelAscender(pMe, pEnd);
       if(uAscendErr != QCBOR_SUCCESS) {
          /* This error is probably a traversal error and it overrides
           * the non-traversal error.
@@ -1968,15 +2000,14 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
    QCBORError uErr;
 
    uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pDecodedItem, NULL);
+   if(uErr != QCBOR_SUCCESS) {
+      return uErr;
+   }
 
 #ifndef QCBOR_DISABLE_TAGS
    uint64_t   uTagNumber;
    int        nTagIndex;
    const struct QCBORTagDecoderEntry *pTagDecoder;
-
-   if(uErr != QCBOR_SUCCESS) {
-      goto Done;
-   }
 
    /* Loop over tag numbers in reverse, those closest to content first */
    for(nTagIndex = QCBOR_MAX_TAGS_PER_ITEM-1; nTagIndex >= 0; nTagIndex--) {
@@ -1992,11 +2023,22 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
          break; /* Successful exist -- a tag with no callback  */
       }
 
+      /* Guard stack against malicious input causing recursive tag
+       * decodes. Only counts when a content decoder is about to run.
+       * The UINT8_MAX check keeps the counter from wrapping. */
+      if(pMe->uTagContentNest > pMe->uTagContentNestMax || pMe->uTagContentNest == UINT8_MAX) {
+         uErr = QCBOR_ERR_TAG_CONTENT_NESTING_TOO_DEEP;
+         break;
+      }
+
       /* Call the content decoder */
+      pMe->uTagContentNest++;
       uErr = pTagDecoder->pfContentDecoder(pMe,
                                            pMe->pTagDecodersContext,
                                            pTagDecoder->uTagNumber,
                                            pDecodedItem);
+      pMe->uTagContentNest--;
+
       if(uErr != QCBOR_SUCCESS) {
          break; /* Error exit from the loop */
       }
@@ -2004,8 +2046,6 @@ QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
       /* Remove tag number from list since its content was decoded */
       pDecodedItem->auTagNumbers[nTagIndex] = CBOR_TAG_INVALID16;
    }
-
-Done:
 #endif /* ! QCBOR_DISABLE_TAGS */
 
    return uErr;
@@ -2013,63 +2053,79 @@ Done:
 
 
 /**
- * @brief Consume an entire map or array including its contents.
+ * @brief Consume an item, including everything in it if it is an array or map.
  *
  * @param[in]  pMe              The decoder context.
- * @param[in]  pItemToConsume   The array/map whose contents are to be
- *                              consumed.
- * @param[out] pbEndedByBreak   Indicate if consumption was ended by a
- *                              break.  May be NULL. The indication is
- *                              only set if the result is true, so the
- *                              contents of this pointer should be set
- *                              to false before calling this.
- * @param[out] puNextNestLevel  The next nesting level after the item was
- *                              fully consumed.
+ * @param[in]  pItemToConsume   The item most recently decoded by
+ *                              QCBORDecode_Private_GetNextMapOrArray().
+ *                              The cursor must still be right after it.
+ * @param[in,out] pEnd          Passed on to
+ *                              QCBORDecode_Private_GetNextMapOrArray() to
+ *                              record where a nesting level ends. May be
+ *                              NULL.
+ * @param[out] puNextNestLevel  The nesting level of the item that follows
+ *                              @c pItemToConsume. Not set when traversal
+ *                              stops early.
  *
- * This may be called when @c pItemToConsume is not an array or
- * map. In that case, this is just a pass through for @c puNextNestLevel
- * since there is nothing to do.
+ * @retval QCBOR_SUCCESS            Everything was consumed without error.
+ * @retval QCBOR_ERR_NO_MORE_ITEMS  Input ended before the array or map
+ *                                  did. Traversal stopped.
+ *
+ * Any other error is either unrecoverable, in which case traversal
+ * stopped at it, or the first recoverable error in the contents, in
+ * which case everything was still consumed.
+ *
+ * Only a non-empty array or map opens a nesting level, that is, has a
+ * @c uNextNestLevel deeper than its own @c uNestingLevel. For anything
+ * else there is nothing to consume, and this only passes
+ * @c uNextNestLevel through.
+ *
+ * Otherwise this gets items until one closes the level the array or
+ * map opened. Using nesting levels this way works for both definite
+ * and indefinite lengths.
+ *
+ * Recoverable errors don't stop the traversal, so the cursor still ends
+ * up after the array or map and decoding can continue. Each caller
+ * decides whether the error matters: QCBORDecode_VGetNextConsume() and
+ * QCBORDecode_GetArray() report it, and map searches ignore it.
  */
 QCBORError
-QCBORDecode_Private_ConsumeItem(QCBORDecodeContext *pMe,
-                                const QCBORItem    *pItemToConsume,
-                                bool               *pbEndedByBreak,
-                                uint8_t            *puNextNestLevel)
+QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
+                                const QCBORItem       *pItemToConsume,
+                                struct QCBORPrivate_ItemEndTracker *pEnd,
+                                uint8_t               *puNextNestLevel)
 {
-   QCBORError uReturn;
-   QCBORItem  Item;
+   QCBORError  uReturn;
+   QCBORItem   Item;
 
-   /* If it is a map or array, this will tell if it is empty. */
-   const bool bIsEmpty = (pItemToConsume->uNextNestLevel <= pItemToConsume->uNestingLevel);
-
-   if(QCBORItem_IsMapOrArray(*pItemToConsume) && !bIsEmpty) {
-      /* There is only real work to do for non-empty maps and arrays */
-
-      /* This works for definite- and indefinite-length maps and
-       * arrays by using the nesting level
-       */
-      do {
-         uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pbEndedByBreak, &Item, NULL);
-         if(QCBORDecode_IsUnrecoverableError(uReturn) ||
-            uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
-            goto Done;
-         }
-      } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
-
-      *puNextNestLevel = Item.uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
-
-   } else {
-      /* pItemToConsume is not a map or array. Just pass the nesting
-       * level through. */
+   if(!QCBORItem_IsMapOrArray(*pItemToConsume) ||
+      QCBORItem_IsEmptyArrayOrMap(*pItemToConsume)) {
+      /* Nothing to do but pass on the nesting level */
       *puNextNestLevel = pItemToConsume->uNextNestLevel;
-
-      uReturn = QCBOR_SUCCESS;
+      return QCBOR_SUCCESS;
    }
 
-Done:
-    return uReturn;
+   /* Pre-order traversal to consume all the items in the non-empty array/map */
+   do {
+      uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item, NULL);
+
+      /* On these two, Item may not have been written, so
+       * *puNextNestLevel is left unset as documented. */
+      if(QCBORDecode_IsHaltingError(uReturn)) {
+         return uReturn;
+      }
+      if(uReturn == QCBOR_ERR_NO_MORE_ITEMS) {
+         /* Occurs when the input ends before the array or map does,
+          * for example 0x81 with nothing after it. */
+         return uReturn;
+      }
+
+      /* Nest level end detection works for definite and indefinite lengths */
+   } while(Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
+
+   *puNextNestLevel = Item.uNextNestLevel;
+
+   return uReturn;
 }
 
 
@@ -2150,7 +2206,7 @@ QCBORDecode_Private_CheckDups(QCBORDecodeContext *pMe,
                                          uCompareLabelStart, uCompareLabelLen,
                                          uLabelStart, uLabelLen);
       if(nCompare == 0) {
-         uErr = QCBOR_ERR_DUPLICATE_LABEL;
+         uErr = QCBOR_ERR_DECODE_DUPLICATE_LABEL;
          break;
       }
 
@@ -2466,12 +2522,17 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    size_t     uTempSaveCursor;
    bool       bInMap;
    QCBORItem  LabelItem;
-   bool       bEndedByBreak;
+   struct QCBORPrivate_ItemEndTracker End;
 
-   bEndedByBreak = false;
+
    uStartingCursor = UsefulInputBuf_Tell(&(pMe->InBuf));
    bInMap = DecodeNesting_IsCurrentTypeMap(&(pMe->nesting));
-   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, NULL, pItem, NULL);
+
+   /* Set up to find the end offset */
+   End.uTargetLevel = (uint8_t)(DecodeNesting_GetCurrentLevel(&(pMe->nesting)) + 1);
+
+
+   uErr = QCBORDecode_Private_GetNextMapOrArray(pMe, &End, pItem, NULL);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       return;
@@ -2515,20 +2576,14 @@ QCBORDecode_Private_GetArrayOrMap(QCBORDecodeContext *pMe,
    }
 
    /* Consume the entire array/map to find the end */
-   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &bEndedByBreak, &uNestLevel);
+   uErr = QCBORDecode_Private_ConsumeItem(pMe, pItem, &End, &uNestLevel);
    if(uErr != QCBOR_SUCCESS) {
       pMe->uLastError = (uint8_t)uErr;
       goto Done;
    }
 
    /* Fill in returned values */
-   uEndOfReturned = UsefulInputBuf_Tell(&(pMe->InBuf));
-   if(bEndedByBreak) {
-      /* When ascending nesting levels, a break for the level above
-       * was consumed. That break is not a part of what is consumed here. */
-      uEndOfReturned--;
-   }
-
+   uEndOfReturned    = End.uEndOffset;
    pEncodedCBOR->ptr = UsefulInputBuf_OffsetToPointer(&(pMe->InBuf), uStartOfReturned);
    pEncodedCBOR->len = uEndOfReturned - uStartOfReturned;
 

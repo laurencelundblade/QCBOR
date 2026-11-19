@@ -226,7 +226,7 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * QCBOR_MAX_ITEMS_IN_ARRAY is very large (65,534) it is very unlikely
  * to be reached. If it is reached, the count will wrap around to zero
  * and CBOR that is not well formed will be produced, but there will
- * be no buffers overrun and new security issues in the code.
+ * be no buffers overrun and no security issues in the code.
  *
  * The 8 errors returned here fall into three categories:
  *
@@ -424,6 +424,13 @@ QCBOREncode_EncodeHead(UsefulBuf  Buffer,
         return NULLUsefulBufC;
     }
 
+   /* The argument of a CBOR head is at most 8 bytes. A larger
+    * uMinLen would run the loop below past the end of aIterate[] and
+    * write before the start of Buffer. */
+   if(uMinLen > sizeof(uint64_t)) {
+      return NULLUsefulBufC;
+   }
+
    /* Pointer to last valid byte in the buffer */
    uint8_t * const pBufferEnd = &((uint8_t *)Buffer.ptr)[QCBOR_HEAD_BUFFER_SIZE-1];
 
@@ -493,7 +500,7 @@ QCBOREncode_EncodeHead(UsefulBuf  Buffer,
     * pointer math in this function is not going wrong. Turn it on and
     * run the whole test suite to perform the check.
     */
-   if(pBufferEnd - pByte > 9 || pBufferEnd - pByte < 1 || pByte < (uint8_t *)buffer.ptr) {
+   if(pBufferEnd - pByte > 9 || pBufferEnd - pByte < 1 || pByte < (uint8_t *)Buffer.ptr) {
       return NULLUsefulBufC;
    }
 #endif /* EXTRA_ENCODE_HEAD_CHECK */
@@ -527,7 +534,8 @@ QCBOREncode_Private_IncrementMapOrArrayCount(QCBOREncodeContext *pMe)
 }
 
 
-#ifndef QCBOR_DISABLE_ENCODE_USAGE_GUARDS
+#if ! (defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) || defined (QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
+
 /**
  * @brief Return true if nested in an indefinite-length string
  *
@@ -589,7 +597,7 @@ QCBOREncode_Private_CheckIndefStringNest(QCBOREncodeContext               *pMe,
    /* Something that is not allowed in an indefinite-length string */
    return QCBOR_ERR_NESTED_TYPE_MISMATCH;
 }
-#endif /* ! QCBOR_DISABLE_ENCODE_USAGE_GUARDS */
+#endif /* ! (defined(QCBOR_DISABLE_ENCODE_USAGE_GUARDS) && defined (QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS)) */
 
 
 /**
@@ -1297,7 +1305,7 @@ QCBOREncode_Private_SortMap(QCBOREncodeContext *pMe, uint32_t uStart)
             uStart1 = uStart2;
             Lens1   = Lens2;
          } else /* nComparison == 0 */ {
-            pMe->uError = QCBOR_ERR_DUPLICATE_LABEL;
+            pMe->uError = QCBOR_ERR_ENCODE_DUPLICATE_LABEL;
             return;
          }
          uStart2 = uStart2 + Lens2.uItemLen;

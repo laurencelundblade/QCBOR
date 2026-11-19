@@ -1,6 +1,6 @@
 /*==============================================================================
  Copyright (c) 2016-2018, The Linux Foundation.
- Copyright (c) 2018-2020, Laurence Lundblade.
+ Copyright (c) 2018-2026, Laurence Lundblade.
  All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
@@ -37,5 +37,5 @@
  * into four include files).
  */
 
-#include "qcbor_encode.h"
-#include "qcbor_decode.h"
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
