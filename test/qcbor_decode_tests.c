@@ -12903,17 +12903,7 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xd9\x00\xff\x00", 4},
       QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
    },
-#if 0
-   // Tag numbers on labels are not supported
-   // TODO: restore this test when they are
-#if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
-   { "tag number on label not shortest-form",
-      QCBOR_DECODE_MODE_PREFERRED_PLUS,
-      {"\xA3\xC1\x00\x61\x61\xD8\x01\x00\x61\x62\xD9\x00\x01\x00\x61\x63", 16},
-      QCBOR_ERR_NOT_SHORTEST_CBOR_ARGUMENT
-   },
-#endif
-#endif
+
    /* --- Indefinite lengths --- */
    { "indefinite-length byte string",
       QCBOR_DECODE_MODE_DCBOR,
@@ -12954,27 +12944,19 @@ static const struct DecodeFailTestInput DecodeConformanceFailures[] = {
       {"\xA3\x83\x00\x01\x02\x61\x63\x83\x00\x01\x00\x61\x61\x83\x00\x01\x01\x61\x62", 19},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
-#if !defined(QCBOR_DISABLE_TAGS) && !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
+#if !defined(QCBOR_DISABLE_PREFERRED_FLOAT)
    { "unsorted map with labels of all types including arrays and maps",
       QCBOR_DECODE_MODE_DETERMINISTIC,
       {"\xA8\x80\x07\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01\xA0\x04"
          "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 33},
       QCBOR_ERR_MAP_LABEL_TYPE
    },
-#if 0
-   // TODO: remove tag numbers from this test
    { "unsorted map with labels of all non-aggregate types",
       QCBOR_DECODE_MODE_DETERMINISTIC,
-      {"\xA6\xC1\x18\x58\x02\x64\x74\x65\x78\x74\x03\x01\x01"
+      {"\xA5\x64\x74\x65\x78\x74\x03\x01\x01"
          "\x42\x78\x78\x05\xF5\x06\xFB\x40\x21\x8A\x3D\x70\xA3\xD7\x0A\x07", 29},
       QCBOR_ERR_UNSORTED
    },
-   {"map with out-of-order labels that have tags",
-      QCBOR_DECODE_MODE_DETERMINISTIC,
-      {"\xA3\xC1\x18\x63\x61\x61\xD9\x07\xD0\x18\x63\x61\x63\xD8\x30\x18\x63\x61\x62", 19},
-      QCBOR_ERR_UNSORTED
-   },
-#endif
 
 #endif
 
