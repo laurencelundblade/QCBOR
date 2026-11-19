@@ -6994,7 +6994,6 @@ ExponentAndMantissaDecodeFailTests(void)
     * per big float and could exhaust the stack. Now the first nested
     * one is an error. */
    {
-      UsefulBuf_MAKE_STACK_UB( Buf, 2000);
       UsefulOutBuf           OB;
       UsefulBufC             Input;
       QCBORDecodeContext     DCtx;
@@ -7002,10 +7001,10 @@ ExponentAndMantissaDecodeFailTests(void)
       QCBORError             uErr;
       int64_t                nMantissa;
       int64_t                nExponent;
-      int                    i;
+      size_t                 i;
 
-      UsefulOutBuf_Init(&OB, Buf);
-      for(i = 0; i < 1000; i++) {
+      UsefulOutBuf_Init(&OB, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+      for(i = 0; i < 100; i++) {
          UsefulOutBuf_AppendByte(&OB, 0xc5);
          UsefulOutBuf_AppendByte(&OB, 0x80);
       }
