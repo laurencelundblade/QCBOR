@@ -117,7 +117,11 @@ extern "C" {
  * QCBORDecode_GetNextTagNumber(). If they are not
  * an error will be returned.
  *
- * This applies to tag numbers on map labels too. (TODO: improve this text; test more ).
+ * QCBOR v2 errors if there is a map label is a tag.  Each tag is a
+ * distinct data type and QCBOR supports only string and integer map
+ * labels, hence the error.  Tags, however can be be processed like
+ * other non integer and string types with
+ * @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY.
  *
  * This new behavior saves the caller from having to do this check
  * (that they probably didn't know they neeeded).  It is more

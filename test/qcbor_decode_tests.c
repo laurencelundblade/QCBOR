@@ -4453,11 +4453,13 @@ TooManyMappedTagsTest(void)
    return 0;
 }
 
-int32_t TagLabel(void)
+
+static int32_t
+TaggedLabelTest(void)
 {
-   QCBORDecodeContext DCtx;
-   QCBORError  uError;
-   QCBORItem Item;
+   QCBORDecodeContext  DCtx;
+   QCBORError          uError;
+   QCBORItem           Item;
 
    QCBORDecode_Init(&DCtx, UsefulBuf_FromSZ("\xa1\xd4\x01\x02"), QCBOR_DECODE_MODE_NORMAL);
    uError = QCBORDecode_GetNext(&DCtx, &Item);
@@ -4484,7 +4486,10 @@ int32_t TagNumberDecodeTest(void)
    int64_t            nInt;
    int32_t            nReturn;
 
-   TagLabel();
+   nReturn = TaggedLabelTest();
+   if(nReturn) {
+      return nReturn;
+   }
 
    nReturn = TooManyMappedTagsTest();
    if(nReturn) {
