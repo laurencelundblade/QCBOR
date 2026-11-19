@@ -1594,6 +1594,15 @@ QCBORDecode_Private_GetNextMapEntry(QCBORDecodeContext *pMe,
    pDecodedItem->uLabelAlloc = LabelItem.uDataAlloc;
    pDecodedItem->uLabelType  = LabelItem.uDataType;
 
+#ifndef QCBOR_DISABLE_TAGS
+   if( ! (pMe->uDecodeMode & QCBOR_DECODE_MODE_ALLOW_UNPROCESSED_TAG_NUMBERS)) {
+      if(LabelItem.auTagNumbers[0] != CBOR_TAG_INVALID16) {
+         uErr = QCBOR_ERR_LABEL_IS_TAG;
+         goto Done;
+      }
+   }
+#endif /* ! QCBOR_DISABLE_TAGS */
+
 #ifndef QCBOR_DISABLE_NON_INTEGER_LABELS
    if(pMe->uDecodeMode & QCBOR_DECODE_MODE_MAP_STRINGS_ONLY &&
       LabelItem.uDataType != QCBOR_TYPE_TEXT_STRING) {

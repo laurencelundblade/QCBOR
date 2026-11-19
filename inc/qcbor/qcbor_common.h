@@ -647,6 +647,8 @@ typedef enum {
    /** NaN payloads are an error unless explicitly allowed by @ref QCBOR_DECODE_MODE_ALLOW_NAN_PAYLOADS */
    QCBOR_ERR_NAN_PAYLOAD = 92,
 
+   QCBOR_ERR_LABEL_IS_TAG = 93,
+
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice
     * that they are not QCBOR_SUCCESS. See QCBORDecode_SetError(). */
