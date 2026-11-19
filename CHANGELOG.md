@@ -61,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a small change in behavior. Behavior now aligns with documentation.
 - QCBOREncode_EncodeHead() wrote before its buffer when uMinLen was more than
   8; it now returns NULLUsefulBufC (#443).
+- Defend against infinite recursion triggered by malformed big floats and
+  decimal fractions.
 
 
 ## [1.6.1] - 2025-03-03

@@ -375,6 +375,7 @@ struct _QCBORDecodeContext {
    uint8_t  uDecodeMode;
    uint8_t  bStringAllocateAll;
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
+   uint8_t  bInExpMantissa; /* Tag recursion guard in QCBORDecode_Private_ExpMantissa() */
 
    /* See MapTagNumber() for description of how tags are mapped. */
    uint64_t auMappedTags[QCBOR_NUM_MAPPED_TAGS];
