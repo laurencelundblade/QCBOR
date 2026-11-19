@@ -105,14 +105,23 @@ extern "C" {
  * critical type information that can't be ignored by decoders.
  *
  * QCBOR v1 always returns the tag numbers on an item
- * in QCBORItem and leaves it up to the caller to check.
+ * in @ref QCBORItem and leaves it up to the caller to check.
  * Probably most callers don't know this and never added
  * the check. There decode implementations are tolerant
  * of random tag numbers and they shouldn't be.
  *
+ * Tag numbers on map labels were always silently ignored
+ * in v1 and there's no way to check them.
+ *
  * QCBOR v2 requires tags numbers to be processed by
  * QCBORDecode_GetNextTagNumber(). If they are not
  * an error will be returned.
+ *
+ * QCBOR v2 errors if there is a map label is a tag.  Each tag is a
+ * distinct data type and QCBOR supports only string and integer map
+ * labels, hence the error.  Tags, however can be be processed like
+ * other non integer and string types with
+ * @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY.
  *
  * This new behavior saves the caller from having to do this check
  * (that they probably didn't know they neeeded).  It is more

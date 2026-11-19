@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split QCBOR_ERR_DUPLICATE_LABEL into QCBOR_ERR_DECODE_DUPLICATE_LABEL and
   QCBOR_ERR_ENCODE_DUPLICATE_LABEL so all encode errors are disticnt from decode.
 - Split QCBOR_ERR_ADDITIONAL_TAGS_NOT_ALLOWED out of QCBOR_ERR_NOT_ALLOWED.
+- Map lables that are tags are not allowed in v2 (except v1 compat mode).
 
 
 ### Fixed
