@@ -682,7 +682,8 @@ typedef enum {
    /** Trying to do something that is not allowed. */
    QCBOR_ERR_ADDITIONAL_TAGS_NOT_ALLOWED = 173,
 
-   QCBOR_ERR_LABEL_IS_TAG = 93,
+   /** A map label is a tag. This is not supported. A work around is available with @ref QCBOR_DECODE_MODE_MAP_AS_ARRAY. */
+   QCBOR_ERR_LABEL_IS_TAG = 174,
 
    /** A range of error codes that can be made use of by the
     * caller. QCBOR internally does nothing with these except notice

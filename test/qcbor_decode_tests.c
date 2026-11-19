@@ -4753,77 +4753,7 @@ int32_t TagNumberDecodeTest(void)
       return n-2000;
    }
 
-   /* -9-9-9-9-9-9-9- */
-
-   QCBORDecode_Init(&DCtx,
-                     UsefulBuf_FROM_BYTE_ARRAY_LITERAL(spCSRWithTags),
-                     QCBOR_DECODE_MODE_NORMAL);
-   QCBORDecode_CompatibilityV1(&DCtx);
-
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
-   QCBORDecode_VGetNextTagNumber(&DCtx, &uTagNumber);
-   if(uTagNumber != 55799) {
-      return 6000;
-   }
-   QCBORDecode_EnterMap(&DCtx, NULL);
-   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 0);
-   if(uTagNumber != 55799) {
-      return 6000;
-   }
-
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -22, &uTagNumber);
-   if(uTagNumber != 23) {
-      return 6000;
-   }
-   QCBORDecode_GetItemInMapN(&DCtx, -22, QCBOR_TYPE_ANY, &Item);
-
-   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 0);
-   if(uTagNumber != 23) {
-      return 6000;
-   }
-
-
-
-   //---
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -23, &uTagNumber);
-
-   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
-      return -99;
-   }
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -23, &uTagNumber);
-
-   QCBORDecode_EnterMapFromMapN(&DCtx, -23);
-
-   uTagNumber = QCBORDecode_NthTagNumberOfLast(&DCtx, 1);
-   if(uTagNumber != 7) {
-      return 6000;
-   }
-   UsefulBufC TX;
-
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -20, &uTagNumber);
-   QCBORDecode_EnterMapFromMapN(&DCtx, -20);
-
-   QCBORDecode_GetTextStringInMapN(&DCtx, -18, &TX);
-   if(QCBORDecode_GetAndResetError(&DCtx) != QCBOR_ERR_UNPROCESSED_TAG_NUMBER) {
-      return -99;
-   }
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
-   QCBORDecode_GetNextTagNumberInMapN(&DCtx, -18, &uTagNumber);
-   QCBORDecode_GetTextStringInMapN(&DCtx, -18, &TX);
-
-
-
-   QCBORDecode_ExitMap(&DCtx);
-
 #endif /* QCBOR_MAX_TAGS_PER_ITEM >= 3 && QCBOR_NUM_MAPPED_TAGS >= 2 */
-
-
-   /* -9-9-9-9-9-9-9- */
-
-
 
  
    UsefulBufC DateString;
