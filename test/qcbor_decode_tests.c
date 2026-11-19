@@ -6938,6 +6938,28 @@ static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
       {"\xC4\x80", 2},
       QCBOR_ERR_NO_MORE_ITEMS
    },
+   {"Big float as exponent",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\xC5\x82\x01\x01\x01", 7},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"Decimal fraction as mantissa",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC4\x82\x01\xC4\x82\x01\x01", 7},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+   {"Nested big floats with empty arrays",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC5\x80\xC5\x80\xC5\x80\xC5\x80", 8},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+#ifndef QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+   {"Nested big floats with empty indefinite-length arrays",
+      QCBOR_DECODE_MODE_NORMAL,
+      {"\xC5\x9F\xFF\xC5\x9F\xFF\xC5\x9F\xFF", 9},
+      QCBOR_ERR_BAD_EXP_AND_MANTISSA
+   },
+#endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
    {"Second is not an integer",
       QCBOR_DECODE_MODE_NORMAL,
       {"\xC4\x82\x03\x40", 4},
@@ -6959,9 +6981,50 @@ static const struct DecodeFailTestInput ExponentAndMantissaFailures[] = {
 int32_t
 ExponentAndMantissaDecodeFailTests(void)
 {
-   return ProcessDecodeFailures(ExponentAndMantissaFailures,
-                                C_ARRAY_COUNT(ExponentAndMantissaFailures,
-                                              struct DecodeFailTestInput));
+   int32_t nReturn;
+
+   nReturn = ProcessDecodeFailures(ExponentAndMantissaFailures,
+                                   C_ARRAY_COUNT(ExponentAndMantissaFailures,
+                                                 struct DecodeFailTestInput));
+   if(nReturn) {
+      return nReturn;
+   }
+
+   /* A long run of big floats with empty arrays used to recurse once
+    * per big float and could exhaust the stack. Now the first nested
+    * one is an error. */
+   {
+      UsefulBuf_MAKE_STACK_UB( Buf, 2000);
+      UsefulOutBuf           OB;
+      UsefulBufC             Input;
+      QCBORDecodeContext     DCtx;
+      QCBORItem              Item;
+      QCBORError             uErr;
+      int64_t                nMantissa;
+      int64_t                nExponent;
+      int                    i;
+
+      UsefulOutBuf_Init(&OB, Buf);
+      for(i = 0; i < 1000; i++) {
+         UsefulOutBuf_AppendByte(&OB, 0xc5);
+         UsefulOutBuf_AppendByte(&OB, 0x80);
+      }
+      Input = UsefulOutBuf_OutUBuf(&OB);
+
+      QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
+      uErr = QCBORDecode_GetNext(&DCtx, &Item);
+      if(uErr != QCBOR_ERR_BAD_EXP_AND_MANTISSA) {
+         return 9001;
+      }
+
+      QCBORDecode_Init(&DCtx, Input, QCBOR_DECODE_MODE_NORMAL);
+      QCBORDecode_GetBigFloat(&DCtx, QCBOR_TAG_REQUIREMENT_TAG, &nMantissa, &nExponent);
+      if(QCBORDecode_GetError(&DCtx) != QCBOR_ERR_BAD_EXP_AND_MANTISSA) {
+         return 9002;
+      }
+   }
+
+   return 0;
 }
 
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
