@@ -2,7 +2,7 @@
  * qcbor_private -- Non-public data structures for encding and decoding.
  *
  * Copyright (c) 2016-2018, The Linux Foundation.
- * Copyright (c) 2018-2025, Laurence Lundblade.
+ * Copyright (c) 2018-2026, Laurence Lundblade.
  * Copyright (c) 2021, Arm Limited.
  * All rights reserved.
  *
@@ -39,7 +39,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "UsefulBuf.h"
+#include "qcbor/UsefulBuf.h"
 #include "qcbor/qcbor_common.h"
 
 
@@ -124,6 +124,25 @@ extern "C" {
 #endif /* ! USEFULBUF_DISABLE_ALL_FLOAT*/
 
 
+#ifdef QCBOR_DISABLE_ALL
+
+#define QCBOR_DISABLE_FLOAT_HW_USE
+#define QCBOR_DISABLE_PREFERRED_FLOAT
+#define QCBOR_DISABLE_EXP_AND_MANTISSA
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS
+#define QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS
+#define USEFULBUF_DISABLE_ALL_FLOAT
+#define QCBOR_DISABLE_TAGS
+#define QCBOR_DISABLE_NON_INTEGER_LABELS
+#define QCBOR_DISABLE_DECODE_CONFORMANCE
+#define USEFULBUF_DISABLE_STREAMING
+
+#endif
+
+
+
+
+
 /*
  * These are special values for the AdditionalInfo bits that are part of
  * the first byte.  Mostly they encode the length of the data item.
@@ -161,14 +180,6 @@ extern "C" {
 #define CBOR_SIMPLEV_RESERVED_END    CBOR_SIMPLE_BREAK
 
 
-
-/* The number of tags that are 16-bit or larger that can be handled
- * in a decode.
- */
-#define QCBOR_NUM_MAPPED_TAGS 4
-
-/* The number of tags (of any size) recorded for an individual item. */
-#define QCBOR_MAX_TAGS_PER_ITEM1 4
 
 
 
@@ -337,7 +348,7 @@ typedef struct  {
 
 /* Private data structure for mapped tag numbers. The 0th entry
  * is the one first in the traversal and furthest from the tag content.*/
-typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM1];
+typedef uint16_t QCBORMappedTagNumbers[QCBOR_MAX_TAGS_PER_ITEM];
 
 
 
@@ -380,7 +391,10 @@ struct _QCBORDecodeContext {
    uint8_t  uLastError;  /* QCBORError stuffed into a uint8_t */
    uint8_t  bAllowAllLabels; /* Used internally only, not external yet */
 
-   /* See QCBORDecode_Private_MapTagNumber() for description of how tags are mapped. */
+   // TODO: conditional on tags?
+   uint8_t uTagContentNest; /* Protect stack use from tag content recursion */
+   uint8_t uTagContentNestMax; /* Error if */
+
    /* See QCBORDecode_Private_MapTagNumber() for how tags are mapped. */
    // TODO: can this be removed if tags are disabled?
    uint64_t auMappedTagNumbers[QCBOR_NUM_MAPPED_TAGS];
@@ -447,15 +461,17 @@ enum QCBORPrivateMajorType {
 
    QCBOR_MT_MASK = 0x07,
 
-   QCBOR_MT_CHECK_ONLY_MAJOR = 0x10,
-   QCBOR_MT_WRAP             = 0x20,
-   QCBOR_MT_OPENED           = 0x40,
+   QCBOR_MT_CHECK_ONLY_MAJOR = 0x08,
+   QCBOR_MT_WRAP             = 0x10,
+   QCBOR_MT_OPENED           = 0x20,
+   QCBOR_MT_OPENED_SIZED     = 0x40,
    QCBOR_MT_INDEF_LEN        = 0x80,
 
    QCBOR_MT_INDEF_ARRAY  = CBOR_MAJOR_TYPE_ARRAY + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_INDEF_MAP    = CBOR_MAJOR_TYPE_MAP   + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_BSTR_WRAP    = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_WRAP,
    QCBOR_MT_OPEN_BYTES   = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED,
+   QCBOR_MT_OPEN_SIZED_BYTES = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_OPENED_SIZED,
    QCBOR_MT_INDEF_BYTES  = CBOR_MAJOR_TYPE_BYTE_STRING + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_INDEF_TEXT   = CBOR_MAJOR_TYPE_TEXT_STRING + QCBOR_MT_INDEF_LEN,
    QCBOR_MT_SIMPLE_BREAK = CBOR_MAJOR_TYPE_SIMPLE + QCBOR_MT_INDEF_LEN,

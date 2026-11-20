@@ -44,7 +44,6 @@ DecodeNesting_IsCurrentDefiniteLength(const QCBORDecodeNesting *pNesting)
       /* Is indefinite */
       return false;
    }
-
 #endif /* ! QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS */
 
    /* All checks passed; is a definte length map or array */
@@ -226,7 +225,7 @@ DecodeNesting_Descend(QCBORDecodeNesting *pNesting, uint8_t uType)
 {
    /* Error out if nesting is too deep */
    if(pNesting->pCurrent >= &(pNesting->pLevels[QCBOR_MAX_ARRAY_NESTING])) {
-      return QCBOR_ERR_ARRAY_DECODE_NESTING_TOO_DEEP;
+      return QCBOR_ERR_DECODE_NESTING_TOO_DEEP;
    }
 
    /* The actual descend */

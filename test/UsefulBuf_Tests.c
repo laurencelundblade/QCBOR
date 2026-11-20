@@ -1428,6 +1428,22 @@ const char * UOBExtraTests(void)
       return "another unequal length compare";
    }
 
+   /* Offsets and lengths that would wrap around if added to a pointer */
+   nCompare = UsefulOutBuf_Compare(&UOB, SIZE_MAX, 2, 0, 2);
+   if(nCompare != 1) {
+      return "Comparison with wrapping offset";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, 2, SIZE_MAX, 2);
+   if(nCompare != -1) {
+      return "Comparison with wrapping offset 2";
+   }
+
+   nCompare = UsefulOutBuf_Compare(&UOB, 0, SIZE_MAX, 0, 10);
+   if(nCompare != 0) {
+      return "Comparison with wrapping length";
+   }
+
 
    /* Test UsefulOutBuf_Swap() */
 
