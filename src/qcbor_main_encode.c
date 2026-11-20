@@ -231,18 +231,18 @@ Nesting_IsInNest(QCBORTrackNesting *pNesting)
  * The 8 errors returned here fall into three categories:
  *
  * Sizes
- *   QCBOR_ERR_BUFFER_TOO_LARGE        -- Encoded output exceeded UINT32_MAX
- *   QCBOR_ERR_BUFFER_TOO_SMALL        -- Output buffer too small
- *   QCBOR_ERR_ENCODE_NESTING_TOO_DEEP -- Nesting > QCBOR_MAX_ARRAY_NESTING1
- *   QCBOR_ERR_ARRAY_TOO_LONG          -- Too many items added to an array/map [1]
+ *   QCBOR_ERR_BUFFER_TOO_LARGE       - Encoded output exceeded UINT32_MAX
+ *   QCBOR_ERR_BUFFER_TOO_SMALL       - Output buffer too small
+ *   QCBOR_ERR_ARRAY_NESTING_TOO_DEEP - Nesting > QCBOR_MAX_ARRAY_NESTING
+ *   QCBOR_ERR_ARRAY_TOO_LONG         - Too many items added to an array/map [1]
  *
  * Nesting constructed incorrectly
- *   QCBOR_ERR_TOO_MANY_CLOSES         -- More close calls than opens [1]
- *   QCBOR_ERR_CLOSE_MISMATCH          -- Type of close does not match open [1]
- *   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN -- Finish called without enough closes [1]
+ *   QCBOR_ERR_TOO_MANY_CLOSES        - More close calls than opens [1]
+ *   QCBOR_ERR_CLOSE_MISMATCH         - Type of close does not match open [1]
+ *   QCBOR_ERR_ARRAY_OR_MAP_STILL_OPEN - Finish called without enough closes [1]
  *
  * Would generate not-well-formed CBOR
- *   QCBOR_ERR_ENCODE_UNSUPPORTED      -- Simple type between 24 and 31 [1]
+ *   QCBOR_ERR_ENCODE_UNSUPPORTED      - Simple type between 24 and 31 [1]
  *
  * [1] indicated disabled by QCBOR_DISABLE_ENCODE_USAGE_GUARDS
  */
@@ -551,7 +551,8 @@ bool QCBOREncode_Private_InIndefString(QCBOREncodeContext *pMe)
    }
 
    uOpenMajorType = Nesting_GetMajorType(&(pMe->nesting));
-   if(uOpenMajorType != QCBOR_MT_INDEF_BYTES && uOpenMajorType != QCBOR_MT_INDEF_TEXT) {
+   if(uOpenMajorType != QCBOR_MT_INDEF_BYTES &&
+      uOpenMajorType != QCBOR_MT_INDEF_TEXT) {
       /* Nested, but the type open is not an indef-length string */
       return false;
    }
@@ -790,7 +791,8 @@ QCBOREncode_AddEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 #ifndef USEFULBUF_DISABLE_STREAMING
 /* Public function for adding raw encoded CBOR. See qcbor/qcbor_encode.h */
 // TODO: make this work in non-streaming mode?
-// Why? So caller can have the same code for streaming and non streaming? Is it worth it?
+// Why? So caller can have the same code for streaming and non
+// streaming? Is it worth it?
 void
 QCBOREncode_AddStreamedEncoded(QCBOREncodeContext *pMe, const UsefulBufC Encoded)
 {
@@ -830,7 +832,9 @@ QCBOREncode_Private_OpenNestingCommon(QCBOREncodeContext *pMe, const enum QCBORP
       return;
    }
 
-   pMe->uError = Nesting_Increase(&(pMe->nesting), uMajorType, (uint32_t)uEndPosition);
+   pMe->uError = Nesting_Increase(&(pMe->nesting),
+                                  uMajorType,
+                                  (uint32_t)uEndPosition);
 }
 
 
@@ -955,9 +959,12 @@ QCBOREncode_Private_CloseNestingAppend(QCBOREncodeContext               *pMe,
    if(QCBOR_Private_IsIndefLen(Nesting_GetMajorType(&(pMe->nesting)))) {
 #if ! (defined(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS) && defined(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS))
       /* Append the break marker */
-      QCBOREncode_Private_AppendCBORHead(pMe, QCBOR_MT_SIMPLE_BREAK, CBOR_SIMPLE_BREAK, 0);
+      QCBOREncode_Private_AppendCBORHead(pMe,
+                                         QCBOR_MT_SIMPLE_BREAK,
+                                         CBOR_SIMPLE_BREAK,
+                                         0);
 #else
-      /* Not correct error code for indef len strings; don't waste object code for right error */
+      /* Don't waste object code on specific error for indef strings */
       pMe->uError = QCBOR_ERR_INDEF_LEN_ARRAYS_DISABLED;
       return;
 #endif
@@ -1531,7 +1538,7 @@ QCBOREncode_OpenSizedBytes(QCBOREncodeContext *pMe, size_t uSize, UsefulOutBuf *
 
 
 /*
- * Public function to finish and get the encoded result. See qcbor/qcbor_encode.h
+ * Public function to finish & get the encoded result. See qcbor/qcbor_encode.h
  */
 QCBORError
 QCBOREncode_Finish(QCBOREncodeContext *pMe, UsefulBufC *pEncodedCBOR)
