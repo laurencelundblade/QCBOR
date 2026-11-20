@@ -185,13 +185,12 @@ QCBOR.
 ## Code Status
 
 This is version 1.7, the largest update in recent years and hopefully
-close to the last for 1.x as primary development shifts to 2.x. If 
-necessary bug fix releases will of course be made for 1.x, but 
+close to the last for 1.x as primary development shifts to 2.x. If
+necessary bug fix releases will of course be made for 1.x, but
 most new features will only be added to 2.x.
 
-Version 1.7 is a big upgrade for building, releasing, installation
-and packaging. It aligns with common practices of the 
-better C library projects.
+Version 1.7 is a big upgrade for building, releasing, installation and
+packaging. It aligns with common practices of the better C library projects.
 
 QCBOR v1.x continues to be highly stable as it has been for some years.
 Most changes to it have been bug fixes and small feature additions.
@@ -244,7 +243,7 @@ C pre processor macros that can be #defined in order to:
  * to improve performance (a little)
  * remove features to reduce code size
  * increase hard limits on array/map/tag depth
- 
+
 See "inc/qcbor/qcbor_config.h" and "inc/qcbor/Usefulbuf.h".
 
 For packaged and installed custom configurations, use CMake which will
@@ -390,60 +389,71 @@ hardware instructions for the float and double
 types in C for some architectures.
 
 
-
 ## Code Size
 
-QCBOR is a bit obsesive about keeping code size down. Internal linkage is managed so that simple features don't
-link to anything unneccessary so simple protocols don't result in very 
-much object code being linked. Individual functions have been optimized
-for code size. Checks on code size are made during development.
+QCBOR is a bit obsessive about keeping code size small. The library is
+structured so that using a simple feature doesn't pull in code for
+features you don't use, so a simple protocol links in very little
+object code. Individual functions are optimized for size, and code
+size is checked regularly during development.
 
-It also provides features, 
-that can result in smaller overall application
-size. For example, it tracks errors internally so the caller doesn't have to.
-Map decoding is fairly powerful so a usecase that decodes multiple maps is smaller 
-because there is only one instance of map traversal code.
+QCBOR also has features that make the overall application smaller.
+For example, it tracks errors internally, so the caller can check once
+at the end instead of after every call. Map decoding is powerful
+enough that an application decoding several maps shares one copy of
+the map-traversal code in the library rather than carrying its own
+for each map.
 
-While the internal linkage structure provides a way to exclude code
-not needed, it can't do it all so there is compile time configuration
-to remove some features. For example, QCBOR_DISABLE_NON_INTEGER_LABELS
-reduces the size of the decoder by removing all decoding of map labels
-except those that are integers.
+Linking only what's used can't remove everything, so some features
+can also be removed at compile time with the `QCBOR_DISABLE_XXX`
+options. For example, `QCBOR_DISABLE_NON_INTEGER_LABELS` shrinks the
+decoder by removing support for all map labels except integers.
 
-These are approximate sizes on a 64-bit Apple M4 CPU with the -Os optimization.
-All `QCBOR_DISABLE_XXX` are set and compiler stack frame checking is disabled
-for smallest but not for largest. Smallest is the library functions for a
-protocol with strings, integers, arrays, maps and Booleans, but not floats
-or tags.
+### Measured sizes
 
-|               | smallest  | largest  |
-|---------------|-----------|----------|
-| encode only   |     1,100 |    2,700 |
-| decode only   |     1,650 |   13,200 |
-| combined      |     2,750 |   15,900 |
+Approximate sizes in bytes, measured on a 64-bit Apple M4 with `-Os`:
 
-Here's some info on keeping code size down.
+- **Smallest:** only the library code needed for a protocol using
+  strings, integers, arrays, maps and Booleans (no floating point or
+  tags), with all `QCBOR_DISABLE_XXX` options set and the compiler's
+  stack protector turned off.
+- **Largest:** all features, no `QCBOR_DISABLE_XXX` options set, and
+  the stack protector on.
 
-The largest part of the encoder is decimal fractions, big floats and
-big numbers, but those are pretty specialized features that will
-be seldom used. Floating point also are of note because of
-the conversion to single and half precision for preferred serialization.
-Other than those, basic decoding is about 1.1KB.
+|                 | Smallest | Largest |
+|-----------------|---------:|--------:|
+| Encode only     |    1,100 |   2,700 |
+| Decode only     |    1,650 |  13,200 |
+| Encode + decode |    2,750 |  15,900 |
 
-Basic decoding using only QCBORDecode_GetNext() starts at about 1.7KB.
+### Where the size goes
 
-Basic use of spiffy decode on maps and arrays brings in about 3KB.
+**Encoder.** Basic encoding is about 1.1 KB. The largest parts are
+decimal fractions, big floats and big numbers, but these are
+specialized and seldom used. Floating point also adds a fair amount,
+because preferred serialization converts values to half or single
+precision when that can be done without loss.
 
-Various other decode features like Booleans, dates and byte-string
-wrapping bring in small increments.
+**Decoder.**
 
-The largest part of the decoder is the number conversion functions such
-as having big numbers returned as floating-point.
+- Basic decoding using only `QCBORDecode_GetNext()` starts at about
+  1.7 KB.
+- Basic use of spiffy decode on maps and arrays adds about 3 KB.
+- Other features, such as Booleans, dates and byte-string wrapping,
+  each add a small amount.
+- The largest part is the number-conversion functions, such as those
+  that return big numbers as floating point.
 
-It is generally safe to turn off the compilers stack guard features
-because Usefulbuf provides similar defenses, because of a careful
-focus on code safety and because of numerous reviewes and runs through
-analyzers.
+### Stack protection
+
+Turning off the compiler's stack protector (for example with
+`-fno-stack-protector` on GCC and Clang) reduces code size, and you
+can do this for just the QCBOR source files. This is often a
+reasonable trade-off for QCBOR because UsefulBuf provides similar
+protection against buffer overruns, the code was written with a
+careful focus on safety, and it has been through numerous reviews and
+runs through analyzers. Whether it's right for your product depends on
+your security requirements.
 
 ### Disabling Features
 

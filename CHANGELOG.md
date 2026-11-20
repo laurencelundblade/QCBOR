@@ -5,27 +5,23 @@ All notable changes to QCBOR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.0] 2026-11-23
 
 ### Added
 - Going forward, CHANGELOG.md (this file) is the source of truth for change history
   - Text in GitHub release notes will be copied from here 
-  - Some of the version history from GitHub releases has been copied in here
-- Support for changing compiled-in limits on nesting and tag numbers
-  - Documentation
-  - Makefile and Cmake support
-  - Test coverage for nesting and tag number limits other than defaults
-- QCBOR_VERSION_NUMBER allows > and < version number comparison
 - New header added: qcbor_config.h for custom configurations. CMake
   generates this for custom configuration installs.
+- Support for changing compiled-in limits on nesting and tag numbers
+- QCBOR_VERSION_NUMBER allows > and < version number comparison
 
 ### Changed
 - Default nesting maximum is increased from 15 to 35
 - Improve documentation on nesting and tag number limits
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
+- Establish SOVERSION and ABI version management policy
 - Revised & moved qcbor.spec to be much more useful for downstream packagers
 - CI now checks qcbor.spec
-- Establish SOVERSION and ABI version management policy
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
 
