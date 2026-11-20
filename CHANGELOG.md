@@ -65,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   8; it now returns NULLUsefulBufC (#443).
 - Defend against infinite recursion triggered by malformed big floats and
   decimal fractions.
+- Fix warning from UBSan about incorrect shift in ieee754.
+
 
 
 ## [1.6.1] - 2025-03-03
