@@ -2312,18 +2312,6 @@ Done:
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
-/* Forward declaration is necessary for
- * QCBORDecode_MantissaAndExponent().  to be able to decode bignum
- * tags in the mantissa. If the mantissa is a decimal fraction or big
- * float in error, this will result in a recurive call to
- * QCBORDecode_MantissaAndExponent(), but the recursion will unwined
- * correctly and the correct error is returned.
- */
-static QCBORError
-QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
-                                      QCBORItem          *pDecodedItem);
-
-
 /**
  * @brief Decode decimal fractions and big floats.
  *
@@ -2353,6 +2341,22 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
                                 QCBORItem          *pDecodedItem)
 {
    QCBORError uReturn;
+
+   /* --- Guard against recursion --- */
+   /* The exponent and mantissa are fetched with QCBORDecode_GetNext(),
+    * which does tag content decoding, so a decimal fraction or big
+    * float nested in one gets back here. That is never valid, but
+    * without this check input such as a long run of 0xc5 0x80 would
+    * recurse without bound and exhaust the stack.
+    *
+    * This only works with a global flag in pMe because there's no
+    * threading or true recursion or nesting. QCBOR v2 has a general
+    * purpose recursion guard because it has pluggable ta content
+    * decoders. */
+   if(pMe->bInExpMantissa) {
+      return QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+   }
+   pMe->bInExpMantissa = true;
 
    /* --- Make sure it is an array; track nesting level of members --- */
    if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
@@ -2440,7 +2444,8 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
    pDecodedItem->uNextNestLevel = mantissaItem.uNextNestLevel;
 
 Done:
-  return uReturn;
+   pMe->bInExpMantissa = false;
+   return uReturn;
 }
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
