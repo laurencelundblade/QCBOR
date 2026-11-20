@@ -2312,18 +2312,6 @@ Done:
 
 #ifndef QCBOR_DISABLE_EXP_AND_MANTISSA
 
-/* Forward declaration is necessary for
- * QCBORDecode_MantissaAndExponent().  to be able to decode bignum
- * tags in the mantissa. If the mantissa is a decimal fraction or big
- * float in error, this will result in a recurive call to
- * QCBORDecode_MantissaAndExponent(), but the recursion will unwined
- * correctly and the correct error is returned.
- */
-static QCBORError
-QCBORDecode_Private_GetNextTagContent(QCBORDecodeContext *pMe,
-                                      QCBORItem          *pDecodedItem);
-
-
 /**
  * @brief Decode decimal fractions and big floats.
  *
@@ -2353,6 +2341,22 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
                                 QCBORItem          *pDecodedItem)
 {
    QCBORError uReturn;
+
+   /* --- Guard against recursion --- */
+   /* The exponent and mantissa are fetched with QCBORDecode_GetNext(),
+    * which does tag content decoding, so a decimal fraction or big
+    * float nested in one gets back here. That is never valid, but
+    * without this check input such as a long run of 0xc5 0x80 would
+    * recurse without bound and exhaust the stack.
+    *
+    * This only works with a global flag in pMe because there's no
+    * threading or true recursion or nesting. QCBOR v2 has a general
+    * purpose recursion guard because it has pluggable ta content
+    * decoders. */
+   if(pMe->bInExpMantissa) {
+      return QCBOR_ERR_BAD_EXP_AND_MANTISSA;
+   }
+   pMe->bInExpMantissa = true;
 
    /* --- Make sure it is an array; track nesting level of members --- */
    if(pDecodedItem->uDataType != QCBOR_TYPE_ARRAY) {
@@ -2440,7 +2444,8 @@ QCBORDecode_Private_ExpMantissa(QCBORDecodeContext *pMe,
    pDecodedItem->uNextNestLevel = mantissaItem.uNextNestLevel;
 
 Done:
-  return uReturn;
+   pMe->bInExpMantissa = false;
+   return uReturn;
 }
 #endif /* QCBOR_DISABLE_EXP_AND_MANTISSA */
 
@@ -3145,7 +3150,7 @@ QCBORDecode_SetMemPool(QCBORDecodeContext *pMe,
  *                              consumed.
  * @param[in,out] pEnd          Tracks where the target ends. Can be NULL.
  * @param[out] puNextNestLevel  The next nesting level after the item was
- *                              fully consumed.
+ *                              fully consumed. Not set on error.
  *
  * This may be called when @c pItemToConsume is not an array or
  * map. In that case, this is just a pass through for @c puNextNestLevel
@@ -3172,7 +3177,12 @@ QCBORDecode_Private_ConsumeItem(QCBORDecodeContext    *pMe,
          uReturn = QCBORDecode_Private_GetNextMapOrArray(pMe, pEnd, &Item);
       } while(uReturn == QCBOR_SUCCESS && Item.uNextNestLevel >= pItemToConsume->uNextNestLevel);
 
-      *puNextNestLevel = Item.uNextNestLevel;
+      /* On error, Item may not have been written, for example when
+       * the input ends before the array or map does (0x81 with
+       * nothing after it). Leave *puNextNestLevel unset then. */
+      if(uReturn == QCBOR_SUCCESS) {
+         *puNextNestLevel = Item.uNextNestLevel;
+      }
 
    } else {
       /* pItemToConsume is not a map or array. Just pass the nesting
