@@ -5,67 +5,63 @@ All notable changes to QCBOR are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.0] 2026-11-21
 
 ### Added
 - Going forward, CHANGELOG.md (this file) is the source of truth for change history
   - Text in GitHub release notes will be copied from here 
-  - Some of the version history from GitHub releases has been copied in here
-- Support for changing compiled-in limits on nesting and tag numbers
-  - Documentation
-  - Makefile and Cmake support
-  - Test coverage for nesting and tag number limits other than defaults
-- QCBOR_VERSION_NUMBER allows > and < version number comparison
 - New header added: qcbor_config.h for custom configurations. CMake
   generates this for custom configuration installs.
+- Support for changing compiled-in limits on nesting and tag numbers
+- QCBOR_VERSION_NUMBER allows > and < version number comparison
 
 ### Changed
 - Default nesting maximum is increased from 15 to 35
 - Improve documentation on nesting and tag number limits
 - QCBOR_VERSION_STRING no longer has "libqcbor" at the start (comply with convention)
+- Establish SOVERSION and ABI version management policy
 - Revised & moved qcbor.spec to be much more useful for downstream packagers
 - CI now checks qcbor.spec
-- Establish SOVERSION and ABI version management policy
 - Remove Make-based shared lib install because it doesn't handle SOVERSION
 - CMake improvements for compiler optimization flags and libm config
 
 ### Fixed
-- User-defined error strings now include the correct final decimal digit.
-- When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
-  and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above 
-  QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
-- Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
-  than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
-- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
-  is QCBOR_TYPE_NONE) on encoded input that is a non-aggregate CBOR type
-  (e.g., an integer) resulted in a NULL deference.
-- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
-  is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
-  QCBOR_ERR_MAP_NOT_ENTERED.
-- Fix some #include path names by adding "qcbor/" to the beginning of them.
 - QCBORDecode_GetDoubleConvertAll() and related functions suceeded and returned
   wrong results when the encoded CBOR input is floating-point and conversion
   for float is not requested, for example when conversion types is QCBOR_CONVERT_TYPE_XINT64
 - Fix multiple bugs in QCBORDecode_GetDecimalFractionBig() and
   QCBORDecode_GetBigFloatBig() including infinite loops and incorrect
   results. (Sorry these bugs were so bad; test coverage is much expanded).
-- Fix QCBORDecode_GetArray() and QCBORDecode_GetMap() called on some indefinite
-  length arrays or maps nested in definite length arrays or maps. The returned
-  CBOR did not include the terminating break.
+- Defend against infinite recursion triggered by malformed big floats and
+  decimal fractions.
 - Exiting a definite-length array/map inside, and at the end of, an
   indefinite-length array/map didn't fully complete the exit; nesting
   tracking was off and a subsequet QCBORDecode_GetNext() succeeded that
   should have failed.
+- Fix QCBORDecode_GetArray() and QCBORDecode_GetMap() called on some indefinite
+  length arrays or maps nested in definite length arrays or maps. The returned
+  CBOR did not include the terminating break.
 - QCBORDecode_GetArray(), QCBORDecode_GetMap() and QCBORDecode_VGetNextConsume()
   now error out on recoverable errors; they didn't previously. This is
   a small change in behavior. Behavior now aligns with documentation.
 - QCBORDecode_VGetNextConsume() set an uninitialized uNextNestLevel when an
   array or map was truncated (#444).
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on encoded input that is a non-aggregate CBOR type
+  (e.g., an integer) resulted in a NULL deference.
+- Unpredictable results for QCBORDecode_GetItemsInMap() when getting more 
+  than 64 items. Now errors if more than QCBOR_DECODE_MAX_GET_ITEMS.
+- Calling QCBORDecode_GetItemsInMap() with an empty search (first item's type
+  is QCBOR_TYPE_NONE) on an entered array returned QCBOR_SUCCESS instead of
+  QCBOR_ERR_MAP_NOT_ENTERED.
+- When QCBOR_NUM_MAPPED_TAGS is re configured to less than QCBOR_MAX_TAGS_PER_ITEM
+  and the input has more than QCBOR_NUM_MAPPED_TAGS tag numbers above 
+  QCBOR_LAST_UNMAPPED_TAG, the error is not reported and incorrect tag numbers are returned.
+- Fix warning from UBSan about incorrect shift in ieee754.
+- Fix some #include path names by adding "qcbor/" to the beginning of them.
 - QCBOREncode_EncodeHead() wrote before its buffer when uMinLen was more than
   8; it now returns NULLUsefulBufC (#443).
-- Defend against infinite recursion triggered by malformed big floats and
-  decimal fractions.
-- Fix warning from UBSan about incorrect shift in ieee754.
+- User-defined error strings now include the correct final decimal digit.
 
 
 

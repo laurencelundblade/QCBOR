@@ -10,16 +10,17 @@ Replaced by RFC 8949.
 * [RFC8742](https://tools.ietf.org/html/rfc8742) CBOR Sequences
 * [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
 
-## QCBOR v2 alpha release
+## QCBOR v2 beta release is available
 
-Alpha releases of QCBOR 2.0 are available [here](https://github.com/laurencelundblade/QCBOR/tree/dev).
+This is a release of v1.7, but for those interested beta releases of
+QCBOR 2.0 are available [here](https://github.com/laurencelundblade/QCBOR/tree/dev).
 It includes:
 
 * Better tag handling
-* Map sorting
-* Modes for CDE and Preferred Serialization
-* dCBOR support
-* Better big number support
+* Serialization modes and conformance checking
+* Better number handling
+* Streaming encoding
+* Refactored into more header and source files
 
 ## QCBOR Characteristics
 
@@ -184,14 +185,20 @@ QCBOR.
 
 ## Code Status
 
-The official current release is version 1.6.1. Changes over the last few
-years have been only minor bug fixes, minor feature additions and
-documentation improvements. QCBOR 1.x is highly stable.
+This is version 1.7, the largest update in recent years and hopefully
+close to the last for 1.x as primary development shifts to 2.x. If
+necessary bug fix releases will of course be made for 1.x, but most
+new features will only be added to 2.x.
 
-Work on some larger feature additions is ongoing in "dev" branch.
-This includes more explicit support for preferred serialization and
-CDE (CBOR Deterministic Encoding).  It will eventually be release as
-QCBOR 2.x.
+Version 1.7 is a big upgrade for building, releasing, installation and
+packaging. It aligns with common practices of the better C library
+projects.
+
+QCBOR v1.x continues to be highly stable as it has been for some
+years.  Most changes to it have been bug fixes and small feature
+additions.
+
+QCBOR 2.x is in beta release now in the dev branch.
 
 QCBOR was originally developed by Qualcomm. It was [open sourced
 through CAF](https://source.codeaurora.org/quic/QCBOR/QCBOR/) with a
@@ -239,7 +246,7 @@ C pre processor macros that can be #defined in order to:
  * to improve performance (a little)
  * remove features to reduce code size
  * increase hard limits on array/map/tag depth
- 
+
 See "inc/qcbor/qcbor_config.h" and "inc/qcbor/Usefulbuf.h".
 
 For packaged and installed custom configurations, use CMake which will
@@ -385,64 +392,77 @@ hardware instructions for the float and double
 types in C for some architectures.
 
 
-
 ## Code Size
 
-These are approximate sizes on a 64-bit x86 CPU with the -Os optimization.
-All `QCBOR_DISABLE_XXX` are set and compiler stack frame checking is disabled
-for smallest but not for largest. Smallest is the library functions for a
-protocol with strings, integers, arrays, maps and Booleans, but not floats
-and standard tag types.
+QCBOR is a bit obsessive about keeping code size small. The library is
+structured so that using a simple feature doesn't pull in code for
+features you don't use, so a simple protocol links in very little
+object code. Individual functions are optimized for size, and code
+size is checked regularly during development.
 
-|               | smallest | largest |
-|---------------|----------|---------|
-| encode only   |      850 |    2200 |
-| decode only   |     1550 |   13300 |
-| combined      |     2500 |   15500 |
+QCBOR also has features that make the overall application smaller.
+For example, it tracks errors internally, so the caller can check once
+at the end instead of after every call. Map decoding is powerful
+enough that an application decoding several maps shares one copy of
+the map-traversal code in the library rather than carrying its own
+for each map.
 
- From the table above, one can see that the amount of code pulled in
- from the QCBOR library varies a lot, ranging from 1KB to 15KB.  The
- main factor is the number of QCBOR functions called and
- which ones they are. QCBOR minimizes internal
- interdependency so only code necessary for the called functions is
- brought in.
+Linking only what's used can't remove everything, so some features
+can also be removed at compile time with the `QCBOR_DISABLE_XXX`
+options. For example, `QCBOR_DISABLE_NON_INTEGER_LABELS` shrinks the
+decoder by removing support for all map labels except integers.
 
- Encoding is simpler and smaller. An encode-only implementation may
- bring in only 1KB of code.
+### Measured sizes
 
- Encoding of floating-point brings in a little more code as does
- encoding of tagged types and encoding of bstr wrapping.
+Approximate sizes in bytes, measured on a 64-bit Apple M4 with `-Os`:
 
- Basic decoding using QCBORDecode_GetNext() brings in 3KB.
+- **Smallest:** only the library code needed for a protocol using
+  strings, integers, arrays, maps and Booleans (no floating point or
+  tags), with all `QCBOR_DISABLE_XXX` options set and the compiler's
+  stack protector turned off.
+- **Largest:** all features, no `QCBOR_DISABLE_XXX` options set, and
+  the stack protector on.
 
- Use of the supplied MemPool by calling  QCBORDecode_SetMemPool() to
- setup to decode indefinite-length strings adds 0.5KB.
+|                 | Smallest | Largest |
+|-----------------|---------:|--------:|
+| Encode only     |    1,100 |   2,700 |
+| Decode only     |    1,650 |  13,200 |
+| Encode + decode |    2,750 |  15,900 |
 
- Basic use of spiffy decode to brings in about 3KB. Using more spiffy
- decode functions, such as those for tagged types bstr wrapping brings
- in more code.
+### Where the size goes
 
- Finally, use of all of the integer conversion functions will bring in
- about 5KB, though you can use the simpler ones like
- QCBORDecode_GetInt64() without bringing in very much code.
+**Encoder.** Basic encoding is about 1.1 KB. The largest parts are
+decimal fractions, big floats and big numbers, but these are
+specialized and seldom used. Floating point also adds a fair amount,
+because preferred serialization converts values to half or single
+precision when that can be done without loss.
 
- In addition to using fewer QCBOR functions, the following are some
- ways to make the code smaller.
+**Decoder.**
 
- The gcc compiler output is usually smaller than llvm because stack
- guards are off by default (be sure you actually have gcc and not llvm
- installed to be invoked by the gcc command). You can also turn off
- stack gaurds with llvm. It is safe to turn off stack gaurds with this
- code because Usefulbuf provides similar defenses and this code was
- carefully written to be defensive.
+- Basic decoding using only `QCBORDecode_GetNext()` starts at about
+  1.7 KB.
+- Basic use of spiffy decode on maps and arrays adds about 3 KB.
+- Other features, such as Booleans, dates and byte-string wrapping,
+  each add a small amount.
+- The largest part is the number-conversion functions, such as those
+  that return big numbers as floating point.
 
- If QCBOR is installed as a shared library, then of course only one
- copy of the code is in memory no matter how many applications use it.
+### Stack protection
+
+Turning off the compiler's stack protector (for example with
+`-fno-stack-protector` on GCC and Clang) reduces code size, and you
+can do this for just the QCBOR source files. This is often a
+reasonable trade-off for QCBOR because UsefulBuf provides similar
+protection against buffer overruns, the code was written with a
+careful focus on safety, and it has been through numerous reviews and
+runs through analyzers. Whether it's right for your product depends on
+your security requirements.
 
 ### Disabling Features
 
 Here's the list of all features that can be disabled to save object
-code. The amount saved is an approximation.
+code. The amount saved is an approximation. See qcbor_config.h
+for descriptions of what they do.
 
 | #define                                   | Saves |
 | ------------------------------------------| ------|
@@ -451,11 +471,14 @@ code. The amount saved is an approximation.
 | `QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS`  |   200 |
 | `QCBOR_DISABLE_UNCOMMON_TAGS`             |   100 |
 | `QCBOR_DISABLE_EXP_AND_MANTISSA`          |   400 |
-| `QCBOR_DISABLE_PREFERRED_FLOAT`           |   900 |
-| `QCBOR_DISABLE_FLOAT_HW_USE`              |    50 |
-| `QCBOR_DISABLE_TAGS`                      |   400 |
+| `QCBOR_DISABLE_PREFERRED_FLOAT`           |   300 |
+| `QCBOR_DISABLE_FLOAT_HW_USE`              | 1,100 |
+| `QCBOR_DISABLE_TAGS`                      | 1,200 |
 | `QCBOR_DISABLE_NON_INTEGER_LABELS`        |   140 |
 | `USEFULBUF_DISABLE_ALL_FLOAT`             |   950 |
+
+
+
 
 `QCBOR_DISABLE_ENCODE_USAGE_GUARDS` affects encoding only.  It doesn't
 disable any encoding features, just some error checking.  Disable it
