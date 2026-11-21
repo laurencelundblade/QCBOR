@@ -10,9 +10,10 @@ Replaced by RFC 8949.
 * [RFC8742](https://tools.ietf.org/html/rfc8742) CBOR Sequences
 * [RFC8943](https://tools.ietf.org/html/rfc8943) CBOR Dates
 
-## QCBOR v2 beta release
+## QCBOR v2 beta release is available
 
-Beta releases of QCBOR 2.0 are available [here](https://github.com/laurencelundblade/QCBOR/tree/dev).
+This is a release of v1.7, but for those interested beta releases of
+QCBOR 2.0 are available [here](https://github.com/laurencelundblade/QCBOR/tree/dev).
 It includes:
 
 * Better tag handling
@@ -186,14 +187,16 @@ QCBOR.
 
 This is version 1.7, the largest update in recent years and hopefully
 close to the last for 1.x as primary development shifts to 2.x. If
-necessary bug fix releases will of course be made for 1.x, but
-most new features will only be added to 2.x.
+necessary bug fix releases will of course be made for 1.x, but most
+new features will only be added to 2.x.
 
 Version 1.7 is a big upgrade for building, releasing, installation and
-packaging. It aligns with common practices of the better C library projects.
+packaging. It aligns with common practices of the better C library
+projects.
 
-QCBOR v1.x continues to be highly stable as it has been for some years.
-Most changes to it have been bug fixes and small feature additions.
+QCBOR v1.x continues to be highly stable as it has been for some
+years.  Most changes to it have been bug fixes and small feature
+additions.
 
 QCBOR 2.x is in beta release now in the dev branch.
 
