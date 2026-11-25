@@ -41,7 +41,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h> /* For isnan(), llround(), llroudf(), round(), roundf(),
                    * pow(), exp2()
                    */
-#include <fenv.h> /* feclearexcept(), fetestexcept() */
 
 #endif /* QCBOR_DISABLE_FLOAT_HW_USE */
 
@@ -5501,17 +5500,11 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          /* https://pubs.opengroup.org/onlinepubs/009695399/functions/llround.html
           * http://www.cplusplus.com/reference/cmath/llround/
           */
-         /* Not interested in FE_INEXACT */
-         feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
-         *pnValue = lroundf(pItem->val.fnum);
-         if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
-            /* llround() shouldn't result in divide by zero, but catch
-             * it here in case it unexpectedly does.  Don't try to
-             * distinguish between the various exceptions because it seems
-             * they vary by CPU, compiler and OS.
-             */
+         /* [-2^63, 2^63[ can be represented exactly as float. */
+         if(!(pItem->val.fnum >= -0x1p63f && pItem->val.fnum < 0x1p63f)) {
             return QCBOR_ERR_FLOAT_EXCEPTION;
          }
+         *pnValue = llroundf(pItem->val.fnum);
          break;
 
       case QCBOR_TYPE_DOUBLE:
@@ -5529,17 +5522,11 @@ QCBOR_Private_ConvertInt64(const QCBORItem *pItem,
          /* https://pubs.opengroup.org/onlinepubs/009695399/functions/llround.html
           * http://www.cplusplus.com/reference/cmath/llround/
           */
-         /* Not interested in FE_INEXACT */
-         feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
-         *pnValue = llround(pItem->val.dfnum);
-         if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
-            /* llround() shouldn't result in divide by zero, but catch
-             * it here in case it unexpectedly does.  Don't try to
-             * distinguish between the various exceptions because it seems
-             * they vary by CPU, compiler and OS.
-             */
+         /* [-2^63, 2^63[ can be exactly represented as double */
+         if(!(pItem->val.dfnum >= -0x1p63 && pItem->val.dfnum < 0x1p63)) {
             return QCBOR_ERR_FLOAT_EXCEPTION;
          }
+         *pnValue = llround(pItem->val.dfnum);
          break;
 
 #else /* ! QCBOR_DISABLE_FLOAT_HW_USE */
@@ -5912,7 +5899,6 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
             // Can't use llround here because it will not convert values
             // greater than INT64_MAX and less than UINT64_MAX that
             // need to be converted so it is more complicated.
-            feclearexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO);
             if(pItem->uDataType == QCBOR_TYPE_DOUBLE) {
                if(isnan(pItem->val.dfnum)) {
                   return QCBOR_ERR_FLOAT_EXCEPTION;
@@ -5934,20 +5920,13 @@ QCBOR_Private_ConvertUInt64(const QCBORItem *pItem,
                   return QCBOR_ERR_NUMBER_SIGN_CONVERSION;
                } else {
                   float fRounded = roundf(pItem->val.fnum);
-                  // See discussion in DecodeDateEpoch() for
-                  // explanation of - 0x7ff
-                  if(fRounded > (float)(UINT64_MAX- 0x7ff)) {
+                  // (float)(UINT64_MAX - 0x7ff) rounds up to 2^64, which
+                  // is out of range, so compare against 2^64 directly.
+                  if(fRounded >= 0x1p64f) {
                      return QCBOR_ERR_CONVERSION_UNDER_OVER_FLOW;
                   }
                   *puValue = (uint64_t)fRounded;
                }
-            }
-            if(fetestexcept(FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW|FE_DIVBYZERO)) {
-               // round() and roundf() shouldn't result in exceptions here, but
-               // catch them to be robust and thorough. Don't try to
-               // distinguish between the various exceptions because it seems
-               // they vary by CPU, compiler and OS.
-               return QCBOR_ERR_FLOAT_EXCEPTION;
             }
 
          } else {
